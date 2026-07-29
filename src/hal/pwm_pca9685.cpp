@@ -3,7 +3,7 @@
 Pca9685Pwm::Pca9685Pwm(uint8_t i2cAddr) : drv_(i2cAddr) {}
 
 bool Pca9685Pwm::begin(uint32_t pwmFreqHz) {
-  drv_.begin();                       // inits the PCA9685 over I2C (Wire already begun)
+  if (!drv_.begin()) return false;    // PCA9685 not responding on I2C
   drv_.setPWMFreq(pwmFreqHz);         // ~1000 Hz for LEDs (PCA9685 max ~1526 Hz)
   for (uint8_t ch = 0; ch < CH_COUNT; ++ch) drv_.setPin(ch, 0);
   return true;
