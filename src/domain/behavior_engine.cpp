@@ -31,6 +31,11 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
   }
 
   // --- Spot latch state machine (flash long-press) ---
+  // NOTE: on the Energica Experia, flash / high beam / low beam are mutually
+  // exclusive positions of ONE switch, so s.lowBeam and s.flash are never both
+  // true. The sequential auto-drop-then-latch below is safe under that assumption.
+  // Porting to a bike with independent flash + low-beam signals? Gate the latch
+  // with `&& !s.lowBeam` (or use else-if).
   if (s.lowBeam) {
     est.spotLatched = false;                 // auto-drop on low beam
   }

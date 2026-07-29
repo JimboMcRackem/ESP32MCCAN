@@ -128,17 +128,21 @@ void test_denali_high_beam_level() {
 }
 
 void test_spot_latches_after_hold_then_persists() {
+  cfg.denaliSpot = 200;   // distinct from denaliHigh (255) so the spot branch is observable
   LogicalState s; s.run = true; s.highBeam = true; s.flash = true;
   EngineState est{};
-  // t=0 flash pressed (rising edge), not yet held long enough
+  // t=0 flash pressed (rising edge), not yet held long enough -> high-beam level, not latched
   TEST_ASSERT_EQUAL_UINT8(cfg.denaliHigh, computeOutputs(s, cfg, 0, est).denali);
+  TEST_ASSERT_FALSE(est.spotLatched);
   // t=spotHoldMs: held long enough -> latches to spot level
   TEST_ASSERT_EQUAL_UINT8(cfg.denaliSpot,
                           computeOutputs(s, cfg, cfg.spotHoldMs, est).denali);
+  TEST_ASSERT_TRUE(est.spotLatched);
   // release flash, still high beam -> spot stays latched
   s.flash = false;
   TEST_ASSERT_EQUAL_UINT8(cfg.denaliSpot,
                           computeOutputs(s, cfg, cfg.spotHoldMs + 500, est).denali);
+  TEST_ASSERT_TRUE(est.spotLatched);
 }
 
 void test_spot_auto_drops_on_low_beam() {
@@ -164,6 +168,12 @@ void test_short_flash_press_does_not_latch() {
   TEST_ASSERT_FALSE(est.spotLatched);
 }
 
+void test_denali_night_only_selects_low() {
+  LogicalState s; s.run = true; s.night = true;   // night mode, low beam not set
+  EngineState est{};
+  TEST_ASSERT_EQUAL_UINT8(cfg.denaliLow, computeOutputs(s, cfg, 0, est).denali);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_drl_default_day);
@@ -183,5 +193,6 @@ int main(int, char**) {
   RUN_TEST(test_spot_latches_after_hold_then_persists);
   RUN_TEST(test_spot_auto_drops_on_low_beam);
   RUN_TEST(test_short_flash_press_does_not_latch);
+  RUN_TEST(test_denali_night_only_selects_low);
   return UNITY_END();
 }
