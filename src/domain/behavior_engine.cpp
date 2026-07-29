@@ -30,6 +30,29 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
     o.rearR  = s.rightInd ? flashCol : (brakeOn ? cfg.brakeRed : dimRed);
   }
 
-  o.denali = 0;  // finalized in Task 6
+  // --- Spot latch state machine (flash long-press) ---
+  if (s.lowBeam) {
+    est.spotLatched = false;                 // auto-drop on low beam
+  }
+  if (s.flash && !est.flashPrev) {
+    est.flashRisingMs = nowMs;               // rising edge: start hold timer
+  }
+  if (s.flash && (nowMs - est.flashRisingMs) >= cfg.spotHoldMs) {
+    est.spotLatched = true;
+  }
+  est.flashPrev = s.flash;
+
+  // --- Denali level selection ---
+  if (!s.run) {
+    o.denali = 0;
+  } else if (est.spotLatched) {
+    o.denali = cfg.denaliSpot;
+  } else if (s.highBeam) {
+    o.denali = cfg.denaliHigh;
+  } else if (s.lowBeam || s.night) {
+    o.denali = cfg.denaliLow;
+  } else {
+    o.denali = cfg.denaliDay;
+  }
   return o;
 }
