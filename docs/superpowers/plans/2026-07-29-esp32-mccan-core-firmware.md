@@ -112,6 +112,9 @@ void test_rgb_equality() {
   TEST_ASSERT_TRUE(a != c);
 }
 
+void setUp(void) {}
+void tearDown(void) {}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_rgb_equality);
@@ -209,6 +212,9 @@ void test_output_intent_defaults_dark() {
   TEST_ASSERT_TRUE((o.frontL == Rgb{0, 0, 0}));
   TEST_ASSERT_EQUAL_UINT8(0, o.denali);
 }
+
+void setUp(void) {}
+void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
@@ -374,6 +380,9 @@ void test_run_and_daynight_unassigned() {
   TEST_ASSERT_EQUAL_UINT8(0, mapFor(c, Function::DayNight).count);
 }
 
+void setUp(void) {}
+void tearDown(void) {}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_default_timing_and_colors);
@@ -468,6 +477,9 @@ void test_daynight_unassigned_is_false() {
   cs.update(0x102, data);
   TEST_ASSERT_FALSE(cs.evaluate(defaultConfig()).night);
 }
+
+void setUp(void) {}
+void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
@@ -995,6 +1007,9 @@ void test_empty_string_falls_back_to_default() {
   TEST_ASSERT_EQUAL_UINT32(340, out.blinkPeriodMs);
 }
 
+void setUp(void) {}
+void tearDown(void) {}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_roundtrip_preserves_mapping_and_tunables);
@@ -1186,6 +1201,9 @@ void test_applies_all_corners_and_both_denali() {
   TEST_ASSERT_EQUAL_UINT8(200, pwm.duty[12]); // Denali A
   TEST_ASSERT_EQUAL_UINT8(200, pwm.duty[13]); // Denali B
 }
+
+void setUp(void) {}
+void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
