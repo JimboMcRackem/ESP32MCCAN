@@ -41,12 +41,19 @@ src/
     storage.h / .cpp         # LittleFS read/write config string
   main.cpp                   # boot: load config, init HAL, run loop
 test/
-  test_native/               # Unity tests run under `pio test -e native`
-    test_can_state.cpp
-    test_behavior_engine.cpp
-    test_config_json.cpp
-    test_channel_map.cpp
+  test_smoke/            test_smoke.cpp           # one dir per suite (PlatformIO
+  test_types/            test_types.cpp           # builds all .cpp in a test dir
+  test_config_defaults/  test_config_defaults.cpp # into ONE binary, so each suite
+  test_can_state/        test_can_state.cpp       # needs its own dir + own main()).
+  test_behavior_engine/  test_behavior_engine.cpp # Run all: `pio test -e native`;
+  test_config_json/      test_config_json.cpp     # one: `-f test_<name>`.
+  test_channel_map/      test_channel_map.cpp
 ```
+
+Each `test/test_<name>/` directory holds a single `test_<name>.cpp` with its own
+`main()` + empty `setUp`/`tearDown`. The `native` env must set `test_build_src = yes`
+with `build_src_filter = +<*> -<main.cpp> -<hal/>` so domain `.cpp` files link into
+tests while Arduino-only code (`hal/`, `main.cpp`) is excluded from the host build.
 
 `IPwm` lives in `src/hal/ipwm.h` but is a pure abstract interface with no Arduino headers, so `channel_map` (domain) can depend on it and still build on `native`.
 
@@ -57,7 +64,7 @@ test/
 **Files:**
 - Create: `platformio.ini`
 - Create: `src/domain/color.h`
-- Test: `test/test_native/test_smoke.cpp`
+- Test: `test/test_smoke/test_smoke.cpp`
 
 **Interfaces:**
 - Produces: `struct Rgb { uint8_t r, g, b; };` with `operator==`, in `src/domain/color.h`.
@@ -78,9 +85,16 @@ monitor_speed = 115200
 [env:native]
 platform = native
 build_flags = -std=gnu++17 -I src
+build_src_filter = +<*> -<main.cpp> -<hal/>
+test_build_src = yes
 lib_deps =
     bblanchon/ArduinoJson@^7.0.0
 ```
+
+`test_build_src = yes` makes PlatformIO compile `src/` into each native test binary so
+domain `.cpp` files link; `build_src_filter` excludes the Arduino-only `hal/` and
+`main.cpp` from the host build. Each Unity suite lives in its own `test/test_<name>/`
+directory with its own `main()`.
 
 - [ ] **Step 2: Create `src/domain/color.h`**
 
@@ -98,7 +112,7 @@ inline bool operator==(const Rgb& a, const Rgb& b) {
 inline bool operator!=(const Rgb& a, const Rgb& b) { return !(a == b); }
 ```
 
-- [ ] **Step 3: Write the smoke test** — `test/test_native/test_smoke.cpp`
+- [ ] **Step 3: Write the smoke test** — `test/test_smoke/test_smoke.cpp`
 
 ```cpp
 #include <unity.h>
@@ -130,7 +144,7 @@ Expected: PASS (1 test).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add platformio.ini src/domain/color.h test/test_native/test_smoke.cpp
+git add platformio.ini src/domain/color.h test/test_smoke/test_smoke.cpp
 git commit -m "chore: scaffold PlatformIO project with native test harness"
 ```
 
@@ -141,7 +155,7 @@ git commit -m "chore: scaffold PlatformIO project with native test harness"
 **Files:**
 - Create: `src/domain/logical_state.h`
 - Create: `src/domain/output_intent.h`
-- Test: `test/test_native/test_types.cpp`
+- Test: `test/test_types/test_types.cpp`
 
 **Interfaces:**
 - Produces: `struct LogicalState` with bool fields `run, leftInd, rightInd, frontBrake, rearBrake, lowBeam, highBeam, flash, night, kickstand`, plus `bool hazards() const` (= leftInd && rightInd) and `bool brake() const` (= frontBrake || rearBrake).
@@ -182,7 +196,7 @@ struct OutputIntent {
 };
 ```
 
-- [ ] **Step 3: Write the test** — `test/test_native/test_types.cpp`
+- [ ] **Step 3: Write the test** — `test/test_types/test_types.cpp`
 
 ```cpp
 #include <unity.h>
@@ -233,7 +247,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/domain/logical_state.h src/domain/output_intent.h test/test_native/test_types.cpp
+git add src/domain/logical_state.h src/domain/output_intent.h test/test_types/test_types.cpp
 git commit -m "feat: add LogicalState and OutputIntent domain types"
 ```
 
@@ -244,7 +258,7 @@ git commit -m "feat: add LogicalState and OutputIntent domain types"
 **Files:**
 - Create: `src/domain/config.h`
 - Create: `src/domain/config.cpp`
-- Test: `test/test_native/test_config_defaults.cpp`
+- Test: `test/test_config_defaults/test_config_defaults.cpp`
 
 **Interfaces:**
 - Produces: `enum class Function : uint8_t { Run, LeftInd, RightInd, FrontBrake, RearBrake, LowBeam, HighBeam, HighBeamFlash, DayNight, KickStand, COUNT };`
@@ -344,7 +358,7 @@ Config defaultConfig() {
 }
 ```
 
-- [ ] **Step 3: Write the test** — `test/test_native/test_config_defaults.cpp`
+- [ ] **Step 3: Write the test** — `test/test_config_defaults/test_config_defaults.cpp`
 
 ```cpp
 #include <unity.h>
@@ -401,7 +415,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/domain/config.h src/domain/config.cpp test/test_native/test_config_defaults.cpp
+git add src/domain/config.h src/domain/config.cpp test/test_config_defaults/test_config_defaults.cpp
 git commit -m "feat: add Config model with baked-in Experia default profile"
 ```
 
@@ -412,14 +426,14 @@ git commit -m "feat: add Config model with baked-in Experia default profile"
 **Files:**
 - Create: `src/domain/can_state.h`
 - Create: `src/domain/can_state.cpp`
-- Test: `test/test_native/test_can_state.cpp`
+- Test: `test/test_can_state/test_can_state.cpp`
 
 **Interfaces:**
 - Consumes: `Config`, `FunctionMap`, `Function`, `Combine` (Task 3); `LogicalState` (Task 2).
 - Produces: `class CanState` with `void update(uint32_t id, const uint8_t data[8]); bool getBit(uint32_t id, uint8_t bit) const; LogicalState evaluate(const Config& cfg) const;`
 - Bit convention per Global Constraints: `byte = bit/8`, `pos = bit%8`, LSB-first.
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_can_state.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_can_state/test_can_state.cpp`
 
 ```cpp
 #include <unity.h>
@@ -602,7 +616,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/domain/can_state.h src/domain/can_state.cpp test/test_native/test_can_state.cpp
+git add src/domain/can_state.h src/domain/can_state.cpp test/test_can_state/test_can_state.cpp
 git commit -m "feat: add CAN frame cache and logical-function evaluation"
 ```
 
@@ -613,7 +627,7 @@ git commit -m "feat: add CAN frame cache and logical-function evaluation"
 **Files:**
 - Create: `src/domain/behavior_engine.h`
 - Create: `src/domain/behavior_engine.cpp`
-- Test: `test/test_native/test_behavior_engine.cpp`
+- Test: `test/test_behavior_engine/test_behavior_engine.cpp`
 
 **Interfaces:**
 - Consumes: `LogicalState` (Task 2), `Config` (Task 3), `OutputIntent`/`Rgb` (Tasks 1-2).
@@ -621,7 +635,7 @@ git commit -m "feat: add CAN frame cache and logical-function evaluation"
 - Produces: `OutputIntent computeOutputs(const LogicalState& s, const Config& cfg, uint32_t nowMs, EngineState& est);`
 - This task implements the corner RGB logic + flash timing; Task 6 extends the same function with Denali/spot logic. Denali is set to 0 in this task and finalized in Task 6.
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_behavior_engine.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_behavior_engine/test_behavior_engine.cpp`
 
 ```cpp
 #include <unity.h>
@@ -817,7 +831,7 @@ Expected: PASS (10 tests).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/domain/behavior_engine.h src/domain/behavior_engine.cpp test/test_native/test_behavior_engine.cpp
+git add src/domain/behavior_engine.h src/domain/behavior_engine.cpp test/test_behavior_engine/test_behavior_engine.cpp
 git commit -m "feat: add behavior engine corner matrix and flash timing"
 ```
 
@@ -827,12 +841,12 @@ git commit -m "feat: add behavior engine corner matrix and flash timing"
 
 **Files:**
 - Modify: `src/domain/behavior_engine.cpp` (replace the `o.denali = 0` line with real logic)
-- Modify: `test/test_native/test_behavior_engine.cpp` (add Denali/spot tests + register them)
+- Modify: `test/test_behavior_engine/test_behavior_engine.cpp` (add Denali/spot tests + register them)
 
 **Interfaces:**
 - Consumes/Produces: same `computeOutputs` signature and `EngineState` from Task 5. This task fills in `EngineState.spotLatched`, `flashPrev`, `flashRisingMs` behavior and the `o.denali` value.
 
-- [ ] **Step 1: Add failing Denali/spot tests** to `test/test_native/test_behavior_engine.cpp` (add these functions and register each with `RUN_TEST` in `main`)
+- [ ] **Step 1: Add failing Denali/spot tests** to `test/test_behavior_engine/test_behavior_engine.cpp` (add these functions and register each with `RUN_TEST` in `main`)
 
 ```cpp
 void test_denali_off_when_not_run() {
@@ -941,7 +955,7 @@ Expected: PASS (all corner + Denali/spot tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/domain/behavior_engine.cpp test/test_native/test_behavior_engine.cpp
+git add src/domain/behavior_engine.cpp test/test_behavior_engine/test_behavior_engine.cpp
 git commit -m "feat: add Denali mode selection and spot-latch state machine"
 ```
 
@@ -952,14 +966,14 @@ git commit -m "feat: add Denali mode selection and spot-latch state machine"
 **Files:**
 - Create: `src/domain/config_json.h`
 - Create: `src/domain/config_json.cpp`
-- Test: `test/test_native/test_config_json.cpp`
+- Test: `test/test_config_json/test_config_json.cpp`
 
 **Interfaces:**
 - Consumes: `Config`, `Function`, `Combine`, `FunctionMap`, `BitRef` (Task 3).
 - Produces: `std::string configToJson(const Config& c);` and `Config configFromJson(const std::string& json, bool& ok);` — on parse failure `ok=false` and the return is `defaultConfig()`.
 - Uses ArduinoJson (works on the `native` env via `lib_deps`).
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_config_json.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_config_json/test_config_json.cpp`
 
 ```cpp
 #include <unity.h>
@@ -1153,7 +1167,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/domain/config_json.h src/domain/config_json.cpp test/test_native/test_config_json.cpp
+git add src/domain/config_json.h src/domain/config_json.cpp test/test_config_json/test_config_json.cpp
 git commit -m "feat: add Config JSON serialization with corrupt-file fallback"
 ```
 
@@ -1165,14 +1179,14 @@ git commit -m "feat: add Config JSON serialization with corrupt-file fallback"
 - Create: `src/hal/ipwm.h`
 - Create: `src/domain/channel_map.h`
 - Create: `src/domain/channel_map.cpp`
-- Test: `test/test_native/test_channel_map.cpp`
+- Test: `test/test_channel_map/test_channel_map.cpp`
 
 **Interfaces:**
 - Produces: `class IPwm { public: virtual ~IPwm() = default; virtual void setDuty(uint8_t channel, uint8_t duty) = 0; };` in `src/hal/ipwm.h` (no Arduino headers, host-safe).
 - Produces: channel index constants and `void applyIntent(IPwm& pwm, const OutputIntent& o);` in `channel_map.h`.
 - Channel layout: `0..2` frontL RGB, `3..5` frontR RGB, `6..8` rearL RGB, `9..11` rearR RGB, `12` Denali A, `13` Denali B (both written with `o.denali`).
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_channel_map.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_channel_map/test_channel_map.cpp`
 
 ```cpp
 #include <unity.h>
@@ -1278,7 +1292,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/hal/ipwm.h src/domain/channel_map.h src/domain/channel_map.cpp test/test_native/test_channel_map.cpp
+git add src/hal/ipwm.h src/domain/channel_map.h src/domain/channel_map.cpp test/test_channel_map/test_channel_map.cpp
 git commit -m "feat: map OutputIntent to 14 PWM channels behind IPwm interface"
 ```
 

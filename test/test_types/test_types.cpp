@@ -25,3 +25,14 @@ void test_output_intent_defaults_dark() {
   TEST_ASSERT_TRUE((o.frontL == Rgb{0, 0, 0}));
   TEST_ASSERT_EQUAL_UINT8(0, o.denali);
 }
+
+void setUp(void) {}
+void tearDown(void) {}
+
+int main(int, char**) {
+  UNITY_BEGIN();
+  RUN_TEST(test_hazards_requires_both_indicators);
+  RUN_TEST(test_brake_is_front_or_rear);
+  RUN_TEST(test_output_intent_defaults_dark);
+  return UNITY_END();
+}
