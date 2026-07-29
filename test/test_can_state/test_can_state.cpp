@@ -54,6 +54,33 @@ void test_daynight_unassigned_is_false() {
   TEST_ASSERT_FALSE(cs.evaluate(defaultConfig()).night);
 }
 
+void test_or_combine_needs_any_bit() {
+  Config cfg = defaultConfig();
+  FunctionMap fm;
+  fm.combine = Combine::Or;
+  fm.bits[0] = {0x102, 21};
+  fm.bits[1] = {0x102, 22};
+  fm.count = 2;
+  mapFor(cfg, Function::FrontBrake) = fm;   // repurpose FrontBrake as an OR map for the test
+
+  CanState cs;
+  uint8_t data[8] = {0};
+  cs.update(0x102, data);
+  TEST_ASSERT_FALSE(cs.evaluate(cfg).frontBrake);   // neither bit -> false
+  setBit(data, 22);
+  cs.update(0x102, data);
+  TEST_ASSERT_TRUE(cs.evaluate(cfg).frontBrake);    // OR -> any bit true
+}
+
+void test_getbit_out_of_range_is_false() {
+  CanState cs;
+  uint8_t data[8] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+  cs.update(0x102, data);
+  TEST_ASSERT_TRUE(cs.getBit(0x102, 63));    // last valid bit
+  TEST_ASSERT_FALSE(cs.getBit(0x102, 64));   // out of range -> false, no OOB read
+  TEST_ASSERT_FALSE(cs.getBit(0x102, 200));
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -64,5 +91,7 @@ int main(int, char**) {
   RUN_TEST(test_and_combine_needs_all_bits);
   RUN_TEST(test_run_unassigned_is_true);
   RUN_TEST(test_daynight_unassigned_is_false);
+  RUN_TEST(test_or_combine_needs_any_bit);
+  RUN_TEST(test_getbit_out_of_range_is_false);
   return UNITY_END();
 }

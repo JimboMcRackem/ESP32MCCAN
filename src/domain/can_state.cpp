@@ -27,6 +27,7 @@ void CanState::update(uint32_t id, const uint8_t data[8]) {
 }
 
 bool CanState::getBit(uint32_t id, uint8_t bit) const {
+  if (bit >= 64) return false;              // data is uint8_t[8] = 64 bits
   const Frame* f = find(id);
   if (!f) return false;
   return (f->data[bit / 8] >> (bit % 8)) & 0x01;
@@ -34,15 +35,16 @@ bool CanState::getBit(uint32_t id, uint8_t bit) const {
 
 bool CanState::evalFunction(const FunctionMap& fm) const {
   if (fm.count == 0) return false;          // unassigned
+  const uint8_t n = fm.count < FunctionMap::MAX_BITS ? fm.count : FunctionMap::MAX_BITS;
   switch (fm.combine) {
     case Combine::Single:
       return getBit(fm.bits[0].id, fm.bits[0].bit);
     case Combine::And:
-      for (uint8_t i = 0; i < fm.count; ++i)
+      for (uint8_t i = 0; i < n; ++i)
         if (!getBit(fm.bits[i].id, fm.bits[i].bit)) return false;
       return true;
     case Combine::Or:
-      for (uint8_t i = 0; i < fm.count; ++i)
+      for (uint8_t i = 0; i < n; ++i)
         if (getBit(fm.bits[i].id, fm.bits[i].bit)) return true;
       return false;
   }
