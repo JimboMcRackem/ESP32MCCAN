@@ -219,6 +219,9 @@ Lifecycle:
      classic chip).
   2. **Any ESP32 + external PWM driver** (e.g., PCA9685, 16-channel I²C) — frees the MCU
      choice and offloads PWM, at the cost of an extra part.
+- **Decision (2026-07-29): path 2 — external PCA9685** (16-channel, 12-bit, I²C), 14 channels
+  used. The firmware drives it through the `IPwm` interface (`Pca9685Pwm` HAL); the MCU stays
+  classic ESP32 (`esp32dev`) for now. PWM path no longer constrains the MCU choice.
 - The driver layer sits behind a small `setChannel(id, duty)` interface, so the PWM path is
   a hardware decision that does not affect the behavior logic.
 - **Automotive drive** (constant-current, 12 V input, load-dump protection) is a

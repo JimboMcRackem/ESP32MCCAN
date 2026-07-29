@@ -6,11 +6,11 @@
 
 **Architecture:** Four layers — a CAN Input Layer (frames → logical function states via a configurable `(ID, bit)` mapping), a pure Behavior Engine (`logical states + config → per-channel output intents`, host-testable), an Output/Driver Layer (intents → 14 PWM channels behind a small interface), and boot wiring in `main.cpp`. Connectivity/web app is Plan 2. All correctness-critical logic lives in pure, host-tested C++ with no Arduino dependencies.
 
-**Tech Stack:** C++17, PlatformIO, Arduino-ESP32 framework, ESP32 TWAI (CAN), LEDC (PWM), LittleFS (storage), ArduinoJson (config), Unity (unit tests, `native` env).
+**Tech Stack:** C++17, PlatformIO, Arduino-ESP32 framework, ESP32 TWAI (CAN), external PCA9685 (PWM over I²C), LittleFS (storage), ArduinoJson (config), Unity (unit tests, `native` env).
 
 ## Global Constraints
 
-- **Target board:** classic ESP32 (WROOM/WROVER) — has 16 LEDC PWM channels; 14 are used. (An external PWM driver is an alternative decided in the future PCB plan; this plan drives channels natively.)
+- **Target board:** classic ESP32 (WROOM/WROVER), `board = esp32dev`. **PWM is driven by an external PCA9685** (16-channel, 12-bit, I²C PWM driver); 14 of its 16 channels are used. (Chosen 2026-07-29, replacing native LEDC. The `IPwm` abstraction keeps the PWM path a HAL-only detail; the MCU no longer needs native PWM channels.)
 - **Channel count:** 14 PWM outputs = 4 RGB corners × 3 (R,G,B) + 2 Denali. Both Denali channels are driven with the **same** value.
 - **Bit-numbering convention (canonical):** a mapping bit index `b` refers to `byte = b / 8`, `bitInByte = b % 8`, **LSB-first** within the byte. Bit value = `(data[byte] >> bitInByte) & 1`. Example: `0x102` bit 18 → byte 2, bit 2. This is the assumed convention (spec Open Question #5); verify against real bus data during hardware bring-up.
 - **Domain code** (`src/domain/`) must not include any Arduino/ESP32 headers, so it compiles and tests on the host `native` environment. Hardware code lives only in `src/hal/` and `src/main.cpp`.
@@ -36,7 +36,7 @@ src/
     channel_map.h / .cpp     # applyIntent(IPwm&, OutputIntent) -> 14 channels
   hal/                       # ESP32-only wrappers
     ipwm.h                   # IPwm interface (shared with domain channel_map)
-    pwm_ledc.h / .cpp        # LEDC implementation of IPwm
+    pwm_pca9685.h / .cpp     # PCA9685 (I²C) implementation of IPwm
     can_bus.h / .cpp         # TWAI init + non-blocking receive
     storage.h / .cpp         # LittleFS read/write config string
   main.cpp                   # boot: load config, init HAL, run loop
@@ -1303,52 +1303,67 @@ git commit -m "feat: map OutputIntent to 14 PWM channels behind IPwm interface"
 This task has no host unit tests (it touches ESP32 peripherals). Its deliverable is a firmware image that builds for the ESP32 and passes the documented bench smoke test. Keep each HAL file thin — logic already lives in tested domain code.
 
 **Files:**
-- Create: `src/hal/pwm_ledc.h`, `src/hal/pwm_ledc.cpp`
+- Modify: `platformio.ini` (add the PCA9685 I²C library to `[env:esp32]` `lib_deps`)
+- Create: `src/hal/pwm_pca9685.h`, `src/hal/pwm_pca9685.cpp`
 - Create: `src/hal/can_bus.h`, `src/hal/can_bus.cpp`
 - Create: `src/hal/storage.h`, `src/hal/storage.cpp`
 - Create: `src/main.cpp`
 
 **Interfaces:**
-- `class LedcPwm : public IPwm` — constructs from a `const uint8_t pins[CH_COUNT]`, sets up one LEDC channel per pin (8-bit, 5 kHz), implements `setDuty`.
+- `class Pca9685Pwm : public IPwm` — wraps an `Adafruit_PWMServoDriver` at a given I²C address; `begin(freqHz)` inits the chip and zeroes all channels; `setDuty(channel, duty)` scales the 8-bit duty (0-255) to the PCA9685's 12-bit range (0-4095). `Wire.begin(sda, scl)` must be called before `begin`.
 - `class CanBus { public: bool begin(uint32_t bitrateBps); bool receive(uint32_t& id, uint8_t data[8]); };` — non-blocking receive, returns false when no frame is pending.
 - `namespace storage { std::string readConfig(); bool writeConfig(const std::string&); }` — LittleFS-backed `/config.json`.
 
-- [ ] **Step 1: Create `src/hal/pwm_ledc.h` / `.cpp`**
+- [ ] **Step 1: Add the PCA9685 library, then create `src/hal/pwm_pca9685.h` / `.cpp`**
 
-`pwm_ledc.h`:
+Add the driver library to `[env:esp32]` `lib_deps` in `platformio.ini` (leave `[env:native]` unchanged — the HAL is never built on the host):
+
+```ini
+lib_deps =
+    bblanchon/ArduinoJson@^7.0.0
+    adafruit/Adafruit PWM Servo Driver Library@^3.0.0
+```
+
+`pwm_pca9685.h`:
 ```cpp
 #pragma once
 #include "hal/ipwm.h"
 #include "domain/channel_map.h"
+#include <Adafruit_PWMServoDriver.h>
 
-class LedcPwm : public IPwm {
+// Drives 14 outputs via an external PCA9685 (16-channel, 12-bit, I2C).
+class Pca9685Pwm : public IPwm {
 public:
-  void begin(const uint8_t pins[CH_COUNT]);
+  explicit Pca9685Pwm(uint8_t i2cAddr = 0x40);
+  bool begin(uint32_t pwmFreqHz);                 // call Wire.begin(sda,scl) first
   void setDuty(uint8_t channel, uint8_t duty) override;
+private:
+  Adafruit_PWMServoDriver drv_;
 };
 ```
 
-`pwm_ledc.cpp`:
+`pwm_pca9685.cpp`:
 ```cpp
-#include "hal/pwm_ledc.h"
-#include <Arduino.h>
+#include "hal/pwm_pca9685.h"
 
-// LEDC: 8-bit resolution (0-255 maps directly to duty), 5 kHz.
-static constexpr uint32_t kFreqHz = 5000;
-static constexpr uint8_t  kResBits = 8;
+Pca9685Pwm::Pca9685Pwm(uint8_t i2cAddr) : drv_(i2cAddr) {}
 
-void LedcPwm::begin(const uint8_t pins[CH_COUNT]) {
-  for (uint8_t ch = 0; ch < CH_COUNT; ++ch) {
-    ledcSetup(ch, kFreqHz, kResBits);
-    ledcAttachPin(pins[ch], ch);
-    ledcWrite(ch, 0);
-  }
+bool Pca9685Pwm::begin(uint32_t pwmFreqHz) {
+  drv_.begin();                       // inits the PCA9685 over I2C (Wire already begun)
+  drv_.setPWMFreq(pwmFreqHz);         // ~1000 Hz for LEDs (PCA9685 max ~1526 Hz)
+  for (uint8_t ch = 0; ch < CH_COUNT; ++ch) drv_.setPin(ch, 0);
+  return true;
 }
 
-void LedcPwm::setDuty(uint8_t channel, uint8_t duty) {
-  if (channel < CH_COUNT) ledcWrite(channel, duty);
+void Pca9685Pwm::setDuty(uint8_t channel, uint8_t duty) {
+  if (channel >= CH_COUNT) return;
+  // Scale 8-bit duty (0-255) to the PCA9685's 12-bit range (0-4095).
+  uint16_t val = (uint16_t)((uint32_t)duty * 4095u / 255u);
+  drv_.setPin(channel, val);          // setPin handles full-off (0) and full-on (4095)
 }
 ```
+
+Note: 14 of the PCA9685's 16 channels are used (indices 0-13, matching `ChannelIndex`); channels 14-15 are spare. The `IPwm` interface is unchanged, so `channel_map` and all domain code are unaffected.
 
 - [ ] **Step 2: Create `src/hal/can_bus.h` / `.cpp`** (ESP32 TWAI driver)
 
@@ -1448,27 +1463,25 @@ bool writeConfig(const std::string& json) {
 #include "domain/can_state.h"
 #include "domain/behavior_engine.h"
 #include "domain/channel_map.h"
-#include "hal/pwm_ledc.h"
+#include "hal/pwm_pca9685.h"
 #include "hal/can_bus.h"
 #include "hal/storage.h"
+#include <Wire.h>
 
-// GPIO assignments — provisional, finalized against the PCB (PCB plan).
-static const uint8_t kPwmPins[CH_COUNT] = {
-  // frontL R,G,B      frontR R,G,B
-  13, 12, 14,          27, 26, 25,
-  // rearL R,G,B       rearR R,G,B
-  33, 32, 4,           16, 17, 5,
-  // Denali A, B
-  18, 19
-};
-static const int kCanRxPin = 21;
-static const int kCanTxPin = 22;
+// Pin/bus assignments — provisional, finalized against the PCB (PCB plan).
+// PWM outputs live on the PCA9685 (channels 0-13), reached over I2C — no per-channel GPIO.
+static const int kI2cSda = 21;              // I2C to the PCA9685
+static const int kI2cScl = 22;
+static const uint8_t kPca9685Addr = 0x40;   // default PCA9685 address
+static const uint32_t kPwmFreqHz = 1000;    // LED PWM frequency
+static const int kCanRxPin = 16;            // CAN transceiver GPIOs (moved off the I2C pins)
+static const int kCanTxPin = 17;
 static const uint32_t kCanBitrate = 500000;
 
 static Config      g_cfg;
 static CanState    g_can;
 static EngineState g_engine;
-static LedcPwm     g_pwm;
+static Pca9685Pwm  g_pwm(kPca9685Addr);
 static CanBus      g_bus;
 
 void setup() {
@@ -1479,7 +1492,8 @@ void setup() {
   g_cfg = configFromJson(storage::readConfig(), ok);  // falls back to defaults
   if (!ok) Serial.println("config missing/corrupt -> using Experia defaults");
 
-  g_pwm.begin(kPwmPins);
+  Wire.begin(kI2cSda, kI2cScl);
+  if (!g_pwm.begin(kPwmFreqHz)) Serial.println("PCA9685 init failed");
   if (!g_bus.begin(kCanRxPin, kCanTxPin, kCanBitrate))
     Serial.println("CAN init failed");
 }
@@ -1509,7 +1523,7 @@ Expected: build succeeds (compiles and links).
 
 - [ ] **Step 6: Bench smoke test (documented, manual)**
 
-With the board flashed (`pio run -e esp32 -t upload`) and LEDs/logic-analyzer on the PWM pins:
+With the board flashed (`pio run -e esp32 -t upload`) and LEDs/logic-analyzer on the PCA9685 outputs (channels 0-13):
 1. Power on with no CAN connected → front corners show white DRL, rears show dim red (Run defaults true, day mode). Denali at daytime level.
 2. Inject a CAN frame `0x102` with bit 18 set → front-left + rear-left flash orange ~1.5 Hz; off-phase fully dark.
 3. Inject bit 21 (front brake) with no indicator → both rears full red.
@@ -1521,8 +1535,8 @@ Record results in the commit message.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/hal/ src/main.cpp
-git commit -m "feat: add ESP32 HAL (LEDC/TWAI/LittleFS) and boot wiring"
+git add platformio.ini src/hal/ src/main.cpp
+git commit -m "feat: add ESP32 HAL (PCA9685/TWAI/LittleFS) and boot wiring"
 ```
 
 ---
