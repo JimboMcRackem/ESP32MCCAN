@@ -3,11 +3,14 @@
 #include "domain/logical_state.h"
 #include <cstdint>
 
+struct CanFrameSnapshot { uint32_t id; uint8_t data[8]; };
+
 class CanState {
 public:
   void update(uint32_t id, const uint8_t data[8]);
   bool getBit(uint32_t id, uint8_t bit) const;
   LogicalState evaluate(const Config& cfg) const;
+  int snapshot(CanFrameSnapshot* out, int maxOut) const;
 
 private:
   static constexpr int MAX_FRAMES = 16;
