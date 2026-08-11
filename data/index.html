@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCCAN Lighting Config</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>MCCAN Lighting</h1>
+    <span id="status" class="status off">disconnected</span>
+  </header>
+
+  <nav>
+    <button data-tab="tunables" class="active">Tunables</button>
+    <button data-tab="appearance">Appearance</button>
+    <button data-tab="mapping">Mapping</button>
+    <button data-tab="discovery">Discovery</button>
+    <button data-tab="backup">Backup</button>
+  </nav>
+
+  <main>
+    <section id="tab-tunables" class="tab active">
+      <label>Blink period (ms)
+        <input type="number" id="blinkPeriodMs" min="50" max="2000" step="10">
+      </label>
+      <label>Spot hold threshold (ms)
+        <input type="number" id="spotHoldMs" min="100" max="5000" step="50">
+      </label>
+      <div id="denali"></div>
+    </section>
+
+    <section id="tab-appearance" class="tab">
+      <div id="colors"></div>
+    </section>
+
+    <section id="tab-mapping" class="tab">
+      <div id="maps"></div>
+    </section>
+
+    <section id="tab-discovery" class="tab">
+      <p>Toggle a control on the bike and watch which bit flips.</p>
+      <label><input type="checkbox" id="discToggle"> Stream CAN frames</label>
+      <label>Assign clicked bit to:
+        <select id="discFunc"></select>
+      </label>
+      <div id="frames"></div>
+    </section>
+
+    <section id="tab-backup" class="tab">
+      <button id="exportBtn">Export config JSON</button>
+      <label class="filebtn">Import config JSON
+        <input type="file" id="importInput" accept="application/json,.json">
+      </label>
+    </section>
+  </main>
+
+  <footer>
+    <button id="saveBtn">Save &amp; apply</button>
+    <button id="reloadBtn">Reload from device</button>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

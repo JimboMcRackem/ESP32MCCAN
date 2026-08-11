@@ -68,3 +68,14 @@ LogicalState CanState::evaluate(const Config& cfg) const {
   s.run = (runMap.count == 0) ? true : evalFunction(runMap);
   return s;
 }
+
+int CanState::snapshot(CanFrameSnapshot* out, int maxOut) const {
+  int n = 0;
+  for (int i = 0; i < MAX_FRAMES && n < maxOut; ++i) {
+    if (!frames_[i].seen) continue;
+    out[n].id = frames_[i].id;
+    for (int b = 0; b < 8; ++b) out[n].data[b] = frames_[i].data[b];
+    ++n;
+  }
+  return n;
+}
