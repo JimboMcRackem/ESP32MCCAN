@@ -6,11 +6,11 @@
 
 **Architecture:** Four layers — a CAN Input Layer (frames → logical function states via a configurable `(ID, bit)` mapping), a pure Behavior Engine (`logical states + config → per-channel output intents`, host-testable), an Output/Driver Layer (intents → 14 PWM channels behind a small interface), and boot wiring in `main.cpp`. Connectivity/web app is Plan 2. All correctness-critical logic lives in pure, host-tested C++ with no Arduino dependencies.
 
-**Tech Stack:** C++17, PlatformIO, Arduino-ESP32 framework, ESP32 TWAI (CAN), LEDC (PWM), LittleFS (storage), ArduinoJson (config), Unity (unit tests, `native` env).
+**Tech Stack:** C++17, PlatformIO, Arduino-ESP32 framework, ESP32 TWAI (CAN), external PCA9685 (PWM over I²C), LittleFS (storage), ArduinoJson (config), Unity (unit tests, `native` env).
 
 ## Global Constraints
 
-- **Target board:** classic ESP32 (WROOM/WROVER) — has 16 LEDC PWM channels; 14 are used. (An external PWM driver is an alternative decided in the future PCB plan; this plan drives channels natively.)
+- **Target board:** classic ESP32 (WROOM/WROVER), `board = esp32dev`. **PWM is driven by an external PCA9685** (16-channel, 12-bit, I²C PWM driver); 14 of its 16 channels are used. (Chosen 2026-07-29, replacing native LEDC. The `IPwm` abstraction keeps the PWM path a HAL-only detail; the MCU no longer needs native PWM channels.)
 - **Channel count:** 14 PWM outputs = 4 RGB corners × 3 (R,G,B) + 2 Denali. Both Denali channels are driven with the **same** value.
 - **Bit-numbering convention (canonical):** a mapping bit index `b` refers to `byte = b / 8`, `bitInByte = b % 8`, **LSB-first** within the byte. Bit value = `(data[byte] >> bitInByte) & 1`. Example: `0x102` bit 18 → byte 2, bit 2. This is the assumed convention (spec Open Question #5); verify against real bus data during hardware bring-up.
 - **Domain code** (`src/domain/`) must not include any Arduino/ESP32 headers, so it compiles and tests on the host `native` environment. Hardware code lives only in `src/hal/` and `src/main.cpp`.
@@ -36,17 +36,24 @@ src/
     channel_map.h / .cpp     # applyIntent(IPwm&, OutputIntent) -> 14 channels
   hal/                       # ESP32-only wrappers
     ipwm.h                   # IPwm interface (shared with domain channel_map)
-    pwm_ledc.h / .cpp        # LEDC implementation of IPwm
+    pwm_pca9685.h / .cpp     # PCA9685 (I²C) implementation of IPwm
     can_bus.h / .cpp         # TWAI init + non-blocking receive
     storage.h / .cpp         # LittleFS read/write config string
   main.cpp                   # boot: load config, init HAL, run loop
 test/
-  test_native/               # Unity tests run under `pio test -e native`
-    test_can_state.cpp
-    test_behavior_engine.cpp
-    test_config_json.cpp
-    test_channel_map.cpp
+  test_smoke/            test_smoke.cpp           # one dir per suite (PlatformIO
+  test_types/            test_types.cpp           # builds all .cpp in a test dir
+  test_config_defaults/  test_config_defaults.cpp # into ONE binary, so each suite
+  test_can_state/        test_can_state.cpp       # needs its own dir + own main()).
+  test_behavior_engine/  test_behavior_engine.cpp # Run all: `pio test -e native`;
+  test_config_json/      test_config_json.cpp     # one: `-f test_<name>`.
+  test_channel_map/      test_channel_map.cpp
 ```
+
+Each `test/test_<name>/` directory holds a single `test_<name>.cpp` with its own
+`main()` + empty `setUp`/`tearDown`. The `native` env must set `test_build_src = yes`
+with `build_src_filter = +<*> -<main.cpp> -<hal/>` so domain `.cpp` files link into
+tests while Arduino-only code (`hal/`, `main.cpp`) is excluded from the host build.
 
 `IPwm` lives in `src/hal/ipwm.h` but is a pure abstract interface with no Arduino headers, so `channel_map` (domain) can depend on it and still build on `native`.
 
@@ -57,7 +64,7 @@ test/
 **Files:**
 - Create: `platformio.ini`
 - Create: `src/domain/color.h`
-- Test: `test/test_native/test_smoke.cpp`
+- Test: `test/test_smoke/test_smoke.cpp`
 
 **Interfaces:**
 - Produces: `struct Rgb { uint8_t r, g, b; };` with `operator==`, in `src/domain/color.h`.
@@ -78,9 +85,16 @@ monitor_speed = 115200
 [env:native]
 platform = native
 build_flags = -std=gnu++17 -I src
+build_src_filter = +<*> -<main.cpp> -<hal/>
+test_build_src = yes
 lib_deps =
     bblanchon/ArduinoJson@^7.0.0
 ```
+
+`test_build_src = yes` makes PlatformIO compile `src/` into each native test binary so
+domain `.cpp` files link; `build_src_filter` excludes the Arduino-only `hal/` and
+`main.cpp` from the host build. Each Unity suite lives in its own `test/test_<name>/`
+directory with its own `main()`.
 
 - [ ] **Step 2: Create `src/domain/color.h`**
 
@@ -98,7 +112,7 @@ inline bool operator==(const Rgb& a, const Rgb& b) {
 inline bool operator!=(const Rgb& a, const Rgb& b) { return !(a == b); }
 ```
 
-- [ ] **Step 3: Write the smoke test** — `test/test_native/test_smoke.cpp`
+- [ ] **Step 3: Write the smoke test** — `test/test_smoke/test_smoke.cpp`
 
 ```cpp
 #include <unity.h>
@@ -111,6 +125,9 @@ void test_rgb_equality() {
   TEST_ASSERT_TRUE(a == b);
   TEST_ASSERT_TRUE(a != c);
 }
+
+void setUp(void) {}
+void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
@@ -127,7 +144,7 @@ Expected: PASS (1 test).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add platformio.ini src/domain/color.h test/test_native/test_smoke.cpp
+git add platformio.ini src/domain/color.h test/test_smoke/test_smoke.cpp
 git commit -m "chore: scaffold PlatformIO project with native test harness"
 ```
 
@@ -138,7 +155,7 @@ git commit -m "chore: scaffold PlatformIO project with native test harness"
 **Files:**
 - Create: `src/domain/logical_state.h`
 - Create: `src/domain/output_intent.h`
-- Test: `test/test_native/test_types.cpp`
+- Test: `test/test_types/test_types.cpp`
 
 **Interfaces:**
 - Produces: `struct LogicalState` with bool fields `run, leftInd, rightInd, frontBrake, rearBrake, lowBeam, highBeam, flash, night, kickstand`, plus `bool hazards() const` (= leftInd && rightInd) and `bool brake() const` (= frontBrake || rearBrake).
@@ -179,7 +196,7 @@ struct OutputIntent {
 };
 ```
 
-- [ ] **Step 3: Write the test** — `test/test_native/test_types.cpp`
+- [ ] **Step 3: Write the test** — `test/test_types/test_types.cpp`
 
 ```cpp
 #include <unity.h>
@@ -210,6 +227,9 @@ void test_output_intent_defaults_dark() {
   TEST_ASSERT_EQUAL_UINT8(0, o.denali);
 }
 
+void setUp(void) {}
+void tearDown(void) {}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_hazards_requires_both_indicators);
@@ -227,7 +247,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/domain/logical_state.h src/domain/output_intent.h test/test_native/test_types.cpp
+git add src/domain/logical_state.h src/domain/output_intent.h test/test_types/test_types.cpp
 git commit -m "feat: add LogicalState and OutputIntent domain types"
 ```
 
@@ -238,7 +258,7 @@ git commit -m "feat: add LogicalState and OutputIntent domain types"
 **Files:**
 - Create: `src/domain/config.h`
 - Create: `src/domain/config.cpp`
-- Test: `test/test_native/test_config_defaults.cpp`
+- Test: `test/test_config_defaults/test_config_defaults.cpp`
 
 **Interfaces:**
 - Produces: `enum class Function : uint8_t { Run, LeftInd, RightInd, FrontBrake, RearBrake, LowBeam, HighBeam, HighBeamFlash, DayNight, KickStand, COUNT };`
@@ -338,7 +358,7 @@ Config defaultConfig() {
 }
 ```
 
-- [ ] **Step 3: Write the test** — `test/test_native/test_config_defaults.cpp`
+- [ ] **Step 3: Write the test** — `test/test_config_defaults/test_config_defaults.cpp`
 
 ```cpp
 #include <unity.h>
@@ -374,6 +394,9 @@ void test_run_and_daynight_unassigned() {
   TEST_ASSERT_EQUAL_UINT8(0, mapFor(c, Function::DayNight).count);
 }
 
+void setUp(void) {}
+void tearDown(void) {}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_default_timing_and_colors);
@@ -392,7 +415,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/domain/config.h src/domain/config.cpp test/test_native/test_config_defaults.cpp
+git add src/domain/config.h src/domain/config.cpp test/test_config_defaults/test_config_defaults.cpp
 git commit -m "feat: add Config model with baked-in Experia default profile"
 ```
 
@@ -403,14 +426,14 @@ git commit -m "feat: add Config model with baked-in Experia default profile"
 **Files:**
 - Create: `src/domain/can_state.h`
 - Create: `src/domain/can_state.cpp`
-- Test: `test/test_native/test_can_state.cpp`
+- Test: `test/test_can_state/test_can_state.cpp`
 
 **Interfaces:**
 - Consumes: `Config`, `FunctionMap`, `Function`, `Combine` (Task 3); `LogicalState` (Task 2).
 - Produces: `class CanState` with `void update(uint32_t id, const uint8_t data[8]); bool getBit(uint32_t id, uint8_t bit) const; LogicalState evaluate(const Config& cfg) const;`
 - Bit convention per Global Constraints: `byte = bit/8`, `pos = bit%8`, LSB-first.
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_can_state.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_can_state/test_can_state.cpp`
 
 ```cpp
 #include <unity.h>
@@ -468,6 +491,9 @@ void test_daynight_unassigned_is_false() {
   cs.update(0x102, data);
   TEST_ASSERT_FALSE(cs.evaluate(defaultConfig()).night);
 }
+
+void setUp(void) {}
+void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
@@ -590,7 +616,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/domain/can_state.h src/domain/can_state.cpp test/test_native/test_can_state.cpp
+git add src/domain/can_state.h src/domain/can_state.cpp test/test_can_state/test_can_state.cpp
 git commit -m "feat: add CAN frame cache and logical-function evaluation"
 ```
 
@@ -601,7 +627,7 @@ git commit -m "feat: add CAN frame cache and logical-function evaluation"
 **Files:**
 - Create: `src/domain/behavior_engine.h`
 - Create: `src/domain/behavior_engine.cpp`
-- Test: `test/test_native/test_behavior_engine.cpp`
+- Test: `test/test_behavior_engine/test_behavior_engine.cpp`
 
 **Interfaces:**
 - Consumes: `LogicalState` (Task 2), `Config` (Task 3), `OutputIntent`/`Rgb` (Tasks 1-2).
@@ -609,7 +635,7 @@ git commit -m "feat: add CAN frame cache and logical-function evaluation"
 - Produces: `OutputIntent computeOutputs(const LogicalState& s, const Config& cfg, uint32_t nowMs, EngineState& est);`
 - This task implements the corner RGB logic + flash timing; Task 6 extends the same function with Denali/spot logic. Denali is set to 0 in this task and finalized in Task 6.
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_behavior_engine.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_behavior_engine/test_behavior_engine.cpp`
 
 ```cpp
 #include <unity.h>
@@ -805,7 +831,7 @@ Expected: PASS (10 tests).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/domain/behavior_engine.h src/domain/behavior_engine.cpp test/test_native/test_behavior_engine.cpp
+git add src/domain/behavior_engine.h src/domain/behavior_engine.cpp test/test_behavior_engine/test_behavior_engine.cpp
 git commit -m "feat: add behavior engine corner matrix and flash timing"
 ```
 
@@ -815,12 +841,12 @@ git commit -m "feat: add behavior engine corner matrix and flash timing"
 
 **Files:**
 - Modify: `src/domain/behavior_engine.cpp` (replace the `o.denali = 0` line with real logic)
-- Modify: `test/test_native/test_behavior_engine.cpp` (add Denali/spot tests + register them)
+- Modify: `test/test_behavior_engine/test_behavior_engine.cpp` (add Denali/spot tests + register them)
 
 **Interfaces:**
 - Consumes/Produces: same `computeOutputs` signature and `EngineState` from Task 5. This task fills in `EngineState.spotLatched`, `flashPrev`, `flashRisingMs` behavior and the `o.denali` value.
 
-- [ ] **Step 1: Add failing Denali/spot tests** to `test/test_native/test_behavior_engine.cpp` (add these functions and register each with `RUN_TEST` in `main`)
+- [ ] **Step 1: Add failing Denali/spot tests** to `test/test_behavior_engine/test_behavior_engine.cpp` (add these functions and register each with `RUN_TEST` in `main`)
 
 ```cpp
 void test_denali_off_when_not_run() {
@@ -929,7 +955,7 @@ Expected: PASS (all corner + Denali/spot tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/domain/behavior_engine.cpp test/test_native/test_behavior_engine.cpp
+git add src/domain/behavior_engine.cpp test/test_behavior_engine/test_behavior_engine.cpp
 git commit -m "feat: add Denali mode selection and spot-latch state machine"
 ```
 
@@ -940,14 +966,14 @@ git commit -m "feat: add Denali mode selection and spot-latch state machine"
 **Files:**
 - Create: `src/domain/config_json.h`
 - Create: `src/domain/config_json.cpp`
-- Test: `test/test_native/test_config_json.cpp`
+- Test: `test/test_config_json/test_config_json.cpp`
 
 **Interfaces:**
 - Consumes: `Config`, `Function`, `Combine`, `FunctionMap`, `BitRef` (Task 3).
 - Produces: `std::string configToJson(const Config& c);` and `Config configFromJson(const std::string& json, bool& ok);` — on parse failure `ok=false` and the return is `defaultConfig()`.
 - Uses ArduinoJson (works on the `native` env via `lib_deps`).
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_config_json.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_config_json/test_config_json.cpp`
 
 ```cpp
 #include <unity.h>
@@ -994,6 +1020,9 @@ void test_empty_string_falls_back_to_default() {
   TEST_ASSERT_FALSE(ok);
   TEST_ASSERT_EQUAL_UINT32(340, out.blinkPeriodMs);
 }
+
+void setUp(void) {}
+void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
@@ -1138,7 +1167,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/domain/config_json.h src/domain/config_json.cpp test/test_native/test_config_json.cpp
+git add src/domain/config_json.h src/domain/config_json.cpp test/test_config_json/test_config_json.cpp
 git commit -m "feat: add Config JSON serialization with corrupt-file fallback"
 ```
 
@@ -1150,14 +1179,14 @@ git commit -m "feat: add Config JSON serialization with corrupt-file fallback"
 - Create: `src/hal/ipwm.h`
 - Create: `src/domain/channel_map.h`
 - Create: `src/domain/channel_map.cpp`
-- Test: `test/test_native/test_channel_map.cpp`
+- Test: `test/test_channel_map/test_channel_map.cpp`
 
 **Interfaces:**
 - Produces: `class IPwm { public: virtual ~IPwm() = default; virtual void setDuty(uint8_t channel, uint8_t duty) = 0; };` in `src/hal/ipwm.h` (no Arduino headers, host-safe).
 - Produces: channel index constants and `void applyIntent(IPwm& pwm, const OutputIntent& o);` in `channel_map.h`.
 - Channel layout: `0..2` frontL RGB, `3..5` frontR RGB, `6..8` rearL RGB, `9..11` rearR RGB, `12` Denali A, `13` Denali B (both written with `o.denali`).
 
-- [ ] **Step 1: Write the failing test** — `test/test_native/test_channel_map.cpp`
+- [ ] **Step 1: Write the failing test** — `test/test_channel_map/test_channel_map.cpp`
 
 ```cpp
 #include <unity.h>
@@ -1186,6 +1215,9 @@ void test_applies_all_corners_and_both_denali() {
   TEST_ASSERT_EQUAL_UINT8(200, pwm.duty[12]); // Denali A
   TEST_ASSERT_EQUAL_UINT8(200, pwm.duty[13]); // Denali B
 }
+
+void setUp(void) {}
+void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
@@ -1260,7 +1292,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/hal/ipwm.h src/domain/channel_map.h src/domain/channel_map.cpp test/test_native/test_channel_map.cpp
+git add src/hal/ipwm.h src/domain/channel_map.h src/domain/channel_map.cpp test/test_channel_map/test_channel_map.cpp
 git commit -m "feat: map OutputIntent to 14 PWM channels behind IPwm interface"
 ```
 
@@ -1271,52 +1303,68 @@ git commit -m "feat: map OutputIntent to 14 PWM channels behind IPwm interface"
 This task has no host unit tests (it touches ESP32 peripherals). Its deliverable is a firmware image that builds for the ESP32 and passes the documented bench smoke test. Keep each HAL file thin — logic already lives in tested domain code.
 
 **Files:**
-- Create: `src/hal/pwm_ledc.h`, `src/hal/pwm_ledc.cpp`
+- Modify: `platformio.ini` (add the PCA9685 I²C library to `[env:esp32]` `lib_deps`)
+- Create: `src/hal/pwm_pca9685.h`, `src/hal/pwm_pca9685.cpp`
 - Create: `src/hal/can_bus.h`, `src/hal/can_bus.cpp`
 - Create: `src/hal/storage.h`, `src/hal/storage.cpp`
 - Create: `src/main.cpp`
 
 **Interfaces:**
-- `class LedcPwm : public IPwm` — constructs from a `const uint8_t pins[CH_COUNT]`, sets up one LEDC channel per pin (8-bit, 5 kHz), implements `setDuty`.
+- `class Pca9685Pwm : public IPwm` — wraps an `Adafruit_PWMServoDriver` at a given I²C address; `begin(freqHz)` inits the chip and zeroes all channels; `setDuty(channel, duty)` scales the 8-bit duty (0-255) to the PCA9685's 12-bit range (0-4095). `Wire.begin(sda, scl)` must be called before `begin`.
 - `class CanBus { public: bool begin(uint32_t bitrateBps); bool receive(uint32_t& id, uint8_t data[8]); };` — non-blocking receive, returns false when no frame is pending.
 - `namespace storage { std::string readConfig(); bool writeConfig(const std::string&); }` — LittleFS-backed `/config.json`.
 
-- [ ] **Step 1: Create `src/hal/pwm_ledc.h` / `.cpp`**
+- [ ] **Step 1: Add the PCA9685 library, then create `src/hal/pwm_pca9685.h` / `.cpp`**
 
-`pwm_ledc.h`:
+Add the driver library to `[env:esp32]` `lib_deps` in `platformio.ini` (leave `[env:native]` unchanged — the HAL is never built on the host):
+
+```ini
+lib_deps =
+    bblanchon/ArduinoJson@^7.0.0
+    adafruit/Adafruit PWM Servo Driver Library@^3.0.0
+    adafruit/Adafruit BusIO@^1.14
+```
+
+`pwm_pca9685.h`:
 ```cpp
 #pragma once
 #include "hal/ipwm.h"
 #include "domain/channel_map.h"
+#include <Adafruit_PWMServoDriver.h>
 
-class LedcPwm : public IPwm {
+// Drives 14 outputs via an external PCA9685 (16-channel, 12-bit, I2C).
+class Pca9685Pwm : public IPwm {
 public:
-  void begin(const uint8_t pins[CH_COUNT]);
+  explicit Pca9685Pwm(uint8_t i2cAddr = 0x40);
+  bool begin(uint32_t pwmFreqHz);                 // call Wire.begin(sda,scl) first
   void setDuty(uint8_t channel, uint8_t duty) override;
+private:
+  Adafruit_PWMServoDriver drv_;
 };
 ```
 
-`pwm_ledc.cpp`:
+`pwm_pca9685.cpp`:
 ```cpp
-#include "hal/pwm_ledc.h"
-#include <Arduino.h>
+#include "hal/pwm_pca9685.h"
 
-// LEDC: 8-bit resolution (0-255 maps directly to duty), 5 kHz.
-static constexpr uint32_t kFreqHz = 5000;
-static constexpr uint8_t  kResBits = 8;
+Pca9685Pwm::Pca9685Pwm(uint8_t i2cAddr) : drv_(i2cAddr) {}
 
-void LedcPwm::begin(const uint8_t pins[CH_COUNT]) {
-  for (uint8_t ch = 0; ch < CH_COUNT; ++ch) {
-    ledcSetup(ch, kFreqHz, kResBits);
-    ledcAttachPin(pins[ch], ch);
-    ledcWrite(ch, 0);
-  }
+bool Pca9685Pwm::begin(uint32_t pwmFreqHz) {
+  if (!drv_.begin()) return false;    // PCA9685 not responding on I2C
+  drv_.setPWMFreq(pwmFreqHz);         // ~1000 Hz for LEDs (PCA9685 max ~1526 Hz)
+  for (uint8_t ch = 0; ch < CH_COUNT; ++ch) drv_.setPin(ch, 0);
+  return true;
 }
 
-void LedcPwm::setDuty(uint8_t channel, uint8_t duty) {
-  if (channel < CH_COUNT) ledcWrite(channel, duty);
+void Pca9685Pwm::setDuty(uint8_t channel, uint8_t duty) {
+  if (channel >= CH_COUNT) return;
+  // Scale 8-bit duty (0-255) to the PCA9685's 12-bit range (0-4095).
+  uint16_t val = (uint16_t)((uint32_t)duty * 4095u / 255u);
+  drv_.setPin(channel, val);          // setPin handles full-off (0) and full-on (4095)
 }
 ```
+
+Note: 14 of the PCA9685's 16 channels are used (indices 0-13, matching `ChannelIndex`); channels 14-15 are spare. The `IPwm` interface is unchanged, so `channel_map` and all domain code are unaffected.
 
 - [ ] **Step 2: Create `src/hal/can_bus.h` / `.cpp`** (ESP32 TWAI driver)
 
@@ -1416,27 +1464,25 @@ bool writeConfig(const std::string& json) {
 #include "domain/can_state.h"
 #include "domain/behavior_engine.h"
 #include "domain/channel_map.h"
-#include "hal/pwm_ledc.h"
+#include "hal/pwm_pca9685.h"
 #include "hal/can_bus.h"
 #include "hal/storage.h"
+#include <Wire.h>
 
-// GPIO assignments — provisional, finalized against the PCB (PCB plan).
-static const uint8_t kPwmPins[CH_COUNT] = {
-  // frontL R,G,B      frontR R,G,B
-  13, 12, 14,          27, 26, 25,
-  // rearL R,G,B       rearR R,G,B
-  33, 32, 4,           16, 17, 5,
-  // Denali A, B
-  18, 19
-};
-static const int kCanRxPin = 21;
-static const int kCanTxPin = 22;
+// Pin/bus assignments — provisional, finalized against the PCB (PCB plan).
+// PWM outputs live on the PCA9685 (channels 0-13), reached over I2C — no per-channel GPIO.
+static const int kI2cSda = 21;              // I2C to the PCA9685
+static const int kI2cScl = 22;
+static const uint8_t kPca9685Addr = 0x40;   // default PCA9685 address
+static const uint32_t kPwmFreqHz = 1000;    // LED PWM frequency
+static const int kCanRxPin = 16;            // CAN transceiver GPIOs (moved off the I2C pins)
+static const int kCanTxPin = 17;
 static const uint32_t kCanBitrate = 500000;
 
 static Config      g_cfg;
 static CanState    g_can;
 static EngineState g_engine;
-static LedcPwm     g_pwm;
+static Pca9685Pwm  g_pwm(kPca9685Addr);
 static CanBus      g_bus;
 
 void setup() {
@@ -1447,7 +1493,8 @@ void setup() {
   g_cfg = configFromJson(storage::readConfig(), ok);  // falls back to defaults
   if (!ok) Serial.println("config missing/corrupt -> using Experia defaults");
 
-  g_pwm.begin(kPwmPins);
+  Wire.begin(kI2cSda, kI2cScl);
+  if (!g_pwm.begin(kPwmFreqHz)) Serial.println("PCA9685 init failed");
   if (!g_bus.begin(kCanRxPin, kCanTxPin, kCanBitrate))
     Serial.println("CAN init failed");
 }
@@ -1477,7 +1524,7 @@ Expected: build succeeds (compiles and links).
 
 - [ ] **Step 6: Bench smoke test (documented, manual)**
 
-With the board flashed (`pio run -e esp32 -t upload`) and LEDs/logic-analyzer on the PWM pins:
+With the board flashed (`pio run -e esp32 -t upload`) and LEDs/logic-analyzer on the PCA9685 outputs (channels 0-13):
 1. Power on with no CAN connected → front corners show white DRL, rears show dim red (Run defaults true, day mode). Denali at daytime level.
 2. Inject a CAN frame `0x102` with bit 18 set → front-left + rear-left flash orange ~1.5 Hz; off-phase fully dark.
 3. Inject bit 21 (front brake) with no indicator → both rears full red.
@@ -1489,8 +1536,8 @@ Record results in the commit message.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/hal/ src/main.cpp
-git commit -m "feat: add ESP32 HAL (LEDC/TWAI/LittleFS) and boot wiring"
+git add platformio.ini src/hal/ src/main.cpp
+git commit -m "feat: add ESP32 HAL (PCA9685/TWAI/LittleFS) and boot wiring"
 ```
 
 ---
