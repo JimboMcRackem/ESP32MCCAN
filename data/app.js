@@ -7,6 +7,7 @@ const COLORS = ["drlWhiteDay","drlWhiteNight","drlDimRedDay","drlDimRedNight",
                 "indicatorOrange","brakeRed"];
 const DENALI = ["day","low","high","spot"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
+const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
 
 let cfg = null;         // last config from device
 let ws = null;
@@ -140,7 +141,16 @@ function assignBit(id, bit) {
   if (!cfg) return;
   const fn = document.getElementById("discFunc").value;
   const m = cfg.maps[fn] || (cfg.maps[fn] = { combine: 0, bits: [] });
-  if (!m.bits.some((b) => b.id === id && b.bit === bit)) m.bits.push({ id, bit });
+  if (m.bits.some((b) => b.id === id && b.bit === bit)) {
+    alert("0x" + id.toString(16) + " bit " + bit + " is already mapped to " + fn);
+    return;
+  }
+  if (m.bits.length >= MAX_BITS) {
+    alert(fn + " already has the maximum of " + MAX_BITS + " bits. " +
+          "Remove one on the Mapping tab before adding another.");
+    return;
+  }
+  m.bits.push({ id, bit });
   alert("Added 0x" + id.toString(16) + " bit " + bit + " to " + fn +
         " (Save & apply to persist)");
 }
