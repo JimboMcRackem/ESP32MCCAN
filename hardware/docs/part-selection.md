@@ -47,11 +47,15 @@ pass; (b) add a small gate-drive level shifter so the FETs see 5 V instead of
 >= 40 V (only two families were checked here before the effort cap).
 
 ### 1b. Sense resistor (12 required)
+Candidate: **Yageo RC2512FK-071RL** (2512 case, 1.0 ohm, F = 1% tolerance),
+verified against Yageo "RC_L series" General Purpose Chip Resistors datasheet,
+Product specification, 14-Nov-2025, V.14.
+
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 1b.1 | 1 ohm, tolerance <= 1% (tolerance sets channel-to-channel reading spread) | | |
-| 1b.2 | Power rating >= 50 mW with margin (dissipates 20 mW at 0.14 A) | | |
-| 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | | |
+| 1b.1 | 1 ohm, tolerance <= 1% (tolerance sets channel-to-channel reading spread) | Datasheet Table 3 ("Electrical characteristics", RC2512 row, 1 W option): "1% (E24/E96) 1 Ohm <= R <= 10 MOhm" is an explicit tolerance/range bracket that includes 1.0 Ohm at F = 1.0% tolerance (part-number tolerance code table, Section 2). Confirmed as an orderable Yageo global part number (RC2512FK-071RL) via distributor listing. | **PASS** — 1.0 Ohm at F = 1% tolerance is a directly supported, orderable configuration. |
+| 1b.2 | Power rating >= 50 mW with margin (dissipates 20 mW at 0.14 A) | Datasheet "Functional description", "Power rating": "RC2512 = 1 W, 2 W" (rated power at 70 degC). Table 3, RC2512 row confirms 1 W and 2 W options both cover 1 Ohm at 1% tolerance. | **PASS** — 1 W (1000 mW) minimum option vs 50 mW required; actual dissipation of 0.14^2 x 1 = 19.6 mW is under 2% of the 1 W rating, >50x thermal margin. |
+| 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | Table 3, RC2512 row: "Temperature Coefficient — 1 Ohm <= R <= 10 Ohm: +/-200 ppm/degC". Over a 100 degC swing from a 25 degC reference (e.g. to 125 degC), drift = 200 ppm/degC x 100 degC = 20,000 ppm = 2% of nominal resistance, i.e. the 1 Ohm sense resistor could read 0.98-1.02 Ohm. At 0.14 A that shifts the 140 mV nominal reading by about +/-2.8 mV. | **PASS** — a +/-2.8 mV (2%) shift is negligible against the coarse three-bin classification (open ~0 mV / working ~140 mV / shorted saturated), which needs to separate states by tens to hundreds of mV, not a few mV. |
 
 ### 1c. 16-channel analog multiplexer (1 required)
 Candidates: CD74HC4067, ADG706, MAX4617 family
