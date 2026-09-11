@@ -125,6 +125,36 @@ Candidate: TI LM5164
 | 4.3 | Input rating 40-60 V | | |
 | 4.4 | Stable with no load (sleep condition) | | |
 
+## 4b. 5 V regulator (ADDED 2026-09-11) — mandatory, always on
+Feeds the TJA1042's VCC (4.5-5.5 V). Must stay powered in deep sleep so the
+transceiver can monitor the bus, so its own quiescent draw lands directly in
+the sleep budget. No candidate was pre-chosen by the brief; proposed here:
+**TI LM5164** (100 V input, 1 A synchronous buck, ultra-low IQ, datasheet
+SNVSAU4D, revised February 2026), configured for a 5.0 V output via its
+external feedback divider. This is the same IC family already candidate for
+Section 4's 3.3 V rail — using it again for 5 V adds one more IC of a part
+already qualified for this design's input range, rather than introducing a new
+part number.
+
+**Trade-off (buck vs. LDO):** a buck was chosen over an LDO specifically for
+its verified ultra-low quiescent current (10.5 uA typ, row 4b.1), which lands
+far under the 30 uA target and is the dominant lever on the whole-board sleep
+budget. An LDO dropping 12-24 V down to 5 V at light load would be thermally
+trivial (its dissipation problem only matters at active current, row 4b.5),
+but low-IQ LDOs rated for a 40-60 V input are a narrower, more expensive part
+class than low-IQ 100 V bucks, and none was located and verified in this
+session. The accepted cost of the buck choice is switching-converter EMI
+mitigation (layout care), which the LM5164 datasheet documents compliance for
+(see row 4b.5).
+
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 4b.1 | Quiescent current <= 30 uA (counts against the <200 uA sleep budget) | Datasheet Section 5.5 "Electrical Characteristics": "IQ-SLEEP1 VIN sleep current — VEN = 2.5 V, VFB = 1.5 V — 10.5 / 25 uA" (typ/max). Feature list: "10.5uA no-load input quiescent current". Section 6.3.1/6.4.3 "Sleep Mode": at light load the converter enters diode-emulation, then "an ultra-low IQ sleep mode... The input quiescent current (IQ) required by the LM5164 decreases to 10.5uA in sleep mode." | **PASS** — 10.5 uA typ / 25 uA max, both under the 30 uA criterion, and the datasheet explicitly engineers this behavior for light/no-load standby (the exact condition here). |
+| 4b.2 | Output 5.0 V +/- 5%, >= 100 mA (transceiver active draw) | Section 5.3 "Recommended Operating Conditions": "ILOAD Load current — 1 / 1.25 A" (nom/max) — far above the 100 mA needed. Output voltage is set externally: Section 6.3.3, "RFB2 = 1.2V / (VOUT - 1.2V) x RFB1", using the internal "VREF FB regulation voltage — 1.181 / 1.2 / 1.218 V" (min/typ/max, Section 5.5) reference. No dedicated fixed-5V SKU exists for this part — output accuracy at 5.0V depends on the external divider's resistor tolerance plus the +/-1.5% VREF spread. | **PASS** — 1 A/1.25 A output vs 100 mA required; +/-5% output accuracy is achievable with the +/-1.5% VREF tolerance plus standard 1% feedback resistors (well inside budget), though this is a design/BOM detail for the schematic stage, not this part's spec. |
+| 4b.3 | Input rating 40-60 V (survives the 24 V TVS clamp) | Section 5.3 "Recommended Operating Conditions": "VIN Input voltage — 6 / 100 V" (min/max). | **PASS** — 6-100 V comfortably covers the 40-60 V requirement with large margin on both ends. |
+| 4b.4 | Stable at the ~20 uA load the transceiver presents in standby | Section 6.1 "Overview" / 6.4.3 "Sleep Mode": diode-emulation mode (DEM) plus an ultra-low-IQ sleep state are built in specifically to prevent instability and battery drain at light/no load. Section 7.2.3 "Application Curves", Fig. 7-6 "No-Load Start-up with VIN" is an actual bench scope capture at IOUT = 0 A showing clean, monotonic start-up (no oscillation). | **PASS** — the device is explicitly tested and characterized at 0 A load (a more demanding condition than the ~20 uA transceiver standby draw), with no instability shown. |
+| 4b.5 | If an LDO: dissipation at (12 V - 5 V) x active current is acceptable; if a buck: EMI acceptable | LM5164 chosen as a **buck**. Feature list: "Optimized for ultra-low EMI requirements — Meets CISPR 25 class 5 standard". Section 7.2.3, Figures 7-16/7-17: actual "CISPR 25 Class 5 Conducted Emissions Plot" bench measurements (150 kHz-30 MHz and 30-108 MHz) at VIN = 48 V, Load = 1 A, with an RC snubber (Rsnub = 1 Ohm, Csnub = 680 pF) — both plots are datasheet-published evidence of compliance testing, not merely a claim. | **PASS** — CISPR 25 Class 5 is TI's stated, bench-verified EMI compliance level for this part; acceptable for this design subject to following the datasheet's layout guidance (Section 7.4). |
+
 ## 5. CAN transceiver
 Candidate: NXP TJA1042T/3
 
