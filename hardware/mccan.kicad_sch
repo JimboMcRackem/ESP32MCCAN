@@ -1,0 +1,186 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "7410bb74-5653-4f1b-8c7c-ce17eb633f20")
+	(paper "A4")
+	(title_block
+		(title "MCCAN Root")
+		(comment 1 "Net naming contract: see hardware/README.md")
+	)
+	(lib_symbols)
+	(sheet
+		(at 50.8 50.8)
+		(size 25.4 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "bb7f7a86-b153-4a57-9167-66f1a7c26371")
+		(property "Sheetname" "power_input"
+			(at 50.8 50.0032 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "sheets/power_input.kicad_sch"
+			(at 50.8 76.581 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "mccan"
+				(path "/"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 101.6 50.8)
+		(size 25.4 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "4a66277e-62b8-454b-8781-170494cf9f57")
+		(property "Sheetname" "rails"
+			(at 101.6 50.0032 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "sheets/rails.kicad_sch"
+			(at 101.6 76.581 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "mccan"
+				(path "/"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 50.8 101.6)
+		(size 25.4 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "5a511665-9b85-4ced-b6e3-f23e247294e2")
+		(property "Sheetname" "mcu_can"
+			(at 50.8 100.8032 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "sheets/mcu_can.kicad_sch"
+			(at 50.8 127.381 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "mccan"
+				(path "/"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 101.6 101.6)
+		(size 25.4 25.4)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "4008c412-efce-41fb-837c-ba7220a4d335")
+		(property "Sheetname" "outputs"
+			(at 101.6 100.8032 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "sheets/outputs.kicad_sch"
+			(at 101.6 127.381 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "mccan"
+				(path "/"
+					(page "5")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)

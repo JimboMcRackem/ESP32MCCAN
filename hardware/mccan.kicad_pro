@@ -1,0 +1,53 @@
+{
+  "board": {
+    "design_settings": {
+      "defaults": {},
+      "diff_pair_dimensions": [],
+      "drc_exclusions": [],
+      "rules": {},
+      "track_widths": [],
+      "via_dimensions": []
+    }
+  },
+  "boards": [],
+  "libraries": {
+    "pinned_footprint_libs": [],
+    "pinned_symbol_libs": []
+  },
+  "meta": {
+    "filename": "mccan.kicad_pro",
+    "version": 1
+  },
+  "net_settings": {
+    "classes": [],
+    "meta": {
+      "version": 0
+    }
+  },
+  "pcbnew": {
+    "page_layout_descr_file": ""
+  },
+  "sheets": [
+    [
+      "7410bb74-5653-4f1b-8c7c-ce17eb633f20",
+      "Root"
+    ],
+    [
+      "bb7f7a86-b153-4a57-9167-66f1a7c26371",
+      "power_input"
+    ],
+    [
+      "4a66277e-62b8-454b-8781-170494cf9f57",
+      "rails"
+    ],
+    [
+      "5a511665-9b85-4ced-b6e3-f23e247294e2",
+      "mcu_can"
+    ],
+    [
+      "4008c412-efce-41fb-837c-ba7220a4d335",
+      "outputs"
+    ]
+  ],
+  "text_variables": {}
+}

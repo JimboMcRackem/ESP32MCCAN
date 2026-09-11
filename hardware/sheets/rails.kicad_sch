@@ -1,0 +1,17 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "41ca87d7-21c7-4e64-9af2-9cbb98c5af77")
+	(paper "A4")
+	(title_block
+		(title "rails")
+	)
+	(lib_symbols)
+	(sheet_instances
+		(path "/4a66277e-62b8-454b-8781-170494cf9f57"
+			(page "3")
+		)
+	)
+	(embedded_fonts no)
+)

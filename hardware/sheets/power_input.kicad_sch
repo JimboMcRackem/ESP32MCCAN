@@ -1,0 +1,17 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "998d692e-4a37-4d1c-95bc-f35ab32eee34")
+	(paper "A4")
+	(title_block
+		(title "power_input")
+	)
+	(lib_symbols)
+	(sheet_instances
+		(path "/bb7f7a86-b153-4a57-9167-66f1a7c26371"
+			(page "2")
+		)
+	)
+	(embedded_fonts no)
+)
