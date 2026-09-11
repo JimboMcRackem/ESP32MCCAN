@@ -58,15 +58,37 @@ Product specification, 14-Nov-2025, V.14.
 | 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | Table 3, RC2512 row: "Temperature Coefficient — 1 Ohm <= R <= 10 Ohm: +/-200 ppm/degC". Over a 100 degC swing from a 25 degC reference (e.g. to 125 degC), drift = 200 ppm/degC x 100 degC = 20,000 ppm = 2% of nominal resistance, i.e. the 1 Ohm sense resistor could read 0.98-1.02 Ohm. At 0.14 A that shifts the 140 mV nominal reading by about +/-2.8 mV. | **PASS** — a +/-2.8 mV (2%) shift is negligible against the coarse three-bin classification (open ~0 mV / working ~140 mV / shorted saturated), which needs to separate states by tens to hundreds of mV, not a few mV. |
 
 ### 1c. 16-channel analog multiplexer (1 required)
-Candidates: CD74HC4067, ADG706, MAX4617 family
+Candidates evaluated: **TI CD74HC4067** (full datasheet, SCHS209D, revised
+December 2024) and **Analog Devices ADG706** (partial data only — see UNVERIFIED
+rows below). The brief's third suggestion, the "MAX4617 family", was screened
+out: MAX4617/MAX4618/MAX4619 are an 8-channel mux / dual 4-channel mux / triple
+SPDT respectively (Maxim/ADI datasheet, product description) — none of the three
+is a 16:1 device, so the family does not meet 1c.1 and was not evaluated further.
+
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 1c.1 | 16 channels, single-ended, 4 binary select lines | | |
-| 1c.2 | Operates from 3.3 V | | |
-| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | | |
-| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | | |
-| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | | |
-| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | | |
+| 1c.1 | 16 channels, single-ended, 4 binary select lines | CD74HC4067 datasheet Section 4 "Pin Configuration and Functions": pins I0-I15 (16 switch I/O), S0-S3 (4 select/address pins), E (enable); Section 4.1 Table 4-1 "Truth Table" confirms all 16 channels are addressed by S0-S3 with E as a master disable. | **PASS** (CD74HC4067) — confirmed from the actual pinout and truth table. ADG706 channel count not independently confirmed here (see note below) — **UNVERIFIED** for that candidate. |
+| 1c.2 | Operates from 3.3 V | CD74HC4067 Section 7 "Recommended Operating Conditions": "VCC supply voltage range — CD54 and 74HC types: 2 V to 6 V". | **PASS** (CD74HC4067) — 3.3 V sits well inside the 2-6 V recommended range. |
+| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | CD74HC4067 Section 8 "Electrical Characteristics: HC Devices": RON (IO = 1 mA, VCC or GND to VCC or GND) is specified **only at VCC = 4.5 V and VCC = 6 V** — at 4.5 V: 70 Ohm typ / 160 Ohm max (25 degC), rising to 240 Ohm max (-55 to 125 degC); worst case VCC-to-GND swing at 4.5 V: 90 Ohm typ / 270 Ohm max (full temp range). No RON figure exists at VCC = 3.3 V in the parametric table, and CMOS analog-switch RON is known to increase as VCC decreases, so the 4.5 V figures cannot be used as a valid ceiling for 3.3 V operation. No verified ESP32 ADC1 input-impedance figure was obtained to compute the resulting divider error. | **UNVERIFIED** — no RON spec at 3.3 V, and the ESP32-side impedance needed to compute the divider was not sourced either. Needs both: (a) an RON figure at VCC=3.3V (bench or a part with that column), and (b) the ESP32 ADC1 input impedance from Espressif's datasheet. |
+| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | CD74HC4067 Section 8: "Off-Switch Leakage Current IZ" (E = VCC, VCC or GND, at VCC = 6 V): 0.8 uA typ / 8 uA max (25 degC), 8 uA max (-55 to 125 degC). No leakage figure exists at VCC = 3.3 V. With 15 deselected channels each contributing up to 8 uA max (6 V figure), a worst-case summed leakage of ~120 uA onto the common bus is possible in principle, though whether this couples into the 140 mV reading depends on the bus/ADC loading impedance, which was not sourced. | **UNVERIFIED** — no leakage spec at 3.3 V, and the impact of the summed worst-case leakage on the actual reading was not computed against a sourced ADC/bus impedance. |
+| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | CD74HC4067 Section 8: "ON Resistance Between Any Two Switches — Delta-RON — VCC = 4.5 V, 25 degC: 10 Ohm" (no min/max given at this voltage, single typical value only). | **PASS with caveat** — 10 Ohm typical match at 4.5 V is small relative to the 1 Ohm sense resistor's 1 A-scale voltage, but this is a typical value only (no guaranteed max), and not characterized at 3.3 V. |
+| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | CD74HC4067 Section 11 "Switching Characteristics HC": "Switch Turn On Sn to Out — tPZH, tPZL — VCC = 4.5 V, 25 degC: 60 ns max (CL = 50 pF)", rising to 90 ns max over -55 to 125 degC. | **PASS** — even allowing an order-of-magnitude slowdown at 3.3 V (unverified but implausible to exceed), sub-microsecond switching is negligible against a multi-millisecond, 12-channel sweep budget. |
+
+**Candidate note — ADG706:** Analog Devices datasheet fetch attempts failed
+(direct PDF fetches from analog.com and Mouser both errored; a text-mirror at
+radiolocman.com was readable). That mirror confirms the ADG706/ADG707 electrical
+specification table is characterized **only at VDD = 5 V +/- 10%** (single
+supply), giving RON = 2.5 Ohm typ / 5 Ohm max, RON match 0.3/0.8 Ohm typ/max,
+RFLAT(on) 0.5/1.2 Ohm typ/max, and off-leakage +/-0.01 nA typ / +/-0.3 to
++/-1.5 nA max — all at VDD = 5 V or 5.5 V, not 3.3 V. The device's absolute
+operating range is stated elsewhere as 1.8-5.5 V, so it functions at 3.3 V, but
+none of the RON/leakage numbers above are confirmed at that supply. If ADG706's
+5V-referenced RON (30x lower than CD74HC4067's) holds up anywhere close to that
+figure at 3.3 V, it would be the stronger candidate for 1c.3/1c.4 — this needs a
+human to obtain the full datasheet (fetch blocked in this session) and check its
+3.3 V-specific curves, plus confirm the 16-channel/4-address-line configuration
+(vs. the dual-8-channel ADG707) directly from the datasheet rather than a title
+fragment.
 
 ## 2. Dual smart high-side switch (1 required) — Denali
 Candidate: Infineon BTS7008-2EPA or PROFET+2 12V family
