@@ -116,12 +116,17 @@ The low per-channel RGB current is what makes the smart-switch output stage ther
           │                  12× R/G/B returns
           │                            ▼
           │              ┌──────────────────────────────┐
-          │              │ 2× OCTAL SMART LOW-SIDE      │
-          │              │ parallel PWM in │ SPI diag   │
+          │              │ 12× DISCRETE N-MOSFET        │
+          │              │ + 1Ω shunt in each source    │
           │              └──────┬───────────────┬───────┘
-          │                12× PWM           SPI
-          │              ┌──────┴───────┐        │
-          ├─────────────▶│ PCA9685      │        │
+          │                12× PWM        12× sense
+          │                     │                ▼
+          │                     │         ┌──────────────┐
+          │                     │         │ 16:1 ANALOG  │
+          │                     │         │ MUX  (S0-S3) │
+          │                     │         └──────┬───────┘
+          │              ┌──────┴───────┐        │ RGB_ISNS
+          ├─────────────▶│ PCA9685      │        │ → ADC1_CH4
           │              │ ch 0-11, I2C │        │
           │              └──────┬───────┘        │
           │                     │                │
@@ -247,45 +252,52 @@ not upstream failure.
 
 ## 5. Output stages
 
-### 5.1 RGB — octal smart low-side switches
+### 5.1 RGB — discrete low-side MOSFETs with per-channel current sense
 
-**2 × octal smart low-side switch in parallel-input mode.** Candidate families: Infineon
-**TLE8110ED** / **TLE8108EM**, NXP **MC33996**.
+**DECISION 2026-09-11 — supersedes the smart-switch design.** Task 2b datasheet verification
+established that **ON-state open-load detection does not exist in the multichannel smart low-side
+switch category.** TLE8110ED's diagnosis code `01` is defined verbatim as "Open Load in OFF-Mode";
+its ON-mode codes cover only overload, short and overtemperature. Detection is a **VDS comparator**
+(VDSol 2.00/2.60/3.20 V with a 50/90/150 mA injected pull-down), so there is **no load-current
+threshold at all** — 0.14 A is unspecified rather than out of range. Two further rows failed:
+short-to-battery and overtemperature share one 2-bit code, and standby current is 20 µA max at
+85 °C with zero margin (60 µA at 150 °C, plus ~36 µA leakage).
 
-> **CORRECTION (2026-09-11):** an earlier revision listed ST **VNI8200XP** here. That part is a
-> **high-side** device (ST titles it "Octal high side smart power solid state relay") and was
-> never a valid candidate for low-side switching. Removed.
+Since the integrated parts were chosen *for* those diagnostics, and the OFF-state detection they do
+offer is marginal at 0.14 A anyway (the injected pull-down reaches 150 mA while a healthy channel
+sources only ~140 mA, so a working channel could read as open), the RGB stage is now **12 discrete
+logic-level N-MOSFETs plus a purpose-built diagnostic chain** that does what the ICs could not.
 
-> **:warning: ROW 1.1 VERIFICATION FAILED — ARCHITECTURE DECISION PENDING.** Task 2b established
-> that ON-state open-load detection does not exist in this part category: TLE8110ED's diagnosis
-> code `01` is defined verbatim as "Open Load in OFF-Mode", its ON-mode codes cover only
-> overload/short/overtemperature, and detection is a **VDS comparator** (VDSol 2.00/2.60/3.20 V
-> with a 50/90/150 mA injected pull-down) — so there is **no load-current threshold at all**, and
-> 0.14 A is unspecified rather than merely out of range. ON-state open-load detection requires
-> per-channel current sense, which no multichannel smart low-side switch provides. Rows 1.6
-> (short-to-battery and overtemperature share one 2-bit code) and 1.8 (standby 20 µA max at 85 °C
-> with zero margin, 60 µA at 150 °C, plus up to ~36 µA leakage) also failed. **This section is
-> superseded once the pending decision is made; do not build from it yet.**
+**Switching:** one logic-level N-channel MOSFET per channel, gate driven directly from a PCA9685
+output. At 0.14 A the FET is a trivial part — a 40 V, ~50 mΩ device dissipates ~1 mW. Requirements:
+**Vds ≥ 40 V** (the 24 V rail plus transients), **Vgs(th) low enough for full enhancement at 3.3 V**,
+**Id ≥ 1 A**.
 
-Selection criteria:
+**Diagnostics:** a **1 Ω sense resistor in each FET's source leg**, all 12 sense nodes feeding a
+**16-channel analog multiplexer** whose output drives one ESP32 **ADC1** input.
 
-- ≥ 12 channels total
-- ≥ 0.3 A continuous per channel (need 0.14 A)
-- **Output rating ≥ 40 V** — the 24 V rail plus transients
-- **Parallel PWM inputs** — see below
-- SPI diagnostics (open load, short to battery, short to ground, overtemperature)
-- Low standby current
+- Sense is **ground-referenced** (low-side), so no differential or high-side amplifier is needed
+- 1 Ω × 0.14 A = **140 mV** at full channel current; **0.24 W** total across 12 channels at full white
+- ADC at **0 dB attenuation** (0–1.1 V range), so 140 mV is ~13% of full scale — ample to separate
+  open (≈0 mV), working (≈140 mV) and shorted (saturated)
+- 1 Ω chosen deliberately over 2.2 Ω: the larger shunt would read a cleaner 308 mV but cost 0.5 W
 
-**Why parallel-input mode matters:** these parts are switches with fault reporting, not PWM
-generators. Driving 12 dimming channels purely over SPI would mean software PWM at ~50 kHz of
-SPI traffic, which would wreck the firmware's 10 ms tick architecture. Parallel inputs take PWM
-on dedicated pins; SPI is used **only to read diagnostics**.
+**What this delivers that the smart switches could not:** genuine ON-state open-load detection,
+short detection, and real per-channel current telemetry to surface in the web app — for roughly
+$3–6 in passives against $8–12 for two ICs that provided none of it.
 
-**Go/no-go verification item:** open-load detection thresholds on these parts are often tens of
-milliamps, and some detect open load only in the OFF state. At 0.14 A per channel this is close
-enough to the threshold that it must be confirmed from the datasheet that a genuinely open
-channel is distinguishable. **If it is not, the diagnostics do not deliver on the RGB side** and
-the part choice must change.
+**Sampling is on-demand, not continuous.** A sense voltage exists only while its channel is ON, and
+channels are PWM'd at 400 Hz. Rather than synchronise the ADC to PWM phase, firmware runs a
+**diagnostic sweep**: drive one channel to 100% for a few milliseconds, sample, advance. This
+doubles as the **installation self-test** (§12) — the same sweep that measures each channel lights
+each corner in turn for the installer to confirm against mis-mated connectors.
+
+**Per-channel protection now rests on the per-string PTCs (§5.2) and the boost's current limit,**
+not on switch intelligence. A FET rated ≥1 A shrugs off a short the boost limits to 2.5 A, and the
+PTC isolates the fault to one corner. This is the protection the design already had.
+
+**SPI is no longer required anywhere on the board** — the switch ICs were its only devices. Four
+GPIO are freed, which is what makes the sense chain fit (§7.3).
 
 ### 5.2 RGB rail distribution — per-string PTC
 
@@ -384,7 +396,7 @@ switch-node loop area, enable from GPIO.
 
 Not the stock 4 MB. The current build reports 83.8% flash, which is 83.8% of the 1.25 MB `app0`
 partition in the default 4 MB table — about **212 KB free**. Into that must fit deep-sleep
-logic, the SPI diagnostics layer, and eventually OTA. The 8 MB module plus a custom partition
+logic, the diagnostic-sweep layer, and eventually OTA. The 8 MB module plus a custom partition
 table (2 × 2 MB app slots, ~3 MB LittleFS) costs about a dollar and removes the constraint
 permanently.
 
@@ -421,9 +433,10 @@ Three hard constraints drive this, not convenience:
 | Ignition sense (unpopulated) | **36** | RTC-capable — second wake source |
 | CAN TX | 17 | Free (no PSRAM on WROOM-32E) |
 | I²C SDA / SCL → PCA9685 | 21 / 22 | Conventional |
-| SPI SCK / MOSI / MISO / CS | 18 / 23 / 19 / 5 | VSPI defaults; both switch ICs daisy-chained on one CS |
-| Denali A / B PWM → PROFET | 32 / 33 | LEDC, per §5.4 |
+| Denali A / B PWM → PROFET | 18 / 19 | LEDC, per §5.4 (moved off 32/33 — see below) |
 | Denali A / B current sense | **34 / 39** | **ADC1 only** |
+| **RGB sense, mux output** | **32** | **ADC1_CH4** — the §5.1 diagnostic chain |
+| **Mux select S0–S3** | **23 / 4 / 16 / 5** | Freed by dropping SPI; GPIO 5 is a strapping pin, pulldown mandatory |
 | Boost enable | 25 | |
 | Peripheral 3.3 V load switch | 26 | |
 | PROFET diagnostic enable | 27 | |
@@ -431,8 +444,17 @@ Three hard constraints drive this, not convenience:
 | **CAN transceiver STB** | **14** | RTC-capable; required to enter/leave transceiver standby |
 | Programming | 0, 1, 3, EN | Reserved for header |
 
-18 signal pins used; GPIO 4, 12, 15, 16, 38 spare. The comfortable margin is what justifies
-retaining the PCA9685 rather than driving all 14 channels natively.
+19 signal pins used; **GPIO 2, 12, 15, 33 spare**. Retaining the PCA9685 is what makes this fit.
+
+> **CORRECTION 2026-09-11:** an earlier revision listed GPIO 38 as spare. **GPIO 37 and 38 are not
+> bonded out on WROOM-32 modules** and do not exist as usable pins. That mattered, because every
+> one of the six ADC1 pins reachable on the module (32, 33, 34, 35, 36, 39) was already allocated,
+> leaving no input for the §5.1 sense chain. Dropping SPI freed 18/19/23/5; Denali PWM moved to
+> 18/19, which released **GPIO 32 (ADC1_CH4)** for the mux output.
+
+**Strapping-pin care:** GPIO 5 (mux S3) and GPIO 12/15 (spare) are strapping pins. GPIO 12 selects
+flash voltage at boot and is deliberately left unused. GPIO 5 only affects boot-log polarity and is
+safe with the mandatory pulldown below.
 
 **Passive defaults must equal the sleep state.** Rather than relying on `gpio_hold_en()` to
 freeze pad levels through deep sleep, every enable is pulled to its safe state in hardware:
@@ -443,6 +465,7 @@ freeze pad levels through deep sleep, every enable is pulled to its safe state i
 | `EN_3V3SW` | pulldown to GND | Peripheral rail off |
 | `CAN_STB` | pull-up to VIO | Transceiver in standby (STB is active-high) |
 | `PWM_*` (14) | pulldown to GND | All outputs off |
+| `MUX_S0`–`S3` | pulldown to GND | Defined mux channel; **required on GPIO 5**, a strapping pin |
 
 This makes the sleep state the *unpowered* state, so a crash, brownout or reset can never leave
 the lights on or the rails up.
@@ -454,7 +477,7 @@ the lights on or the rails up.
   board's unreliable auto-reset, which required holding BOOT through esptool's
   "Connecting......". A plain USB-UART adapter will enter download mode unaided.
 - BOOT and EN tactile buttons
-- Test points on VBAT_PROT, 24 V, 3.3 V, I²C, SPI, CAN H/L
+- Test points on VBAT_PROT, VBAT_A, VBAT_B, 24 V, 5 V, 3.3 V, I²C, `RGB_ISNS`, CAN H/L
 
 ---
 
@@ -574,7 +597,8 @@ ceramic and polymer capacitors preferred where they will serve.
 | Synchronous boost losses (40 W out, ~94%) | ~2.6 W |
 | P-FET reverse protection, both feeds | ~0.30 W |
 | Denali PROFET, both channels at 3.3 A | ~0.22 W |
-| RGB low-side switches, all 12 | ~0.12 W |
+| RGB discrete FETs, all 12 | ~0.01 W |
+| RGB sense resistors, 12 × 1 Ω at 0.14 A | ~0.24 W |
 | Buck and logic | ~0.4 W |
 | **Total** | **~3.6 W** |
 
@@ -609,9 +633,11 @@ to claim automotive compliance. Designing for it now costs little; retrofitting 
 
 **Go/no-go items to resolve before committing the BOM:**
 
-1. **Open-load detection threshold** on the chosen low-side switch versus 0.14 A per channel
-   (§5.1) — if it cannot resolve an open channel, the part changes
-2. Low-side switch **output rating ≥ 40 V** and PWM capability at 400 Hz
+1. ~~Open-load detection threshold~~ **RESOLVED by Task 2b: FAILED category-wide** → §5.1 now uses
+   discrete FETs with a dedicated sense chain. Remaining check: the MOSFET's **Vgs(th) gives full
+   enhancement at 3.3 V** gate drive from the PCA9685, and **Vds ≥ 40 V**
+2. **Analog mux** on-resistance and leakage are low enough not to corrupt a 140 mV reading, and it
+   is rated for 3.3 V operation
 3. Every quiescent-current contributor in §8.2, from datasheets
 4. Buck capable of ESP32 WiFi TX peaks (~500 mA) while retaining low quiescent draw
 5. PROFET continuous per-channel rating exceeds **3.3 A** with margin, and its current-sense
@@ -625,7 +651,7 @@ to claim automotive compliance. Designing for it now costs little; retrofitting 
 2. Boost under full dummy load — efficiency, ripple, thermal rise
 3. Quiescent-current measurement in simulated sleep
 4. MCU populated — programming header, auto-reset, flash
-5. I²C to PCA9685; SPI to switch ICs; diagnostics readback
+5. I²C to PCA9685; mux select lines stepped and `RGB_ISNS` read on ADC1; PROFET sense readback
 6. Outputs into dummy resistive loads — all 14 channels, PWM linearity at low duty
 7. CAN on a bench bus — receive, then standby wake
 8. Real strips and Denali lights — soak test for flicker and buzz (§5.3)
@@ -643,8 +669,8 @@ gets its own plan.
 | 1 | **Deep sleep + CAN wake** | Bus-idle timeout, EXT1 wake on GPIO 35/36, rail enable sequencing, minimum-awake period. No sleep logic exists today. |
 | 2 | **Composite PWM HAL** | Route `IPwm` channels 0–11 to PCA9685, 12–13 to LEDC (§5.4). `ChannelIndex` unchanged. |
 | 3 | **8 MB partition table** | Custom CSV replacing stock `default.csv` (§7.1). |
-| 4 | **SPI diagnostics layer** | Read switch and PROFET faults; surface in the existing web app. |
-| 5 | **Installation self-test** | Per-corner identification to catch mis-mated connectors (§9.2). Recommended. |
+| 4 | **Diagnostic sweep + mux scan** | Drive one channel to 100%, step the mux, read ADC1; classify open/working/shorted; read PROFET sense. Surface in the existing web app. Replaces the SPI diagnostics layer — there is no SPI on the board. |
+| 5 | **Installation self-test** | Falls out of item 4's sweep at near-zero extra cost: light each corner in turn to catch mis-mated connectors (§9.2). |
 | 6 | *OTA updates* | Optional, later. Enabled by the 8 MB partition table. |
 
 ---
@@ -654,7 +680,8 @@ gets its own plan.
 | Risk | Severity | Mitigation |
 |---|---|---|
 | Experia CAN bus may never idle → no sleep, battery drain | High | Unpopulated ignition-sense input; configurable idle timeout |
-| Open-load detection threshold may exceed 0.14 A/channel | High | **Go/no-go on part selection** before BOM commit |
+| ~~Open-load detection threshold~~ **CLOSED: failed category-wide (Task 2b)** | — | Redesigned — §5.1 discrete FETs + 1 Ω shunt + mux + ADC1 |
+| 140 mV sense signal may be noisy near the ESP32 ADC's accuracy floor | Medium | 0 dB attenuation, averaging, on-demand sweep at 100% duty; classification is open/working/shorted, not precision metering |
 | ~~Real Denali wattage unknown~~ **RESOLVED**: D4 2.0 confirmed at 40 W each / 6.6 A per pair | — | Dual feed with domain split is now the baseline (§4.4), not an option |
 | RGB strip power assumed, not measured (40 W) | Medium | Power path oversized; re-verify on measurement |
 | D4 2.0 contains DataDim electronics that may interact with supply PWM | Medium | Full-range soak test (§5.3); fallback is full supply + native DataDim input |
