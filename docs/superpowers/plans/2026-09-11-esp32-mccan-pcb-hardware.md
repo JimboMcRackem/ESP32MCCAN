@@ -7,7 +7,8 @@ enclosure and harness documentation and a bring-up procedure, for the ESP32 MCCA
 lighting controller.
 
 **Architecture:** Dual 12 V feed with domain-split protection; synchronous boost to 24 V for four
-common-anode RGB COB strings switched low-side through octal smart switches with SPI diagnostics;
+common-anode RGB COB strings switched low-side through discrete MOSFETs with a shunt/mux/ADC
+per-channel diagnostic chain;
 Denali D4 2.0 pair switched high-side through a dual PROFET; ESP32-WROOM-32E-N8 with a PCA9685
 generating RGB PWM and LEDC generating Denali PWM; deep sleep with wake on CAN bus activity.
 
@@ -34,6 +35,27 @@ cannot deliver the diagnostics the design is built around.
 
 ---
 
+## REVISION 2026-09-11 — read before any task
+
+Task 2b's datasheet verification **failed the row 1.1 go/no-go category-wide**, and the spec was
+revised in response (commit `99add32`). Three changes propagate through every later task:
+
+1. **The RGB output stage is 12 discrete logic-level MOSFETs**, not octal smart low-side switches.
+   Diagnostics come from a **1 Ω shunt in each FET source leg → 16:1 analog mux → one ADC1 input**.
+2. **There is no SPI on this board.** The switch ICs were its only devices. Any step below that
+   mentions SPI nets, daisy-chaining, or SPI diagnostics is void — follow the revised text.
+3. **A 5 V rail is mandatory** (TJA1042 VCC is 4.5–5.5 V; the "/3" suffix is VIO only). Four power
+   domains, not three.
+
+Pin allocation changed accordingly: Denali PWM moved to 18/19, freeing **GPIO 32 (ADC1_CH4)** for
+the mux output, with mux select on 23/4/16/5. **GPIO 37/38 do not exist on WROOM-32 modules** — an
+earlier revision listed 38 as spare in error, which is what forced this reshuffle.
+
+The spec (§5.1, §6, §7.3) is the authority. Where this plan's task text still reflects the old
+design, the spec wins.
+
+---
+
 ## Global Constraints
 
 Copy these values verbatim; every task's requirements implicitly include this section.
@@ -52,7 +74,9 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - Per RGB channel: **0.14 A**. Per RGB string (white): **0.42 A**. Per Denali channel: **3.3 A**
 - Sleep budget target **< 200 µA**, hard ceiling **500 µA**
 - All input front-end parts rated **≥ 40 V**; both switchers rated **40–60 V** input
-- TVS standoff **~24 V**; low-side switch outputs rated **≥ 40 V**
+- TVS standoff **~24 V**; RGB MOSFET **Vds ≥ 40 V**, fully enhanced at **Vgs = 3.3 V**
+- **5 V rail mandatory** (TJA1042 VCC is 4.5–5.5 V), always on and low quiescent
+- RGB sense: **1 Ω** shunt per channel = **140 mV** at 0.14 A; ADC at **0 dB attenuation** (0–1.1 V)
 - PWM: RGB **400 Hz** (PCA9685), Denali **150 Hz** (ESP32 LEDC)
 - Total internal dissipation target **~3.6 W**
 - Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
@@ -74,16 +98,19 @@ Copy these values verbatim; every task's requirements implicitly include this se
 | `CAN_TXD` | 17 | |
 | `CAN_STB` | 14 | RTC-capable |
 | `I2C_SDA` / `I2C_SCL` | 21 / 22 | |
-| `SPI_SCK` / `SPI_MOSI` / `SPI_MISO` / `SPI_CS` | 18 / 23 / 19 / 5 | Both switch ICs daisy-chained, one CS |
-| `PWM_DEN_A` / `PWM_DEN_B` | 32 / 33 | LEDC |
+| `PWM_DEN_A` / `PWM_DEN_B` | 18 / 19 | LEDC (moved off 32/33 — see REVISION note) |
 | `ISNS_DEN_A` / `ISNS_DEN_B` | 34 / 39 | **ADC1 only** — ADC2 fails while WiFi is active |
+| `RGB_ISNS` (mux output) | 32 | **ADC1_CH4** — the §5.1 diagnostic chain |
+| `MUX_S0` / `S1` / `S2` / `S3` | 23 / 4 / 16 / 5 | GPIO 5 is a strapping pin — pulldown mandatory |
 | `EN_BOOST` | 25 | |
 | `EN_3V3SW` | 26 | |
 | `EN_DIAG` | 27 | |
 | `LED_STAT` | 13 | |
 | Programming | 0, 1, 3, EN | Reserved |
 
-Spare: GPIO 4, 12, 15, 16, 38. Never use GPIO 6–11 (flash).
+Spare: GPIO 2, 12, 15, 33. Never use GPIO 6–11 (flash). **GPIO 37/38 do not exist on WROOM-32
+modules** — an earlier revision wrongly listed 38 as spare. Leave GPIO 12 unused: it selects flash
+voltage at boot.
 
 **Passive-default biasing — mandatory on every one of these nets**
 
@@ -93,6 +120,7 @@ Spare: GPIO 4, 12, 15, 16, 38. Never use GPIO 6–11 (flash).
 | `EN_3V3SW` | pulldown to GND | Peripheral rail off |
 | `CAN_STB` | pull-up to VIO | Transceiver in standby |
 | All 14 `PWM_*` | pulldown to GND | All outputs off |
+| `MUX_S0`–`S3` | pulldown to GND | Defined channel; **required on GPIO 5** (strapping pin) |
 
 **Net naming contract** — sheets connect only through these names. Use them exactly.
 
@@ -105,7 +133,10 @@ RGB ret:  RET_FL_R RET_FL_G RET_FL_B RET_FR_R RET_FR_G RET_FR_B
           RET_RL_R RET_RL_G RET_RL_B RET_RR_R RET_RR_G RET_RR_B
 Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN_A ISNS_DEN_B
 Control:  EN_BOOST EN_3V3SW EN_DIAG LED_STAT IGN_SENSE
-Bus:      I2C_SDA I2C_SCL SPI_SCK SPI_MOSI SPI_MISO SPI_CS
+Bus:      I2C_SDA I2C_SCL
+Sense:    SENSE_FL_R SENSE_FL_G SENSE_FL_B SENSE_FR_R SENSE_FR_G SENSE_FR_B
+          SENSE_RL_R SENSE_RL_G SENSE_RL_B SENSE_RR_R SENSE_RR_G SENSE_RR_B
+          MUX_S0 MUX_S1 MUX_S2 MUX_S3  RGB_ISNS
 CAN:      CAN_TXD CAN_RXD CAN_STB CANH CANL
 Prog:     UART_TX UART_RX BOOT_N EN_MCU
 ```
@@ -125,7 +156,7 @@ shown. Never leave a task's work uncommitted.
 | `hardware/sheets/power_input.kicad_sch` | Both feeds: fuses, P-FETs, TVS, π+CM filters, Schottky OR |
 | `hardware/sheets/rails.kicad_sch` | Sync boost, low-Iq buck, 3V3 load switch |
 | `hardware/sheets/mcu_can.kicad_sch` | ESP32 module, TJA1042, programming header, status LED |
-| `hardware/sheets/outputs.kicad_sch` | PCA9685, 2× octal low-side switch, dual PROFET, PTCs, connectors |
+| `hardware/sheets/outputs.kicad_sch` | PCA9685, 12× MOSFET + shunt, 16:1 mux, dual PROFET, PTCs, connectors |
 | `hardware/mccan.kicad_pcb` | Board layout |
 | `hardware/docs/part-selection.md` | Verification record: every part vs every spec criterion |
 | `hardware/docs/enclosure.md` | Box, heat-spreader plate, panel layout, vent, mounting |
@@ -186,7 +217,7 @@ DRC (must exit 0, includes schematic parity):
 | power_input | Both feeds: fuses, P-FETs, TVS, pi+CM filters, Schottky OR |
 | rails | Sync boost, low-Iq buck, 3V3 load switch |
 | mcu_can | ESP32 module, TJA1042, programming header, status LED |
-| outputs | PCA9685, 2x octal low-side switch, dual PROFET, PTCs, connectors |
+| outputs | PCA9685, 12x MOSFET + shunt, 16:1 mux, dual PROFET, PTCs, connectors |
 
 ## Net naming contract
 
@@ -262,21 +293,37 @@ stops a convenient part from redefining the requirement.
 Every criterion below comes from the spec. A part may be chosen ONLY if every
 row for it reads PASS. Candidate families are suggestions, not decisions.
 
-## 1. Octal smart low-side switch (2 required) — RGB channels
-Candidates: ST VNI8200XP, Infineon TLE8110ED / TLE8108EM, NXP MC33996
+## 1. RGB output stage (REVISED 2026-09-11) — discrete MOSFET + sense chain
+Replaces the octal smart low-side switches, whose row 1.1 failed category-wide.
+Three part classes to verify: the FET, the sense resistor, the analog mux.
 
+### 1a. Logic-level N-MOSFET (12 required)
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 1.1 | **GO/NO-GO:** open-load detection resolves a **0.14 A** load, and works in the ON state (not only OFF) | | |
-| 1.2 | Output voltage rating >= 40 V | | |
-| 1.3 | Continuous current per channel >= 0.3 A | | |
-| 1.4 | >= 6 channels per package (2 packages cover 12) | | |
-| 1.5 | Parallel/direct PWM input mode exists, usable at 400 Hz | | |
-| 1.6 | SPI diagnostics: open load, short to battery, short to GND, overtemperature | | |
-| 1.7 | Daisy-chainable on one CS, or 2 CS available in spare GPIO | | |
-| 1.8 | Standby current <= 20 uA total for both packages | | |
-| 1.9 | On-resistance, and resulting dissipation at 0.14 A x 12 channels <= 0.2 W | | |
-| 1.10 | In stock, multi-source or >= 12 month lead visibility | | |
+| 1a.1 | Vds >= 40 V (24 V rail plus transients) | | |
+| 1a.2 | **Fully enhanced at Vgs = 3.3 V** — Rds(on) specified AT or BELOW 3.3 V Vgs, not only at 4.5/10 V | | |
+| 1a.3 | Id >= 1 A continuous | | |
+| 1a.4 | Rds(on) at 3.3 V Vgs gives <= 5 mW per channel at 0.14 A | | |
+| 1a.5 | Gate charge low enough to switch cleanly at 400 Hz from a PCA9685 output (25 mA sink / 10 mA source) | | |
+| 1a.6 | In stock, multi-source | | |
+
+### 1b. Sense resistor (12 required)
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 1b.1 | 1 ohm, tolerance <= 1% (tolerance sets channel-to-channel reading spread) | | |
+| 1b.2 | Power rating >= 50 mW with margin (dissipates 20 mW at 0.14 A) | | |
+| 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | | |
+
+### 1c. 16-channel analog multiplexer (1 required)
+Candidates: CD74HC4067, ADG706, MAX4617 family
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 1c.1 | 16 channels, single-ended, 4 binary select lines | | |
+| 1c.2 | Operates from 3.3 V | | |
+| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | | |
+| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | | |
+| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | | |
+| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | | |
 
 ## 2. Dual smart high-side switch (1 required) — Denali
 Candidate: Infineon BTS7008-2EPA or PROFET+2 12V family
@@ -526,8 +573,8 @@ Expected: `exit=0`.
 
 **Interfaces:**
 - Consumes: `+3V3_ALW`, `GND`
-- Produces: every control and bus net the outputs sheet needs — `I2C_SDA`, `I2C_SCL`, `SPI_SCK`,
-  `SPI_MOSI`, `SPI_MISO`, `SPI_CS`, `PWM_DEN_A`, `PWM_DEN_B`, `ISNS_DEN_A`, `ISNS_DEN_B`,
+- Produces: every control and bus net the outputs sheet needs — `I2C_SDA`, `I2C_SCL`,
+  `MUX_S0`–`MUX_S3`, `RGB_ISNS`, `PWM_DEN_A`, `PWM_DEN_B`, `ISNS_DEN_A`, `ISNS_DEN_B`,
   `EN_BOOST`, `EN_3V3SW`, `EN_DIAG`, `LED_STAT` — plus `CANH`, `CANL` to the connector
 
 - [ ] **Step 1: Write the sheet's acceptance criteria on the sheet**
@@ -624,7 +671,9 @@ ACCEPTANCE (spec 5, 9.1, 9.2):
 - PCA9685 on +3V3_SW, I2C, LED0-11 -> the 12 RGB switch inputs IN ChannelIndex ORDER:
   LED0,1,2 = FL R,G,B;  LED3,4,5 = FR R,G,B;
   LED6,7,8 = RL R,G,B;  LED9,10,11 = RR R,G,B.   LED12-15 UNUSED.
-- 2x octal low-side switch in PARALLEL-INPUT mode; SPI for diagnostics ONLY
+- 12x discrete logic-level N-MOSFET, gate direct from PCA9685, 1 ohm shunt in each source leg
+- 12 SENSE_* nodes -> 16:1 analog mux (MUX_S0-S3) -> RGB_ISNS -> GPIO 32 (ADC1_CH4)
+- NO SPI anywhere on this board
 - Dual PROFET from VBAT_B, inputs PWM_DEN_A/B from ESP32 LEDC (NOT the PCA9685)
 - PROFET current sense -> ISNS_DEN_A/B with scaling resistor to stay under 3.3 V
 - 4x PTC, one per string, on the +24V feeds
@@ -642,18 +691,32 @@ default. Label LED0–LED11 outputs with the exact `PWM_*` contract names, **in 
 order** — getting this order wrong produces a board whose colours and corners are scrambled
 relative to firmware that is already written and tested.
 
-- [ ] **Step 3: Place the two octal low-side switches in parallel-input mode**
+- [ ] **Step 3: Place the 12 discrete MOSFETs, shunts, and the analog mux**
 
-Configure each per its datasheet for direct/parallel input operation. Wire the 12 `PWM_*` nets to
-their inputs, and the 12 `RET_*` nets from their outputs to the corner connectors. Daisy-chain SPI
-(`SPI_SCK`, `SPI_MOSI`, `SPI_MISO`, `SPI_CS`) for diagnostics readback; logic supply from
-`+3V3_SW`, load supply per the datasheet.
+For each of the 12 channels: `PWM_*` → gate (with a **pulldown on every `PWM_*` net**); drain → the
+corresponding `RET_*` net to the corner connector; source → a **1 Ω shunt** → `GND`. The node
+between source and shunt is that channel's `SENSE_*` net.
 
-**Add a pulldown on all 12 `PWM_*` nets.**
+Wire all 12 `SENSE_*` nets to the 16:1 analog mux inputs **in `ChannelIndex` order** so mux channel
+0–11 matches PWM channel 0–11 — a scrambled mux order produces diagnostics that blame the wrong
+corner. Mux select from `MUX_S0`–`S3` (GPIO 23/4/16/5), **each with a pulldown**; mux supply from
+`+3V3_SW`; mux output → `RGB_ISNS` → GPIO 32.
+
+Leave mux inputs 12–15 unused (tie to GND per the mux datasheet's guidance for unused inputs).
+
+Add a note on the sheet:
+```
+SENSE CHAIN (spec 5.1): 1 ohm x 0.14 A = 140 mV at full channel current.
+ADC1 at 0 dB attenuation (0-1.1 V range). Classification is open (~0 mV) /
+working (~140 mV) / shorted (saturated) -- NOT precision current metering.
+Sampling is on-demand: firmware drives one channel to 100%, steps the mux,
+reads, advances. Same sweep serves as the installation self-test.
+```
 
 - [ ] **Step 4: Place the dual PROFET**
 
-Supply from `VBAT_B`. Inputs from `PWM_DEN_A` / `PWM_DEN_B` (GPIO 32/33), **each with a pulldown**.
+Supply from `VBAT_B`. Inputs from `PWM_DEN_A` / `PWM_DEN_B` (**GPIO 18/19** — moved off 32/33, which
+GPIO 32 now needs for `RGB_ISNS`), **each with a pulldown**.
 Diagnostic enable from `EN_DIAG`. Current-sense outputs through scaling resistors to `ISNS_DEN_A`
 / `ISNS_DEN_B`, sized so a 3.3 A load reads comfortably below 3.3 V at the ADC, with a clamp
 diode. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the Denali connector.
@@ -731,7 +794,11 @@ schematic; fill in the sheet and reference designator that satisfies it.
 | 4.3 | 24 V TVS each feed; all front-end parts >= 40 V | | |
 | 4.3 | pi filter + CM choke on each feed | | |
 | 4.4 | Schottky OR -> VLOGIC_IN feeds the buck (NOT VBAT_A) | | |
-| 5.1 | 2x octal low-side switch, parallel-input mode, SPI diag only | | |
+| 5.1 | 12x discrete MOSFET, Vds >= 40 V, enhanced at 3.3 V Vgs | | |
+| 5.1 | 1 ohm shunt per channel; 12 SENSE_* into 16:1 mux in ChannelIndex order | | |
+| 5.1 | MUX_S0-S3 on GPIO 23/4/16/5 with pulldowns; RGB_ISNS on GPIO 32 (ADC1) | | |
+| 5.1 | NO SPI nets anywhere on the board | | |
+| 6 | 5 V rail present, always on, low quiescent (TJA1042 VCC) | | |
 | 5.2 | 4x PTC on the per-string +24V feeds | | |
 | 5.3 | Dual PROFET from VBAT_B, sense scaled for 3.3 A | | |
 | 5.4 | Denali PWM from ESP32 LEDC (GPIO 32/33), NOT the PCA9685 | | |
@@ -889,8 +956,7 @@ noise here shows up as phantom faults.
 - [ ] **Step 5: Route the remaining signals, then add test points**
 
 Remaining buses and control nets. Then add test points on `VBAT_A`, `VBAT_B`, `VLOGIC_IN`, `+24V`,
-`+3V3_ALW`, `+3V3_SW`, `I2C_SDA`, `I2C_SCL`, `SPI_SCK`, `SPI_MOSI`, `SPI_MISO`, `SPI_CS`, `CANH`,
-`CANL`, `GND` (several).
+`+3V3_ALW`, `+3V3_SW`, `+5V`, `I2C_SDA`, `I2C_SCL`, `RGB_ISNS`, `CANH`, `CANL`, `GND` (several).
 
 - [ ] **Step 6: Run the DRC completion gate**
 
@@ -1045,7 +1111,8 @@ If over budget, isolate per contributor against the part-selection roll-up table
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
 | PCA9685 responds at its I2C address | ACK | | |
-| Both low-side switches respond on SPI | Valid diagnostic frame | | |
+| Mux steps through all 16 channels | RGB_ISNS follows the selected channel | | |
+| Open channel vs working channel at 100% duty | ~0 mV vs ~140 mV, distinguishable | | |
 | PROFET diagnostics readable | Sense voltage tracks load | | |
 
 ## Stage 6: All 14 outputs into dummy resistive loads
@@ -1114,7 +1181,7 @@ git commit -m "hw(docs): staged bring-up procedure with pass criteria and measur
 | §4.2 P-FET reverse polarity | 3 |
 | §4.3 Transient protection | 3 |
 | §4.4 Dual feed, domain split, Schottky OR | 3, 7 |
-| §5.1 Octal low-side switches | 2 (go/no-go), 6 |
+| §5.1 Discrete FETs + shunt/mux/ADC sense chain | 2 (revised criteria), 6 |
 | §5.2 Per-string PTC | 6 |
 | §5.3 Dual PROFET | 2, 6 |
 | §5.4 PWM split, 400/150 Hz | 6, 11 (Stage 6) |
