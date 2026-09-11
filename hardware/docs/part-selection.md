@@ -84,12 +84,28 @@ Candidate: TI LM5164
 ## 5. CAN transceiver
 Candidate: NXP TJA1042T/3
 
+Verified against **NXP TJA1042 Product data sheet Rev. 8, 15 January 2015**
+(TJA1042T/3/1J, TJA1042T/1J, TJA1042TK/3/1J). nxp.com/docs blocks automated
+fetch; the identical document was obtained from the Farnell mirror
+(farnell.com/datasheets/1923816.pdf). Rev. 11 (16 January 2023) exists on
+nxp.com and was not read — a human should diff the four parameters below
+against Rev. 11 before the board order.
+
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 5.1 | **GO/NO-GO:** standby mode signals bus wake-up by driving RXD LOW | | |
-| 5.2 | VIO pin for 3.3 V logic (the /3 suffix) | | |
-| 5.3 | Standby current <= 20 uA | | |
-| 5.4 | TXD can be left pulled to VIO (recessive) with no fault latch | | |
+| 5.1 | **GO/NO-GO:** standby mode signals bus wake-up by driving RXD LOW | **Yes.** Table 4 "Operating modes" p.5: Standby = pin STB HIGH, pin **RXD LOW = "wake-up request detected"**, RXD HIGH = "no wake-up request detected". §7.1.2 Standby mode p.5, verbatim: "only a low-power differential receiver monitors the bus lines for activity. The wake-up filter on the output of the low-power receiver does not latch bus dominant states, but ensures that only bus dominant and bus recessive states that persist longer than tfltr(wake)bus are reflected on pin RXD. … The low-power receiver is supplied by VIO, and is capable of detecting CAN bus activity even if VIO is the only supply voltage available. **When pin RXD goes LOW to signal a wake-up request**, a transition to Normal mode will not be triggered until STB is forced LOW." Timing, Table 8 p.12: tfltr(wake)bus (versions with VIO pin, Standby mode) **0.5 / 1.5 / 5 us**; td(stb-norm) standby-to-normal delay 7 / 25 / 47 us. | **PASS** — RXD is actively driven LOW on a filtered bus-dominant while in Standby, which is exactly the edge/level an ESP32 EXT0 wake needs, and it works on VIO alone (VCC may be off). **Two constraints to design to:** (a) §7.2.2 p.5 bus dominant time-out — "If the dominant state on the bus persists for longer than **tto(dom)bus**, the RXD pin is reset to HIGH", tto(dom)bus = 0.3 / 2 / 5 ms (Table 8 p.12), so the LOW is guaranteed for at least 0.3 ms but is **not latched** indefinitely; (b) RXD is not open-drain — IOL 2 / 5 / 12 mA, IOH −8 / −3 / −1 mA (Table 7 p.10) — so it must wake the ESP32 on level/edge, not be wire-ORed. |
+| 5.2 | VIO pin for 3.3 V logic (the /3 suffix) | §7.3 p.8: "Pin 5 is either a SPLIT output pin or a VIO supply pin"; §7.3.2 p.8: "Pin VIO on the TJA1042T/3 and TJA1042TK/3 should be connected to the microcontroller supply voltage. This sets the signal levels of pins TXD, RXD and STB to the I/O levels of the microcontroller." §2 p.1: "VIO input on TJA1042T/3 and TJA1042TK/3 allows for direct interfacing with **3 V to 5 V** microcontrollers." Table 7 p.10: "VIO supply voltage on pin VIO **2.8 … 5.5 V**"; "Vuvd(VIO) undervoltage detection voltage on pin VIO 1.3 / 2.0 / **2.7 V**". Logic thresholds referenced to VIO: VIH 0.7xVIO min, VIL 0.3xVIO max (pins STB and TXD, Table 7 p.10). | **PASS** — 3.3 V sits inside the 2.8-5.5 V VIO window with 0.6 V above the 2.7 V max undervoltage-detect level; no level shifter needed on TXD/RXD/STB. |
+| 5.3 | Standby current <= 20 uA | Table 7 p.10, Standby mode: "ICC supply current — Standby mode — **TJA1042T/3 or TJA1042TK/3: max 5 uA**" (the TJA1042T row, which "includes IIO", is typ 10 / max 15 uA). "IIO supply current on pin VIO — Standby mode; VTXD = VIO: **5 / – / 14 uA**" (column extraction reads min 5, typ –, max 14; the max of 14 uA is unambiguous). For the /3 part the two rails are separate, so worst-case standby = **5 + 14 = 19 uA max** over Tvj = −40 to +150 C. §7.2.3 p.5 condition: "Pins TXD and STB have internal pull-ups to VIO … **both pins should be held HIGH in Standby mode to minimize standby current**" — the datasheet's standby figures are specified at VTXD = VIO, so firmware must leave TXD and STB high through deep sleep. | **PASS, but with no margin** — 19 uA max vs the 20 uA criterion (95% of it). Against the whole-board target of <200 uA this is ~10% of budget. Note the figure is split across two rails: 5 uA from the 5 V VCC and 14 uA from the 3.3 V VIO. |
+| 5.4 | TXD can be left pulled to VIO (recessive) with no fault latch | §7.2.3 p.5: "Pins TXD and STB have **internal pull-ups to VIO** to ensure a safe, defined state in case one or both of these pins are left floating." §7.2.1 p.5, TXD dominant time-out: "A 'TXD dominant time-out' timer is **started when pin TXD is set LOW** … The TXD dominant time-out timer is **reset when pin TXD is set to HIGH**." TXD HIGH is the recessive state, so the time-out never starts. Table 7 p.10: IIH at VTXD = VIO is −1 / – / +5 uA (vs IIL typ −150 / max −30 uA at VTXD = 0 V), i.e. holding TXD high also costs essentially nothing. There is no latched-fault or error-flag pin on this device at all (no ERR_N / EN pins — pin list §6 p.4 is TXD, GND, VCC, RXD, VIO or SPLIT, CANL, CANH, STB). | **PASS** — TXD at VIO is the intended idle state, it starts no timer and latches no fault, and it is also the condition under which the standby current of row 5.3 is specified. |
+
+### Additional finding (not a listed criterion)
+
+TJA1042 requires **VCC = 4.5 … 5.5 V** (Table 7 p.10), with Vuvd(VCC) 3.5 / – / 4.5 V
+and §7.2.4 p.5: "Should VCC drop below the VCC undervoltage detection level,
+Vuvd(VCC), the transceiver will switch to Standby mode." The design context lists
+only a 3.3 V logic rail, so the board needs a 5 V rail (or a 5 V-capable CAN
+transceiver) for the transceiver's VCC. Section 4 owns the rail decision; flagged
+here because it is discovered by this section's datasheet read.
 
 ## 6. Discretes
 
