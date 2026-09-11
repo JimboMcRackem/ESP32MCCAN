@@ -249,8 +249,23 @@ not upstream failure.
 
 ### 5.1 RGB — octal smart low-side switches
 
-**2 × octal smart low-side switch in parallel-input mode.** Candidate families, to be verified:
-ST **VNI8200XP**, Infineon **TLE8110ED** / **TLE8108EM**, NXP **MC33996**.
+**2 × octal smart low-side switch in parallel-input mode.** Candidate families: Infineon
+**TLE8110ED** / **TLE8108EM**, NXP **MC33996**.
+
+> **CORRECTION (2026-09-11):** an earlier revision listed ST **VNI8200XP** here. That part is a
+> **high-side** device (ST titles it "Octal high side smart power solid state relay") and was
+> never a valid candidate for low-side switching. Removed.
+
+> **:warning: ROW 1.1 VERIFICATION FAILED — ARCHITECTURE DECISION PENDING.** Task 2b established
+> that ON-state open-load detection does not exist in this part category: TLE8110ED's diagnosis
+> code `01` is defined verbatim as "Open Load in OFF-Mode", its ON-mode codes cover only
+> overload/short/overtemperature, and detection is a **VDS comparator** (VDSol 2.00/2.60/3.20 V
+> with a 50/90/150 mA injected pull-down) — so there is **no load-current threshold at all**, and
+> 0.14 A is unspecified rather than merely out of range. ON-state open-load detection requires
+> per-channel current sense, which no multichannel smart low-side switch provides. Rows 1.6
+> (short-to-battery and overtemperature share one 2-bit code) and 1.8 (standby 20 µA max at 85 °C
+> with zero margin, 60 µA at 150 °C, plus up to ~36 µA leakage) also failed. **This section is
+> superseded once the pending decision is made; do not build from it yet.**
 
 Selection criteria:
 
@@ -334,7 +349,19 @@ constraint, not a layout convenience.
 | Rail | Topology | Spec | Notes |
 |---|---|---|---|
 | 3.3 V | Buck, **low quiescent** (LM5164 class) | ~1 A | Always on; must supply ESP32 WiFi TX peaks (~500 mA) |
+| **5 V** | **Low-quiescent regulator, always on** | ~100 mA | **ADDED 2026-09-11 — see below** |
 | 24 V | **Synchronous** boost controller + external FETs (LM5122-Q1 class) | 60 W design point, 2.5 A | Enable-gated |
+
+**The 5 V rail is mandatory, not optional.** Task 2b established that the **TJA1042's VCC is
+4.5–5.5 V**; the "/3" suffix provides a **VIO pin for 3.3 V logic levels, it does not make VCC
+3.3 V**. An earlier revision of this spec powered the transceiver from `+3V3_ALW`, which would not
+have worked. CAN transceivers with microamp standby and bus wake-up are essentially all 5 V parts,
+because the bus itself is a 5 V differential standard — so this rail cannot be designed away by
+part substitution. It must be **always on and low quiescent**, since the transceiver has to stay
+powered in deep sleep to detect bus activity (the wake signalling itself works on VIO alone with
+VCC off, but the standby monitoring does not).
+
+Note that §3's "three power domains" becomes **four** once this rail is added.
 
 **Why synchronous:** a non-synchronous boost loses ~6 W at this power; synchronous roughly
 halves it to ~3 W. Combined with the enclosure's heat-spreader plate (§9) this gives large
