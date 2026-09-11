@@ -45,34 +45,36 @@ The RGB strings are constant-voltage with internal series resistors — **not** 
 emitters. This is why the output stage is switches rather than LED drivers (§5.1).
 
 Common anode forces **low-side** switching on R/G/B. The Denali units are switched
-**high-side**, so their return is the shared ground in their connector (§8.2).
+**high-side**, so their return is the shared ground in their connector (§9.1).
 
 ### 2.2 Budget
 
-Supply is a single Experia peripheral connector rated **10 A**, derated to **8.5 A
-continuous** (85%) = **~102 W** at 12 V.
+Supply is **two** Experia peripheral connectors, each rated **10 A**. Each feed is derated to
+**8.5 A continuous** (85%).
 
-| Item | Draw | Input current |
-|---|---|---|
-| RGB: 40 W at 24 V, via boost at ~92% | 43.5 W | 3.6 A |
-| Denali: **≤ 25 W per light** (50 W total) | 50 W | 4.2 A |
-| Logic (ESP32 peak WiFi TX, PCA9685, transceiver) | 4 W | 0.3 A |
-| **Total** | **~97 W** | **8.1 A** |
+**Confirmed load: Denali D4 2.0 TriOptic** — four 10 W CREE XPL HI LEDs per pod, **80 W / 6.6 A
+for the pair**, i.e. **40 W per light**. This is a measured manufacturer figure, not an
+assumption.
 
-**Documented constraint:** the budget holds only while **total Denali load ≤ 50 W**. Higher-output
-Denali models (≥ 40 W each) exceed a single 10 A feed and require the second feed to be
-populated (§4.4).
+| Feed | Item | Draw | Input current | Margin on 10 A |
+|---|---|---|---|---|
+| **A** | RGB: 40 W at 24 V, via boost at ~92% | 43.5 W | 3.6 A | |
+| **A** | Logic (ESP32 peak WiFi TX, PCA9685, transceiver) | 4 W | 0.3 A | |
+| | **Feed A total** | **47.5 W** | **3.9 A** | **61%** |
+| **B** | Denali D4 2.0 pair | 80 W | 6.6 A | **34%** |
+| | **System total** | **~128 W** | **10.5 A** | |
 
-**The single feed is at its practical ceiling, not comfortably inside it.** 8.1 A is 81% of the
-connector's 10 A rating and of the fuse (§4.1) — acceptable, but with little room. The worst case
-assumes simultaneous full-white RGB *and* both Denali at maximum, which is rare in practice. If
-measurement shows real loads are higher than assumed, or nuisance fuse blowing occurs, the
-resolutions in order of preference are: confirm actual Denali wattage, reduce configured Denali
-maximum levels in the web app (already a tunable), or populate the second feed.
+**Why two feeds are required, not optional.** The total is **10.5 A — above a single 10 A
+connector.** An earlier revision of this spec assumed Denali ≤ 25 W each and specified one feed
+with the second laid out unpopulated; the confirmed D4 figure of 40 W each invalidates that.
+Both feeds are populated (§4.4).
 
-**The RGB figure is assumed, not measured** — 20 W/m × 0.5 m × 4 strings. Re-verify when the
-strips are measured; the power path is oversized deliberately so a higher real figure is
-absorbed rather than fatal.
+**Single-feed fallback, if ever needed:** capping the Denali maximum level in the web app — an
+existing tunable — to ~60% yields ~48 W and a 7.9 A total, which fits one feed. This sacrifices
+light output and is a configuration workaround, not the design intent.
+
+**The RGB figure remains assumed, not measured** — 20 W/m × 0.5 m × 4 strings. Re-verify when the
+strips are measured. Feed A has 61% margin, so a higher real figure is absorbed comfortably.
 
 ### 2.3 Per-channel current
 
@@ -80,7 +82,7 @@ absorbed rather than fatal.
 |---|---|
 | Per RGB string, all three colors full (white) | 0.42 A |
 | **Per RGB channel** (R, G or B) | **~0.14 A** |
-| Per Denali channel | ~2.1 A (at 25 W) |
+| Per Denali channel | **3.3 A** (D4 2.0 at 40 W) |
 
 The low per-channel RGB current is what makes the smart-switch output stage thermally trivial
 (§5.1) — and it is the figure against which open-load detection must be verified (§11).
@@ -90,23 +92,21 @@ The low per-channel RGB current is what makes the smart-switch output stage ther
 ## 3. Architecture
 
 ```
-         ┌── panel blade fuse (ATO, sealed) ──┐
- 12 V ───┤                                    │
- FEED A  └─ GND ──────────────────────┐       │
-                                      │       ▼
-                                   ┌──┴───────────────────────────┐
-                                   │  INPUT PROTECTION            │
-                                   │  P-FET reverse polarity      │
-                                   │  24 V TVS clamp, pi + CM     │
-                                   │  filter, bulk capacitance    │
-                                   └──────────────┬───────────────┘
-                                          VBAT_PROT (~12 V)
-                ┌─────────────────────────┼──────────────────────────┐
-                ▼                         ▼                          ▼
+ FEED A ──[7.5 A panel fuse]──┐          FEED B ──[10 A panel fuse]──┐
+ 12 V, 3.9 A                  ▼          12 V, 6.6 A                  ▼
+                   ┌──────────────────┐              ┌──────────────────┐
+                   │ INPUT PROTECT A  │              │ INPUT PROTECT B  │
+                   │ P-FET rev. pol.  │              │ P-FET rev. pol.  │
+                   │ 24 V TVS, pi+CM  │              │ 24 V TVS, pi+CM  │
+                   └────────┬─────────┘              └────────┬─────────┘
+                       VBAT_A (~12 V)                    VBAT_B (~12 V)
+                ┌───────────┴──┬──────── Schottky OR ─────┬───┴──────────┐
+                ▼              ▼                          ▼              ▼
     ┌───────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
     │ 3V3 BUCK          │   │ 24 V SYNC BOOST      │   │ DUAL SMART HIGH-SIDE │
     │ low-Iq, ALWAYS ON │   │ LM5122-Q1 class      │   │ PROFET, Isense out   │
-    │ ~1 A              │   │ enable-gated, 60 W   │   │ enable-gated         │
+    │ ~1 A  (OR'd: A|B) │   │ enable-gated, 60 W   │   │ enable-gated         │
+    │                   │   │      (from A)        │   │    (from B)          │
     └─────┬─────────────┘   └──────────┬───────────┘   └──────────┬───────────┘
           │                            │                          │
           │                  +24 V, 4× PTC per string      2× switched 12 V
@@ -142,8 +142,8 @@ The low per-channel RGB current is what makes the smart-switch output stage ther
 1. **Always-on 3.3 V** — survives deep sleep, powers only the ESP32 and CAN transceiver
 2. **Enable-gated 24 V boost** — draws nothing when parked; carries only the RGB load, so it
    is sized at 60 W rather than the full system power
-3. **Raw protected 12 V** — feeds the Denali high-side switches directly, so their current
-   never passes through a converter
+3. **Raw protected 12 V from Feed B** — feeds the Denali high-side switches directly, so their
+   6.6 A never passes through a converter
 
 A **load switch splits the 3.3 V rail** into *always-on* (ESP32, transceiver) and *switched*
 (PCA9685, switch-IC logic). Only two devices are powered in sleep, which is what makes the
@@ -155,14 +155,19 @@ sub-200 µA target realistic rather than aspirational.
 
 ### 4.1 Fusing
 
-**Panel-mount sealed ATO/ATC blade fuse holder**, **10 A**, IP67 when capped, mounted on the
-enclosure panel. The fuse matches the peripheral connector's 10 A rating — it must not exceed
-it, or the fuse protects nothing the connector does not already limit.
+**Two panel-mount sealed ATO/ATC blade fuse holders**, IP67 when capped — one per feed:
 
-**Note the tightness:** 8.1 A continuous against a 10 A fuse is 81% of rating, at the upper end
-of good practice for a sustained load, so the absolute worst case (full white RGB *and* both
-Denali at maximum) may nuisance-blow. See §2.2 — the practical resolutions are lower-power
-Denali lights or populating the second feed.
+| Feed | Load | Fuse |
+|---|---|---|
+| A | RGB + logic, 3.9 A | **7.5 A** |
+| B | Denali D4 pair, 6.6 A | **10 A** |
+
+Each fuse matches or sits below its peripheral connector's 10 A rating — a fuse above the
+connector rating protects nothing the connector does not already limit. Feed A takes the smaller
+7.5 A fuse because its load is bounded at 3.9 A, giving tighter protection than a blanket 10 A.
+
+Both loads sit at **52–66% of fuse rating**, comfortably inside the derating band for sustained
+current, so nuisance blowing is not expected.
 
 **Documented residual risk (accepted by the author):** a fuse protects the *cable* upstream of
 itself. Mounting it at the box leaves the battery-to-box run without overcurrent protection, so
@@ -180,7 +185,9 @@ A P-channel MOSFET in the supply path with gate resistor and Zener clamp. Chosen
 textbook ideal-diode controller (LM74700-class) because those draw tens of microamps
 *continuously* — a significant share of the entire sleep budget, spent permanently to save a
 fraction of a watt that only matters while the lights are on. The P-FET has essentially zero
-quiescent draw, costing ~0.33 W at 8.1 A.
+quiescent draw. One stage per feed: ~0.08 W on Feed A (3.9 A) and ~0.22 W on Feed B (6.6 A),
+~0.30 W combined. Splitting the current across two stages roughly halves the conduction loss a
+single 10.5 A stage would have incurred.
 
 ### 4.3 Transient protection — sized for an EV
 
@@ -196,24 +203,38 @@ possibility of a jump start or charger on the rail.
 - Input **π filter and common-mode choke** — conducted-emissions suppression designed in, not
   retrofitted
 
-### 4.4 Second feed — footprints only, unpopulated
+### 4.4 Dual feed — domain split, both populated
 
-Laid out but not fitted: a second 2-way power connector position, a second P-FET reverse-polarity
-stage, and a **dual Schottky OR** feeding the 3.3 V buck from either feed.
+Two 2-way power connectors, each with its own P-FET reverse-polarity stage, its own transient
+clamp and its own fuse (§4.1), plus a **dual Schottky OR** feeding the 3.3 V buck from either
+feed.
 
-If populated, the arrangement is a **domain split, not a parallel share** — because paralleling
-two feeds divides current by path resistance (wire gauge, length, contact resistance), giving
-something like 8 A / 4 A rather than 6 A / 6 A; and ORing them through ideal diodes is worse
-still, since the higher-voltage feed supplies nearly everything. Split by domain instead:
+**Split by domain, never paralleled.** Paralleling two feeds divides current by path resistance
+(wire gauge, length, contact resistance), giving something like 8 A / 4 A rather than 5 A / 5 A;
+and ORing them through ideal diodes is worse still, since the slightly-higher-voltage feed
+supplies nearly everything — that is source selection, not sharing, and one connector would sit
+over its rating while the other idles. A domain split gives each feed a deterministic, bounded
+load that cannot divide unevenly:
 
-| Feed | Powers | Nominal (§2.2 budget) | Ceiling | Margin on 10 A at ceiling |
+| Feed | Powers | Current | Ceiling | Margin on 10 A |
 |---|---|---|---|---|
-| A | Boost → 24 V → RGB | 3.6 A | 5.6 A (boost at its full 60 W design point) | 44% |
-| B | Denali via PROFET | 4.2 A | 6.6 A (Denali at 40 W each) | 34% |
+| A | Boost → 24 V → RGB, plus logic | 3.9 A | 5.9 A (boost at its full 60 W design point) | 61% |
+| B | Denali D4 2.0 pair via PROFET | 6.6 A | 6.6 A (fixed load) | 34% |
 
-The **ceiling** column is the point of populating the second feed: it lifts the §2.2 constraints,
-allowing the boost to run to its full 60 W design point and Denali lights of up to 40 W each —
-neither of which fits a single 10 A feed.
+**The Schottky OR on the logic rail** costs cents and means the MCU keeps power while *either*
+feed lives — so it stays awake to report the fault rather than going dark silently. Feed A and
+Feed B are interchangeable if mis-mated, since both are 12 V and both resulting loads stay under
+10 A; no keying is needed between them.
+
+**Failure behaviour:** losing Feed B extinguishes the Denali lights only. Losing Feed A
+extinguishes the RGB corners, **including the indicators** — the firmware detects this via the
+logic rail staying up and must report it prominently in the web app. A cross-tie allowing Feed B
+to back up the RGB domain was considered and rejected as disproportionate; it would require a
+~6 A switch and a firmware load-shedding state.
+
+**Caveat, so the redundancy is not oversold:** both peripheral connectors almost certainly
+originate from the same upstream circuit, so this protects against connector and wire faults,
+not upstream failure.
 
 With the Schottky OR, the MCU keeps power while *either* feed lives, so it stays awake to report
 the fault rather than going dark silently.
@@ -261,15 +282,20 @@ Cheap insurance on an exposed, vibration-loaded cable run.
 ### 5.3 Denali — dual PROFET high-side
 
 One **BTS7008-2EPA-class dual high-side switch** covers both channels: ~10 mΩ per channel,
-integrated current sense for diagnostics, 3.3 V logic compatible. ~0.044 W per channel at
-2.1 A.
+integrated current sense for diagnostics, 3.3 V logic compatible. **~0.11 W per channel at
+3.3 A** (D4 2.0), so ~0.22 W for the pair. Confirm the chosen part's continuous per-channel
+rating exceeds 3.3 A with margin, and that its current-sense ratio resolves a 3.3 A load.
 
 High-side switching means the lights return through the shared ground in their connector
 (§8.2) rather than relying on chassis bonding, avoiding corrosion and ground-offset faults.
 
 **Verification item:** PWM-ing the supply of lights that contain their own drivers can cause
-flicker or audible buzz. Denali's own DialDim dims exactly this way, so precedent is good, but
-a soak test is required.
+flicker or audible buzz. The D4 2.0 ships with **DataDim** dimming technology, which confirms
+these lights are designed to be dimmed — but it also means each pod contains its own dimming
+electronics that could interact with supply PWM in ways a passive light would not. A soak test
+across the full duty range is required, checking for flicker, audible buzz, and non-monotonic
+brightness. If interaction proves problematic, the fallback is driving the pods at full supply
+and dimming via their native DataDim input instead.
 
 ### 5.4 PWM generation — and the PCA9685 prescaler constraint
 
@@ -439,12 +465,16 @@ contributor to be verified against its datasheet.
         │  [FL]   [FR]   [RL]   [RR]             │  4× Superseal 1.0, 4-way
         │  4-way  4-way  4-way  4-way            │  (+24 V, R, G, B) — 0.42 A
         │                                        │
-        │  [DENALI]   [POWER]   [CAN]   (FUSE)   │  Denali: SS1.5 3-way
-        │   3-way      2-way     2-way   ATO     │  Power:  SS1.5 2-way, 10 A
-        │                          [2nd PWR]     │  CAN:    SS1.0 2-way
-        └────────────────────────────────────────┘  (2nd PWR position unpopulated)
+        │  [DENALI]   [PWR A]   [PWR B]   [CAN]   │  Denali: SS1.5 3-way
+        │   3-way      2-way     2-way    2-way   │  Power:  2× SS1.5 2-way
+        │          (FUSE A 7.5 A) (FUSE B 10 A)   │  CAN:    SS1.0 2-way
+        └────────────────────────────────────────┘  Fuses:  2× sealed ATO
         opposite wall: aluminium heat-spreader plate
 ```
+
+Both power feeds are populated (§4.4), bringing the panel to **nine penetrations**: four corners,
+Denali, two power, CAN, and two fuse holders. Enclosure size is driven by this count more than by
+the board.
 
 **Power and CAN on separate connectors** — a switched high-current path and a differential bus
 sharing one shell invites coupling, and the bus tap should be separable from the power feed.
@@ -492,11 +522,11 @@ ceramic and polymer capacitors preferred where they will serve.
 | Source | Dissipation |
 |---|---|
 | Synchronous boost losses (40 W out, ~94%) | ~2.6 W |
-| P-FET reverse protection at 8.1 A | ~0.33 W |
-| Denali PROFET, both channels | ~0.09 W |
+| P-FET reverse protection, both feeds | ~0.30 W |
+| Denali PROFET, both channels at 3.3 A | ~0.22 W |
 | RGB low-side switches, all 12 | ~0.12 W |
 | Buck and logic | ~0.4 W |
-| **Total** | **~3.5 W** |
+| **Total** | **~3.6 W** |
 
 With the heat-spreader plate and bracket coupling, the target is a rise low enough to keep
 internal temperature near 65 °C at 40 °C ambient — roughly 20 °C of margin on the ESP32's
@@ -507,7 +537,7 @@ internal temperature near 65 °C at 40 °C ambient — roughly 20 °C of margin 
 ## 10. PCB and EMC
 
 **Stackup:** 4 layers — signal / GND / power / signal — with **2 oz outer copper**. The input
-path needs roughly 5–6 mm width at 2 oz for a 10 °C rise at 8.1 A, carried as a polygon rather
+paths need roughly 4–5 mm width at 2 oz for a 10 °C rise at 6.6 A (Feed B, the heavier), carried as polygons rather
 than a trace, with via stitching. Four layers is not luxury: a solid ground plane is what makes
 the synchronous boost's gate loops and the EMC behaviour tractable.
 
@@ -534,6 +564,10 @@ to claim automotive compliance. Designing for it now costs little; retrofitting 
 2. Low-side switch **output rating ≥ 40 V** and PWM capability at 400 Hz
 3. Every quiescent-current contributor in §8.2, from datasheets
 4. Buck capable of ESP32 WiFi TX peaks (~500 mA) while retaining low quiescent draw
+5. PROFET continuous per-channel rating exceeds **3.3 A** with margin, and its current-sense
+   ratio resolves a 3.3 A load (§5.3)
+6. **Two independent 10 A peripheral outlets exist on the Experia** and are not branches of one
+   10 A circuit — confirm on the vehicle before committing to the dual-feed harness (§4.4)
 
 **Staged bring-up:**
 
@@ -571,12 +605,12 @@ gets its own plan.
 |---|---|---|
 | Experia CAN bus may never idle → no sleep, battery drain | High | Unpopulated ignition-sense input; configurable idle timeout |
 | Open-load detection threshold may exceed 0.14 A/channel | High | **Go/no-go on part selection** before BOM commit |
-| Real Denali wattage unknown; > 25 W each breaks the single-feed budget | Medium | Second feed footprints unpopulated and ready (§4.4) |
+| ~~Real Denali wattage unknown~~ **RESOLVED**: D4 2.0 confirmed at 40 W each / 6.6 A per pair | — | Dual feed with domain split is now the baseline (§4.4), not an option |
 | RGB strip power assumed, not measured (40 W) | Medium | Power path oversized; re-verify on measurement |
-| Denali may flicker or buzz under supply PWM | Medium | Soak test; DialDim precedent suggests low risk |
+| D4 2.0 contains DataDim electronics that may interact with supply PWM | Medium | Full-range soak test (§5.3); fallback is full supply + native DataDim input |
 | Corner connectors mis-mateable → indicators reversed | Medium | Keying/colour coding **and** web app self-test |
-| Cable run unfused upstream of the box | Medium | Accepted by author; documented. Short loomed run, booted terminal; battery fuse addable with no board change |
-| Experia peripheral connector part number unidentified | Low | Identify before harness build |
+| Cable runs unfused upstream of the box (both feeds) | Medium | Accepted by author; documented. Short loomed runs, booted terminals; battery-end fuses addable with no board change |
+| Experia peripheral connector part number unidentified; **two** outlets now needed | Medium | Identify part number and confirm two independent 10 A outlets exist before harness build |
 | Thermal estimate based on assumed enclosure area | Low | Measure rise at bring-up stage 2; plate area adjustable |
 
 ---
