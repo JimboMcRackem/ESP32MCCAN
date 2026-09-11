@@ -269,9 +269,16 @@ sources only ~140 mA, so a working channel could read as open), the RGB stage is
 logic-level N-MOSFETs plus a purpose-built diagnostic chain** that does what the ICs could not.
 
 **Switching:** one logic-level N-channel MOSFET per channel, gate driven directly from a PCA9685
-output. At 0.14 A the FET is a trivial part — a 40 V, ~50 mΩ device dissipates ~1 mW. Requirements:
-**Vds ≥ 40 V** (the 24 V rail plus transients), **Vgs(th) low enough for full enhancement at 3.3 V**,
-**Id ≥ 1 A**.
+output. Requirements: **Vds ≥ 40 V** (the 24 V rail plus transients), **Id ≥ 1 A**, and
+**Vgs(th) max ≤ 2.0 V** with the output-characteristic curve showing Id ≥ 0.5 A at Vgs = 3.3 V.
+
+> **Note on gate drive (2026-09-11).** An earlier revision demanded the FET be "fully enhanced at
+> 3.3 V". No MOSFET in this class publishes Rds(on) below 4.5 V Vgs, and the requirement was wrong
+> anyway: at **0.14 A**, even a pessimistic 1 Ω Rds(on) costs 140 mV and 20 mW on a rail with 24 V of
+> headroom — and the design **deliberately adds a 1 Ω sense resistor in the same leg**, so a fraction
+> of an ohm from the FET is the same order as a part chosen on purpose. The strip's internal
+> resistors (~171 Ω) set the current, so 1–2 Ω of series resistance shifts it under 1%. Nothing here
+> needs low Rds: not heat, not headroom, not current accuracy, not switching speed.
 
 **Diagnostics:** a **1 Ω sense resistor in each FET's source leg**, all 12 sense nodes feeding a
 **16-channel analog multiplexer** whose output drives one ESP32 **ADC1** input.
@@ -281,6 +288,11 @@ output. At 0.14 A the FET is a trivial part — a 40 V, ~50 mΩ device dissipate
 - ADC at **0 dB attenuation** (0–1.1 V range), so 140 mV is ~13% of full scale — ample to separate
   open (≈0 mV), working (≈140 mV) and shorted (saturated)
 - 1 Ω chosen deliberately over 2.2 Ω: the larger shunt would read a cleaner 308 mV but cost 0.5 W
+- **The mux must be specified for 3.3 V operation** — ADG706-class (1.8–5.5 V, ~2.5 Ω on-resistance).
+  CD74HC4067 is excluded: HC on-resistance rises steeply below 4.5 V and is uncharacterised at 3.3 V
+- **A ~100 nF buffer capacitor at the ADC input** supplies the SAR sample-and-hold charge locally, so
+  mux on-resistance cannot corrupt the reading. Belt and braces with the part choice above
+- Fallback if 140 mV proves noisy on the bench: a 2.2 Ω shunt (308 mV, 0.5 W) or an op-amp gain stage
 
 **What this delivers that the smart switches could not:** genuine ON-state open-load detection,
 short detection, and real per-channel current telemetry to surface in the web app — for roughly

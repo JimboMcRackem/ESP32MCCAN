@@ -301,9 +301,9 @@ Three part classes to verify: the FET, the sense resistor, the analog mux.
 | # | Required | Actual | Verdict |
 |---|---|---|---|
 | 1a.1 | Vds >= 40 V (24 V rail plus transients) | | |
-| 1a.2 | **Fully enhanced at Vgs = 3.3 V** — Rds(on) specified AT or BELOW 3.3 V Vgs, not only at 4.5/10 V | | |
+| 1a.2 | **REVISED** (see below): Vgs(th) max <= 2.0 V, AND the output-characteristic curve shows Id >= 0.5 A at Vgs = 3.3 V with Vds <= 0.5 V | | |
 | 1a.3 | Id >= 1 A continuous | | |
-| 1a.4 | Rds(on) at 3.3 V Vgs gives <= 5 mW per channel at 0.14 A | | |
+| 1a.4 | Total series resistance (FET + the 1 ohm shunt) keeps per-channel loss <= 50 mW at 0.14 A | | |
 | 1a.5 | Gate charge low enough to switch cleanly at 400 Hz from a PCA9685 output (25 mA sink / 10 mA source) | | |
 | 1a.6 | In stock, multi-source | | |
 
@@ -315,15 +315,46 @@ Three part classes to verify: the FET, the sense resistor, the analog mux.
 | 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | | |
 
 ### 1c. 16-channel analog multiplexer (1 required)
-Candidates: CD74HC4067, ADG706, MAX4617 family
+**Must be SPECIFIED FOR 3.3 V OPERATION.** Target **ADG706**-class (1.8-5.5 V, ~2.5 ohm on-resistance).
+CD74HC4067 is NOT acceptable: HC on-resistance rises steeply below 4.5 V and is uncharacterised at
+3.3 V (Task 2c could not verify rows 1c.3/1c.4 for it).
 | # | Required | Actual | Verdict |
 |---|---|---|---|
 | 1c.1 | 16 channels, single-ended, 4 binary select lines | | |
-| 1c.2 | Operates from 3.3 V | | |
+| 1c.2 | **Specified** (not merely tolerant) for 3.3 V operation, with on-resistance tabulated at 3.3 V | | |
 | 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | | |
 | 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | | |
 | 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | | |
 | 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | | |
+
+### Rulings 11 and 12 — why 1a.2 changed and what the mux must be
+
+**1a.2 was relaxed because the original criterion was wrong for this load, not because parts failed
+it.** "Fully enhanced at Vgs = 3.3 V" is a requirement for an amperes-level load. This channel
+carries **0.14 A**. At a pessimistic 1 ohm Rds(on) that is a 140 mV drop and 20 mW of loss, on a rail
+with 24 V of headroom — and the design **deliberately inserts a 1 ohm sense resistor in the same
+leg**, so 0.3-1 ohm of FET resistance is the same order as a component chosen on purpose. The
+strip's own internal resistors (~171 ohm) set the channel current, so 1-2 ohm of series resistance
+shifts it by under 1%. Nothing here needs low Rds: not heat, not headroom, not current accuracy, not
+switching speed (that is gate charge, row 1a.5).
+
+Verify via **Vgs(th) max**, which every datasheet specifies, plus the **output-characteristic
+curve**. Reading a value off a datasheet graph is legitimate datasheet evidence — it is not the
+banned interpolation from a similar part.
+
+**1c gained a hard 3.3 V requirement plus a design fix**, because a 70-270 ohm mux (worse and
+uncharacterised at 3.3 V) genuinely threatens the 140 mV signal the whole diagnostic chain rests on:
+- **Part:** ADG706-class, specified at 3.3 V, ~2.5 ohm — two orders of magnitude better, which
+  removes the question rather than arguing about its size
+- **Design:** a **~100 nF buffer capacitor at the ADC input** (Task 6). The ESP32's SAR ADC is a
+  sample-and-hold; the cap supplies S/H charge locally so source resistance stops mattering almost
+  regardless of the mux
+
+Running the mux from the 5 V rail was considered and **rejected**: HC inputs at 5 V need ~3.5 V for a
+logic high, making 3.3 V select lines marginal and requiring HCT or level shifting.
+
+Fallback if 140 mV still proves noisy at bring-up Stage 5: a 2.2 ohm shunt (308 mV, 0.5 W) or an
+op-amp gain stage.
 
 ## 2. Dual smart high-side switch (1 required) — Denali
 Candidate: Infineon BTS7008-2EPA or PROFET+2 12V family
