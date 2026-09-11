@@ -401,10 +401,24 @@ Three hard constraints drive this, not convenience:
 | Peripheral 3.3 V load switch | 26 | |
 | PROFET diagnostic enable | 27 | |
 | Status LED | 13 | |
+| **CAN transceiver STB** | **14** | RTC-capable; required to enter/leave transceiver standby |
 | Programming | 0, 1, 3, EN | Reserved for header |
 
-17 signal pins used; GPIO 4, 12, 14, 15, 16, 38 spare. The comfortable margin is what justifies
+18 signal pins used; GPIO 4, 12, 15, 16, 38 spare. The comfortable margin is what justifies
 retaining the PCA9685 rather than driving all 14 channels natively.
+
+**Passive defaults must equal the sleep state.** Rather than relying on `gpio_hold_en()` to
+freeze pad levels through deep sleep, every enable is pulled to its safe state in hardware:
+
+| Net | Passive bias | Effect when the pad floats |
+|---|---|---|
+| `EN_BOOST` | pulldown to GND | Boost disabled |
+| `EN_3V3SW` | pulldown to GND | Peripheral rail off |
+| `CAN_STB` | pull-up to VIO | Transceiver in standby (STB is active-high) |
+| `PWM_*` (14) | pulldown to GND | All outputs off |
+
+This makes the sleep state the *unpowered* state, so a crash, brownout or reset can never leave
+the lights on or the rails up.
 
 ### 7.4 Programming and debug
 
@@ -427,7 +441,15 @@ done with the bike on. No wake button, no post-idle window.
 1. Idle detected — no CAN frames for a configurable timeout (default 30 s)
 2. Firmware disables the boost enable, opens the switched 3.3 V branch, puts the transceiver in
    standby
-3. `esp_deep_sleep_start()` with **EXT1** armed on GPIO 35 (CAN RX) and GPIO 36 (ignition sense)
+3. `esp_deep_sleep_start()` with **EXT0** armed on GPIO 35 (CAN RX, **wake on level 0**) and
+   **EXT1 `ANY_HIGH`** armed on GPIO 36 (ignition sense)
+
+   **Why two mechanisms rather than one:** bus wake drives RXD **low**, while ignition sense is
+   **high** when present. The classic ESP32's EXT1 supports only `ALL_LOW` or `ANY_HIGH` — never
+   mixed polarity, and `ANY_LOW` does not exist — so a single EXT1 cannot cover both. EXT0 takes
+   the active-low CAN line; EXT1 takes the active-high ignition line. **Cost:** EXT0 requires the
+   `RTC_PERIPH` power domain to stay on, adding roughly 10 µA to the sleep budget (§8.2). That is
+   accounted for and still inside the 200 µA target.
 4. Bus activity → transceiver drives RXD low → ESP32 wakes, restores the transceiver to normal
    mode, re-enables both rails
 
@@ -438,6 +460,7 @@ Permanently battery-connected, so quiescent draw is a first-class requirement.
 | Contributor | Target |
 |---|---|
 | ESP32 deep sleep | ~10 µA |
+| EXT0 wake — `RTC_PERIPH` domain kept on (§8.1) | ~10 µA |
 | CAN transceiver standby | ~20 µA |
 | 3.3 V buck quiescent | 10–30 µA |
 | P-FET gate + divider leakage | ~10 µA |
