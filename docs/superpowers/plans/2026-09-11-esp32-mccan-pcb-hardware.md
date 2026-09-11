@@ -360,6 +360,19 @@ Candidate: TI LM5164
 | 4.3 | Input rating 40-60 V | | |
 | 4.4 | Stable with no load (sleep condition) | | |
 
+## 4b. 5 V regulator (ADDED 2026-09-11) — mandatory, always on
+Feeds the TJA1042's VCC (4.5-5.5 V). Must stay powered in deep sleep so the
+transceiver can monitor the bus, so its own quiescent draw lands directly in
+the sleep budget.
+
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 4b.1 | Quiescent current <= 30 uA (counts against the <200 uA sleep budget) | | |
+| 4b.2 | Output 5.0 V +/- 5%, >= 100 mA (transceiver active draw) | | |
+| 4b.3 | Input rating 40-60 V (survives the 24 V TVS clamp) | | |
+| 4b.4 | Stable at the ~20 uA load the transceiver presents in standby | | |
+| 4b.5 | If an LDO: dissipation at (12 V - 5 V) x active current is acceptable; if a buck: EMI acceptable | | |
+
 ## 5. CAN transceiver
 Candidate: NXP TJA1042T/3
 
