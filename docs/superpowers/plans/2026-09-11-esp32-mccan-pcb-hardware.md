@@ -301,11 +301,13 @@ Three part classes to verify: the FET, the sense resistor, the analog mux.
 | # | Required | Actual | Verdict |
 |---|---|---|---|
 | 1a.1 | Vds >= 40 V (24 V rail plus transients) | | |
-| 1a.2 | **REVISED** (see below): Vgs(th) max <= 2.0 V, AND the output-characteristic curve shows Id >= 0.5 A at Vgs = 3.3 V with Vds <= 0.5 V | | |
+| 1a.2 | **REVISED TWICE** (see below): the datasheet establishes conduction of **Id >= 0.5 A at Vgs <= 3.3 V** — via an Rds(on) spec at <=3.3 V Vgs, or a transfer/output curve. **No Vgs(th) threshold is imposed.** | | |
 | 1a.3 | Id >= 1 A continuous | | |
 | 1a.4 | Total series resistance (FET + the 1 ohm shunt) keeps per-channel loss <= 50 mW at 0.14 A | | |
 | 1a.5 | Gate charge low enough to switch cleanly at 400 Hz from a PCA9685 output (25 mA sink / 10 mA source) | | |
 | 1a.6 | In stock, multi-source | | |
+| 1a.7 | **PACKAGE: small SMD only** — SOT-23/SOT-323/SOT-523 class, footprint <= ~8 mm2. **TO-220, TO-252/DPAK, D2PAK and other power packages are EXCLUDED**: 12 must fit a small board in a sealed box, and the load is 0.14 A | | |
+| 1a.8 | **Off-state leakage (Idss) at 24 V, 25 C, <= 2 uA per device** — 12 devices land directly in the sleep budget | | |
 
 ### 1b. Sense resistor (12 required)
 | # | Required | Actual | Verdict |
@@ -356,6 +358,35 @@ logic high, making 3.3 V select lines marginal and requiring HCT or level shifti
 Fallback if 140 mV still proves noisy at bring-up Stage 5: a 2.2 ohm shunt (308 mV, 0.5 W) or an
 op-amp gain stage.
 
+### Ruling 15 — 1a.2 revised a second time, and the package constraint I omitted
+
+The first revision replaced "fully enhanced at 3.3 V" with a `Vgs(th) max <= 2.0 V` gate. **That gate
+was itself an arbitrary proxy and it drove a bad selection:** it rejected SOT-23 parts
+(PMV60ENEA/PMV30ENEA, Vgs(th) max 2.5 V) in favour of an **IRLZ44N in TO-220** — a 55 V / 47 A
+through-hole power brick — to switch **0.14 A**. Twelve of those would dominate a small board inside
+a sealed enclosure and force through-hole assembly.
+
+A part with Vgs(th) max 2.5 V driven at 3.3 V has 0.8 V of overdrive, which at 0.14 A is plainly
+sufficient. So the threshold is withdrawn entirely: what matters is **direct evidence of >=0.5 A
+conduction at Vgs <= 3.3 V**, from an Rds(on) spec at that gate voltage or from a characteristic
+curve.
+
+Two criteria I should have stated from the start are now explicit:
+- **1a.7 package:** small SMD only, power packages excluded. A 0.14 A load does not need, and this
+  board cannot afford, a TO-220.
+- **1a.8 off-state leakage:** <=2 uA per device at 24 V. This is what blew the sleep budget in the
+  previous pass — the power FET's 25 uA leakage x 12 gave a ~405 uA bound. A SOT-23 part is
+  typically ~1 uA, so the right package fixes the budget as a side effect.
+
+Also relaxed in this pass, both arbitrary on my part: **6.1** P-FET Rds(on) from <=10 to <=20 mOhm
+(14 mOhm at 6.6 A is 0.61 W against 0.44 W — both acceptable), with its Vgs rating to be judged
+**with the Zener gate clamp in circuit**, since the clamp is already in the design and the gate
+therefore never sees the full rail; and **3.4** spread-spectrum, which is an EMC nicety that an
+external SYNC input or a documented mitigation plan satisfies equally well.
+
+**A PASS must rest on a primary datasheet.** Any row currently passing on a search-summary or
+distributor-parametric figure must be downgraded to UNVERIFIED with a note on what is needed.
+
 ## 2. Dual smart high-side switch (1 required) — Denali
 Candidate: Infineon BTS7008-2EPA or PROFET+2 12V family
 
@@ -377,7 +408,7 @@ Candidate: TI LM5122-Q1
 | 3.1 | Input rating 40-60 V (must exceed the 24 V TVS clamp voltage) | | |
 | 3.2 | Synchronous (external FETs), efficiency >= 94% at 40 W out | | |
 | 3.3 | Enable pin, 3.3 V logic compatible | | |
-| 3.4 | Spread-spectrum or frequency dither available | | |
+| 3.4 | Spread-spectrum, frequency dither, **an external SYNC/dither input, or a documented EMC mitigation plan** (relaxed — this is an EMC nicety, not a functional requirement) | | |
 | 3.5 | Disabled-state current draw <= 10 uA, or gated externally | | |
 | 3.6 | Dissipation at 40 W out <= 3 W including both FETs | | |
 
@@ -418,7 +449,7 @@ Candidate: NXP TJA1042T/3
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 6.1 | P-FET: Vds >= 40 V, Rds(on) <= 10 mOhm, Vgs rated for 24 V jump | | |
+| 6.1 | P-FET: Vds >= 40 V, **Rds(on) <= 20 mOhm** (relaxed from 10), Vgs rating evaluated **WITH the Zener gate clamp in circuit** (spec 4.2) — the gate never sees the full rail, so a +/-20 V Vgs part is acceptable | | |
 | 6.2 | TVS: standoff ~24 V, clamp < 40 V, rated for the feed current | | |
 | 6.3 | PTC: 0.5 A hold at 24 V, trip < 1 A, 4 required | | |
 | 6.4 | Schottky OR pair: 40 V, >= 0.5 A, low leakage | | |
