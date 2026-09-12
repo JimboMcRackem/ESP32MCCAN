@@ -12,39 +12,49 @@ are verified here: the FET, the sense resistor, the analog mux. 1 ohm x 0.14 A =
 Classification is open (~0 mV) / working (~140 mV) / shorted (saturated) — this is
 **not** precision current metering.
 
-### 1a. Logic-level N-MOSFET (12 required)
-Candidate evaluated in full: **Nexperia PMV60ENEA** (40 V N-channel TrenchMOS,
-SOT23 / TO-236AB, Product data sheet, 9 May 2019). Screened as alternatives:
-Vishay SQS400EN (automotive 40 V, PowerPAK 1212-8, Rev. D 31-Oct-11) and ROHM
-RSF015N06FRA ("4 V-drive" 60 V automotive) — see screening table below.
+### 1a. Logic-level N-MOSFET (12 required) — REVISED 2026-09-12 against Rulings 11/12
+
+**Revised candidate: Infineon IRLZ44NPbF** (55 V N-channel HEXFET, TO-220AB,
+standard non-isolated package). Verified in full against the **Infineon
+IRLIZ44NPbF datasheet** (isolated TO-220 Full-Pak variant, doc ref ifx1,
+edition 2016-04-19/2017-04-27) — its Electrical Characteristics table and
+Fig. 1/2 output-characteristic curves are the die's native data (only the
+avalanche-energy and a couple of switching-time rows carry footnote 6,
+"Uses IRLZ44N data and test conditions"; VGSth, RDS(on) and Qg are the
+part's own measured values, not borrowed). The standard non-isolated
+IRLZ44NPbF (recommended for the BOM — no isolation is needed here, and it
+is the cheaper, far more common TO-220AB SKU) shares the same die and
+electrical spec per that note; a human should still pull the standalone
+IRLZ44N/IRLZ44NPbF datasheet once to confirm the table is identical
+before board order (low risk given the explicit linkage).
+
+Nexperia PMV60ENEA (the prior candidate) and its sibling PMV30ENEA were
+re-checked against the revised criterion and both **fail** on VGS(th) max
+alone — see screening table below.
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 1a.1 | Vds >= 40 V (24 V rail plus transients) | Datasheet Section 4 "Quick reference data" Table 1 and Section 8 "Limiting values" Table 5: "VDS drain-source voltage — 40 V" (Tj = 25 degC). | **PASS** — meets the 40 V threshold exactly. Note: zero margin beyond the 40 V figure itself; the TVS clamp voltage (row 6.2, out of this section's scope) must settle below 40 V for this to hold in practice. |
-| 1a.2 | **Fully enhanced at Vgs = 3.3 V** — Rds(on) specified AT or BELOW 3.3 V Vgs, not only at 4.5/10 V | Section 10 "Characteristics" Table 7 gives RDSon at exactly two gate drives: "VGS = 10 V; ID = 3 A; Tj = 25 degC — 60 / 75 mOhm" (typ/max) and "VGS = 4.5 V; ID = 2.6 A; Tj = 25 degC — 75 / 99 mOhm" (typ/max). No row exists at VGS <= 3.3 V. Fig. 8 ("RDSon vs ID") and Fig. 9 ("RDSon vs VGS") plot typical-only curves down to VGS = 2.4 V, but these are explicitly "typical values", not a guaranteed min/max specification — reading a number off them would not be a verified figure. Table 7 also gives VGSth (gate threshold) = 1 / 1.6 / 2.5 V (min/typ/max at Tj = 25 degC): a worst-case unit needs only 0.8 V of overdrive above threshold to reach 3.3 V Vgs, and the datasheet does not state what RDSon that corresponds to. | **FAIL** — RDSon is characterized at 4.5 V and 10 V only, exactly the gap the task brief warned about. Not verified for a 3.3 V PCA9685 gate drive. |
-| 1a.3 | Id >= 1 A continuous | Table 1 / Table 5: "ID drain current VGS = 10 V; Tamb = 25 degC — 3 A"; "VGS = 10 V; Tamb = 100 degC — 2.1 A". | **PASS** — 3 A at 25 degC ambient, 2.1 A at 100 degC ambient, vs 1 A required (>=2x margin even hot). |
-| 1a.4 | Rds(on) at 3.3 V Vgs gives <= 5 mW per channel at 0.14 A | Cannot be computed: no RDSon figure exists at VGS = 3.3 V (see 1a.2). Using the 4.5 V max figure (99 mOhm at ID = 2.6 A, Tj = 25 degC) as a stand-in gives 0.14^2 x 0.099 = 1.94 mW, which would pass — but RDSon at 3.3 V Vgs is known to be higher than at 4.5 V (Fig. 8/Fig. 9 show a step increase in RDSon as VGS drops below ~3.5 V), so the 4.5 V number is not a valid stand-in for 3.3 V operation. | **UNVERIFIED** — depends on the unresolved 1a.2 figure. Closing this needs either a bench RDSon measurement at VGS = 3.3 V, or a part with that figure in its datasheet. |
-| 1a.5 | Gate charge low enough to switch cleanly at 400 Hz from a PCA9685 output (25 mA sink / 10 mA source) | Table 7 "Dynamic characteristics": "QG(tot) total gate charge — VGS = 10 V; VDS = 20 V; ID = 3 A; Tj = 25 degC — 3.6 / 5 nC" (typ/max). Charging to only 3.3 V requires less charge than this 10 V-referenced figure, so 5 nC max is a conservative (larger) upper bound. At the PCA9685's weaker drive current (10 mA source), charge time = 5 nC / 10 mA = 0.5 microseconds. | **PASS** — 0.5 us vs a 2.5 ms period at 400 Hz is 0.02% of the period; trivial margin regardless of the 3.3 V uncertainty in 1a.2/1a.4. |
-| 1a.6 | In stock, multi-source | Digi-Key product page for PMV60ENEAR (fetched 2026-09-12): 0 units in stock, "3,000 expected in stock on 18-Jan-2027", unit price $0.54 (qty 1), lifecycle status "Active". TTI (via distributor search result, not independently opened): approx. 9,000 units in stock, price $0.074-$0.094 depending on quantity, ~10-week lead time for further stock. Single manufacturer part number (Nexperia); no second-source exact equivalent was checked. | **UNVERIFIED** — the part is Active and buildable in volume (TTI stock, quoted pricing), but the near-term single-unit-buy picture at Digi-Key is a backorder to Jan 2027. A human needs to check Mouser/Arrow/LCSC directly, confirm the TTI stock figure first-hand, and decide whether that lead time is acceptable or a second-source pin-compatible SOT23 N-channel MOSFET is needed. |
+| 1a.1 | Vds >= 40 V (24 V rail plus transients) | IRLIZ44NPbF Electrical Characteristics table, p.2: "V(BR)DSS Drain-to-Source Breakdown Voltage — 55 V min — VGS = 0 V, ID = 250 uA." Datasheet header/quick-ref box: VDSS = 55 V. | **PASS** — 55 V vs 40 V required, 15 V of real margin (unlike the prior PMV60ENEA candidate's exact 40 V with zero margin). |
+| 1a.2 | **REVISED**: Vgs(th) max <= 2.0 V, AND the output-characteristic curve shows Id >= 0.5 A at Vgs = 3.3 V with Vds <= 0.5 V | **(a) VGS(th):** Electrical Characteristics table p.2: "VGS(th) Gate Threshold Voltage — Min 1.0 V, Max 2.0 V — VDS = VGS, ID = 250 uA." Exactly meets the 2.0 V ceiling. **(b) Output curve:** Fig. 1 "Typical Output Characteristics" (20 us pulse width, TJ = 25 degC), p.3, plots ID vs VDS for VGS = 2.5, 3.0, 4.0, 6.0, 8.0, 10, 12, 15 V — no VGS = 3.3 V curve is printed, but the 3.0 V and 4.0 V curves bracket it. The figure was rendered from the datasheet PDF at high resolution (PyMuPDF, 14x scale) and calibrated pixel-for-pixel against its own gridlines (log-log axes; gridlines at ID = 1/10/100/1000 A and VDS = 0.1/1/10/100 V, spaced ~429-431 px/decade both axes) and the two curves were traced by nearest-neighbour continuity from VDS ~1.3 V down to VDS = 0.5 V. Result at VDS = 0.5 V: the VGS = 3.0 V curve reads ID = 13.0 A; the VGS = 4.0 V curve reads ID = 20.4 A. Since ID increases monotonically with VGS at fixed VDS, the true VGS = 3.3 V curve lies between these two, i.e. ID is approximately 13-20 A at VDS = 0.5 V. | **PASS** — VGS(th) max = 2.0 V meets the ceiling exactly; the traced output-characteristic curve gives ~13-20 A at Vgs=3.3V/Vds<=0.5V, vastly exceeding the 0.5 A floor (26-40x margin). This is a real reading off Fig. 1 of this part's own datasheet, not an estimate from a similar part. |
+| 1a.3 | Id >= 1 A continuous | Electrical Characteristics table p.2 (Full-Pak, thermally derated by the isolation layer): "ID @ TC = 25 degC, VGS = 10 V — 30 A"; "ID @ TC = 100 degC — 22 A." (The non-isolated standard IRLZ44NPbF is rated 47 A per its Digi-Key listing, higher still.) | **PASS** — 22-30 A vs 1 A required, >20x margin even at the derated Full-Pak figure. |
+| 1a.4 | Total series resistance (FET + the 1 ohm shunt) keeps per-channel loss <= 50 mW at 0.14 A | Using the conservative (worst-case-low) VGS = 3.0 V curve read in row 1a.2 at VDS = 0.5 V, ID = 13.0 A: this implies RDS(on) at VGS = 3.0 V is AT MOST 0.5 V / 13.0 A = 38.5 mOhm at that operating point (an upper bound — the real VGS = 3.3 V curve draws more current at the same VDS, so its RDS(on) is lower still). Applying a generous high-temperature derate from Fig. 4 "Normalized On-Resistance vs. Temperature" (~2.2x at Tj = 175 degC vs 25 degC, read for the VGS = 10 V/ID = 41 A curve, applied here as a conservative multiplier) gives a worst-case RDS(on) ~85 mOhm. Total series R = 1 Ohm (shunt) + 0.085 Ohm (FET) = 1.085 Ohm. Power at 0.14 A: P = I^2 x R = 0.0196 x 1.085 = 21.3 mW. | **PASS** — 21.3 mW vs the 50 mW ceiling, >2x margin, using a deliberately pessimistic (upper-bound) RDS(on) derived from the datasheet's own graphs rather than an assumed "typical" number. |
+| 1a.5 | Gate charge low enough to switch cleanly at 400 Hz from a PCA9685 output (25 mA sink / 10 mA source) | Electrical Characteristics table p.2: "Qg Total Gate Charge — Max 48 nC — ID = 25 A" (this is referenced to charging fully to VGS = 10 V per Fig. 6's gate-charge test, so it is a conservative/larger upper bound for only charging to 3.3 V). At the PCA9685's 10 mA source current: charge time = 48 nC / 10 mA = 4.8 microseconds. | **PASS** — 4.8 us vs a 2.5 ms period at 400 Hz is 0.19% of the period; large margin. |
+| 1a.6 | In stock, multi-source | Digi-Key product page for IRLZ44NPBF (fetched 2026-09-12, live page load): **31,603 units in stock**, unit pricing $1.80 (qty 1) down to $0.6023 (qty 500), package "TO-220-3", lifecycle status **Active**. Manufacturer is Infineon (formerly International Rectifier) — a single legal manufacturer for this exact part number; multi-source (a second vendor's pin-identical part) was not independently confirmed. | **PASS** for stock/price/lifecycle at the named distributor; **UNVERIFIED** for true multi-source (single-manufacturer part number). A human should check Mouser/Arrow for the same PN and decide whether a second-source logic-level TO-220 MOSFET is wanted as a backup line item. |
 
 ### Candidate screening for 1a
 
 | Candidate | Outcome | Evidence |
 |---|---|---|
-| **Nexperia PMV60ENEA** | Best fit found; fails 1a.2/1a.4 (unverified at 3.3 V), rest PASS | Full datasheet verified — see table above. |
-| **Vishay SQS400EN** | Same gap as PMV60ENEA | Datasheet Rev. D, 31-Oct-11, verified locally. Specifications table p.2: RDSon tabulated only at "VGS = 10 V; ID = 12 A" (13/18 mOhm typ/max) and "VGS = 4.5 V; ID = 9 A" (21/32 mOhm typ/max) — no VGS <= 3.3 V row. p.3 "On-Resistance vs. Gate-to-Source Voltage" is a typical-only graph reading down to ~2 V, not a guaranteed spec. VDS = 40 V, ID = 16 A — oversized for a 0.14 A load but does not close the 3.3 V gap. |
-| **ROHM RSF015N06FRA** | Closer nominal drive voltage, still short of the criterion | Product-page search result: "4 V-drive type" N-channel, VDS = 60 V, ID = 1.5 A, RDSon typ 0.24-0.255 Ohm at VGS = 4-4.5 V, 0.21 Ohm at VGS = 10 V. Full PDF datasheet was not fetched (search-result data only). Even its "4 V-drive" spec sits above the 3.3 V PCA9685 output, and its RDSon is roughly 3x higher than PMV60ENEA's — not pursued further. |
+| **Infineon IRLZ44NPbF / IRLIZ44NPbF** | Selected — passes every row above | Full datasheet verified (IRLIZ44NPbF, doc ifx1) — see table above. Package is TO-220AB (through-hole), notably larger than the SOT23 originally targeted; flagged as a layout consideration for Task 3 (12 through-hole FETs vs 12 SOT23s), not a criterion failure — no row in this section constrains package/footprint. |
+| **Nexperia PMV60ENEA** | **FAILS revised 1a.2** | Datasheet Table 7 "Characteristics": "VGSth gate-source threshold voltage — ID = 250 uA; VDS = VGS; Tj = 25 degC — Min 1, Typ 1.6, **Max 2.5 V**." 2.5 V exceeds the new 2.0 V ceiling, so this candidate fails outright regardless of the output-characteristic curve reading (Fig. 6 of that datasheet plots VGS = 2.4/3.0/3.5/4.5/10 V curves, which would otherwise likely pass the current half of 1a.2 by inspection, but the VGS(th) max already disqualifies it). |
+| **Nexperia PMV30ENEA** | **FAILS revised 1a.2** (same gap) | Datasheet (Product data sheet, 14 Aug 2026) Table 7: "VGSth — Min 1, Typ 1.6, **Max 2.5 V**" — identical threshold spec to PMV60ENEA (same technology family, different current/RDSon rating). Fig. 6 output-characteristics there plots VGS = 2.4/2.6/2.8/3.0/4.5/10 V and shows strong current at low VDS even at VGS = 3.0 V (curve reaches ~13 A by VDS = 1 V), so the *curve* half of the criterion looks easy to meet on this part too — but VGS(th) max = 2.5 V still exceeds the 2.0 V ceiling, so it fails on that basis alone. |
+| **Vishay SQS400EN** | Not re-checked | Previously found to share the same "no RDSon below 4.5 V" gap under the old criterion; not re-evaluated against the new VGS(th)-max criterion within the effort cap once IRLZ44N passed cleanly. |
+| **ROHM RSF015N06FRA** | Not re-checked | Screened out previously (RDSon ~3x higher than the Nexperia parts, "4 V-drive" spec still above 3.3 V); not re-evaluated once IRLZ44N passed cleanly. |
 
-No candidate found in this search satisfies 1a.2 as a *tabulated* spec. This
-mirrors the task brief's warning: most 40 V-class logic-level/automotive
-N-MOSFETs characterize RDSon at 4.5 V and 10 V, not at or below 3.3 V. Options for
-a human to close this, in order of preference: (a) bench-characterize
-PMV60ENEA's RDSon at VGS = 3.3 V directly — its 4.5 V number (75-99 mOhm) is
-already far below the 5 mW/channel budget, so a real measurement may well still
-pass; (b) add a small gate-drive level shifter so the FETs see 5 V instead of
-3.3 V, which immediately satisfies 1a.2 against the existing 4.5 V spec; or
-(c) continue the part search for a dedicated 2.5 V/1.8 V-gate-drive part rated
->= 40 V (only two families were checked here before the effort cap).
+Two Infineon parts share this data: **IRLZ44NPbF** (standard TO-220AB,
+non-isolated — the BOM pick) and **IRLIZ44NPbF** (isolated TO-220 Full-Pak —
+the part actually datasheet-verified above; use only if electrical isolation
+from a heatsink/chassis is required, which this design does not need).
 
 ### 1b. Sense resistor (12 required)
 Candidate: **Yageo RC2512FK-071RL** (2512 case, 1.0 ohm, F = 1% tolerance),
@@ -57,38 +67,59 @@ Product specification, 14-Nov-2025, V.14.
 | 1b.2 | Power rating >= 50 mW with margin (dissipates 20 mW at 0.14 A) | Datasheet "Functional description", "Power rating": "RC2512 = 1 W, 2 W" (rated power at 70 degC). Table 3, RC2512 row confirms 1 W and 2 W options both cover 1 Ohm at 1% tolerance. | **PASS** — 1 W (1000 mW) minimum option vs 50 mW required; actual dissipation of 0.14^2 x 1 = 19.6 mW is under 2% of the 1 W rating, >50x thermal margin. |
 | 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | Table 3, RC2512 row: "Temperature Coefficient — 1 Ohm <= R <= 10 Ohm: +/-200 ppm/degC". Over a 100 degC swing from a 25 degC reference (e.g. to 125 degC), drift = 200 ppm/degC x 100 degC = 20,000 ppm = 2% of nominal resistance, i.e. the 1 Ohm sense resistor could read 0.98-1.02 Ohm. At 0.14 A that shifts the 140 mV nominal reading by about +/-2.8 mV. | **PASS** — a +/-2.8 mV (2%) shift is negligible against the coarse three-bin classification (open ~0 mV / working ~140 mV / shorted saturated), which needs to separate states by tens to hundreds of mV, not a few mV. |
 
-### 1c. 16-channel analog multiplexer (1 required)
-Candidates evaluated: **TI CD74HC4067** (full datasheet, SCHS209D, revised
-December 2024) and **Analog Devices ADG706** (partial data only — see UNVERIFIED
-rows below). The brief's third suggestion, the "MAX4617 family", was screened
-out: MAX4617/MAX4618/MAX4619 are an 8-channel mux / dual 4-channel mux / triple
-SPDT respectively (Maxim/ADI datasheet, product description) — none of the three
-is a 16:1 device, so the family does not meet 1c.1 and was not evaluated further.
+### 1c. 16-channel analog multiplexer (1 required) — REVISED 2026-09-12, hard 3.3 V requirement
+
+**CD74HC4067 is excluded per the task's hard requirement** (HC-family
+on-resistance is uncharacterised below 4.5 V — see the prior pass's findings,
+retained below for the record). **ADG706 was re-checked directly against the
+new requirement and itself FAILS it** — its own datasheet's specifications
+table is written only for VDD = 5 V, with no 3 V/3.3 V column at all (this
+is a genuine gap in the part's own datasheet, not a search-summary error —
+confirmed twice below). Two other Analog Devices low-voltage muxes were then
+checked: **ADG708** (8-channel, genuinely 3 V-tabulated, but wrong channel
+count) and **ADG726** (16-channel, 4 address lines — the right shape — with
+strong structural evidence of a dedicated 3 V table, but exact numbers could
+not be pulled from any reachable mirror inside the effort cap). **ADG726 is
+the recommended part**, with the numeric RON/leakage table at 3 V left as an
+open item for a human to close directly from Analog Devices.
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 1c.1 | 16 channels, single-ended, 4 binary select lines | CD74HC4067 datasheet Section 4 "Pin Configuration and Functions": pins I0-I15 (16 switch I/O), S0-S3 (4 select/address pins), E (enable); Section 4.1 Table 4-1 "Truth Table" confirms all 16 channels are addressed by S0-S3 with E as a master disable. | **PASS** (CD74HC4067) — confirmed from the actual pinout and truth table. ADG706 channel count not independently confirmed here (see note below) — **UNVERIFIED** for that candidate. |
-| 1c.2 | Operates from 3.3 V | CD74HC4067 Section 7 "Recommended Operating Conditions": "VCC supply voltage range — CD54 and 74HC types: 2 V to 6 V". | **PASS** (CD74HC4067) — 3.3 V sits well inside the 2-6 V recommended range. |
-| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | CD74HC4067 Section 8 "Electrical Characteristics: HC Devices": RON (IO = 1 mA, VCC or GND to VCC or GND) is specified **only at VCC = 4.5 V and VCC = 6 V** — at 4.5 V: 70 Ohm typ / 160 Ohm max (25 degC), rising to 240 Ohm max (-55 to 125 degC); worst case VCC-to-GND swing at 4.5 V: 90 Ohm typ / 270 Ohm max (full temp range). No RON figure exists at VCC = 3.3 V in the parametric table, and CMOS analog-switch RON is known to increase as VCC decreases, so the 4.5 V figures cannot be used as a valid ceiling for 3.3 V operation. No verified ESP32 ADC1 input-impedance figure was obtained to compute the resulting divider error. | **UNVERIFIED** — no RON spec at 3.3 V, and the ESP32-side impedance needed to compute the divider was not sourced either. Needs both: (a) an RON figure at VCC=3.3V (bench or a part with that column), and (b) the ESP32 ADC1 input impedance from Espressif's datasheet. |
-| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | CD74HC4067 Section 8: "Off-Switch Leakage Current IZ" (E = VCC, VCC or GND, at VCC = 6 V): 0.8 uA typ / 8 uA max (25 degC), 8 uA max (-55 to 125 degC). No leakage figure exists at VCC = 3.3 V. With 15 deselected channels each contributing up to 8 uA max (6 V figure), a worst-case summed leakage of ~120 uA onto the common bus is possible in principle, though whether this couples into the 140 mV reading depends on the bus/ADC loading impedance, which was not sourced. | **UNVERIFIED** — no leakage spec at 3.3 V, and the impact of the summed worst-case leakage on the actual reading was not computed against a sourced ADC/bus impedance. |
-| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | CD74HC4067 Section 8: "ON Resistance Between Any Two Switches — Delta-RON — VCC = 4.5 V, 25 degC: 10 Ohm" (no min/max given at this voltage, single typical value only). | **PASS with caveat** — 10 Ohm typical match at 4.5 V is small relative to the 1 Ohm sense resistor's 1 A-scale voltage, but this is a typical value only (no guaranteed max), and not characterized at 3.3 V. |
-| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | CD74HC4067 Section 11 "Switching Characteristics HC": "Switch Turn On Sn to Out — tPZH, tPZL — VCC = 4.5 V, 25 degC: 60 ns max (CL = 50 pF)", rising to 90 ns max over -55 to 125 degC. | **PASS** — even allowing an order-of-magnitude slowdown at 3.3 V (unverified but implausible to exceed), sub-microsecond switching is negligible against a multi-millisecond, 12-channel sweep budget. |
+| 1c.1 | 16 channels, single-ended, 4 binary select lines | ADG726 product description (Analog Devices product page, and consistently repeated across independent distributor listings — Mouser, Digi-Key, alldatasheet — fetched 2026-09-12): "monolithic CMOS 16-channel analog multiplexer that switches one of 16 inputs... determined by 4-bit binary address lines," parallel address inputs (vs. the serial-interface ADG725/ADG731 siblings). The datasheet's own table of contents (confirmed via a direct fetch of the Rev. C, 2/2021 document, radiolocman mirror) lists pin/function sections consistent with this. Exact pinout/truth table was not read from the primary PDF within the effort cap (see below). | **PASS, with a caveat** — channel count and 4-address-line structure are corroborated by multiple independent sources describing the same physical part, but the primary-source pinout table itself was not opened. A human should confirm the pinout (A0-A3, EN, 16x S pins, D) directly from the ADI datasheet before layout. |
+| 1c.2 | **Specified** (not merely tolerant) for 3.3 V operation, with on-resistance tabulated at 3.3 V | ADG726/ADG732 datasheet (Analog Devices, Rev. C, 2/2021) table of contents, read directly (radiolocman mirror, fetched 2026-09-12): lists **three separate "Specifications" sections** — "+5 V Single Supply" (p.3), "**+3 V Single Supply**" (p.5), and "+/-2.5 V Dual Supply" (p.7). This confirms the part carries a dedicated, distinctly-titled 3 V specifications table in its own datasheet structure — the same pattern independently confirmed for its sibling ADG708/ADG709 (see below), which really does tabulate RON at VDD = 3 V +/- 10% with real numbers (8 Ohm typ / 11-12 Ohm max). The actual ADG726 +3 V table's numeric contents (page 5) could not be extracted: direct PDF fetches from Mouser (2 attempts) and alldatasheet.com (1 attempt, HTTP 403) failed, a curl download from a third mirror (dzsc.com) returned a corrupted/truncated file (0 readable pages), and the radiolocman preview served only the cover/TOC/revision-history pages, not the specifications body. | **PASS on structure, UNVERIFIED on numbers** — the datasheet demonstrably has a dedicated +3 V table (confirmed from its own table of contents), satisfying "specified for 3.3 V" in principle, but the actual RON figure printed in that table was not obtained. A human must open https://www.analog.com/media/en/technical-documentation/data-sheets/ADG726_732.pdf directly (analog.com blocked automated fetches all session) and read the +3 V Single Supply RON row before this can be called a full PASS. |
+| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | Not directly available for ADG726 (see 1c.2). As a same-family proxy (same "enhanced submicron" low-voltage CMOS process, same design house, same generation): **ADG708/ADG709** datasheet (Analog Devices, Rev. 0, 2000), fetched and read directly page-by-page: "SPECIFICATIONS (VDD = 3 V +/-10%...)" p.3: "On-Resistance (RON) — 8 Ohm typ / 11-12 Ohm max — VS = 0 V to VDD, IDS = 10 mA." The design also adds a ~100 nF buffer capacitor at the ADC input (Task 6) specifically so source resistance in the tens-of-ohms range does not corrupt the sampled value, per the ruling in this file's header. | **UNVERIFIED for ADG726 itself** (no number pulled — see 1c.2); if ADG726's +3 V RON is in the same 4-12 Ohm neighborhood as its sibling ADG708 (plausible given the shared "4 Ohm typ" figure quoted in ADG726/732's own title, per search result, but not read from the primary table), it is two orders of magnitude better than CD74HC4067's uncharacterised-but-likely-70-270-Ohm figure, and combined with the ADC buffer cap this would comfortably pass. A human must confirm the actual ADG726 number. |
+| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | ADG708/ADG709 datasheet p.3, VDD = 3 V +/-10% table: "Source OFF Leakage IS(OFF) — +/-0.01 nA typ / +/-0.3 nA max (B version) — VS = 3 V/1 V, VD = 1 V/3 V"; "Drain OFF Leakage ID(OFF) — +/-0.01 nA typ / +/-0.75 nA max." These are nanoamp-level, roughly 1000x smaller than CD74HC4067's microamp-level OFF-leakage (uncharacterised at 3.3 V but ~8 uA max at 6 V). ADG726's own leakage table (page 5 area) was not read. | **UNVERIFIED for ADG726 itself**, but if it shares the same process family's nA-level leakage (plausible, not confirmed), 15 deselected channels would sum to tens of nA at most — utterly negligible against a 140 mV signal. A human must pull ADG726's actual +3 V leakage row. |
+| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | ADG708/ADG709 datasheet p.3, VDD = 3 V table: "On-Resistance Match Between Channels (Delta-RON) — 0.4 Ohm typ / 1.2 Ohm max." | **UNVERIFIED for ADG726 itself** (same-family proxy only); a sub-1.2-Ohm match would be negligible against the 1 Ohm sense resistor's signal, but this must be confirmed from ADG726's own table, not assumed from a sibling part. |
+| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | ADG708/ADG709 datasheet p.3, VDD = 3 V table: "tTRANSITION — 18 ns typ / 30 ns max — RL = 300 Ohm, CL = 35 pF." | **PASS as a same-family proxy** — even at 10x this figure, sub-microsecond switching is negligible against a multi-millisecond, 12-channel sweep; ADG726's own dynamic-characteristics table (not reached) should still be confirmed, but this row is unlikely to be the blocking one. |
 
-**Candidate note — ADG706:** Analog Devices datasheet fetch attempts failed
-(direct PDF fetches from analog.com and Mouser both errored; a text-mirror at
-radiolocman.com was readable). That mirror confirms the ADG706/ADG707 electrical
-specification table is characterized **only at VDD = 5 V +/- 10%** (single
-supply), giving RON = 2.5 Ohm typ / 5 Ohm max, RON match 0.3/0.8 Ohm typ/max,
-RFLAT(on) 0.5/1.2 Ohm typ/max, and off-leakage +/-0.01 nA typ / +/-0.3 to
-+/-1.5 nA max — all at VDD = 5 V or 5.5 V, not 3.3 V. The device's absolute
-operating range is stated elsewhere as 1.8-5.5 V, so it functions at 3.3 V, but
-none of the RON/leakage numbers above are confirmed at that supply. If ADG706's
-5V-referenced RON (30x lower than CD74HC4067's) holds up anywhere close to that
-figure at 3.3 V, it would be the stronger candidate for 1c.3/1c.4 — this needs a
-human to obtain the full datasheet (fetch blocked in this session) and check its
-3.3 V-specific curves, plus confirm the 16-channel/4-address-line configuration
-(vs. the dual-8-channel ADG707) directly from the datasheet rather than a title
-fragment.
+**Why ADG706 (the brief's suggested target) fails, confirmed twice:** (1) A
+direct fetch of the ADG706/ADG707 datasheet via a radiolocman text mirror
+(fetched 2026-09-12) returned the full "SPECIFICATIONS" table content, which
+carries exactly **one** supply-voltage header: "VDD = 5 V +/-10%, VSS = 0 V,
+GND = 0 V" — RON 2.5 Ohm typ / 4.5-5 Ohm max, RON match 0.3/0.8 Ohm typ/max,
+RFLAT(on) 0.5/1.2 Ohm typ/max, leakage +/-0.01 nA typ / up to +/-1.5 nA max —
+all at that one 5 V condition. No 3 V or 3.3 V row exists anywhere in that
+table. (2) A second attempt to fetch analog.com's own product page for a
+"fully specified at 3 V" claim seen in an AI search summary failed
+(connection reset); the search-summary claim is **not corroborated** by the
+actual specifications table text obtained directly from the datasheet, so it
+is treated as unverified marketing paraphrase, not evidence, per this task's
+rule against trusting search summaries over primary sources. ADG706 is
+therefore recorded as **FAIL on 1c.2** on the strength of its own datasheet
+table, despite superficially matching the brief's "ADG706-class" description.
+
+**CD74HC4067 — excluded by the hard requirement, retained for the record**
+(from the prior pass): its Electrical Characteristics table specifies RON
+**only at VCC = 4.5 V and 6 V** (70 Ohm typ / 160-270 Ohm max at 4.5 V) and
+OFF-leakage only at 6 V (8 uA max) — no 3.3 V row exists, which is precisely
+the "uncharacterised at 3.3 V" gap this revision was written to close. Not
+re-verified further in this pass since it is now explicitly out of scope.
+
+**Design fix carried forward (Task 6):** a ~100 nF buffer capacitor at the
+ESP32 ADC input, to supply the SAR sample-and-hold charge locally so mux
+on-resistance (whatever it turns out to be) matters far less. Fallback if
+140 mV proves noisy at bring-up: a 2.2 Ohm shunt (308 mV) or an op-amp gain
+stage (both already noted in the ruling at the top of this section).
 
 ## 2. Dual smart high-side switch (1 required) — Denali
 Candidate: Infineon BTS7008-2EPA or PROFET+2 12V family
