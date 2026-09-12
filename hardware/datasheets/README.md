@@ -14,7 +14,7 @@ FAIL verdict there can be traced back to the document it was read from.
 | `ADG706_ADG707_analog_mux.pdf` | ADI ADG706BRU/BRUZ | 16:1 analog mux for the RGB sense chain | Rows 1c.1–1c.6 **PASS**. RON 6 Ω typ / 11–12 Ω max at 3 V, leakage ≤1.5 nA, pinout and truth table confirmed. **Rev. A is a 2002 document — confirm the current analog.com revision still matches.** |
 | `Littelfuse_1206L_PTC_series.pdf` | Littelfuse 1206L series | Resettable PTC, one per RGB string | Row 6.3 **PASS**, primary-sourced. |
 | `PMV60ENEA_fig6_output_characteristics.png` | Nexperia PMV60ENEA | RGB low-side switching MOSFET (×12) | Row 1a.2 **PASS**. This figure *is* the evidence: the output-characteristic curve sits clearly above 0.5 A at Vgs ≤ 3.3 V. Read **qualitatively** — no precision is claimed from a graph. |
-| `SMBJ24A_TVS.pdf`, `SMBJ_series_TVS.pdf` | SMBJ24A | Input transient clamp, both feeds | Row 6.2 is recorded **UNVERIFIED**. **See "Possible easy win" below — a real PDF is now present.** |
+| ~~`SMBJ24A_TVS.pdf`~~, ~~`SMBJ_series_TVS.pdf`~~ | **NEITHER IS AN SMBJ24A DATASHEET** | — | **See "Correction" below.** `SMBJ24A_TVS.pdf` is a Diodes Inc. **wafer-fab process-change notice** with no electrical specifications; `SMBJ_series_TVS.pdf` is an unrelated **Powerex SCR/diode module** datasheet. Row 6.2 remains **UNVERIFIED**. |
 
 ## Considered and rejected — kept as evidence
 
@@ -29,12 +29,24 @@ use multichannel smart low-side switches.
 | `ALTERNATE_ADG726_ADG732_dual_mux.pdf` | ADI ADG726/ADG732 | Dual 16:1 / single 32:1. Considered, then dropped for ADG706 — the single 16:1 is the right shape. |
 | `PMV30ENEA_fig6_output_characteristics.png` | Nexperia PMV30ENEA | Viable alternative to the PMV60ENEA. Useful because **PMV60ENEA is backordered at Digi-Key.** |
 
-## Possible easy win
+## Correction — the "easy win" was not real
 
-`SMBJ24A_TVS.pdf` is a **real 268 KB document**, yet row 6.2 in `part-selection.md` is marked
-UNVERIFIED because the verifying agent reported five failed attempts to open a primary datasheet. The
-file appears to have landed without being successfully read. **Opening it may close row 6.2 outright**
-— it is the only remaining UNVERIFIED row on a chosen part.
+An earlier version of this file claimed `SMBJ24A_TVS.pdf` was a genuine 268 KB SMBJ24A datasheet and
+that opening it would close row 6.2. **That claim was wrong, and it was made from the file size and a
+valid PDF header without reading the contents.** On actually opening them:
+
+- `SMBJ24A_TVS.pdf` is a **Diodes Inc. wafer-fabrication process-change notice** — no electrical
+  characteristics at all
+- `SMBJ_series_TVS.pdf` is a **Powerex SCR/diode module** datasheet, an unrelated part
+
+Row 6.2 is therefore still open, and nine fetch attempts across two sessions have failed (403 /
+timeout from Mouser, Bourns, ST and Littelfuse). **Closing it needs a human to download a genuine
+SMBJ24A datasheet in a browser** — a two-minute job for a person, and one that automated fetching has
+now repeatedly failed at.
+
+Distributor summary figures (standoff 24 V, VBR min 26.7 V, clamping max 38.9 V, 600 W) would pass the
+criteria on their face, but a distributor summary is not a primary source, which is this record own
+standard.
 
 ## Not copied here
 
