@@ -12,7 +12,7 @@ FAIL verdict there can be traced back to the document it was read from.
 |---|---|---|---|
 | `TJA1042_CAN_transceiver.pdf` | NXP TJA1042T/3 | CAN transceiver | Rows 5.1–5.4 **PASS**. Source of the go/no-go confirmation that standby signals bus wake-up by driving RXD low (Table 4 p.5, §7.1.2). **Rev. 8 (2015), via a Farnell mirror** — nxp.com blocks automated fetch. **Rev. 11 (2023) should be diffed before ordering.** |
 | `ADG706_ADG707_analog_mux.pdf` | ADI ADG706BRU/BRUZ | 16:1 analog mux for the RGB sense chain | Rows 1c.1–1c.6 **PASS**. RON 6 Ω typ / 11–12 Ω max at 3 V, leakage ≤1.5 nA, pinout and truth table confirmed. **Rev. A is a 2002 document — confirm the current analog.com revision still matches.** |
-| `Littelfuse_1206L_PTC_series.pdf` | Littelfuse 1206L series | Resettable PTC, one per RGB string | Row 6.3 **PASS**, primary-sourced. |
+| `Littelfuse_1206L_PTC_series.pdf` | Littelfuse 1206L series | Resettable PTC, one per RGB string | Row 6.3 **FAILS — family-wide.** This PDF is the evidence: its own p.2 derating table (0.33 A @ 60 °C, 0.29 A @ 70 °C) puts the best 24 V-rated part, 1206L050/24, at only **0.31 A at 65 °C** against a 0.42 A sustained load. Needs a larger family — 1812L, Bourns MF-SMD or TE miniSMDC. |
 | `PMV60ENEA_fig6_output_characteristics.png` | Nexperia PMV60ENEA | RGB low-side switching MOSFET (×12) | Row 1a.2 **PASS**. This figure *is* the evidence: the output-characteristic curve sits clearly above 0.5 A at Vgs ≤ 3.3 V. Read **qualitatively** — no precision is claimed from a graph. |
 | ~~`SMBJ24A_TVS.pdf`~~, ~~`SMBJ_series_TVS.pdf`~~ | **NEITHER IS AN SMBJ24A DATASHEET** | — | **See "Correction" below.** `SMBJ24A_TVS.pdf` is a Diodes Inc. **wafer-fab process-change notice** with no electrical specifications; `SMBJ_series_TVS.pdf` is an unrelated **Powerex SCR/diode module** datasheet. Row 6.2 remains **UNVERIFIED**. |
 
@@ -27,7 +27,7 @@ use multichannel smart low-side switches.
 | `REJECTED_TLE75008_octal_low_side_switch.pdf` | Infineon TLE75008 | Same category, same limitation. Confirms the failure is a property of the part class, not one vendor. |
 | `REJECTED_IRLZ44N_fig1_output_characteristics.png` | Infineon IRLZ44N | Briefly selected, then **rejected by the controller**: a 55 V / 47 A **TO-220 through-hole power brick** for a 0.14 A load. Twelve would dominate the board and force through-hole assembly. Its 25 µA leakage × 12 was also what appeared to blow the sleep budget — a symptom of the wrong package, not a real problem. |
 | `ALTERNATE_ADG726_ADG732_dual_mux.pdf` | ADI ADG726/ADG732 | Dual 16:1 / single 32:1. Considered, then dropped for ADG706 — the single 16:1 is the right shape. |
-| `PMV30ENEA_fig6_output_characteristics.png` | Nexperia PMV30ENEA | Viable alternative to the PMV60ENEA. Useful because **PMV60ENEA is backordered at Digi-Key.** |
+| `PMV30ENEA_fig6_output_characteristics.png` | Nexperia PMV30ENEA | Qualifies **technically** as a second source (its curve confirms Id >= 0.5 A at Vgs <= 3.3 V), but **does NOT relieve the sourcing problem** — also backordered at Digi-Key and unavailable at Mouser, apparently the same fab constraint as the PMV60ENEA. |
 
 ## Correction — the "easy win" was not real
 
