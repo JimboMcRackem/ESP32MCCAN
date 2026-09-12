@@ -90,7 +90,9 @@ fuse and one less cable run to fail, which on a motorcycle harness is a real rel
 without a respin if the 78% night loading ever proves uncomfortable.
 
 **The RGB figure remains assumed, not measured** — 20 W/m × 0.5 m × 4 strings. Re-verify when the
-strips are measured. Feed A has 61% margin, so a higher real figure is absorbed comfortably.
+strips are measured. The daytime load is only 39% of the feed, so a higher real figure is absorbed
+comfortably; note it is **night** that sits at 78%, and night runs the corners at a fraction of full
+white.
 
 ### 2.3 Per-channel current
 
@@ -192,8 +194,8 @@ and predated the mandatory 5 V rail):
 4. **Enable-gated 24 V boost (`+24V`)** — `EN_BOOST`. Carries only the RGB load, so it is sized at
    60 W rather than the full system power.
 
-Plus **raw protected 12 V from Feed B** straight to the Denali high-side switches, so their 6.6 A
-never passes through a converter.
+Plus **raw protected 12 V (`VBAT`)** straight to the Denali high-side switches, so their 6.6 A never
+passes through a converter.
 
 In deep sleep only **two devices** are powered — the ESP32 and the transceiver's VIO domain — which is
 what makes the sub-200 µA budget in §8.2 achievable.
@@ -242,9 +244,9 @@ A P-channel MOSFET in the supply path with gate resistor and Zener clamp. Chosen
 textbook ideal-diode controller (LM74700-class) because those draw tens of microamps
 *continuously* — a significant share of the entire sleep budget, spent permanently to save a
 fraction of a watt that only matters while the lights are on. The P-FET has essentially zero
-quiescent draw. One stage per feed: at the specified **20 mΩ ceiling**, **~0.30 W on Feed A (3.9 A)
-and ~0.87 W on Feed B (6.6 A), ~1.18 W combined** (§9.4). Splitting the current across two stages
-roughly halves the conduction loss a single 10.5 A stage would have incurred.
+quiescent draw. **One stage carries the whole load** (single feed, §4.4): at the specified **20 mΩ
+ceiling** that is **0.30 W in daytime (3.9 A) and 1.22 W at night (7.8 A)** — see §9.4, where daytime
+governs the thermal design despite night's higher current.
 
 > **CORRECTED 2026-09-12 (I4).** An earlier revision of this paragraph said "~0.08 W / ~0.22 W,
 > ~0.30 W combined", which implies 5 mΩ — a part that was never selected — and contradicted §9.4.
@@ -333,7 +335,12 @@ logic-level N-MOSFETs plus a purpose-built diagnostic chain** that does what the
 
 **Switching:** one logic-level N-channel MOSFET per channel, gate driven directly from a PCA9685
 output. Requirements: **Vds ≥ 40 V** (the 24 V rail plus transients), **Id ≥ 1 A**, and
-**Vgs(th) max ≤ 2.0 V** with the output-characteristic curve showing Id ≥ 0.5 A at Vgs = 3.3 V.
+the output-characteristic curve showing **Id ≥ 0.5 A at Vgs ≤ 3.3 V**.
+
+> **No Vgs(th) threshold is imposed (corrected 2026-09-12).** An earlier revision of this paragraph
+> required `Vgs(th) max ≤ 2.0 V`. That gate was an arbitrary proxy and it **rejects the selected
+> PMV60ENEA** (Vgs(th) max 2.5 V), which at 3.3 V drive still has 0.8 V of overdrive — plainly enough
+> at 0.14 A. `part-selection.md` §1a withdrew it by name; this paragraph now agrees.
 
 > **Note on gate drive (2026-09-11).** An earlier revision demanded the FET be "fully enhanced at
 > 3.3 V". No MOSFET in this class publishes Rds(on) below 4.5 V Vgs, and the requirement was wrong
@@ -588,7 +595,7 @@ released because the PROFET has only one sense output, not two — see the C1 no
 > pull-up or pull-down**, so that combination is a floating high-impedance node acting as a wake
 > source: the board would wake on injected noise, or never stay asleep. The pulldown is therefore
 > **populated in all builds**, divider or not. Note the symptom this prevents is indistinguishable
-> from "the CAN bus never idles" (§8.3's top risk), so it would have been misdiagnosed. Retaining the PCA9685 is what makes this fit.
+> from "the CAN bus never idles" (§8.3's top risk), so it would have been misdiagnosed.
 
 > **CORRECTION 2026-09-11:** an earlier revision listed GPIO 38 as spare. **GPIO 37 and 38 are not
 > bonded out on WROOM-32 modules** and do not exist as usable pins. That mattered, because every
@@ -623,7 +630,7 @@ the lights on or the rails up.
   board's unreliable auto-reset, which required holding BOOT through esptool's
   "Connecting......". A plain USB-UART adapter will enter download mode unaided.
 - BOOT and EN tactile buttons
-- Test points on VBAT_PROT, VBAT_A, VBAT_B, 24 V, 5 V, 3.3 V, I²C, `RGB_ISNS`, CAN H/L
+- Test points on `VBAT`, `VLOGIC_IN`, 24 V, 5 V, 3.3 V (both branches), I²C, `RGB_ISNS`, CAN H/L
 
 ---
 
@@ -657,15 +664,22 @@ Permanently battery-connected, so quiescent draw is a first-class requirement.
 |---|---|
 | ESP32 deep sleep + EXT0 `RTC_PERIPH` domain (§8.1) | ~10 µA |
 | CAN transceiver standby | ≤19 µA |
-| 3.3 V buck quiescent (LM5164) | 21 µA typ / 50 µA max |
+| 3.3 V buck quiescent (LM5164) — **ONE instance; the 5 V regulator is gated off** | 10.5 µA typ / 25 µA max |
 | **5 V regulator** | **0 µA — enable-gated off in sleep (see §6)** |
 | PROFET standby | ≤0.6 µA |
 | RGB MOSFET off-state leakage, 12 × ≤1 µA at 24 V | ≤12 µA |
-| P-FET gate + divider leakage | ≤24 µA |
+| P-FET gate + divider leakage — **requires a ≥ 1 MΩ network** | ≤24 µA |
 | **Boost controller shutdown (LM5122-Q1)** | **9 µA typ / 17 µA max** |
 | **Boost UVLO divider, ≥1 MΩ (see below)** | **~14 µA** |
-| **Revised total** | **~110–147 µA** |
+| **Revised total** | **~99 µA typ / ~122 µA max** |
 | **Target / ceiling** | **< 200 µA / 500 µA hard** |
+
+**This PASS is CONDITIONAL on two schematic decisions, not assumptions.** Both are Task 3/4 sizing
+jobs, and getting either wrong silently breaks the budget:
+
+1. **The boost UVLO divider must be ≥ 1 MΩ total** — the datasheet worked example is 57.96 kΩ, which
+   alone draws ~207 µA and fails the target outright.
+2. **The P-FET gate/Zener network must be ≥ 1 MΩ** — still a design target, not a chosen value.
 
 > **C3 — CORRECTED 2026-09-12. The earlier figure of "~87–117 µA, confirmed PASS" was wrong.**
 > Two contributors were missing and one was actively harmful:
@@ -701,28 +715,38 @@ contributor to be verified against its datasheet.
 
 ### 9.1 Panel
 
+**Nine penetrations** (single feed, §4.4).
+
 ```
         ┌──────────────── PANEL ─────────────────┐
         │  [FL]   [FR]   [RL]   [RR]             │  4× Superseal 1.0, 4-way
         │  4-way  4-way  4-way  4-way            │  (+24 V, R, G, B) — 0.42 A
         │                                        │
-        │  [DENALI]   [PWR A]   [PWR B]   [CAN]   │  Denali: SS1.5 3-way
-        │   3-way      2-way     2-way    2-way   │  Power:  2× SS1.5 2-way
-        │          (FUSE A 7.5 A) (FUSE B 10 A)   │  CAN:    SS1.0 2-way
-        └────────────────────────────────────────┘  Fuses:  2× sealed ATO
-        opposite wall: aluminium heat-spreader plate
+        │  [DENALI]    [PWR]    [CAN]   (VENT)   │  Denali: SS1.5 3-way
+        │   3-way      2-way    2-way            │  Power:  1× SS1.5 2-way
+        │            (FUSE 10 A)                 │  CAN:    SS1.0 2-way
+        └────────────────────────────────────────┘  Fuse:   1× sealed ATO, 10 A
+        opposite wall: finned aluminium heat-spreader plate
 ```
 
-With the single feed (§4.4), the panel carries **nine penetrations**: four corners, Denali, **one**
-power connector, CAN, the pressure-equalisation vent (§9.3), and **one** fuse holder. Dropping the
-second feed removed two. Enclosure size is driven by this count more than by the board. Enclosure size is driven by this count more than by
-the board.
+| # | Penetration | Type |
+|---|---|---|
+| 1–4 | Corners FL, FR, RL, RR | Superseal 1.0, 4-way |
+| 5 | Denali | Superseal 1.5, 3-way |
+| 6 | Power (single feed) | Superseal 1.5, 2-way |
+| 7 | CAN | Superseal 1.0, 2-way |
+| 8 | Pressure-equalisation vent | §9.3 |
+| 9 | Blade fuse holder, **10 A** | Sealed screw-cap |
+
+Dropping the second feed (§4.4) removed its connector and its fuse holder, taking the count from
+eleven to nine. **Enclosure size is driven by this count more than by the board** — see
+`hardware/docs/enclosure.md` §2 for the wall dimension it implies.
 
 **Power and CAN on separate connectors** — a switched high-current path and a differential bus
 sharing one shell invites coupling, and the bus tap should be separable from the power feed.
 
 **Denali connector carries a shared ground** (two switched positives, one ground sized for the
-pair) rather than relying on chassis return.
+pair, 6.6 A) rather than relying on chassis return.
 
 ### 9.2 Corner connector mis-mating — a safety issue
 
@@ -775,83 +799,83 @@ ceramic and polymer capacitors preferred where they will serve.
 
 ### 9.4 Thermal
 
-| Source | Dissipation |
-|---|---|
-| Synchronous boost losses (40 W out, **92% — conservative, see below**) | **~3.5 W** |
-| P-FET reverse protection, both feeds | **~1.18 W** at the 20 mΩ ceiling (Feed A 0.30 W, Feed B 0.87 W) |
-| Denali PROFET, both channels at 3.3 A (**150 °C max, not 25 °C typ**) | **~0.35 W** |
-| RGB discrete FETs, all 12 | ~0.01 W |
-| RGB sense resistors, 12 × 1 Ω at 0.14 A | ~0.24 W |
-| Buck and logic | ~0.4 W |
-| **Steady-state worst case (daytime, §2.4)** | **~4.5 W** |
-| *Transient peak (flash-to-pass in daylight, seconds)* | *~5.7 W — not thermally sizing* |
+**Rewritten wholesale 2026-09-12** after a re-review found this section carrying four different
+dissipation figures from successive edits. Dissipation is now stated **per operating mode** (§2.4),
+because the loads never coincide and a single mixed column was what produced the confusion.
 
-**Revised again 2026-09-12** after the project review found the budget mixed typicals with maxima.
-Three inputs are now taken at their worst case rather than their typical, which is the right basis for
-sizing a heatsink that cannot be changed after fabrication:
+| Source | **Daytime** (corners white, Denali off) | **Night** (Denali on, front DRLs off) |
+|---|---|---|
+| Synchronous boost losses (92%, conservative) | **3.50 W** (40 W of RGB) | 0.87 W (~10 W of RGB) |
+| P-FET reverse protection — **one** device, 20 mΩ ceiling | 0.30 W (3.9 A) | **1.22 W** (7.8 A) |
+| Denali PROFET, 150 °C max | **0 W** — Denali off | 0.35 W |
+| RGB discrete FETs, all 12 | 0.01 W | ~0 W |
+| RGB sense resistors, 12 × 1 Ω | 0.24 W | 0.08 W |
+| Buck and logic | 0.40 W | 0.40 W |
+| **Total** | **~4.5 W — governs the design** | **~2.9 W** |
 
-| Input | Was | Now | Why |
+*Transient peak ~5.7 W during a flash-to-pass in daylight — seconds at a time, absorbed by thermal
+mass, not thermally sizing.*
+
+**Daytime governs even though night draws more current.** The boost carries the whole RGB load in
+daytime (3.5 W of loss), and that dwarfs the extra P-FET and PROFET dissipation at night.
+
+**Conservative inputs, corrected load combination.** Three component figures are taken at their worst
+case — the right basis for a heatsink that cannot be changed after fabrication:
+
+| Input | Earlier | Now | Why |
 |---|---|---|---|
-| Load combination | full-white RGB **and** both Denali maxed | **the real modes in §2.4** | That combination is not a reachable steady state — daytime has Denali off, night has the front DRLs off |
-| Boost efficiency | 94% (**UNVERIFIED** — no numeric figure appears in the datasheet text) | **92%**, the figure §2.2 already used | The two disagreed; the conservative one governs until measured at bring-up Stage 2 |
+| Load combination | full-white RGB **and** both Denali maxed | **the real modes in §2.4** | Not a reachable steady state: daytime has Denali off, night has the front DRLs off |
+| Boost efficiency | 94% (**UNVERIFIED** — no numeric figure in the datasheet text) | **92%**, the figure §2.2 uses | The two disagreed; the conservative one governs until measured at bring-up Stage 2 |
 | P-FET Rds(on) | 14 mΩ (the V<sub>GS</sub> = −10 V column) | **20 mΩ**, the specified ceiling | 14 mΩ silently assumed a gate drive the schematic has not yet guaranteed |
-| PROFET | 0.22 W (25 °C typ) | **0.35 W** (150 °C max) | Row 2.6 itself computes 0.349 W at max and fails its own 0.25 W criterion there |
+| PROFET | 0.22 W (25 °C typ) | **0.35 W** (150 °C max) | Row 2.6 computes 0.349 W at max and fails its own 0.25 W criterion there |
 
-Component figures stay conservative; only the **load combination** was corrected, and that correction
-comes from how the bike is actually ridden rather than from an optimistic reading of a datasheet. If
-bring-up also confirms 94% efficiency and a gate drive near −10 V, daytime falls to ~3.6 W (~55 °C at
-300 cm²). The design does not rely on that.
+Only the **load combination** was relaxed, and that came from how the bike is ridden, not from an
+optimistic datasheet reading. If bring-up confirms 94% efficiency and a gate drive near −10 V, daytime
+falls to ~3.6 W. The design does not rely on that.
 
 ### The plate must be finned — a flat plate of plausible size fails
 
-**Computed 2026-09-12.** For natural convection (h ≈ 8 W/m²K), the area needed to shed 4.3 W is:
+For natural convection (h ≈ 8 W/m²K):
 
-Recomputed 2026-09-12 against the **real operating modes** in §2.4, using conservative component
-figures throughout (92% boost, 20 mΩ P-FET, PROFET at its 150 °C max):
+| Effective area | Daytime 4.5 W | Internal at 40 °C | Night 2.9 W | Internal at 40 °C | Verdict |
+|---|---|---|---|---|---|
+| 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 46 K | 86 °C | **Fails — over the ESP32's 85 °C max** |
+| 215 cm² | 26 K | **66 °C** | 17 K | 57 °C | Misses the 65 °C target |
+| **300 cm² — hard requirement** | **19 K** | **59 °C** | 12 K | 52 °C | Comfortable |
+| 350 cm² — design target | 16 K | 56 °C | 10 K | 50 °C | Ample |
 
-| Effective area | Daytime, 4.5 W | Internal at 40 °C | Night, 2.9 W | Internal at 40 °C |
-|---|---|---|---|---|
-| 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 41 K | 81 °C | **Fails** |
-| 215 cm² (the old "hard requirement") | 26 K | **66 °C** | 15 K | 55 °C | Marginal |
-| **300 cm²** — **hard requirement** | **19 K** | **59 °C** | 11 K | 51 °C | Comfortable |
-| 350 cm² — design target | 16 K | 56 °C | 9 K | 49 °C | Ample |
+An earlier revision claimed "~65 °C at 40 °C ambient" without checking it. That figure silently
+assumed ~215 cm², which is roughly **three times** what a flat plate sized to fit this enclosure
+provides — hence fins, which multiply effective area 3–5× for the same footprint.
 
-**Why 300 cm² is kept as the requirement even though 250 cm² would pass.** The margin is cheap in an
-extruded profile, and three of the inputs above are still unverified or pessimistic in ways that could
-move: boost efficiency is **UNVERIFIED** at 92–94% (I6), the P-FET figure assumes the 20 mΩ ceiling
-rather than the better gate-drive case, and the PROFET line uses its 150 °C maximum. 300 cm² absorbs
-all three moving the wrong way at once.
+**Why 300 cm² rather than the 250 cm² that would just pass.** Margin is cheap in an extruded profile,
+and three inputs above could still move the wrong way: efficiency is UNVERIFIED at 92–94%, the P-FET
+figure assumes the 20 mΩ ceiling, and the PROFET line uses its 150 °C maximum. 300 cm² absorbs all
+three at once.
 
-An earlier revision of this section claimed "~65 °C at 40 °C ambient" without checking it: that figure
-silently assumed **~215 cm²**, roughly **three times** what a flat plate sized to fit this enclosure
-actually provides.
-
-**Requirements, therefore:**
+**Requirements:**
 
 | | Value |
 |---|---|
-| Plate footprint | ≥ 80 cm² (≈ 100 × 80 mm) |
-| **Effective convective area — hard requirement** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → ~64 °C at worst case |
-| **Effective convective area — design target** | **≥ 350 cm²** (fin multiplier ≥ 4.4×) → ~60 °C |
+| Plate footprint | ≥ 80 cm² (≈ 100 × 80 mm) — sizes the **wall opening**; the fins add area outside the box |
+| **Effective convective area — hard requirement** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → **~59 °C** daytime at 40 °C ambient |
+| **Effective convective area — design target** | **≥ 350 cm²** (fin multiplier ≥ 4.4×) → ~56 °C |
 | Fin orientation | **Vertical in the installed attitude** (§9.3) |
-| Plate thickness at the base | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
+| Base thickness | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
 
-Stated as an area requirement rather than a specific profile, so any extrusion meeting it qualifies.
+Stated as an area requirement rather than a named profile, so any extrusion meeting it qualifies.
 
-**The gap pad is not the bottleneck:** ~2.1 K across 1200 mm² of 1.5 mm, 2 W/mK material at 3.4 W.
+**The gap pad is not the bottleneck.** The thermal group is the boost FETs, the boost inductor and the
+single P-FET — **3.8 W in daytime**. Across 1000 mm² of 1.5 mm, 2 W/mK material that is **~2.9 K**.
 The constraint was always the plate's external convection.
-
-**Worst case is rare but must still be survivable:** 4.3 W requires simultaneous full-white RGB *and*
-both Denali at maximum. Typical draw is nearer 2 W, where even a flat plate would pass. The design
-sizes for the worst case because the RGB stage is now discrete FETs with no thermal protection of
-their own.
 
 ---
 
 ## 10. PCB and EMC
 
 **Stackup:** 4 layers — signal / GND / power / signal — with **2 oz outer copper**. The input
-paths need roughly 4–5 mm width at 2 oz for a 10 °C rise at 6.6 A (Feed B, the heavier), carried as polygons rather
+path needs roughly **5–6 mm width at 2 oz** for a 10 °C rise at the single feed's **7.8 A continuous**
+(10.5 A transient), carried as a polygon rather
 than a trace, with via stitching. Four layers is not luxury: a solid ground plane is what makes
 the synchronous boost's gate loops and the EMC behaviour tractable.
 
@@ -884,8 +908,9 @@ to claim automotive compliance. Designing for it now costs little; retrofitting 
 4. Buck capable of ESP32 WiFi TX peaks (~500 mA) while retaining low quiescent draw
 5. PROFET continuous per-channel rating exceeds **3.3 A** with margin, and its current-sense
    ratio resolves a 3.3 A load (§5.3)
-6. **Two independent 10 A peripheral outlets exist on the Experia** and are not branches of one
-   10 A circuit — confirm on the vehicle before committing to the dual-feed harness (§4.4)
+6. **The chosen Experia peripheral outlet sustains 7.8 A** (78% of its 10 A rating) without voltage
+   sag or a warm connector — confirm on the vehicle. This is the tight spot of the single-feed
+   design (§4.1)
 
 **Staged bring-up:**
 
@@ -924,12 +949,12 @@ gets its own plan.
 | Experia CAN bus may never idle → no sleep, battery drain | High | Unpopulated ignition-sense input; configurable idle timeout |
 | ~~Open-load detection threshold~~ **CLOSED: failed category-wide (Task 2b)** | — | Redesigned — §5.1 discrete FETs + 1 Ω shunt + mux + ADC1 |
 | 140 mV sense signal may be noisy near the ESP32 ADC's accuracy floor | Medium | 0 dB attenuation, averaging, on-demand sweep at 100% duty; classification is open/working/shorted, not precision metering |
-| ~~Real Denali wattage unknown~~ **RESOLVED**: D4 2.0 confirmed at 40 W each / 6.6 A per pair | — | Dual feed with domain split is now the baseline (§4.4), not an option |
+| ~~Real Denali wattage unknown~~ **RESOLVED**: D4 2.0 confirmed at 40 W each / 6.6 A per pair | — | Absorbed by a **single** feed once §2.4 established the loads never coincide; night peaks at 7.8 A (78%) |
 | RGB strip power assumed, not measured (40 W) | Medium | Power path oversized; re-verify on measurement |
 | D4 2.0 contains DataDim electronics that may interact with supply PWM | Medium | Full-range soak test (§5.3); fallback is full supply + native DataDim input |
 | Corner connectors mis-mateable → indicators reversed | Medium | Keying/colour coding **and** web app self-test |
-| Cable runs unfused upstream of the box (both feeds) | Medium | Accepted by author; documented. Short loomed runs, booted terminals; battery-end fuses addable with no board change |
-| Experia peripheral connector part number unidentified; **two** outlets now needed | Medium | Identify part number and confirm two independent 10 A outlets exist before harness build |
+| Cable run unfused upstream of the box | Medium | Accepted by author; documented. Short loomed run, booted terminal; a battery-end fuse is addable with no board change |
+| Experia peripheral connector part number unidentified | Medium | Identify the part number, and confirm the outlet sustains **7.8 A** before harness build |
 | Thermal estimate based on assumed enclosure area | Low | Measure rise at bring-up stage 2; plate area adjustable |
 
 ---

@@ -21,13 +21,13 @@ Current design baseline this procedure checks against (spec
   not precision metering.
 - Denali (D4 2.0 pair) uses a separate **dual PROFET high-side** stage with
   its own current-sense readback, independent of the RGB shunt/mux chain.
-- Four rails: `+3V3_ALW`, `+3V3_SW`, **`+5V` (always on, mandatory — the
+- Four rails: `+3V3_ALW`, `+3V3_SW`, **`+5V` (switched, gated with `+3V3_SW` — the
   TJA1042 transceiver's VCC needs 4.5–5.5 V)**, and `+24V` (boost, enable-gated).
 - **ONE 12 V feed** behind a single **10 A** fuse (spec 4.4). The loads never coincide
   (spec 2.4): daytime 3.9 A (39%), **night 7.8 A (78% — the governing case)**, with a
   seconds-long 10.5 A flash-to-pass transient that a blade fuse ignores. The second
   feed exists only as unpopulated board footprints.
-  They are never paralleled — only a Schottky OR joins them, and only onto
+  If it is ever populated they are never paralleled — only a Schottky OR joins them, and only onto
   the logic rail.
 - Passive defaults are all **fail-safe when floating**: `EN_BOOST` and
   `EN_3V3SW` pull down, `CAN_STB` pulls up (forces standby), all 14 `PWM_*`
@@ -66,9 +66,9 @@ so a protection failure doesn't cascade into real damage.
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
 | 24 V into 2.5 A dummy load | 24.0 V ± 5%, stable | | |
-| Efficiency at 40 W out | ≥ 94% | | |
+| Efficiency at 40 W out | **≥ 92%** is the budgeted figure (spec 9.4). ≥ 94% is the datasheet target and is **UNVERIFIED** — record the measured value, it decides whether the thermal budget has margin | | |
 | Output ripple | < 200 mV pk-pk | | |
-| Boost group temperature rise after 30 min | consistent with ~2.6 W dissipated | | |
+| Boost group temperature rise after 30 min | consistent with **~3.5 W** (the 92% figure the budget uses); ~2.6 W would mean 94% was achieved | | |
 
 ## Stage 3: Quiescent current in simulated sleep
 
@@ -91,7 +91,7 @@ keeps all three on purpose:
 A reading **between 122 µA and 200 µA passes** — it is inside the design
 requirement — but should still be investigated per contributor against the
 roll-up (ESP32 deep sleep + EXT0 RTC domain ~10 µA, CAN transceiver standby
-≤19 µA, buck quiescent 21 µA typ/50 µA max for both instances, PROFET
+≤19 µA, buck quiescent 10.5 µA typ/25 µA max for the ONE instance that stays powered — the 5 V regulator is gated off, PROFET
 standby ≤0.6 µA, RGB FET leakage ≤12 µA, P-FET gate divider ≤24 µA by
 design). It means some part is drawing more than its own datasheet figure,
 which is worth understanding even though the board isn't failing. Only a
@@ -136,7 +136,7 @@ random wakes point at `IGN_SENSE`.
 |---|---|---|---|
 | PCA9685 responds at its I²C address | ACK | | |
 | Mux steps through all 16 channels | `RGB_ISNS` follows the selected channel | | |
-| **Mux address maps to the RIGHT channel** — for each k in 0..11: drive channel k to 100%%, confirm **address k reads ~140 mV and every other address reads ~0 mV** | All 12 correct | | |
+| **Mux address maps to the RIGHT channel** — for each k in 0..11: drive channel k to 100%, confirm **address k reads ~140 mV and every other address reads ~0 mV** | All 12 correct | | |
 | Open channel vs. working channel at 100% duty | ~0 mV vs. ~140 mV, clearly distinguishable | | |
 | PROFET diagnostic (Denali) readable | Sense output tracks load | | |
 

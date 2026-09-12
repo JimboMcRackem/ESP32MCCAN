@@ -77,14 +77,17 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - All input front-end parts rated **≥ 40 V**; both switchers rated **40–60 V** input
 - TVS standoff **~24 V**; RGB MOSFET **Vds ≥ 40 V**, with **Id ≥ 0.5 A at Vgs ≤ 3.3 V** from the
   output-characteristic curve (the earlier "fully enhanced at 3.3 V" wording is **withdrawn** — I9)
-- **5 V rail mandatory** (TJA1042 VCC is 4.5–5.5 V), always on and low quiescent
+- **5 V rail mandatory** (TJA1042 VCC is 4.5–5.5 V), **ENABLE-GATED off in sleep** alongside
+  `+3V3_SW` using the same enable — the transceiver's low-power receiver detects bus activity on VIO
+  alone, so VCC is needed only for normal mode
 - RGB sense: **1 Ω** shunt per channel = **140 mV** at 0.14 A; ADC at **0 dB attenuation** (0–1.1 V)
 - PWM: RGB **400 Hz** (PCA9685), Denali **150 Hz** (ESP32 LEDC)
 - Total internal dissipation: **~4.5 W steady-state worst case** (daytime: all RGB white, Denali off
   — see spec §2.4 for why the loads never coincide). ~5.7 W transient only. Plate **≥300 cm²**
   effective, hard requirement
 - Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
-- Feed B power polygon: **≥ 4–5 mm** width at 2 oz for a 10 °C rise at 6.6 A
+- Power polygon: **≥ 5–6 mm** width at 2 oz for a 10 °C rise at the single feed's **7.8 A**
+  continuous (10.5 A transient)
 
 **Firmware-imposed, non-negotiable**
 - `ChannelIndex` (`src/domain/channel_map.h`) fixes PWM ordering. PCA9685 **LED0–11** =
@@ -321,7 +324,7 @@ Three part classes to verify: the FET, the sense resistor, the analog mux.
 | # | Required | Actual | Verdict |
 |---|---|---|---|
 | 1b.1 | 1 ohm, tolerance <= 1% (tolerance sets channel-to-channel reading spread) | | |
-| 1b.2 | Power rating >= 50 mW with margin (dissipates 20 mW at 0.14 A) | | |
+| 1b.2 | **Power rating >= 1 W** (2512) — not the 20 mW of normal operation. In the "shorted" state the design classifies, the boost's 2.5 A limit puts **6.25 W** into a 1 ohm shunt until the PTC opens (spec 5.1, I15) | | |
 | 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | | |
 
 ### 1c. 16-channel analog multiplexer (1 required)
@@ -387,7 +390,8 @@ Two criteria I should have stated from the start are now explicit:
   typically ~1 uA, so the right package fixes the budget as a side effect.
 
 Also relaxed in this pass, both arbitrary on my part: **6.1** P-FET Rds(on) from <=10 to <=20 mOhm
-(14 mOhm at 6.6 A is 0.61 W against 0.44 W — both acceptable), with its Vgs rating to be judged
+(at the single feed's 7.8 A, 14 mOhm gives 0.85 W and the 20 mOhm ceiling 1.22 W — both acceptable,
+and night's total dissipation is only ~2.9 W against daytime's ~4.5 W), with its Vgs rating to be judged
 **with the Zener gate clamp in circuit**, since the clamp is already in the design and the gate
 therefore never sees the full rail; and **3.4** spread-spectrum, which is an EMC nicety that an
 external SYNC input or a documented mitigation plan satisfies equally well.
@@ -430,17 +434,18 @@ Candidate: TI LM5164
 | 4.3 | Input rating 40-60 V | | |
 | 4.4 | Stable with no load (sleep condition) | | |
 
-## 4b. 5 V regulator (ADDED 2026-09-11) — mandatory, always on
-Feeds the TJA1042's VCC (4.5-5.5 V). Must stay powered in deep sleep so the
-transceiver can monitor the bus, so its own quiescent draw lands directly in
-the sleep budget.
+## 4b. 5 V regulator — mandatory, **enable-gated off in sleep**
+Feeds the TJA1042's VCC (4.5-5.5 V). **Gated off in deep sleep** (spec 6): the
+transceiver's low-power receiver runs on VIO alone and detects bus activity with
+VIO as its only supply, so VCC is not needed for wake. Its quiescent draw
+therefore does NOT count against the sleep budget.
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 4b.1 | Quiescent current <= 30 uA (counts against the <200 uA sleep budget) | | |
+| 4b.1 | Quiescent current <= 30 uA (does not count in sleep since the rail is gated, but matters if gating is ever dropped) | | |
 | 4b.2 | Output 5.0 V +/- 5%, >= 100 mA (transceiver active draw) | | |
 | 4b.3 | Input rating 40-60 V (survives the 24 V TVS clamp) | | |
-| 4b.4 | Stable at the ~20 uA load the transceiver presents in standby | | |
+| 4b.4 | Clean start-up when `EN_3V3SW` asserts, since the rail is gated rather than always on | | |
 | 4b.5 | If an LDO: dissipation at (12 V - 5 V) x active current is acceptable; if a buck: EMI acceptable | | |
 
 ## 5. CAN transceiver
@@ -531,7 +536,8 @@ git commit -m "hw: part selection verification record, all criteria verified aga
 
 **Interfaces:**
 - Consumes: parts 6.1 (P-FET), 6.2 (TVS), 6.4 (Schottky) from `part-selection.md`
-- Produces: hierarchical output pins `VBAT_A`, `VBAT_B`, `VLOGIC_IN`, `GND`. No other sheet may
+- Produces: hierarchical output pins **`VBAT`**, `VLOGIC_IN`, `GND`. (`VBAT_B` exists only on the DNP
+  second-feed footprints and is not a live rail.) No other sheet may
   reference anything else from this sheet.
 
 - [ ] **Step 1: Write the sheet's acceptance criteria as a comment block on the sheet**
@@ -604,18 +610,22 @@ git commit -m "hw(sch): dual-feed power input with domain split and Schottky log
 - Modify: `hardware/sheets/rails.kicad_sch`
 
 **Interfaces:**
-- Consumes: `VBAT_A`, `VLOGIC_IN`, `GND` from Task 3; parts 3 (boost), 4 (buck), 6.5 (inductor)
-- Produces: `+24V`, `+3V3_ALW`, `+3V3_SW`, and input pins `EN_BOOST`, `EN_3V3SW`
+- Consumes: **`VBAT`**, `VLOGIC_IN`, `GND` from Task 3; parts 3 (boost), 4 (buck), **4b (5 V regulator)**, 6.5 (inductor)
+- Produces: `+24V`, `+3V3_ALW`, `+3V3_SW`, **`+5V`**, and input pins `EN_BOOST`, `EN_3V3SW`
 
 - [ ] **Step 1: Write the sheet's acceptance criteria on the sheet**
 
 ```
 ACCEPTANCE (spec 6, 3):
-- Buck input from VLOGIC_IN (NOT VBAT_A) so logic survives either feed failing
+- Buck input from VLOGIC_IN (which is VBAT via the populated Schottky/0 ohm link)
 - Buck -> +3V3_ALW, always on, >= 1 A, quiescent per part-selection row 4.1
+- **5 V REGULATOR -> +5V, GATED by EN_3V3SW** (same enable as +3V3_SW, no extra GPIO).
+  Feeds ONLY the TJA1042 VCC. Off in sleep.
 - Load switch: +3V3_ALW -> +3V3_SW, controlled by EN_3V3SW
 - EN_3V3SW pulldown to GND (floating = peripheral rail OFF)
-- Sync boost input from VBAT_A -> +24V, 60 W design point, EN_BOOST
+- Sync boost input from VBAT -> +24V, 60 W design point, EN_BOOST
+- **EN_BOOST's UVLO divider MUST be >= 1 MOhm total** (spec 8.2 C3). The LM5122 datasheet's worked
+  example is 57.96 kOhm, which draws ~207 uA continuously and blows the entire sleep budget.
 - EN_BOOST pulldown to GND (floating = boost OFF)
 - Boost and buck both rated 40-60 V input
 ```
@@ -623,14 +633,15 @@ ACCEPTANCE (spec 6, 3):
 - [ ] **Step 2: Draw the low-Iq buck from `VLOGIC_IN` to `+3V3_ALW`**
 
 Follow the chosen part's datasheet reference design exactly. Note the input is `VLOGIC_IN`, not
-`VBAT_A` — this is what keeps the MCU alive when Feed A dies so it can report the fault.
+`VBAT` directly. With one feed this is a formality, but it keeps the topology unchanged if the second
+feed is ever populated, when it becomes what keeps the MCU alive through a single-feed failure.
 
 - [ ] **Step 3: Draw the 3.3 V load switch to `+3V3_SW`**
 
 Load switch from `+3V3_ALW` to `+3V3_SW`, enable from `EN_3V3SW`.
 **Add a pulldown resistor on `EN_3V3SW`** per the passive-default table.
 
-- [ ] **Step 4: Draw the synchronous boost from `VBAT_A` to `+24V`**
+- [ ] **Step 4: Draw the synchronous boost from `VBAT` to `+24V`**
 
 Controller per its datasheet reference design: high-side and low-side FETs, shielded inductor,
 current-sense resistor, compensation network, bootstrap, soft-start, output bulk capacitance.
@@ -641,7 +652,7 @@ Design the current-sense resistor for the **60 W / 2.5 A** design point, not the
 - [ ] **Step 5: Add a text note recording the expected behaviour of the disabled boost**
 
 ```
-NOTE: with EN_BOOST low, +24V sits near VBAT_A through the high-side FET body
+NOTE: with EN_BOOST low, +24V sits near VBAT through the high-side FET body
 diode. This is expected and benign: with all low-side switches off there is no
 return path, so no current flows and the strings do not glow.
 ```
@@ -700,7 +711,9 @@ module's antenna area, on any layer. This carries into Task 8.
 
 - [ ] **Step 3: Wire every pin per the Global Constraints pin table**
 
-Label each net with its exact contract name. Double-check GPIO 34/39 are the current-sense inputs
+Label each net with its exact contract name. Double-check **GPIO 34 is the single `ISNS_DEN` input and
+GPIO 33 is `DEN_DSEL`** — the PROFET has one multiplexed sense output, not two (C1). **GPIO 39 is
+spare.** Confirm `RGB_ISNS` is on GPIO 32 and that these are the ADC1 inputs
 (ADC1) and that nothing analog landed on ADC2 pins.
 
 - [ ] **Step 4: Add the passive-default pull resistors**
@@ -710,7 +723,9 @@ Pulldowns on `EN_BOOST`, `EN_3V3SW`. Pull-up on `CAN_STB` to the transceiver's V
 
 - [ ] **Step 5: Draw the CAN transceiver with hardware-enforced listen-only**
 
-TJA1042T/3: VIO to `+3V3_ALW`, `CAN_RXD` to GPIO 35, `CAN_STB` to GPIO 14.
+TJA1042T/3: **VIO to `+3V3_ALW`** (always on — this is what detects bus activity in sleep), **VCC to
+`+5V`** (gated off in sleep; the rail is drawn on the rails sheet, Task 4), `CAN_RXD` to GPIO 35,
+`CAN_STB` to GPIO 14 with its pull-up.
 
 For TXD: place a **0 Ω link footprint, marked DNP (do-not-populate)**, between GPIO 17 (`CAN_TXD`)
 and the transceiver TXD pin, and pull the transceiver TXD pin **to VIO** through a resistor so it
@@ -734,7 +749,8 @@ enters download mode unaided. BOOT and EN tactile buttons. Status LED with serie
 
 - [ ] **Step 7: Place the unpopulated ignition-sense divider**
 
-Resistor divider from a `VBAT_A`-side input to `IGN_SENSE` (GPIO 36), **both resistors DNP**, with
+Resistor divider from a `VBAT`-side input to `IGN_SENSE` (GPIO 36), **both divider resistors DNP but
+the pulldown POPULATED** (C2 — GPIO 36 has no internal pull and EXT1 is armed on it), with
 a clamp diode to 3.3 V. Note: "Fallback if the Experia CAN bus never idles (spec 8.3)."
 
 - [ ] **Step 8: Run ERC and commit**
@@ -756,7 +772,7 @@ Expected: `exit=0`.
 - Modify: `hardware/sheets/outputs.kicad_sch`
 
 **Interfaces:**
-- Consumes: `+24V`, `+3V3_SW`, `+3V3_ALW`, `VBAT_B`, `GND`, all bus and control nets from Task 5
+- Consumes: `+24V`, `+3V3_SW`, `+3V3_ALW`, **`VBAT`**, `GND`, all bus and control nets from Task 5
 - Produces: the seven panel connectors. This is the last schematic sheet; after it, ERC must pass
   with zero errors **and** zero unconnected-pin warnings.
 
@@ -770,7 +786,8 @@ ACCEPTANCE (spec 5, 9.1, 9.2):
 - 12x discrete logic-level N-MOSFET, gate direct from PCA9685, 1 ohm shunt in each source leg
 - 12 SENSE_* nodes -> 16:1 analog mux (MUX_S0-S3) -> RGB_ISNS -> GPIO 32 (ADC1_CH4)
 - NO SPI anywhere on this board
-- Dual PROFET from VBAT_B, inputs PWM_DEN_A/B from ESP32 LEDC (NOT the PCA9685)
+- Dual PROFET from **VBAT**, inputs PWM_DEN_A/B from ESP32 LEDC on **GPIO 18/19** (NOT the PCA9685)
+- ONE multiplexed sense output -> ISNS_DEN (GPIO 34); DEN_DSEL (GPIO 33) selects the channel
 - PROFET: ONE sense output -> ISNS_DEN (GPIO 34) with scaling resistor; DEN_DSEL (GPIO 33) selects
   which channel IS reports
 - 4x PTC, one per string, on the +24V feeds
@@ -824,7 +841,7 @@ reads, advances. Same sweep serves as the installation self-test.
 
 - [ ] **Step 4: Place the dual PROFET**
 
-Supply from `VBAT_B`. Inputs from `PWM_DEN_A` / `PWM_DEN_B` (**GPIO 18/19** — moved off 32/33, which
+Supply from **`VBAT`**. Inputs from `PWM_DEN_A` / `PWM_DEN_B` (**GPIO 18/19** — moved off 32/33, which
 GPIO 32 now needs for `RGB_ISNS`), **each with a pulldown**.
 Diagnostic enable from `EN_DIAG`. **The BTS7008-2EPA has ONE multiplexed `IS` output, not two (C1):**
 route it through a scaling resistor to `ISNS_DEN` (GPIO 34), sized so a 3.3 A load reads comfortably
@@ -900,20 +917,20 @@ schematic; fill in the sheet and reference designator that satisfies it.
 |---|---|---|---|
 | 2.2 | Single populated feed; second feed is DNP footprints only, with no panel cutout | | |
 | 4.1 | ONE panel fuse holder, 10 A, sized for the 7.8 A night case | | |
-| 4.2 | P-FET reverse polarity, sized for 7.8 A, Vgs clamped, gate network >= 1 MOhm (sleep budget) | | |
+| 4.2 | P-FET reverse polarity, sized for **7.8 A** (1.22 W at the 20 mOhm ceiling), Vgs clamped, **gate network >= 1 MOhm** (sleep budget) | | |
 | 4.3 | 24 V TVS; all front-end parts >= 40 V | | |
 | 4.3 | pi filter + CM choke on each feed | | |
 | 4.4 | Buck input from VLOGIC_IN; Schottky OR footprints present, second feed DNP | | |
-| 5.1 | 12x discrete MOSFET, Vds >= 40 V, enhanced at 3.3 V Vgs | | |
+| 5.1 | 12x discrete MOSFET, Vds >= 40 V, **Id >= 0.5 A at Vgs <= 3.3 V from the output curve** (NO Vgs(th) threshold - withdrawn, I9) | | |
 | 5.1 | 1 ohm shunt per channel; 12 SENSE_* into 16:1 mux in ChannelIndex order | | |
 | 5.1 | MUX_S0-S3 on GPIO 23/4/16/5 with pulldowns; RGB_ISNS on GPIO 32 (ADC1) | | |
 | 5.1 | NO SPI nets anywhere on the board | | |
-| 6 | 5 V rail present, always on, low quiescent (TJA1042 VCC) | | |
+| 6 | 5 V rail present, **gated by EN_3V3SW** (off in sleep), feeding ONLY TJA1042 VCC | | |
 | 5.2 | 4x PTC on the per-string +24V feeds | | |
-| 5.3 | Dual PROFET from VBAT_B, sense scaled for 3.3 A | | |
-| 5.4 | Denali PWM from ESP32 LEDC (GPIO 32/33), NOT the PCA9685 | | |
+| 5.3 | Dual PROFET from **VBAT**, ONE sense output to ISNS_DEN (GPIO 34) scaled for 3.3 A, DEN_DSEL on GPIO 33 | | |
+| 5.4 | Denali PWM from ESP32 LEDC on **GPIO 18/19**, NOT the PCA9685 | | |
 | 5.5 | PCA9685 LED0-11 in exact ChannelIndex order | | |
-| 6 | Sync boost VBAT_A -> +24V, EN_BOOST with pulldown | | |
+| 6 | Sync boost **VBAT** -> +24V, EN_BOOST with pulldown, **UVLO divider >= 1 MOhm** (sleep budget) | | |
 | 6 | Low-Iq buck VLOGIC_IN -> +3V3_ALW | | |
 | 3 | Load switch +3V3_ALW -> +3V3_SW, EN_3V3SW with pulldown | | |
 | 7.1 | ESP32-WROOM-32E-**N8** (8 MB), onboard antenna variant | | |
@@ -921,12 +938,12 @@ schematic; fill in the sheet and reference designator that satisfies it.
 | 7.2 | 120 ohm terminator footprint present and UNPOPULATED | | |
 | 7.2 | CAN CM choke + ESD protection | | |
 | 7.3 | Every GPIO matches the pin table exactly | | |
-| 7.3 | ISNS on GPIO 34/39 (ADC1); nothing analog on ADC2 | | |
+| 7.3 | ISNS_DEN on GPIO 34 and RGB_ISNS on GPIO 32 (both ADC1); GPIO 39 spare; nothing analog on ADC2 | | |
 | 7.3 | CAN_STB on GPIO 14, pulled up to VIO | | |
 | 7.3 | All 14 PWM_* nets have pulldowns | | |
 | 7.4 | Prog header + DTR/RTS auto-reset + BOOT/EN buttons | | |
 | 8.3 | Ignition-sense divider present, DNP | | |
-| 9.1 | Six populated connectors + vent + one fuse holder = nine penetrations | | |
+| 9.1 | **Seven** populated connectors (4 corners, Denali, PWR, CAN) + vent + one fuse holder = **nine** penetrations | | |
 | 9.2 | Corner connectors assigned distinct keying/colours | | |
 | 10 | DNP snubber footprints on the 12 outputs | | |
 ```
@@ -969,20 +986,19 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
 - 4 layers: L1 signal, L2 GND (solid, unbroken), L3 power, L4 signal
 - 2 oz outer copper
-- Feed B power polygon >= 4-5 mm effective width (6.6 A, 10 C rise)
-- Feed A power polygon >= 3 mm (3.9 A)
+- Power polygon >= 5-6 mm effective width for the single feed's 7.8 A continuous / 10.5 A transient
 - Boost switch-node loop area MINIMISED; gate loops short and tight
 - Boost FETs, inductor and both P-FETs grouped on the heat-spreader edge
 - ESP32 antenna keep-out: NO copper/plating/parts any layer under the antenna
 - Antenna edge faces AWAY from the aluminium plate
 - Connectors on one edge, matching the panel layout in docs/enclosure.md
-- High-current (Feed B/PROFET) separated from CAN and analog sense traces
+- High-current (feed input / PROFET / Denali outputs) separated from CAN and analog sense traces
 ```
 
 - [ ] **Step 2: Set up the stackup and design rules**
 
 4-layer board, 2 oz outer copper. Set net classes: a `POWER` class with wide clearance and track
-width for `VBAT_A`, `VBAT_B`, `VLOGIC_IN`, `+24V`, `DEN_*_OUT`, `GND`; a `DEFAULT` class for
+width for `VBAT`, `VLOGIC_IN`, `+24V`, `+5V`, `DEN_*_OUT`, `GND`; a `DEFAULT` class for
 signals; a `CAN` class for `CANH`/`CANL` with matched width and spacing for ~120 Ω differential.
 
 - [ ] **Step 3: Place the thermal group on the heat-spreader edge**
@@ -1049,8 +1065,8 @@ their return, current-sense traces as a differential pair routed away from the s
 
 - [ ] **Step 2: Route the remaining power nets**
 
-`VBAT_A`, `VBAT_B`, `+24V`, `DEN_*_OUT` as polygons or wide tracks per the net class. Verify the
-Feed B path width against the 6.6 A requirement.
+`VBAT`, `+24V`, `DEN_*_OUT` as polygons or wide tracks per the net class. Verify the feed path width
+against the **7.8 A** requirement.
 
 - [ ] **Step 3: Route CAN as a differential pair**
 
@@ -1065,7 +1081,7 @@ noise here shows up as phantom faults.
 
 - [ ] **Step 5: Route the remaining signals, then add test points**
 
-Remaining buses and control nets. Then add test points on `VBAT_A`, `VBAT_B`, `VLOGIC_IN`, `+24V`,
+Remaining buses and control nets. Then add test points on `VBAT`, `VLOGIC_IN`, `+24V`, `+5V`,
 `+3V3_ALW`, `+3V3_SW`, `+5V`, `I2C_SDA`, `I2C_SCL`, `RGB_ISNS`, `CANH`, `CANL`, `GND` (several).
 
 - [ ] **Step 6: Run the DRC completion gate**
@@ -1144,7 +1160,7 @@ Must specify, with actual values rather than descriptions:
 
 Must specify:
 
-- Wire gauge per circuit, derived from the spec currents: Feed A 3.9 A, Feed B 6.6 A, Denali
+- Wire gauge per circuit, derived from the spec currents: single feed **7.8 A night / 3.9 A day**, Denali
   3.3 A per channel, RGB 0.14 A per channel and 0.42 A per string feed
 - Connector part numbers for both halves of all seven connectors, plus terminals and seals
 - **Corner colour/keying assignment table** — which colour or key code is FL, FR, RL, RR — and a
@@ -1190,12 +1206,12 @@ to the next stage with an unexplained result.
 ## Stage 1: Rails only, MCU and switch ICs NOT populated
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Feed A current with no load | < 5 mA | | |
+| Feed current with no load | < 5 mA | | |
 | +3V3_ALW | 3.30 V +/- 3% | | |
 | +24V with EN_BOOST high | 24.0 V +/- 5% | | |
-| +24V with EN_BOOST floating | ~VBAT_A (body diode; see rails sheet note) | | |
+| +24V with EN_BOOST floating | ~VBAT (body diode; see rails sheet note) | | |
 | +3V3_SW with EN_3V3SW floating | 0 V (pulldown) | | |
-| Reverse-polarity test: reverse Feed A | No current, no damage | | |
+| Reverse-polarity test: reverse the feed | No current, no damage | | |
 
 ## Stage 2: Boost under full dummy load
 | Check | Expected | Measured | Pass |
@@ -1322,7 +1338,7 @@ expected value beside it, which is the opposite of a placeholder.
 
 **Consistency check:** net names are identical across Tasks 3–9 and match the Global Constraints
 contract. GPIO assignments match the spec pin table including the newly added `CAN_STB` on GPIO 14.
-Currents are consistent throughout: Feed A 3.9 A, Feed B 6.6 A, 0.14 A per RGB channel, 3.3 A per
+Currents are consistent throughout: single feed 7.8 A night / 3.9 A day, 0.14 A per RGB channel, 3.3 A per
 Denali channel. `kicad-cli` is invoked by full path everywhere.
 
 ---

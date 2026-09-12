@@ -25,10 +25,10 @@ DRC (must exit 0, includes schematic parity):
 
 | Sheet | Contents |
 |---|---|
-| power_input | Both feeds: fuses, P-FETs, TVS, pi+CM filters, Schottky OR |
+| power_input | Single feed: 10 A fuse, P-FET, TVS, pi+CM filter -> VBAT. Second feed + Schottky OR as DNP footprints |
 | rails | Sync boost, low-Iq buck, 3V3 load switch |
 | mcu_can | ESP32 module, TJA1042, programming header, status LED |
-| outputs | PCA9685, **12x MOSFET + 1 ohm shunt, ADG706 16:1 mux**, dual PROFET, PTCs, connectors |
+| outputs | PCA9685, **12x MOSFET + 1 ohm shunt (2512, >=1 W), 12x 10k series + clamp, ADG706 16:1 mux**, dual PROFET, PTCs, connectors |
 
 ## Net naming contract
 
@@ -136,8 +136,9 @@ comparator with no load-current threshold at all). The RGB stage is now:
 GPIO that made the sense chain fit.
 
 **A 5 V rail is mandatory**: TJA1042 VCC is 4.5-5.5 V. The "/3" suffix provides VIO for 3.3 V logic
-levels; it does not make VCC 3.3 V. Always on, low quiescent, since the transceiver must monitor the
-bus in deep sleep.
+levels; it does not make VCC 3.3 V. **It is ENABLE-GATED off in sleep**, sharing `EN_3V3SW` with
+`+3V3_SW` — the transceiver's low-power receiver detects bus activity on **VIO alone**, so VCC is
+needed only for normal mode. VIO stays on `+3V3_ALW`.
 
 Authority: `../docs/superpowers/specs/2026-09-11-esp32-mccan-pcb-hardware-design.md` sections 5.1,
 6 and 7.3.

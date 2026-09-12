@@ -27,12 +27,12 @@ all coincide: daytime has the Denali lights off, night has the front DRLs off). 
 case is **daytime, ~4.5 W**; night is ~2.6 W. The old "full white plus both Denali" figure of 5.7 W
 occurs only during a flash-to-pass in daylight, for seconds, and is absorbed by thermal mass.
 
-| Effective area | Daytime 4.5 W | Internal at 40 °C | Night 2.6 W | Verdict |
+| Effective area | Daytime 4.5 W | Internal at 40 °C | Night 2.9 W | Verdict |
 |---|---|---|---|---|
-| 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 41 K | **Fails badly** |
-| 215 cm² | 26 K | **66 °C** | 15 K | Marginal — misses the 65 °C target |
-| **300 cm² — hard requirement** | **19 K** | **59 °C** | 11 K | Comfortable |
-| 350 cm² — design target | 16 K | 56 °C | 9 K | Ample |
+| 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 46 K | **Fails badly** |
+| 215 cm² | 26 K | **66 °C** | 17 K | Marginal — misses the 65 °C target |
+| **300 cm² — hard requirement** | **19 K** | **59 °C** | 12 K | Comfortable |
+| 350 cm² — design target | 16 K | 56 °C | 10 K | Ample |
 
 A flat plate sized to fit this enclosure delivers roughly **a quarter** of what is needed. Fins
 multiply effective area 3–5× for the same footprint, which closes the case.
@@ -82,10 +82,15 @@ plate's external convection, never the pad.
 
 ### Note on worst case
 
-4.3 W needs simultaneous full-white RGB **and** both Denali at maximum. Typical is nearer 2 W, where
-even a flat plate would have passed. The design sizes for the worst case deliberately, because the
-RGB stage is now discrete MOSFETs with no thermal protection of their own — unlike the smart switches
-originally specified, which would have shut themselves down.
+The governing case is **daytime, ~4.5 W** — all four corners at full white with the Denali lights off
+(spec §2.4). Night is lower at ~2.9 W despite drawing more current, because the boost carries the
+whole RGB load in daytime and that loss dominates. The ~5.7 W figure that a full-white-plus-both-Denali
+combination implies occurs only during a flash-to-pass in daylight, for seconds, and is absorbed by
+thermal mass.
+
+The design sizes for the daytime steady state deliberately, because the RGB stage is discrete MOSFETs
+with no thermal protection of their own — unlike the smart switches originally specified, which would
+have shut themselves down.
 
 ---
 
@@ -100,7 +105,7 @@ Selection criteria, in priority order:
    in front of the connector face, so the internal length must exceed the board length plus that
    depth plus wire bend radius.
 2. **One wall large enough** for the finned plate's **footprint** (≥ 80 cm², ≈ 100 × 80 mm — §1).
-   Note this is the footprint, not the ≥215 cm² *effective* area, which the fins provide outside
+   Note this is the footprint, not the ≥300 cm² *effective* area, which the fins provide outside
    the box. The wall opening is sized by footprint alone.
 3. **The finned wall and the antenna wall must be different walls** — ideally opposite. The plate is
    metal and will shadow the ESP32's onboard antenna if they share a face (Task 8 places the
@@ -137,9 +142,9 @@ not guessed here.
 **Gap pad** — this part of the thermal path *does* close:
 - Silicone gap pad, thermal conductivity **≥2 W/mK**, thickness **1.5 mm** nominal, compressible to
   ~1.0 mm
-- Contact area: the Task 8 thermal group (boost FETs, boost inductor, both P-FETs) — estimate
-  **~1200 mm²** **[PROVISIONAL]**
-- Computed drop across the pad: **~2.1 K** at 3.4 W through 1200 mm² of 1.5 mm / 2 W/mK material.
+- Contact area: the Task 8 thermal group (boost FETs, boost inductor, **the single P-FET**) — estimate
+  **~1000 mm²** **[PROVISIONAL]**
+- Computed drop across the pad: **~2.9 K** at 3.8 W (daytime) through 1000 mm² of 1.5 mm / 2 W/mK material.
   Negligible — the pad is not the bottleneck. The bottleneck is the plate's external convection (§1).
 
 ---
@@ -223,9 +228,9 @@ elsewhere.
 
 | Item | Needed to close |
 |---|---|
-| ~~Thermal design~~ **RESOLVED 2026-09-12** | Finned plate, metal-to-metal plate-to-bracket, rubber at the frame. Remaining: pick a profile meeting ≥215 cm² (target ≥300 cm²) |
+| ~~Thermal design~~ **RESOLVED 2026-09-12** | Finned plate, metal-to-metal plate-to-bracket, rubber at the frame. Remaining: pick a profile meeting **≥300 cm²** (target ≥350 cm²) |
 | Enclosure part number and internal dimensions | Task 8's board outline, then a catalogue lookup |
-| Finned profile part number and its published surface area | Catalogue lookup against the ≥215 cm² requirement |
+| Finned profile part number and its published surface area | Catalogue lookup against the **≥300 cm²** requirement |
 | Gasket and fastener torque | Follows the gasket part choice |
 | Vent part number | Catalogue lookup |
 | Connector cutout diameters and minimum spacing | Connector datasheets |
