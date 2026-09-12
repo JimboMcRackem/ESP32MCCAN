@@ -1,6 +1,7 @@
 # Enclosure, Heat-Spreader Plate and Panel
 
 **Status:** drafted from the spec before the board outline exists (Task 8 has not run).
+**Thermal design decided 2026-09-12** — see §1.
 Every item marked **[PROVISIONAL]** depends on the final board outline; every item marked
 **[TO CONFIRM]** needs a catalogue or datasheet lookup and is stated as selection criteria rather
 than a guessed part number.
@@ -13,48 +14,73 @@ than a guessed part number.
 
 ---
 
-## 1. THE OPEN PROBLEM: the thermal design does not close yet
+## 1. Thermal design — RESOLVED 2026-09-12
 
-This has to be resolved before ordering an enclosure. The spec's §9.4 budget is **~4.3 W** of
-internal dissipation. For natural convection (h ≈ 8 W/m²K) the required dissipating area is:
+**Decision: finned plate, metal-to-metal plate-to-bracket, rubber isolators at the frame only.**
 
-| Dissipation | Area | Rise | Internal temp at 40 °C ambient |
+### Why a flat plate was not an option
+
+At the spec's **4.3 W** worst case, natural convection (h ≈ 8 W/m²K) needs:
+
+| Effective area | Rise | Internal at 40 °C ambient | Verdict |
 |---|---|---|---|
-| 4.3 W (worst case) | 80 cm² | 67 K | **107 °C — fails** |
-| 4.3 W | 150 cm² | 36 K | **76 °C — fails the 65 °C target** |
-| 4.3 W | **215 cm²** | 25 K | **65 °C — meets target exactly** |
-| 4.3 W | 300 cm² | 18 K | 58 °C — comfortable |
-| 2.0 W (typical) | 80 cm² | 31 K | 71 °C |
-| 2.0 W | 150 cm² | 17 K | 57 °C |
+| 80 cm² (flat 100 × 80 mm plate) | 67 K | **107 °C** | **Fails — over the ESP32's 85 °C max** |
+| 150 cm² | 36 K | 76 °C | Fails the 65 °C target |
+| **215 cm²** | 25 K | **65 °C** | Meets target, zero margin |
+| 300 cm² | 18 K | 58 °C | Comfortable |
 
-**A flat aluminium plate of plausible size cannot do this alone.** A 100 × 80 mm plate is 80 cm²,
-which at worst case puts the inside at ~107 °C — above the ESP32's 85 °C maximum and destructive to
-electrolytics. The spec's claim of "~65 °C at 40 °C ambient" assumed roughly 215 cm² of effective
-area, which was never checked against a real plate size.
+A flat plate sized to fit this enclosure delivers roughly **a third** of what the spec's stated 65 °C
+actually required. Fins multiply effective area 3–5× for the same footprint, which closes the case.
 
-**And there is a direct conflict inside §9.3.** It specifies the plate bolts to a metal bracket so
-the bracket becomes part of the heatsink, *and* that the bracket is rubber-isolated from the frame
-for vibration. **Rubber is a thermal insulator** — the isolation that protects against vibration
-destroys the conduction path into the frame that the thermal argument depends on. Both cannot hold
-as written.
+### The contradiction that is now resolved
 
-### Options, for decision before ordering
+Spec §9.3 previously made the bracket **part of the heatsink** *and* **rubber-isolated from the
+frame**. Rubber is a thermal insulator, so the vibration isolation destroyed the conduction path the
+thermal argument depended on. Both could not hold.
 
-| # | Approach | Thermal | Cost |
-|---|---|---|---|
-| A | **Finned plate** — extruded heatsink profile as the wall | Multiplies effective area 3–5×; closes comfortably | Custom machining of a finned extrusion, deeper package |
-| B | **Larger flat plate** (~215 cm², e.g. 150 × 145 mm) | Meets the 25 K target exactly, no margin | Forces a large enclosure; may not fit the intended mounting location |
-| C | **Solid metal-to-metal frame mount**, drop the rubber isolators | Frame becomes a large heatsink; best thermal result | Road vibration couples directly into the board. The Experia has no engine vibration, so this is far less severe than on an ICE bike — but it is a real trade |
-| D | **Split the paths** — a flexible copper/aluminium strap for heat plus rubber mounts for vibration | Keeps both properties | Extra part, extra assembly step |
-| E | **Reduce dissipation** — revisit the boost's 2.6 W, the single largest contributor | Attacks the cause | More expensive switcher or a lower-loss topology |
-| F | **Accept a higher rise** — worst case (full white RGB *and* both Denali maxed) is rare | Free | Relies on the worst case genuinely not occurring; the switch ICs have no thermal protection in this design since they are now discrete FETs |
+**Because the finned plate now carries the whole thermal load by itself, the frame is no longer needed
+as a heatsink — so the vibration isolation survives intact.** The conflict dissolves rather than
+being traded away.
 
-**Recommendation: A + D.** A finned plate closes the thermal case with margin and removes the
-dependence on frame conduction entirely, which makes D's strap unnecessary — so in practice **A
-alone**, with solid metal-to-metal plate-to-bracket contact and rubber only between bracket and
-frame. That keeps vibration isolation without needing the frame as a heatsink.
+### Specification
 
-**This is a decision for the user, not an agent.** It changes the enclosure order.
+| | Value |
+|---|---|
+| Plate type | **Finned aluminium extrusion** forming one wall |
+| Footprint | ≥ 80 cm² (≈ 100 × 80 mm) **[PROVISIONAL** — confirm against Task 8's board outline**]** |
+| **Effective convective area — hard requirement** | **≥ 215 cm²** (fin multiplier ≥ 2.7×) |
+| **Effective convective area — design target** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → ~58 °C, ~27 °C margin |
+| Base thickness | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
+| **Fin orientation** | **VERTICAL in the installed attitude** — see below |
+| Material | Aluminium, 6063 extrusion (typical for finned profiles) or 6082/6061 if machined |
+
+Expressed as an area requirement rather than a named profile, so any extrusion meeting it qualifies.
+**[TO CONFIRM]** the specific profile and its published surface area.
+
+### Fin orientation is a requirement, not a preference
+
+The fins must run **vertically** once installed, so convection forms a chimney between them. Mounted
+with fins horizontal they trap air and much of the added area stops contributing — the installation
+would quietly lose the margin this decision bought. Record the intended mounting attitude alongside
+the bracket drawing.
+
+### Mounting interfaces
+
+- **Plate → bracket: metal-to-metal**, thermal compound at the interface. The bracket contributes
+  spreading area as *bonus margin*, not as something the design depends on.
+- **Bracket → frame: rubber isolators.** Vibration decoupling preserved; nothing thermal is lost.
+
+### Gap pad — not the bottleneck
+
+~**2.1 K** across 1200 mm² of 1.5 mm, 2 W/mK material at 3.4 W. The constraint was always the
+plate's external convection, never the pad.
+
+### Note on worst case
+
+4.3 W needs simultaneous full-white RGB **and** both Denali at maximum. Typical is nearer 2 W, where
+even a flat plate would have passed. The design sizes for the worst case deliberately, because the
+RGB stage is now discrete MOSFETs with no thermal protection of their own — unlike the smart switches
+originally specified, which would have shut themselves down.
 
 ---
 
@@ -82,9 +108,10 @@ not guessed here.
 
 ## 3. Heat-spreader plate and gap pad
 
-**Plate** — **[PROVISIONAL]**, sized by the §1 decision:
-- Material: aluminium, 6082/6061 class
-- Thickness: **3 mm minimum** for flatness under fastener load and for in-plane heat spreading
+**Plate** — finned extrusion per §1 (decided). Dimensions **[PROVISIONAL]** pending Task 8:
+- Material: aluminium — 6063 extrusion for a finned profile
+- Base thickness: **3 mm minimum** for flatness under fastener load and in-plane heat spreading
+- **Fins vertical in the installed attitude** (§1)
 - Replaces one wall; sealed with a gasket in a machined groove, or a compressible gasket under a
   flange
 - Fastener pattern: M3 or M4 at ≤40 mm pitch around the perimeter, so gasket compression is even.
@@ -176,9 +203,9 @@ elsewhere.
 
 | Item | Needed to close |
 |---|---|
-| **Thermal design (§1)** | **User decision** — the thermal case does not close with a plausible flat plate, and §9.3's rubber-isolation requirement conflicts with its own frame-conduction argument |
+| ~~Thermal design~~ **RESOLVED 2026-09-12** | Finned plate, metal-to-metal plate-to-bracket, rubber at the frame. Remaining: pick a profile meeting ≥215 cm² (target ≥300 cm²) |
 | Enclosure part number and internal dimensions | Task 8's board outline, then a catalogue lookup |
-| Plate dimensions | Follows the §1 decision |
+| Finned profile part number and its published surface area | Catalogue lookup against the ≥215 cm² requirement |
 | Gasket and fastener torque | Follows the gasket part choice |
 | Vent part number | Catalogue lookup |
 | Connector cutout diameters and minimum spacing | Connector datasheets |

@@ -579,7 +579,8 @@ firmware cannot detect it. Two mitigations, both required:
 
 ### 9.3 Enclosure
 
-**Plastic IP67 box with an aluminium heat-spreader plate sealed into one wall.** An off-the-shelf
+**Plastic IP67 box with a FINNED aluminium heat-spreader plate sealed into one wall.**
+**(DECIDED 2026-09-12 — finned, not flat; see §9.4 for why a flat plate fails.)** An off-the-shelf
 polycarbonate enclosure (Hammond 1554/1555, Fibox, Bopla class) with one wall machined for a
 gasketed aluminium plate. The boost FETs, inductor and P-FET couple to the plate through a
 silicone gap pad. Remaining walls stay RF-transparent so the onboard antenna works.
@@ -597,9 +598,22 @@ USB flashing and the cheaper onboard-antenna module.
 cool develop pressure differentials and eventually draw moisture *through* their seals; the vent
 is what makes an IP67 rating hold over years.
 
-**Mounting:** the aluminium plate bolts to a metal bracket with thermal compound, making the
-bracket part of the heatsink; the **bracket** is rubber-isolated from the frame, preserving the
-thermal path while decoupling vibration. Inductor and electrolytics staked with adhesive;
+**Mounting (RESOLVED 2026-09-12).** An earlier revision of this section contradicted itself: it made
+the bracket "part of the heatsink" *and* rubber-isolated it from the frame. **Rubber is a thermal
+insulator** — the isolation destroys the conduction path the thermal argument relied on. Both could
+not hold.
+
+The resolution is that **the finned plate carries the entire thermal load on its own**, so the frame
+is no longer needed as a heatsink and the vibration isolation survives intact:
+
+- **Plate → bracket: metal-to-metal**, with thermal compound. The bracket adds spreading area as
+  *bonus margin*, not as a requirement the design depends on.
+- **Bracket → frame: rubber isolators.** Vibration decoupling is preserved, and nothing thermal is
+  lost by it.
+
+**Fin orientation is an installation requirement, not a preference.** The fins must run **vertically**
+in the installed attitude so natural convection can form a chimney between them. Mounted with fins
+horizontal, they trap air and a large fraction of the added area stops working. Inductor and electrolytics staked with adhesive;
 ceramic and polymer capacitors preferred where they will serve.
 
 ### 9.4 Thermal
@@ -616,11 +630,42 @@ ceramic and polymer capacitors preferred where they will serve.
 
 **Revised 2026-09-11** from ~3.5 W after Task 2 established real datasheet figures: the P-FET line
 rose from an estimated 0.30 W to 0.82 W worst case (20 mΩ ceiling at Feed B's 6.6 A), and the sense
-resistors add 0.24 W. Still comfortably within what the aluminium plate can move.
+resistors add 0.24 W.
 
-With the heat-spreader plate and bracket coupling, the target is a rise low enough to keep
-internal temperature near 65 °C at 40 °C ambient — roughly 20 °C of margin on the ESP32's
-85 °C maximum, and comfortable for 105 °C-rated capacitors.
+### The plate must be finned — a flat plate of plausible size fails
+
+**Computed 2026-09-12.** For natural convection (h ≈ 8 W/m²K), the area needed to shed 4.3 W is:
+
+| Effective area | Rise | Internal temp at 40 °C ambient | Verdict |
+|---|---|---|---|
+| 80 cm² (a flat 100 × 80 mm plate) | 67 K | **107 °C** | **Fails — above the ESP32's 85 °C maximum** |
+| 150 cm² | 36 K | 76 °C | Fails the 65 °C target |
+| **215 cm²** | 25 K | **65 °C** | Meets target, zero margin |
+| 300 cm² | 18 K | 58 °C | Comfortable |
+
+An earlier revision of this section claimed "~65 °C at 40 °C ambient" without checking it: that figure
+silently assumed **~215 cm²**, roughly **three times** what a flat plate sized to fit this enclosure
+actually provides.
+
+**Requirements, therefore:**
+
+| | Value |
+|---|---|
+| Plate footprint | ≥ 80 cm² (≈ 100 × 80 mm) |
+| **Effective convective area — hard requirement** | **≥ 215 cm²** (fin multiplier ≥ 2.7×) |
+| **Effective convective area — design target** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → ~58 °C, ~27 °C of margin on the ESP32 |
+| Fin orientation | **Vertical in the installed attitude** (§9.3) |
+| Plate thickness at the base | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
+
+Stated as an area requirement rather than a specific profile, so any extrusion meeting it qualifies.
+
+**The gap pad is not the bottleneck:** ~2.1 K across 1200 mm² of 1.5 mm, 2 W/mK material at 3.4 W.
+The constraint was always the plate's external convection.
+
+**Worst case is rare but must still be survivable:** 4.3 W requires simultaneous full-white RGB *and*
+both Denali at maximum. Typical draw is nearer 2 W, where even a flat plate would pass. The design
+sizes for the worst case because the RGB stage is now discrete FETs with no thermal protection of
+their own.
 
 ---
 
