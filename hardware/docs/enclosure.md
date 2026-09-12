@@ -94,11 +94,16 @@ Selection criteria, in priority order:
    pending Task 8. Estimate the board at 100 × 80 mm; panel connectors add 25–40 mm of mating depth
    in front of the connector face, so the internal length must exceed the board length plus that
    depth plus wire bend radius.
-2. **One wall large enough** for the plate chosen in §1 (80–215 cm², decision-dependent).
-3. **Plastic, not metal** — the ESP32-WROOM-32E uses its onboard antenna, so the remaining walls
+2. **One wall large enough** for the finned plate's **footprint** (≥ 80 cm², ≈ 100 × 80 mm — §1).
+   Note this is the footprint, not the ≥215 cm² *effective* area, which the fins provide outside
+   the box. The wall opening is sized by footprint alone.
+3. **The finned wall and the antenna wall must be different walls** — ideally opposite. The plate is
+   metal and will shadow the ESP32's onboard antenna if they share a face (Task 8 places the
+   antenna edge away from the plate).
+4. **Plastic elsewhere, not metal** — the ESP32-WROOM-32E uses its onboard antenna, so the remaining walls
    must be RF-transparent (spec §9.3). This is why a diecast aluminium box was rejected.
-4. **Panel area** for nine penetrations (§4).
-5. IP67 with a gasketed lid, and lid screws accessible after installation.
+5. **Panel area** for nine penetrations (§4).
+6. IP67 with a gasketed lid, and lid screws accessible after installation.
 
 Candidate families known to offer IP66/67 polycarbonate boxes in this size class: Hammond 1554/1555,
 Fibox, Bopla, Polycase. **Exact part number and internal dimensions require a catalogue lookup** —
