@@ -72,14 +72,27 @@ so a protection failure doesn't cascade into real damage.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Total, with `EN_BOOST`/`EN_3V3SW` floating and transceiver held in standby | **87–117 µA** design target (hard ceiling **500 µA**) | | |
+| Total, with `EN_BOOST`/`EN_3V3SW` floating and transceiver held in standby | Predicted (part-selection roll-up): **87–117 µA**<br>Pass (design requirement): **< 200 µA**<br>Hard fail (ceiling): **> 500 µA** | | |
 
-If the reading misses the target, isolate per contributor against the sleep
-budget roll-up in `hardware/docs/part-selection.md` (ESP32 deep sleep +
-EXT0 RTC domain ~10 µA, CAN transceiver standby ≤19 µA, buck quiescent
-21 µA typ/50 µA max for both instances, PROFET standby ≤0.6 µA, RGB FET
-leakage ≤12 µA, P-FET gate divider ≤24 µA by design) rather than treating the
-total as a single opaque number.
+These are three different numbers doing three different jobs, and the row
+keeps all three on purpose:
+
+- **87–117 µA** is the *prediction* — what the datasheet roll-up in
+  `hardware/docs/part-selection.md` says this specific board should draw.
+- **< 200 µA** is the *pass criterion* — the design requirement the product
+  must meet for the parking/sleep strategy to make sense.
+- **> 500 µA** is the *hard fail* — the ceiling past which the sleep
+  strategy does not work at all.
+
+A reading **between 117 µA and 200 µA passes** — it is inside the design
+requirement — but should still be investigated per contributor against the
+roll-up (ESP32 deep sleep + EXT0 RTC domain ~10 µA, CAN transceiver standby
+≤19 µA, buck quiescent 21 µA typ/50 µA max for both instances, PROFET
+standby ≤0.6 µA, RGB FET leakage ≤12 µA, P-FET gate divider ≤24 µA by
+design). It means some part is drawing more than its own datasheet figure,
+which is worth understanding even though the board isn't failing. Only a
+reading above 200 µA is an actual fail; only a reading above 500 µA is a
+hard fail requiring the parking/sleep strategy itself to be reconsidered.
 
 ## Stage 4: MCU populated
 
@@ -151,9 +164,19 @@ is used going forward.
 |---|---|---|---|
 | Both Experia peripheral outlets confirmed independent 10 A circuits | Independent, not branches of one 10 A circuit | | |
 | Internal enclosure temperature after a sustained ride | < 65 °C at 40 °C ambient | | |
-| Parked quiescent drain over 7 days | Consistent with the Stage 3 figure (87–117 µA, ceiling 500 µA) | | |
+| Parked quiescent drain over 7 days | Predicted: **15–20 mAh** over 7 days (87–117 µA × 168 h)<br>Pass: **< 34 mAh** (the <200 µA requirement × 168 h)<br>Hard fail: **> 84 mAh** (the 500 µA ceiling) | | |
 | Does the CAN bus actually go quiet when parked? | Bus idles → board enters deep sleep | | |
 | Corner mapping verified by the installation self-test | All four corners correct (FL, FR, RL, RR) | | |
+
+Express the 7-day drain as charge rather than current, because that is what a meter on a parked
+bike actually integrates. Same three-tier reading as Stage 3: the **predicted** figure is what
+this board should draw, **< 34 mAh** is the pass criterion (the design requirement sustained over
+a week), and **> 84 mAh** means the parking strategy does not work. A result between 20 and
+34 mAh passes but indicates a contributor above its datasheet figure — worth chasing even though
+the board is inside requirement.
+
+For scale: 34 mAh over a week is negligible against a motorcycle's 12 V battery (typically
+8–20 Ah), which is the whole reason the CAN-wake strategy is viable.
 
 The CAN-idle check is the one the entire sleep strategy depends on and is
 currently unconfirmed — if the bus never goes quiet, the board never sleeps
