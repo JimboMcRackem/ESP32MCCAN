@@ -153,14 +153,23 @@ text conversion garbles it, the PDF itself is fine" situation as section 2).
 | 3.6 | Dissipation at 40 W out <= 3 W including both FETs | Not determinable from this datasheet alone — HO/LO drive **external** N-channel MOSFETs (row 3.2), so total FET dissipation (conduction loss I^2 x RDS(on) plus switching loss at the chosen fSW) depends entirely on which external FETs Task 3/4 selects and what switching frequency is programmed via RT (the worked example in Section 8.2.2.2, p.35, uses 250 kHz for a 108 W/24 V design, chosen as "a reasonable compromise between small size and high-efficiency"). | **UNVERIFIED at the controller level** — this is a system-level calculation that depends on FET selection, not a fixed parameter of the LM5122-Q1. Task 3/4 must pick specific boost-stage FETs, compute conduction + switching loss for both at the 60 W/24 V operating point, and check the sum against the 3 W ceiling. |
 
 ## 4. Low-quiescent buck — 12 V to 3.3 V, 1 A
-Candidate: TI LM5164
+Candidate: TI LM5164. This is the **same physical IC** already verified in
+Section 4b for the 5 V rail (TI LM5164, datasheet SNVSAU4D, revised February
+2026) — only the external feedback divider changes between the two rails, so
+every current/voltage-input-range spec below is identical to 4b's and is
+carried over directly rather than re-fetched.
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 4.1 | Quiescent current <= 30 uA (this is the dominant sleep contributor) | | |
-| 4.2 | Output current >= 1 A (ESP32 WiFi TX peaks ~500 mA) | | |
-| 4.3 | Input rating 40-60 V | | |
-| 4.4 | Stable with no load (sleep condition) | | |
+| 4.1 | Quiescent current <= 30 uA (this is the dominant sleep contributor) | Datasheet Section 5.5 "Electrical Characteristics" (same row cited in 4b.1): "IQ-SLEEP1 VIN sleep current — VEN = 2.5 V, VFB = 1.5 V — 10.5 / 25 uA" (typ/max). This is the IC's own input-referred sleep current and does not depend on which output voltage the feedback divider is set for. | **PASS** — 10.5 uA typ / 25 uA max, both under 30 uA, identical evidence to row 4b.1. |
+| 4.2 | Output current >= 1 A (ESP32 WiFi TX peaks ~500 mA) | Section 5.3 "Recommended Operating Conditions" (same row cited in 4b.2): "ILOAD Load current — 1 / 1.25 A" (nom/max). | **PASS** — 1 A nominal / 1.25 A max vs 1 A required and ~500 mA actual peak (WiFi TX), comfortable margin at nominal and more at max. |
+| 4.3 | Input rating 40-60 V | Section 5.3: "VIN Input voltage — 6 / 100 V" (min/max) — same figure cited in 4b.3. | **PASS** — 6-100 V comfortably covers 40-60 V. |
+| 4.4 | Stable with no load (sleep condition) | Section 6.1/6.4.3 "Sleep Mode": diode-emulation mode (DEM) plus an ultra-low-IQ sleep state built in to prevent instability at light/no load; Section 7.2.3, Fig. 7-6 "No-Load Start-up with VIN" — bench scope capture at IOUT = 0 A showing clean, monotonic start-up (no oscillation), same evidence cited in 4b.4. Output voltage here is set to 3.3 V by the external feedback divider (Section 6.3.3, RFB2 = 1.2 V / (VOUT - 1.2 V) x RFB1) instead of 5.0 V — the no-load stability behavior is a function of the control loop, not the programmed output voltage, so the same evidence applies. | **PASS** — same datasheet-documented no-load stability behavior as the 5 V rail use of this part. |
+
+**Design simplification confirmed:** using LM5164 for both the 3.3 V logic
+rail (this section) and the 5 V transceiver rail (Section 4b) means Tasks 3-6
+place two instances of the same qualified IC with different resistor-divider
+values, rather than two different regulator part numbers.
 
 ## 4b. 5 V regulator (ADDED 2026-09-11) — mandatory, always on
 Feeds the TJA1042's VCC (4.5-5.5 V). Must stay powered in deep sleep so the
