@@ -122,17 +122,21 @@ on-resistance (whatever it turns out to be) matters far less. Fallback if
 stage (both already noted in the ruling at the top of this section).
 
 ## 2. Dual smart high-side switch (1 required) — Denali
-Candidate: Infineon BTS7008-2EPA or PROFET+2 12V family
+Candidate: Infineon BTS7008-2EPA (PROFET+2 12V family, "8 mOhm" variant).
+Verified against **Infineon BTS7008-2EPA Data Sheet Rev. 1.21, 2024-07-29**
+(fetched 2026-09-12; extracted with PyMuPDF after the harness's own PDF-to-text
+conversion garbled the file — the underlying PDF is a normal text-layer
+document, not corrupted).
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 2.1 | Continuous current per channel >= 3.3 A with margin | | |
-| 2.2 | Current sense output resolves a 3.3 A load, ratio documented | | |
-| 2.3 | 3.3 V logic compatible inputs (no level shifter needed) | | |
-| 2.4 | PWM capable at 150 Hz | | |
-| 2.5 | Integrated short-circuit, overcurrent, thermal shutdown | | |
-| 2.6 | On-resistance gives <= 0.25 W for the pair at 3.3 A each | | |
-| 2.7 | Standby current <= 20 uA | | |
+| 2.1 | Continuous current per channel >= 3.3 A with margin | Table 13 "Electrical Characteristics: Power Stages - 8 mOhm", p.28: "Nominal Load Current per Channel (all Channels Active) — IL(NOM) — Typ. 7.5 A — TA = 85 degC, TJ <= 150 degC" (P_7.5.1.8). | **PASS** — 7.5 A nominal (both channels active simultaneously) vs 3.3 A required, >2x margin. |
+| 2.2 | Current sense output resolves a 3.3 A load, ratio documented | Table 22 "Electrical Characteristics: Diagnosis - 8 mOhm", p.53: current-sense ratio kILIS is tabulated at multiple load points bracketing 3.3 A — "Current Sense Ratio at IL = IL14 (2.8 A): -5.8%/+5.8%, Typ. 5400" (P_9.7.1.18); "Current Sense Ratio at IL = IL16 (5.5 A): -4.0%/+4.0%, Typ. 5450" (P_9.7.1.20). At 3.3 A, IS output current = IL/kILIS ~= 3.3 A / 5400 ~= 0.61 mA. | **PASS** — the ratio is explicitly documented at points bracketing 3.3 A (2.8 A and 5.5 A) with tolerance <=6%, giving a clean, resolvable IS current for an external sense resistor/ADC. |
+| 2.3 | 3.3 V logic compatible inputs (no level shifter needed) | Section 5.1 "Input Pins (INn)", p.13, verbatim: "The input circuitry is compatible with 3.3V and 5V microcontroller." Table 7 "Electrical Characteristics: Logic Pins - General", p.14: "Digital Input Voltage Threshold — VDI(TH) — Min 0.8 V, Typ 1.3 V, Max 2 V" (P_5.4.0.1). A 3.3 V GPIO driving high sits 1.3 V above the 2 V max threshold (guaranteed HIGH detection); GND sits 0.8 V below the 0.8 V min threshold isn't quite true — 0 V is below the 0.8V min threshold itself (guaranteed LOW). | **PASS** — explicit datasheet statement plus a threshold table that a 3.3 V logic swing clears with margin on both ends; no level shifter needed. |
+| 2.4 | PWM capable at 150 Hz | Table 12 "Electrical Characteristics: Power Stages - PROFET", p.26: "Switch-ON Time — tON — Max 110 us" (P_7.4.1.3); "Switch-OFF Time — tOFF — Max 100 us" (P_7.4.1.4), both at VS = 13.5 V. | **PASS** — worst-case combined switching transition (210 us) is 3.1% of a 150 Hz period (6.667 ms); leaves >96% of the period free for duty-cycle range, comfortably supporting PWM dimming at 150 Hz. |
+| 2.5 | Integrated short-circuit, overcurrent, thermal shutdown | Datasheet Overview, p.2, "Protection Features": "Absolute and dynamic temperature limitation with controlled restart"; "Overcurrent protection (tripping) with Intelligent Restart Control"; "Undervoltage shutdown"; and "Diagnostic Features": "Short circuit to ground and battery." | **PASS** — all three required protections plus undervoltage shutdown are named, integrated features. |
+| 2.6 | On-resistance gives <= 0.25 W for the pair at 3.3 A each | Table 13, p.27-28: "ON-State Resistance at TJ = 25 degC — RDS(ON)_25 — Typ. 9 mOhm" (P_7.5.1.1, not subject to production test); "ON-State Resistance at TJ = 150 degC — RDS(ON)_150 — Max. 16 mOhm" (P_7.5.1.2). Pair dissipation at 3.3 A each: at 25 degC typ, P = 2 x 3.3^2 x 0.009 = 0.196 W; at 150 degC max, P = 2 x 3.3^2 x 0.016 = 0.349 W. | **PASS at 25 degC typical** (0.196 W < 0.25 W) **but FAILS at the 150 degC worst-case max rating** (0.349 W > 0.25 W). This is a real thermal-margin question, not a datasheet gap: whether the device actually reaches 150 degC junction under this design's duty cycle and PCB copper/thermal relief is a Task 3 layout question. Flag for the schematic/layout pass: verify junction temperature stays low enough (via thermal simulation or bench measurement) that RDS(on) stays closer to the 25 degC figure, or accept reduced margin at temperature extremes. |
+| 2.7 | Standby current <= 20 uA | Table 1 "Product Summary", p.2: "Maximum current in Sleep mode (TJ <= 85 degC) — IVS(SLEEP)_85 — 0.6 uA." Section 6.1.3 "Sleep mode", p.16: entered when all digital inputs (INn, DEN, DSEL) are low; outputs OFF, current consumption minimum. | **PASS** — 0.6 uA max vs 20 uA required, >30x margin. (Note: Stand-by mode, entered with DEN high and inputs low, has higher consumption per Section 6.1.4 because diagnosis stays active — this is not the mode used for the sleep-budget rollup, which assumes full Sleep mode.) |
 
 ## 3. Synchronous boost controller — 12 V to 24 V, 60 W
 Candidate: TI LM5122-Q1
