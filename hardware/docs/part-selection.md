@@ -238,39 +238,27 @@ here because it is discovered by this section's datasheet read.
 | CAN transceiver standby | **19 uA max** | This file, row 5.3 — NXP TJA1042T/3, Table 7 p.10: ICC (Standby) max 5 uA + IIO (Standby) max 14 uA = 19 uA max, condition VTXD = VIO (firmware must hold TXD/STB high through sleep). |
 | Buck quiescent (both rails) | **21 uA typ / 50 uA max** | This file, rows 4.1 and 4b.1 — TI LM5164 (SNVSAU4D), IQ-SLEEP1 10.5 uA typ / 25 uA max **per instance**; **two instances** are needed (one for the 3.3 V logic rail, one for the always-on 5 V transceiver rail), so the rollup uses 2x: 21 uA typ / 50 uA max. |
 | PROFET standby | **0.6 uA max** | This file, row 2.7 — Infineon BTS7008-2EPA, Table 1 p.2: IVS(SLEEP)_85 max 0.6 uA (one device required). |
-| Low-side switches standby (12x IRLZ44N leakage) | **UNVERIFIED — 25 uA max is the only documented figure, but at the wrong voltage (55 V, not this design's 24 V rail)** | This file, row 1a.1/1a.3 evidence — IRLIZ44NPbF Electrical Characteristics, p.2: "IDSS Drain-to-Source Leakage Current — VDS = 55 V, VGS = 0 V — Max 25 uA" (no 24 V-specific figure exists in the datasheet). Taking this figure literally across 12 channels gives a **conservative, almost-certainly-inflated upper bound of 12 x 25 uA = 300 uA** — real leakage at 24 V (44% of the test voltage) would be markedly lower for a trench MOSFET, but no verified 24 V number exists to replace this estimate with. This is a direct, material consequence of switching the RGB-channel FET recommendation away from PMV60ENEA (which specified only 1 uA max at 40 V, a much lower figure) to meet the revised Vgs(th) criterion in row 1a.2. |
-| P-FET gate + divider leakage | **UNVERIFIED — depends on a resistor value not yet chosen** | This file, row 6.1 — Vishay SQJ415EP gate leakage (IGSS) itself is negligible (max +/-100 nA per the datasheet), but the row 6.1 P-FET is biased by an external gate resistor divider from the 24 V-tolerant front end whose value is a Task 3/4 schematic decision, not yet made. A divider sized for >= 1 MOhm total resistance would add <= 24 uA at 24 V; this is a design target to carry into Task 3/4, not a verified figure. |
-| **TOTAL (known contributors only)** | **~50.6 uA typ / ~80.6 uA max** | Sum of ESP32+EXT0 (10) + CAN (19) + buck x2 (21 typ / 50 max) + PROFET (0.6) = 50.6 uA typ / 80.6 uA max. **Comfortably under the 200 uA target on its own.** |
-| **TOTAL (pessimistic, using the unverified upper-bound leakage figures)** | **~80.6 + up to 300 (FET leakage) + up to 24 (P-FET divider, design target) = up to ~405 uA** | This is the number that matters for a go/no-go call. |
+| Low-side switches standby (12x PMV60ENEA leakage) | **<= 12 uA max (updated, fix round 1)** | This file, row 1a.8 — Nexperia PMV60ENEA Table 7: "IDSS drain leakage current — VDS = 40 V; VGS = 0 V; Tj = 25 degC — Max 1 uA." Bounded above by this 40 V figure for our lower 24 V operating point (leakage increases monotonically with reverse bias, so 24 V leakage <= the 40 V figure). 12 channels x 1 uA max = **12 uA max**. This replaces the previous IRLZ44N-based ~300 uA pessimistic bound now that the MOSFET recommendation has reverted to the SOT-23 PMV60ENEA (fix round 1, Finding 1/2) — the sleep-budget blowout was a direct symptom of the wrong package/part, not an inherent property of this design. |
+| P-FET gate + divider leakage | **UNVERIFIED — depends on a resistor value not yet chosen** | This file, row 6.1 — Vishay SQJ415EP gate leakage (IGSS) itself is negligible (max +/-100 nA per the datasheet), but the P-FET's gate resistor + Zener clamp network (spec 4.2) has a divider value that is a Task 3/4 schematic decision, not yet made. A divider sized for >= 1 MOhm total resistance would add <= 24 uA at 24 V; this is a design target to carry into Task 3/4, not a verified figure. |
+| **TOTAL (known contributors)** | **~62.6 uA typ / ~92.6 uA max** | Sum of ESP32+EXT0 (10) + CAN (19) + buck x2 (21 typ / 50 max) + PROFET (0.6) + RGB-FET leakage (12 max, itself a valid upper bound) = 62.6 uA typ / 92.6 uA max. |
+| **TOTAL (incl. P-FET divider design target)** | **~86.6-116.6 uA** | Adding the P-FET divider's design target of <= 24 uA (not yet a chosen resistor value) to the known total above. |
 
-**Verdict:** the design's *known, datasheet-confirmed* contributors sum to well
-under the 200 uA target (~51-81 uA). The budget's fate rests entirely on the
-**two UNVERIFIED rows** — dominated overwhelmingly by the 12x RGB-channel
-FET OFF-state leakage, whose only documented figure (25 uA max) is measured
-at 55 V, not this design's 24 V rail, and is very likely a substantial
-overestimate at the real operating voltage. Using that unverified figure at
-face value, the pessimistic total (~405 uA) stays **under the 500 uA hard
-ceiling** but **exceeds the 200 uA target**, meaning this design **does not
-yet have a confirmed pass** against the target — it has a confirmed pass
-against the ceiling only, contingent on an unresolved leakage question.
-**This must be closed before sign-off**, in order of preference: (1) bench-measure
-IRLZ44N's actual IDSS at VDS = 24 V, VGS = 0 V (likely to land far below the
-300 uA pessimistic sum, based on how MOSFET leakage scales with voltage);
-(2) search for a 40 V-class logic-level MOSFET with a 24 V- or 25 V-specific
-leakage figure in its own datasheet, to replace the estimate with a real
-number; or (3) accept the PMV60ENEA-class part's much lower verified leakage
-(1 uA max at 40 V) for the RGB channels specifically if a workaround for its
-1a.2 threshold failure is found (e.g. the 5 V gate-drive level-shifter option
-noted in that section's original screening), trading the Vgs(th) margin
-question against the sleep-budget question. The second, smaller UNVERIFIED
-row (P-FET divider leakage) is a normal Task 3/4 resistor-sizing job, not a
-part-selection gap, and easily kept under ~24 uA by design.
+**Verdict (updated, fix round 1):** with the MOSFET reverted to the SOT-23
+PMV60ENEA, the sleep budget resolves cleanly. **Total is approximately
+63-117 uA**, comfortably under the **200 uA target** with margin to spare,
+even before the one remaining open item (the P-FET gate-divider resistor
+value, a normal Task 3/4 sizing job easily kept under ~24 uA by design) is
+finalized. The ~405 uA pessimistic figure from the previous pass is now
+**withdrawn** — it was a direct symptom of the withdrawn IRLZ44N/TO-220
+selection (Finding 1), not a real property of this design. This is now a
+**confirmed PASS against both the 200 uA target and the 500 uA ceiling**,
+modulo the one small, bounded, non-blocking open item noted above.
 
 ## Final BOM decision
 
 | Function | Manufacturer part number | Package | Unit price | Stock |
 |---|---|---|---|---|
-| RGB channel low-side FET (x12) | Infineon **IRLZ44NPBF** | TO-220-3 | $1.80 (qty 1) / $0.60 (qty 500) | 31,603 (Digi-Key, live page fetch 2026-09-12) |
+| RGB channel low-side FET (x12) | Nexperia **PMV60ENEA** | SOT23 (TO-236AB) | $0.074-$0.094 (TTI, search-summary sourced) | Digi-Key: 0, backorder to Jan 2027; TTI: ~9,000 (search-summary sourced) — **UNVERIFIED stock**, see row 1a.6 |
 | RGB channel sense resistor (x12) | Yageo **RC2512FK-071RL** | 2512 (6332 metric) | $0.72 (qty 1, search-summary sourced, not independently opened) | 27,482 (search-summary sourced) — part selection itself (1 Ohm, 1%) verified in Section 1b of this file, out of this pass's scope |
 | 16-channel analog mux | Analog Devices **ADG726BSUZ** — **see caveat** | 48-TQFP (7x7 mm) | $17.08 (qty 1) / $10.95 (qty 511+) (Digi-Key, live page fetch) | 310 (Digi-Key, live page fetch) |
 | Dual smart high-side switch (Denali) | Infineon **BTS7008-2EPA** (order as BTS70082EPAXUMA1) | PG-TSDSO-14 | $2.30 (qty 1) / $1.17 (qty 3000) | 6,947 (Digi-Key, live page fetch) |
