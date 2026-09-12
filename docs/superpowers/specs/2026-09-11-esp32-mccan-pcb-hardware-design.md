@@ -607,12 +607,16 @@ ceramic and polymer capacitors preferred where they will serve.
 | Source | Dissipation |
 |---|---|
 | Synchronous boost losses (40 W out, ~94%) | ~2.6 W |
-| P-FET reverse protection, both feeds | ~0.30 W |
+| P-FET reverse protection, both feeds | **~0.82 W** (measured from datasheet: Feed A 0.21 W, Feed B 0.61 W at max Rds) |
 | Denali PROFET, both channels at 3.3 A | ~0.22 W |
 | RGB discrete FETs, all 12 | ~0.01 W |
 | RGB sense resistors, 12 × 1 Ω at 0.14 A | ~0.24 W |
 | Buck and logic | ~0.4 W |
-| **Total** | **~3.6 W** |
+| **Total** | **~4.3 W** |
+
+**Revised 2026-09-11** from ~3.5 W after Task 2 established real datasheet figures: the P-FET line
+rose from an estimated 0.30 W to 0.82 W worst case (20 mΩ ceiling at Feed B's 6.6 A), and the sense
+resistors add 0.24 W. Still comfortably within what the aluminium plate can move.
 
 With the heat-spreader plate and bracket coupling, the target is a rise low enough to keep
 internal temperature near 65 °C at 40 °C ambient — roughly 20 °C of margin on the ESP32's

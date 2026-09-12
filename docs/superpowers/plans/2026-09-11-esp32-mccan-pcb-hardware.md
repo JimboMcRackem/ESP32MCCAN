@@ -78,7 +78,8 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - **5 V rail mandatory** (TJA1042 VCC is 4.5–5.5 V), always on and low quiescent
 - RGB sense: **1 Ω** shunt per channel = **140 mV** at 0.14 A; ADC at **0 dB attenuation** (0–1.1 V)
 - PWM: RGB **400 Hz** (PCA9685), Denali **150 Hz** (ESP32 LEDC)
-- Total internal dissipation target **~3.6 W**
+- Total internal dissipation target **~4.3 W** (revised from 3.6 W once Task 2 produced real
+  datasheet figures: P-FET 0.82 W worst case, sense resistors 0.24 W)
 - Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
 - Feed B power polygon: **≥ 4–5 mm** width at 2 oz for a 10 °C rise at 6.6 A
 
