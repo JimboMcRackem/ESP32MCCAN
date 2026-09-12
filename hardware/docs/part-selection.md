@@ -277,6 +277,51 @@ part-selection gap, and easily kept under ~24 uA by design.
 
 | Function | Manufacturer part number | Package | Unit price | Stock |
 |---|---|---|---|---|
+| RGB channel low-side FET (x12) | Infineon **IRLZ44NPBF** | TO-220-3 | $1.80 (qty 1) / $0.60 (qty 500) | 31,603 (Digi-Key, live page fetch 2026-09-12) |
+| RGB channel sense resistor (x12) | Yageo **RC2512FK-071RL** | 2512 (6332 metric) | $0.72 (qty 1, search-summary sourced, not independently opened) | 27,482 (search-summary sourced) — part selection itself (1 Ohm, 1%) verified in Section 1b of this file, out of this pass's scope |
+| 16-channel analog mux | Analog Devices **ADG726BSUZ** — **see caveat** | 48-TQFP (7x7 mm) | $17.08 (qty 1) / $10.95 (qty 511+) (Digi-Key, live page fetch) | 310 (Digi-Key, live page fetch) |
+| Dual smart high-side switch (Denali) | Infineon **BTS7008-2EPA** (order as BTS70082EPAXUMA1) | PG-TSDSO-14 | $2.30 (qty 1) / $1.17 (qty 3000) | 6,947 (Digi-Key, live page fetch) |
+| Synchronous boost controller | TI **LM5122QMHX/NOPB** | 20-HTSSOP | $6.21 (qty 1) / $3.62 (qty 1000) | 594 (Digi-Key, live page fetch) |
+| Low-quiescent buck, 3.3 V rail | TI **LM5164DDAT** | 8-PowerSOIC (HSOIC-PowerPAD) | $5.37 (qty 1) / $3.43 (qty 100) | 7,056 (Digi-Key, live page fetch); 16-week lead time noted on the page |
+| 5 V regulator (transceiver rail) | TI **LM5164DDAT** (same part, second instance, different feedback divider) | 8-PowerSOIC | (same as above) | (same as above) |
+| CAN transceiver | NXP **TJA1042T/3** (order as TJA1042T/3,118) | SO8 | $1.67 (qty 1) / $0.864 (qty 1000) (search-summary sourced) | 966 (search-summary sourced) — part selection itself verified in Section 5, out of this pass's scope |
+| P-FET (front-end protection) | **No part in this session met the criterion as written** | — | — | — |
+| TVS (front-end clamp) | Littelfuse **SMBJ24A** | DO-214AA (SMB) | $0.50 (qty 1, Littelfuse SKU; search-summary sourced) | 32,003 (search-summary sourced) |
+| PTC (x4, one per RGB string) | Littelfuse **1206L050/24WR** | 1206 (3216 metric) | $1.88 (qty 1) / $0.841 (qty 1000) | 24,602 (Digi-Key, live page fetch) |
+| Schottky OR pair (x2) | Nexperia **PMEG4010ER,115** | SOD123W | ~$0.42 (qty 1, search-summary sourced) | not confirmed this session |
+| Boost inductor | Coilcraft **XAL7070-682ME** (order as XAL7070-682MEC) | 7x7x3 mm shielded molded | not confirmed this session | not confirmed this session (a distinct but related part number, XAL7030-682MEC, was seen in search results — verify the exact 7070 vs 7030 case size before ordering) |
+
+**P-FET — no qualifying part found.** Row 6.1 requires Vds >= 40 V, RDS(on)
+<= 10 mOhm, and a native VGS rating covering a 24 V transient. The best
+candidate evaluated, Vishay SQJ415EP (40 V PowerPAK SO-8L), has RDS(on) of
+11.5 mOhm typ / 14.0 mOhm max (15-40% over budget) and a native VGS rating of
+only +/-20 V (short of the 24 V requirement without an added gate zener).
+Rather than name a part that does not meet its own row, this function is left
+open for a human to close — either by finding a lower-RDS(on) 40 V automotive
+P-channel MOSFET (Vishay's own P-channel selector guide could not be fetched
+this session — 2 attempts, both failed), by paralleling two SQJ415EP-class
+FETs to approximately halve effective RDS(on), or by accepting SQJ415EP with
+an added gate-clamping zener and re-checking the board's thermal budget
+against the higher RDS(on).
+
+**Mux caveat carried into the BOM:** ADG726BSUZ's Digi-Key listing describes
+it as a "Dual 16:1" switch in a 48-pin TQFP — a much larger pin count than a
+single 16-channel/4-address-line/EN device would need (~23 pins), which does
+not obviously match the "16 channels, 4 address lines" shape assumed in row
+1c.1. This was not reconciled against the primary ADG726 datasheet's pinout
+table within this session's effort cap (see row 1c.1's note). **Before
+ordering, a human must open the ADG726 datasheet directly and confirm which
+package/pinout variant actually gives a single 16:1 mux with 4 parallel
+address lines**, and adjust the exact orderable part number (there may be a
+smaller-pin-count package option in the same product family) accordingly.
+
+**Sourcing note on this table:** rows marked "search-summary sourced" reflect
+WebSearch's own aggregated answer text rather than a directly opened
+distributor page, because live WebFetch attempts to the distributor page
+either failed or were not attempted a second time within the effort cap for
+that specific lookup. This is weaker evidence than the "Digi-Key, live page
+fetch" rows and should be re-confirmed by a human before committing to
+final quantities/pricing for a board order.
 
 ## Appendix: superseded Section 1 — octal smart low-side switches (FAILED)
 
