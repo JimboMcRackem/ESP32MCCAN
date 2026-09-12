@@ -241,14 +241,37 @@ here because it is discovered by this section's datasheet read.
 
 | Contributor | Datasheet value | Source |
 |---|---|---|
-| ESP32 deep sleep | | |
-| EXT0 RTC_PERIPH domain | | |
-| CAN transceiver standby | | |
-| Buck quiescent | | |
-| Low-side switches standby | | |
-| PROFET standby | | |
-| P-FET gate + divider leakage | | |
-| **TOTAL** | | |
+| ESP32 deep sleep + EXT0 RTC_PERIPH domain | **10 uA** | Espressif "ESP32 Series Datasheet" v5.3, Table 4-2 "Power Consumption by Power Modes", row "Deep-sleep — RTC timer + RTC memory — 10 uA" (fetched 2026-09-12). The datasheet does not break "RTC_PERIPH domain for EXT0 wake" out as a separate incremental line from this baseline — RTC memory + RTC timer retention is part of the same RTC power domain that EXT0/RTC_GPIO wake depends on, so the two rollup rows are combined into this single verified figure rather than inventing a split that isn't in the source. (For contrast, the datasheet's next tier up, "Deep-sleep — ULP coprocessor powered up — 150 uA", is not needed for EXT0 alone and was not used here.) A human should still check the ESP32 Technical Reference Manual's more granular power-domain table if a tighter figure specific to "RTC_PERIPH with GPIO wake, ULP off" is wanted. |
+| CAN transceiver standby | **19 uA max** | This file, row 5.3 — NXP TJA1042T/3, Table 7 p.10: ICC (Standby) max 5 uA + IIO (Standby) max 14 uA = 19 uA max, condition VTXD = VIO (firmware must hold TXD/STB high through sleep). |
+| Buck quiescent (both rails) | **21 uA typ / 50 uA max** | This file, rows 4.1 and 4b.1 — TI LM5164 (SNVSAU4D), IQ-SLEEP1 10.5 uA typ / 25 uA max **per instance**; **two instances** are needed (one for the 3.3 V logic rail, one for the always-on 5 V transceiver rail), so the rollup uses 2x: 21 uA typ / 50 uA max. |
+| PROFET standby | **0.6 uA max** | This file, row 2.7 — Infineon BTS7008-2EPA, Table 1 p.2: IVS(SLEEP)_85 max 0.6 uA (one device required). |
+| Low-side switches standby (12x IRLZ44N leakage) | **UNVERIFIED — 25 uA max is the only documented figure, but at the wrong voltage (55 V, not this design's 24 V rail)** | This file, row 1a.1/1a.3 evidence — IRLIZ44NPbF Electrical Characteristics, p.2: "IDSS Drain-to-Source Leakage Current — VDS = 55 V, VGS = 0 V — Max 25 uA" (no 24 V-specific figure exists in the datasheet). Taking this figure literally across 12 channels gives a **conservative, almost-certainly-inflated upper bound of 12 x 25 uA = 300 uA** — real leakage at 24 V (44% of the test voltage) would be markedly lower for a trench MOSFET, but no verified 24 V number exists to replace this estimate with. This is a direct, material consequence of switching the RGB-channel FET recommendation away from PMV60ENEA (which specified only 1 uA max at 40 V, a much lower figure) to meet the revised Vgs(th) criterion in row 1a.2. |
+| P-FET gate + divider leakage | **UNVERIFIED — depends on a resistor value not yet chosen** | This file, row 6.1 — Vishay SQJ415EP gate leakage (IGSS) itself is negligible (max +/-100 nA per the datasheet), but the row 6.1 P-FET is biased by an external gate resistor divider from the 24 V-tolerant front end whose value is a Task 3/4 schematic decision, not yet made. A divider sized for >= 1 MOhm total resistance would add <= 24 uA at 24 V; this is a design target to carry into Task 3/4, not a verified figure. |
+| **TOTAL (known contributors only)** | **~50.6 uA typ / ~80.6 uA max** | Sum of ESP32+EXT0 (10) + CAN (19) + buck x2 (21 typ / 50 max) + PROFET (0.6) = 50.6 uA typ / 80.6 uA max. **Comfortably under the 200 uA target on its own.** |
+| **TOTAL (pessimistic, using the unverified upper-bound leakage figures)** | **~80.6 + up to 300 (FET leakage) + up to 24 (P-FET divider, design target) = up to ~405 uA** | This is the number that matters for a go/no-go call. |
+
+**Verdict:** the design's *known, datasheet-confirmed* contributors sum to well
+under the 200 uA target (~51-81 uA). The budget's fate rests entirely on the
+**two UNVERIFIED rows** — dominated overwhelmingly by the 12x RGB-channel
+FET OFF-state leakage, whose only documented figure (25 uA max) is measured
+at 55 V, not this design's 24 V rail, and is very likely a substantial
+overestimate at the real operating voltage. Using that unverified figure at
+face value, the pessimistic total (~405 uA) stays **under the 500 uA hard
+ceiling** but **exceeds the 200 uA target**, meaning this design **does not
+yet have a confirmed pass** against the target — it has a confirmed pass
+against the ceiling only, contingent on an unresolved leakage question.
+**This must be closed before sign-off**, in order of preference: (1) bench-measure
+IRLZ44N's actual IDSS at VDS = 24 V, VGS = 0 V (likely to land far below the
+300 uA pessimistic sum, based on how MOSFET leakage scales with voltage);
+(2) search for a 40 V-class logic-level MOSFET with a 24 V- or 25 V-specific
+leakage figure in its own datasheet, to replace the estimate with a real
+number; or (3) accept the PMV60ENEA-class part's much lower verified leakage
+(1 uA max at 40 V) for the RGB channels specifically if a workaround for its
+1a.2 threshold failure is found (e.g. the 5 V gate-drive level-shifter option
+noted in that section's original screening), trading the Vgs(th) margin
+question against the sleep-budget question. The second, smaller UNVERIFIED
+row (P-FET divider leakage) is a normal Task 3/4 resistor-sizing job, not a
+part-selection gap, and easily kept under ~24 uA by design.
 
 ## Final BOM decision
 
