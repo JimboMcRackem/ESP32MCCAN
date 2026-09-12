@@ -3,3 +3,8 @@
 fp-info-cache
 ~*
 *.lck
+
+# Third-party datasheets: copyrighted vendor documents, and this repo is public.
+# Kept locally for traceability; see datasheets/README.md to publish them.
+datasheets/*.pdf
+datasheets/*.png
