@@ -6,7 +6,7 @@
 enclosure and harness documentation and a bring-up procedure, for the ESP32 MCCAN motorcycle
 lighting controller.
 
-**Architecture:** Dual 12 V feed with domain-split protection; synchronous boost to 24 V for four
+**Architecture:** Single 12 V feed (second feed as DNP footprints); synchronous boost to 24 V for four
 common-anode RGB COB strings switched low-side through discrete MOSFETs with a shunt/mux/ADC
 per-channel diagnostic chain;
 Denali D4 2.0 pair switched high-side through a dual PROFET; ESP32-WROOM-32E-N8 with a PCA9685
@@ -83,7 +83,7 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - RGB sense: **1 Ω** shunt per channel = **140 mV** at 0.14 A; ADC at **0 dB attenuation** (0–1.1 V)
 - PWM: RGB **400 Hz** (PCA9685), Denali **150 Hz** (ESP32 LEDC)
 - Total internal dissipation: **~4.5 W steady-state worst case** (daytime: all RGB white, Denali off
-  — see spec §2.4 for why the loads never coincide). ~5.7 W transient only. Plate **≥300 cm²**
+  — see spec §2.4 for why the loads never coincide). ~6.7 W transient only. Plate **≥300 cm²**
   effective, hard requirement
 - Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
 - Power polygon: **≥ 5–6 mm** width at 2 oz for a 10 °C rise at the single feed's **7.8 A**
@@ -131,6 +131,7 @@ voltage at boot.
 | `MUX_S0`–`S3` | pulldown to GND | Defined channel; **required on GPIO 5** (strapping pin) |
 | **`IGN_SENSE`** | **pulldown, ALWAYS POPULATED** | **GPIO 34–39 have NO internal pulls; EXT1 `ANY_HIGH` is armed here (C2)** |
 | `DEN_DSEL` | pulldown to GND | Defined channel selection |
+| **`EN_DIAG`** (GPIO 27) | **pulldown to GND** | PROFET Sleep mode needs ALL of `INn`/`DEN`/`DSEL` low; GPIO 27 is not RTC-capable so it floats in sleep |
 
 **Net naming contract** — sheets connect only through these names. Use them exactly.
 
@@ -164,7 +165,7 @@ shown. Never leave a task's work uncommitted.
 | `hardware/README.md` | How to open the project, invoke `kicad-cli`, regenerate outputs |
 | `hardware/mccan.kicad_pro` | KiCad project |
 | `hardware/mccan.kicad_sch` | Root schematic — sheet instances only, no components |
-| `hardware/sheets/power_input.kicad_sch` | Both feeds: fuses, P-FETs, TVS, π+CM filters, Schottky OR |
+| `hardware/sheets/power_input.kicad_sch` | Single feed: 10 A fuse, P-FET, TVS, π+CM filter → `VBAT`; second feed + Schottky OR as DNP footprints |
 | `hardware/sheets/rails.kicad_sch` | Sync boost, low-Iq buck, 3V3 load switch |
 | `hardware/sheets/mcu_can.kicad_sch` | ESP32 module, TJA1042, programming header, status LED |
 | `hardware/sheets/outputs.kicad_sch` | PCA9685, 12× MOSFET + shunt, 16:1 mux, dual PROFET, PTCs, connectors |
@@ -225,7 +226,7 @@ DRC (must exit 0, includes schematic parity):
 
 | Sheet | Contents |
 |---|---|
-| power_input | Both feeds: fuses, P-FETs, TVS, pi+CM filters, Schottky OR |
+| power_input | Single feed: 10 A fuse, P-FET, TVS, pi+CM filter -> VBAT; 2nd feed + Schottky OR as DNP |
 | rails | Sync boost, low-Iq buck, 3V3 load switch |
 | mcu_can | ESP32 module, TJA1042, programming header, status LED |
 | outputs | PCA9685, 12x MOSFET + shunt, 16:1 mux, dual PROFET, PTCs, connectors |
@@ -338,7 +339,7 @@ CD74HC4067 is NOT acceptable: HC on-resistance rises steeply below 4.5 V and is 
 | 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | | |
 | 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | | |
 | 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | | |
-| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | | |
+| 1c.6 | Settling time. **The binding constraint is the I15 10 kOhm series resistor with the 10 nF ADC buffer cap: tau = 100 us, so >= 500 us (5 tau) per step before sampling** - not the mux transition | | |
 
 ### Rulings 11 and 12 — why 1a.2 changed and what the mux must be
 
@@ -359,7 +360,7 @@ banned interpolation from a similar part.
 uncharacterised at 3.3 V) genuinely threatens the 140 mV signal the whole diagnostic chain rests on:
 - **Part:** ADG706-class, specified at 3.3 V, ~2.5 ohm — two orders of magnitude better, which
   removes the question rather than arguing about its size
-- **Design:** a **~100 nF buffer capacitor at the ADC input** (Task 6). The ESP32's SAR ADC is a
+- **Design:** a **~10 nF buffer capacitor at the ADC input** (Task 6) - 10 nF, not 100 nF, so the RC with the 10 kOhm series resistor settles in 100 us rather than 1 ms. The ESP32's SAR ADC is a
   sample-and-hold; the cap supplies S/H charge locally so source resistance stops mattering almost
   regardless of the mux
 
@@ -418,7 +419,7 @@ Candidate: TI LM5122-Q1
 | # | Required | Actual | Verdict |
 |---|---|---|---|
 | 3.1 | Input rating 40-60 V (must exceed the 24 V TVS clamp voltage) | | |
-| 3.2 | Synchronous (external FETs), efficiency >= 94% at 40 W out | | |
+| 3.2 | Synchronous (external FETs). **Efficiency: 92% is the budgeted figure (spec 9.4); >= 94% is the datasheet target and UNVERIFIED** | | |
 | 3.3 | Enable pin, 3.3 V logic compatible | | |
 | 3.4 | Spread-spectrum, frequency dither, **an external SYNC/dither input, or a documented EMC mitigation plan** (relaxed — this is an EMC nicety, not a functional requirement) | | |
 | 3.5 | Disabled-state current draw <= 10 uA, or gated externally | | |
@@ -464,7 +465,7 @@ Candidate: NXP TJA1042T/3
 |---|---|---|---|
 | 6.1 | P-FET: Vds >= 40 V, **Rds(on) <= 20 mOhm** (relaxed from 10), Vgs rating evaluated **WITH the Zener gate clamp in circuit** (spec 4.2) — the gate never sees the full rail, so a +/-20 V Vgs part is acceptable | | |
 | 6.2 | TVS: standoff ~24 V, clamp < 40 V, rated for the feed current | | |
-| 6.3 | PTC: 0.5 A hold at 24 V, trip < 1 A, 4 required | | |
+| 6.3 | PTC: **hold >= 0.42 A AT 65 degC** (≈ >= 0.75 A nominal at 23 degC — APPLY the datasheet's derating table, do not use the 23 degC figure), Vmax >= 24 V, trip below the boost's 2.5 A limit, 4 required. **NOTE: the 1206L family fails this; a larger family is needed.** | | |
 | 6.4 | Schottky OR pair: 40 V, >= 0.5 A, low leakage | | |
 | 6.5 | Boost inductor: shielded, saturation current >= 1.5x peak | | |
 
@@ -599,7 +600,7 @@ warnings, but no errors).
 
 ```bash
 git add hardware/sheets/power_input.kicad_sch hardware/output/erc.rpt
-git commit -m "hw(sch): dual-feed power input with domain split and Schottky logic OR"
+git commit -m "hw(sch): single-feed power input, second feed as DNP footprints"
 ```
 
 ---
@@ -640,6 +641,15 @@ feed is ever populated, when it becomes what keeps the MCU alive through a singl
 
 Load switch from `+3V3_ALW` to `+3V3_SW`, enable from `EN_3V3SW`.
 **Add a pulldown resistor on `EN_3V3SW`** per the passive-default table.
+
+- [ ] **Step 3b: Draw the 5 V regulator, gated**
+
+`VBAT` → 5 V regulator (part 4b) → `+5V`, **enable tied to `EN_3V3SW`** — the same enable as
+`+3V3_SW`, so no extra GPIO. This rail feeds **only** the TJA1042's VCC and is **off in deep sleep**;
+the transceiver's VIO stays on `+3V3_ALW` and is what detects bus activity.
+
+Without this step nothing on any sheet instantiates the rail, even though it has a net name, a
+verification section and a BOM line.
 
 - [ ] **Step 4: Draw the synchronous boost from `VBAT` to `+24V`**
 
@@ -787,7 +797,6 @@ ACCEPTANCE (spec 5, 9.1, 9.2):
 - 12 SENSE_* nodes -> 16:1 analog mux (MUX_S0-S3) -> RGB_ISNS -> GPIO 32 (ADC1_CH4)
 - NO SPI anywhere on this board
 - Dual PROFET from **VBAT**, inputs PWM_DEN_A/B from ESP32 LEDC on **GPIO 18/19** (NOT the PCA9685)
-- ONE multiplexed sense output -> ISNS_DEN (GPIO 34); DEN_DSEL (GPIO 33) selects the channel
 - PROFET: ONE sense output -> ISNS_DEN (GPIO 34) with scaling resistor; DEN_DSEL (GPIO 33) selects
   which channel IS reports
 - 4x PTC, one per string, on the +24V feeds
@@ -827,7 +836,7 @@ ADC's 0–1.1 V range and the mux's 3.3 V rail — and **6.25 W** in a 1 Ω resi
 shunts, and confirm the per-string PTC trips below 2.5 A so the PTC clears the fault rather than the
 shunt failing first.
 
-Add a **~100 nF buffer capacitor at the ADC input** (`RGB_ISNS`, GPIO 32) — it supplies the SAR
+Add a **~10 nF buffer capacitor at the ADC input** (`RGB_ISNS`, GPIO 32) - 10 nF gives tau = 100 us with the 10 kOhm series resistors, so firmware waits >= 500 us per mux step; 100 nF would make that 1 ms — it supplies the SAR
 sample-and-hold charge locally, which is what makes the 10 kΩ series resistors harmless.
 
 Add a note on the sheet:
@@ -853,7 +862,7 @@ to select which channel `IS` reports. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the D
 `+24V` → PTC → `+24V_FL`, and likewise `+24V_FR`, `+24V_RL`, `+24V_RR`. Note on the sheet:
 "Isolates a shorted string so one crushed cable cannot extinguish all four corners (spec 5.2)."
 
-- [ ] **Step 6: Place all six populated connectors**
+- [ ] **Step 6: Place all seven populated connectors**
 
 | Connector | Type | Pins |
 |---|---|---|
@@ -988,7 +997,7 @@ LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
 - 2 oz outer copper
 - Power polygon >= 5-6 mm effective width for the single feed's 7.8 A continuous / 10.5 A transient
 - Boost switch-node loop area MINIMISED; gate loops short and tight
-- Boost FETs, inductor and both P-FETs grouped on the heat-spreader edge
+- Boost FETs, inductor, **the single P-FET** and the PROFET grouped on the heat-spreader edge (~3.8 W)
 - ESP32 antenna keep-out: NO copper/plating/parts any layer under the antenna
 - Antenna edge faces AWAY from the aluminium plate
 - Connectors on one edge, matching the panel layout in docs/enclosure.md
@@ -1003,9 +1012,9 @@ signals; a `CAN` class for `CANH`/`CANL` with matched width and spacing for ~120
 
 - [ ] **Step 3: Place the thermal group on the heat-spreader edge**
 
-Boost high-side and low-side FETs, boost inductor, both P-FETs, and the PROFET all grouped along
-the edge that will face the aluminium plate. These are ~3.6 W of the board's dissipation
-(spec §9.4) and the plate is the only real path out of a plastic box.
+Boost high-side and low-side FETs, the boost inductor, **the single P-FET** and the PROFET, all grouped
+along the edge that will face the aluminium plate. These are **~3.8 W** of the board's dissipation in daytime — 3.50 W boost + 0.30 W P-FET (spec §9.4) —
+and the plate is the only real path out of a plastic box.
 
 Add thermal via arrays under each part's exposed pad — enough vias that the pad-to-L3 resistance
 does not dominate. Note the intended gap-pad contact area on the board.
@@ -1082,7 +1091,7 @@ noise here shows up as phantom faults.
 - [ ] **Step 5: Route the remaining signals, then add test points**
 
 Remaining buses and control nets. Then add test points on `VBAT`, `VLOGIC_IN`, `+24V`, `+5V`,
-`+3V3_ALW`, `+3V3_SW`, `+5V`, `I2C_SDA`, `I2C_SCL`, `RGB_ISNS`, `CANH`, `CANL`, `GND` (several).
+`+3V3_ALW`, `+3V3_SW`, `I2C_SDA`, `I2C_SCL`, `RGB_ISNS`, `CANH`, `CANL`, `GND` (several).
 
 - [ ] **Step 6: Run the DRC completion gate**
 
@@ -1217,9 +1226,9 @@ to the next stage with an unexplained result.
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
 | 24 V into 2.5 A dummy load | 24.0 V +/- 5%, stable | | |
-| Efficiency at 40 W out | >= 94% | | |
+| Efficiency at 40 W out | **>= 92%** is the budgeted figure (spec 9.4); >= 94% is the datasheet target and UNVERIFIED | | |
 | Output ripple | < 200 mV pk-pk | | |
-| Boost group temperature rise after 30 min | consistent with ~2.6 W | | |
+| Boost group temperature rise after 30 min | consistent with **~3.5 W** (the 92% figure the budget uses) | | |
 
 ## Stage 3: Quiescent current in simulated sleep
 | Check | Expected | Measured | Pass |
@@ -1249,8 +1258,8 @@ If over budget, isolate per contributor against the part-selection roll-up table
 | RGB PWM frequency | 400 Hz +/- 5% | | |
 | Denali PWM frequency | 150 Hz +/- 5% | | |
 | Low-duty linearity, all 12 channels | Monotonic from duty 1; colours matched | | |
-| Open-load detection with one channel disconnected | Fault reported (part-selection row 1.1) | | |
-| Short-to-ground detection | Fault reported, channel protected | | |
+| Open-load detection with one channel disconnected | Fault reported (part-selection **Section 1a** — NOT the superseded appendix row 1.1) | | |
+| Short a return to chassis, channel commanded OFF | **Reads as "open" (~0 mV) while the LED is STUCK ON** — the documented limitation, not a defect; the shunt is bypassed (spec 5.1, C5) | | |
 
 ## Stage 7: CAN
 | Check | Expected | Measured | Pass |
@@ -1274,7 +1283,7 @@ pods' native DataDim input (spec 5.3).
 ## Stage 9: Vehicle install
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Both Experia outlets confirmed independent 10 A circuits | Independent | | |
+| The Experia outlet sustains the night load | **7.8 A continuous (78% of its 10 A rating)** without sag or a warm connector | | |
 | Internal temperature after a sustained ride | < 65 C at 40 C ambient | | |
 | Parked quiescent drain over 7 days | Consistent with < 200 uA | | |
 | Does the CAN bus actually idle when parked? | Bus goes quiet -> board sleeps | | |
@@ -1303,10 +1312,10 @@ git commit -m "hw(docs): staged bring-up procedure with pass criteria and measur
 |---|---|
 | §2 Loads and power budget | 2 (verification), 3 (feeds), 10 (harness gauges) |
 | §3 Architecture, three domains | 3, 4, 6 |
-| §4.1 Fusing, two holders | 3, 10 |
+| §4.1 Fusing, one holder | 3, 10 |
 | §4.2 P-FET reverse polarity | 3 |
 | §4.3 Transient protection | 3 |
-| §4.4 Dual feed, domain split, Schottky OR | 3, 7 |
+| §4.4 Single feed; second feed DNP; Schottky OR | 3, 7 |
 | §5.1 Discrete FETs + shunt/mux/ADC sense chain | 2 (revised criteria), 6 |
 | §5.2 Per-string PTC | 6 |
 | §5.3 Dual PROFET | 2, 6 |

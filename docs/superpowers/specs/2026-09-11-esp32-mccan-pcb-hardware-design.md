@@ -358,10 +358,20 @@ the output-characteristic curve showing **Id ≥ 0.5 A at Vgs ≤ 3.3 V**.
 - ADC at **0 dB attenuation** (0–1.1 V range), so 140 mV is ~13% of full scale — ample to separate
   open (≈0 mV), working (≈140 mV) and shorted (saturated)
 - 1 Ω chosen deliberately over 2.2 Ω: the larger shunt would read a cleaner 308 mV but cost 0.5 W
-- **The mux must be specified for 3.3 V operation** — ADG706-class (1.8–5.5 V, ~2.5 Ω on-resistance).
+- **The mux must be specified for 3.3 V operation** — ADG706-class. Note its real figures at the rail
+  actually used: **2.7–5.5 V supply, RON 6 Ω typ / 11–12 Ω max at 3 V** (the often-quoted ~2.5 Ω is the
+  5 V column). The buffer capacitor below makes the difference immaterial.
   CD74HC4067 is excluded: HC on-resistance rises steeply below 4.5 V and is uncharacterised at 3.3 V
-- **A ~100 nF buffer capacitor at the ADC input** supplies the SAR sample-and-hold charge locally, so
-  mux on-resistance cannot corrupt the reading. Belt and braces with the part choice above
+- **A ~10 nF buffer capacitor at the ADC input** supplies the SAR sample-and-hold charge locally, so
+  mux on-resistance cannot corrupt the reading. Belt and braces with the part choice above.
+- **SETTLING TIME IS A REAL CONSTRAINT (added 2026-09-12).** The I15 series resistor (10 kΩ) and this
+  buffer capacitor form an RC: **τ = 100 µs**, so a step must settle for **≥ 500 µs (5τ)** before the
+  ADC samples. This — not the mux's own ~45 ns transition — is what bounds the sweep. Sample a channel
+  1 τ after a 140 mV neighbour and it still carries ~51 mV of residual, which sits **inside** the band
+  between "open (≈0 mV)" and "working (≈140 mV)" and would misclassify. The cap is deliberately 10 nF
+  rather than 100 nF for this reason: at 100 nF, τ would be 1 ms and the whole 12-channel sweep would
+  need tens of milliseconds. **Firmware must wait ≥ 500 µs per step**; §12's diagnostic sweep carries
+  the requirement.
 - Fallback if 140 mV proves noisy on the bench: a 2.2 Ω shunt (308 mV, 0.5 W) or an op-amp gain stage
 
 **I15 — THE SENSE PATH MUST SURVIVE THE FAULT IT EXISTS TO DETECT (added 2026-09-12).** The design
@@ -431,9 +441,15 @@ PTC on each string's +24 V feed isolates the fault to one corner for a few cents
 > cool: an intermittent fault **in the indicator path**, which no bench test at room ambient
 > reproduces.
 >
-> **Requirement:** hold current **≥ 0.42 A at 65 °C** with margin, which for typical PPTC derating
-> means a nominal **≥ 0.75 A hold at 23 °C**. Trip current must still act before the boost's 2.5 A
-> limit. Vmax ≥ 24 V. **The part must be re-selected with the derating table actually applied.**
+> **Requirement:** hold current **≥ 0.42 A at 65 °C** with margin — for typical PPTC derating, a
+> nominal **≥ 0.75 A hold at 23 °C**. Trip must still act before the boost's 2.5 A limit. Vmax ≥ 24 V.
+>
+> **The Littelfuse 1206L family CANNOT meet this and no replacement is yet selected (2026-09-12).**
+> Measured against the datasheet's own derating table, the best 24 V-rated part (1206L050/24) holds
+> **0.31 A at 65 °C** — 26% short of the load — and every 1206L part rated ≥ 0.75 A hold is limited to
+> Vmax ≤ 16 V. A **larger package family** is required: 1812L, Bourns MF-SMD or TE miniSMDC. Note this
+> part is load-bearing for §5.1's I15 protection, where the PTC (not the 1 Ω shunt) must clear a
+> shorted channel — so the shunt's survival in that state is unproven until the PTC is chosen.
 Cheap insurance on an exposed, vibration-loaded cable run.
 
 ### 5.3 Denali — dual PROFET high-side
@@ -494,7 +510,7 @@ constraint, not a layout convenience.
 | Rail | Topology | Spec | Notes |
 |---|---|---|---|
 | 3.3 V | Buck, **low quiescent** (LM5164 class) | ~1 A | Always on; must supply ESP32 WiFi TX peaks (~500 mA) |
-| **5 V** | **Low-quiescent regulator, always on** | ~100 mA | **ADDED 2026-09-11 — see below** |
+| **5 V** | Low-quiescent regulator, **enable-gated (off in sleep)** | ~100 mA | Shares `EN_3V3SW`; feeds TJA1042 **VCC** only — see below |
 | 24 V | **Synchronous** boost controller + external FETs (LM5122-Q1 class) | 60 W design point, 2.5 A | Enable-gated |
 
 **The 5 V rail is mandatory, but it is ENABLE-GATED, not always-on (corrected 2026-09-12, I10).** Task 2b established that the **TJA1042's VCC is
@@ -509,7 +525,7 @@ receiver "is supplied by VIO" and "is capable of detecting CAN bus activity even
 supply voltage available". VCC is needed for **normal mode**, not for wake detection. Gating it
 recovers 10–25 µA from a sleep budget that §8.2 shows is tighter than previously believed.
 
-Note that §3's "three power domains" becomes **four** once this rail is added.
+§3 accordingly describes **four** power domains.
 
 **Why synchronous:** a non-synchronous boost loses ~6 W at this power; synchronous roughly
 halves it to ~3 W. Combined with the enclosure's heat-spreader plate (§9) this gives large
@@ -619,6 +635,7 @@ freeze pad levels through deep sleep, every enable is pulled to its safe state i
 | `MUX_S0`–`S3` | pulldown to GND | Defined mux channel; **required on GPIO 5**, a strapping pin |
 | **`IGN_SENSE`** | **pulldown to GND, ALWAYS POPULATED** | **Defined low.** GPIO 34–39 have **no internal pulls**, and EXT1 `ANY_HIGH` is armed on this pin — left floating it wakes the board on noise (see below) |
 | `DEN_DSEL` | pulldown to GND | Defined PROFET channel selection |
+| **`EN_DIAG`** (GPIO 27 → PROFET `DEN`) | **pulldown to GND** | **ADDED 2026-09-12.** The PROFET reaches its 0.6 µA Sleep mode only when **all** digital inputs (`INn`, `DEN`, `DSEL`) are low. GPIO 27 is **not** RTC-capable, so it floats in deep sleep; with `DEN` high the part sits in Stand-by at a higher, unquantified current and the §8.2 budget's PROFET line stops holding |
 
 This makes the sleep state the *unpowered* state, so a crash, brownout or reset can never leave
 the lights on or the rails up.
@@ -650,9 +667,11 @@ done with the bike on. No wake button, no post-idle window.
    **Why two mechanisms rather than one:** bus wake drives RXD **low**, while ignition sense is
    **high** when present. The classic ESP32's EXT1 supports only `ALL_LOW` or `ANY_HIGH` — never
    mixed polarity, and `ANY_LOW` does not exist — so a single EXT1 cannot cover both. EXT0 takes
-   the active-low CAN line; EXT1 takes the active-high ignition line. **Cost:** EXT0 requires the
-   `RTC_PERIPH` power domain to stay on, adding roughly 10 µA to the sleep budget (§8.2). That is
-   accounted for and still inside the 200 µA target.
+   the active-low CAN line; EXT1 takes the active-high ignition line. **Cost:** EXT0 requires the `RTC_PERIPH` power
+   domain to stay on. **This is NOT an increment on top of the deep-sleep figure** — §8.2 budgets a
+   single combined row of ~10 µA, because the datasheet's "Deep-sleep / RTC timer + RTC memory" figure
+   already covers the same RTC power domain that EXT0 wake depends on. An earlier revision of this
+   sentence implied an extra ~10 µA and was double-counting.
 4. Bus activity → transceiver drives RXD low → ESP32 wakes, restores the transceiver to normal
    mode, re-enables both rails
 
@@ -813,8 +832,9 @@ because the loads never coincide and a single mixed column was what produced the
 | Buck and logic | 0.40 W | 0.40 W |
 | **Total** | **~4.5 W — governs the design** | **~2.9 W** |
 
-*Transient peak ~5.7 W during a flash-to-pass in daylight — seconds at a time, absorbed by thermal
-mass, not thermally sizing.*
+*Transient peak ~6.7 W during a flash-to-pass in daylight — seconds at a time, absorbed by thermal
+mass, not thermally sizing. (3.50 boost + 2.21 P-FET at 10.5 A and 20 mΩ + 0.35 PROFET + 0.01 + 0.24
++ 0.40.)*
 
 **Daytime governs even though night draws more current.** The boost carries the whole RGB load in
 daytime (3.5 W of loss), and that dwarfs the extra P-FET and PROFET dissipation at night.
@@ -908,7 +928,16 @@ to claim automotive compliance. Designing for it now costs little; retrofitting 
 4. Buck capable of ESP32 WiFi TX peaks (~500 mA) while retaining low quiescent draw
 5. PROFET continuous per-channel rating exceeds **3.3 A** with margin, and its current-sense
    ratio resolves a 3.3 A load (§5.3)
-6. **The chosen Experia peripheral outlet sustains 7.8 A** (78% of its 10 A rating) without voltage
+6. **THE THREE OPEN PART ITEMS — all three block a BOM commit** (added 2026-09-12; an earlier revision
+   of this list omitted them entirely, which made the BOM gate silent on the only hard FAIL in the set):
+   - **PTC — hard FAIL, no part selected.** The 1206L family cannot meet 0.42 A at 65 °C (§5.2).
+     Needs an 1812L / Bourns MF-SMD / TE miniSMDC datasheet and a re-selection.
+   - **TVS — UNVERIFIED** after nine failed fetch attempts. Neither file in `hardware/datasheets/`
+     named for the TVS is actually an SMBJ24A datasheet. Needs a human browser download.
+   - **RGB MOSFET ×12 — zero stock, 30-week lead** (next batch 18-Jan-2027), and the qualified second
+     source PMV30ENEA is **also** backordered. This is a commodity part class, so the action is a
+     stock-filtered parametric search, which also needs a human browser.
+7. **The chosen Experia peripheral outlet sustains 7.8 A** (78% of its 10 A rating) without voltage
    sag or a warm connector — confirm on the vehicle. This is the tight spot of the single-feed
    design (§4.1)
 
@@ -936,7 +965,7 @@ gets its own plan.
 | 1 | **Deep sleep + CAN wake** | Bus-idle timeout, **EXT0 on GPIO 35 (level 0) plus EXT1 `ANY_HIGH` on GPIO 36** (§8.1 — one mechanism cannot do both polarities), rail enable sequencing, minimum-awake period. No sleep logic exists today. |
 | 2 | **Composite PWM HAL** | Route `IPwm` channels 0–11 to PCA9685, 12–13 to LEDC (§5.4). `ChannelIndex` unchanged. |
 | 3 | **8 MB partition table** | Custom CSV replacing stock `default.csv` (§7.1). |
-| 4 | **Diagnostic sweep + mux scan** | Drive one channel to 100%, step the mux, read ADC1; classify open/working/shorted; read PROFET sense. Surface in the existing web app. Replaces the SPI diagnostics layer — there is no SPI on the board. |
+| 4 | **Diagnostic sweep + mux scan** | Drive one channel to 100%, step the mux, **wait ≥ 500 µs for the 10 kΩ/10 nF RC to settle (§5.1)**, read ADC1; classify open/working/shorted; read PROFET sense. Surface in the existing web app. Replaces the SPI diagnostics layer — there is no SPI on the board. |
 | 5 | **Installation self-test** | Falls out of item 4's sweep at near-zero extra cost: light each corner in turn to catch mis-mated connectors (§9.2). |
 | 6 | *OTA updates* | Optional, later. Enabled by the 8 MB partition table. |
 

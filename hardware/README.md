@@ -70,6 +70,7 @@ unused: it selects flash voltage at boot.
 | All 14 `PWM_*` | pulldown to GND | All outputs off |
 | **`IGN_SENSE`** | **pulldown, ALWAYS POPULATED** | **Defined low.** GPIO 34–39 have NO internal pulls and EXT1 `ANY_HIGH` is armed here — floating, it wakes the board on noise (C2) |
 | `DEN_DSEL` | pulldown to GND | Defined channel selection |
+| **`EN_DIAG`** (GPIO 27) | **pulldown to GND** | PROFET Sleep mode needs ALL of `INn`/`DEN`/`DSEL` low; GPIO 27 is not RTC-capable so it floats in sleep |
 | `MUX_S0`–`S3` | pulldown to GND | Defined channel; **required on GPIO 5** (strapping pin) |
 
 **Net naming contract** — sheets connect only through these names. Use them exactly.

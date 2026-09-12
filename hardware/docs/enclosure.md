@@ -24,7 +24,7 @@ At the steady-state worst case, natural convection (h ≈ 8 W/m²K) needs:
 
 **Updated 2026-09-12** for the real operating modes (spec §2.4 — the owner confirmed the loads never
 all coincide: daytime has the Denali lights off, night has the front DRLs off). Steady-state worst
-case is **daytime, ~4.5 W**; night is ~2.6 W. The old "full white plus both Denali" figure of 5.7 W
+case is **daytime, ~4.5 W**; night is **~2.9 W**. The old "full white plus both Denali" figure of 5.7 W
 occurs only during a flash-to-pass in daylight, for seconds, and is absorbed by thermal mass.
 
 | Effective area | Daytime 4.5 W | Internal at 40 °C | Night 2.9 W | Verdict |
@@ -77,16 +77,15 @@ the bracket drawing.
 
 ### Gap pad — not the bottleneck
 
-~**2.1 K** across 1200 mm² of 1.5 mm, 2 W/mK material at 3.4 W. The constraint was always the
-plate's external convection, never the pad.
+~**2.9 K** across 1000 mm² of 1.5 mm, 2 W/mK material at **3.8 W** (the daytime thermal group: 3.50 W
+boost + 0.30 W P-FET). The constraint was always the plate's external convection, never the pad.
 
 ### Note on worst case
 
 The governing case is **daytime, ~4.5 W** — all four corners at full white with the Denali lights off
 (spec §2.4). Night is lower at ~2.9 W despite drawing more current, because the boost carries the
-whole RGB load in daytime and that loss dominates. The ~5.7 W figure that a full-white-plus-both-Denali
-combination implies occurs only during a flash-to-pass in daylight, for seconds, and is absorbed by
-thermal mass.
+whole RGB load in daytime and that loss dominates. The **~6.7 W** that a full-white-plus-both-Denali combination
+implies occurs only during a flash-to-pass in daylight, for seconds, and is absorbed by thermal mass.
 
 The design sizes for the daytime steady state deliberately, because the RGB stage is discrete MOSFETs
 with no thermal protection of their own — unlike the smart switches originally specified, which would

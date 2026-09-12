@@ -51,7 +51,8 @@ so a protection failure doesn't cascade into real damage.
 |---|---|---|---|
 | Feed current with no load | < 5 mA | | |
 | `+3V3_ALW` | 3.30 V ± 3% | | |
-| `+5V` rail (mandatory, TJA1042 VCC) | within 4.5–5.5 V, nominal 5.0 V | | |
+| `+5V` rail **with `EN_3V3SW` asserted** | within 4.5–5.5 V, nominal 5.0 V | | |
+| `+5V` with `EN_3V3SW` floating | **0 V** — the rail is gated, like `+3V3_SW` | | |
 | `+24V` with `EN_BOOST` high | 24.0 V ± 5% | | |
 | `+24V` with `EN_BOOST` floating | ~VBAT (boost FET body diode; see rails sheet note) | | |
 | `+3V3_SW` with `EN_3V3SW` floating | 0 V (pulldown) | | |
