@@ -60,46 +60,46 @@ Product specification, 14-Nov-2025, V.14.
 | 1b.2 | Power rating >= 50 mW with margin (dissipates 20 mW at 0.14 A) | Datasheet "Functional description", "Power rating": "RC2512 = 1 W, 2 W" (rated power at 70 degC). Table 3, RC2512 row confirms 1 W and 2 W options both cover 1 Ohm at 1% tolerance. | **PASS** — 1 W (1000 mW) minimum option vs 50 mW required; actual dissipation of 0.14^2 x 1 = 19.6 mW is under 2% of the 1 W rating, >50x thermal margin. |
 | 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | Table 3, RC2512 row: "Temperature Coefficient — 1 Ohm <= R <= 10 Ohm: +/-200 ppm/degC". Over a 100 degC swing from a 25 degC reference (e.g. to 125 degC), drift = 200 ppm/degC x 100 degC = 20,000 ppm = 2% of nominal resistance, i.e. the 1 Ohm sense resistor could read 0.98-1.02 Ohm. At 0.14 A that shifts the 140 mV nominal reading by about +/-2.8 mV. | **PASS** — a +/-2.8 mV (2%) shift is negligible against the coarse three-bin classification (open ~0 mV / working ~140 mV / shorted saturated), which needs to separate states by tens to hundreds of mV, not a few mV. |
 
-### 1c. 16-channel analog multiplexer (1 required) — REVISED 2026-09-12, hard 3.3 V requirement
+### 1c. 16-channel analog multiplexer (1 required) — REVISED again, fix round 1 Finding 5
 
-**CD74HC4067 is excluded per the task's hard requirement** (HC-family
-on-resistance is uncharacterised below 4.5 V — see the prior pass's findings,
-retained below for the record). **ADG706 was re-checked directly against the
-new requirement and itself FAILS it** — its own datasheet's specifications
-table is written only for VDD = 5 V, with no 3 V/3.3 V column at all (this
-is a genuine gap in the part's own datasheet, not a search-summary error —
-confirmed twice below). Two other Analog Devices low-voltage muxes were then
-checked: **ADG708** (8-channel, genuinely 3 V-tabulated, but wrong channel
-count) and **ADG726** (16-channel, 4 address lines — the right shape — with
-strong structural evidence of a dedicated 3 V table, but exact numbers could
-not be pulled from any reachable mirror inside the effort cap). **ADG726 is
-the recommended part**, with the numeric RON/leakage table at 3 V left as an
-open item for a human to close directly from Analog Devices.
+**ADG706 restored as the primary recommendation.** The previous pass's "FAIL"
+verdict for ADG706 is **withdrawn**: it rested on a radiolocman mirror of a
+later "Rev. B" datasheet that appeared to show only a 5 V specifications
+table. In this fix round, a **complete, genuine ADG706/ADG707 primary
+datasheet (Rev. A, 2002, Analog Devices, fetched via a Farnell-hosted direct
+PDF mirror, downloaded and parsed page-by-page with PyMuPDF — 12 real,
+varied pages: features, functional diagram, three full specifications
+tables, absolute maximum ratings, pinout, and both truth tables)** was
+obtained, and it **does** carry a dedicated "SPECIFICATIONS (VDD = 3 V
++/-10%...)" table on page 3, with real RON/leakage/timing numbers at 3 V.
+This directly satisfies Finding 5's instruction to prefer ADG706 (the right
+shape — single 16:1, 4 address lines) over ADG726 (which turned out to be
+sold as a confusing "dual 16:1"/48-pin part, the wrong shape, and whose exact
+3 V numbers could never be pulled from any reachable source in the prior
+round). **Open item for a human:** Rev. A (2002) is an older document; a
+later revision may exist on analog.com (which blocked every direct fetch
+attempt this session and every prior session) — a human should confirm the
+currently-shipping datasheet revision still carries this 3 V table with the
+same or better numbers before board order, though the electrical die itself
+is unlikely to have changed between documentation revisions for a mature,
+single-sourced 2002-era part.
+
+**CD74HC4067 remains excluded** per the task's hard requirement (HC-family
+on-resistance uncharacterised below 4.5 V) — retained below for the record.
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 1c.1 | 16 channels, single-ended, 4 binary select lines | ADG726 product description (Analog Devices product page, and consistently repeated across independent distributor listings — Mouser, Digi-Key, alldatasheet — fetched 2026-09-12): "monolithic CMOS 16-channel analog multiplexer that switches one of 16 inputs... determined by 4-bit binary address lines," parallel address inputs (vs. the serial-interface ADG725/ADG731 siblings). The datasheet's own table of contents (confirmed via a direct fetch of the Rev. C, 2/2021 document, radiolocman mirror) lists pin/function sections consistent with this. Exact pinout/truth table was not read from the primary PDF within the effort cap (see below). | **PASS, with a caveat** — channel count and 4-address-line structure are corroborated by multiple independent sources describing the same physical part, but the primary-source pinout table itself was not opened. A human should confirm the pinout (A0-A3, EN, 16x S pins, D) directly from the ADI datasheet before layout. |
-| 1c.2 | **Specified** (not merely tolerant) for 3.3 V operation, with on-resistance tabulated at 3.3 V | ADG726/ADG732 datasheet (Analog Devices, Rev. C, 2/2021) table of contents, read directly (radiolocman mirror, fetched 2026-09-12): lists **three separate "Specifications" sections** — "+5 V Single Supply" (p.3), "**+3 V Single Supply**" (p.5), and "+/-2.5 V Dual Supply" (p.7). This confirms the part carries a dedicated, distinctly-titled 3 V specifications table in its own datasheet structure — the same pattern independently confirmed for its sibling ADG708/ADG709 (see below), which really does tabulate RON at VDD = 3 V +/- 10% with real numbers (8 Ohm typ / 11-12 Ohm max). The actual ADG726 +3 V table's numeric contents (page 5) could not be extracted: direct PDF fetches from Mouser (2 attempts) and alldatasheet.com (1 attempt, HTTP 403) failed, a curl download from a third mirror (dzsc.com) returned a corrupted/truncated file (0 readable pages), and the radiolocman preview served only the cover/TOC/revision-history pages, not the specifications body. | **PASS on structure, UNVERIFIED on numbers** — the datasheet demonstrably has a dedicated +3 V table (confirmed from its own table of contents), satisfying "specified for 3.3 V" in principle, but the actual RON figure printed in that table was not obtained. A human must open https://www.analog.com/media/en/technical-documentation/data-sheets/ADG726_732.pdf directly (analog.com blocked automated fetches all session) and read the +3 V Single Supply RON row before this can be called a full PASS. |
-| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | Not directly available for ADG726 (see 1c.2). As a same-family proxy (same "enhanced submicron" low-voltage CMOS process, same design house, same generation): **ADG708/ADG709** datasheet (Analog Devices, Rev. 0, 2000), fetched and read directly page-by-page: "SPECIFICATIONS (VDD = 3 V +/-10%...)" p.3: "On-Resistance (RON) — 8 Ohm typ / 11-12 Ohm max — VS = 0 V to VDD, IDS = 10 mA." The design also adds a ~100 nF buffer capacitor at the ADC input (Task 6) specifically so source resistance in the tens-of-ohms range does not corrupt the sampled value, per the ruling in this file's header. | **UNVERIFIED for ADG726 itself** (no number pulled — see 1c.2); if ADG726's +3 V RON is in the same 4-12 Ohm neighborhood as its sibling ADG708 (plausible given the shared "4 Ohm typ" figure quoted in ADG726/732's own title, per search result, but not read from the primary table), it is two orders of magnitude better than CD74HC4067's uncharacterised-but-likely-70-270-Ohm figure, and combined with the ADC buffer cap this would comfortably pass. A human must confirm the actual ADG726 number. |
-| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | ADG708/ADG709 datasheet p.3, VDD = 3 V +/-10% table: "Source OFF Leakage IS(OFF) — +/-0.01 nA typ / +/-0.3 nA max (B version) — VS = 3 V/1 V, VD = 1 V/3 V"; "Drain OFF Leakage ID(OFF) — +/-0.01 nA typ / +/-0.75 nA max." These are nanoamp-level, roughly 1000x smaller than CD74HC4067's microamp-level OFF-leakage (uncharacterised at 3.3 V but ~8 uA max at 6 V). ADG726's own leakage table (page 5 area) was not read. | **UNVERIFIED for ADG726 itself**, but if it shares the same process family's nA-level leakage (plausible, not confirmed), 15 deselected channels would sum to tens of nA at most — utterly negligible against a 140 mV signal. A human must pull ADG726's actual +3 V leakage row. |
-| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | ADG708/ADG709 datasheet p.3, VDD = 3 V table: "On-Resistance Match Between Channels (Delta-RON) — 0.4 Ohm typ / 1.2 Ohm max." | **UNVERIFIED for ADG726 itself** (same-family proxy only); a sub-1.2-Ohm match would be negligible against the 1 Ohm sense resistor's signal, but this must be confirmed from ADG726's own table, not assumed from a sibling part. |
-| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | ADG708/ADG709 datasheet p.3, VDD = 3 V table: "tTRANSITION — 18 ns typ / 30 ns max — RL = 300 Ohm, CL = 35 pF." | **PASS as a same-family proxy** — even at 10x this figure, sub-microsecond switching is negligible against a multi-millisecond, 12-channel sweep; ADG726's own dynamic-characteristics table (not reached) should still be confirmed, but this row is unlikely to be the blocking one. |
+| 1c.1 | 16 channels, single-ended, 4 binary select lines | ADG706/ADG707 datasheet (Rev. A, 2002), p.1 "General Description": "The ADG706 switches one of 16 inputs (S1-S16) to a common output, D, as determined by the 4-bit binary address lines A0, A1, A2, and A3." p.5 "PIN CONFIGURATIONS": 28-lead TSSOP, pins A0-A3, EN, S1-S16, D, VDD, VSS, GND (plus 4 NC). p.6 "Table I. ADG706 Truth Table": confirms all 16 switches individually addressed by A3:A0 with EN as master enable. | **PASS** — confirmed directly from the primary datasheet's own pin configuration diagram and truth table, not a distributor description. |
+| 1c.2 | **Specified** (not merely tolerant) for 3.3 V operation, with on-resistance tabulated at 3.3 V | p.3, "ADG706/ADG707-SPECIFICATIONS (VDD = 3 V +/-10%, VSS = 0 V, GND = 0 V, unless otherwise noted.)": a **complete, dedicated 3 V table**, separate from the 5 V table on p.2 and the dual-supply table on p.4. "ON Resistance (RON) — 6 Ohm typ, 11/12 Ohm max (25 degC / -40 to +85 degC) — VS = 0 V to VDD, IDS = 10 mA." p.1 "Product Highlights": "The ADG706 and ADG707 are fully specified and guaranteed with 3 V and 5 V single-supply and +/-2.5 V dual-supply rails" — this claim, dismissed as an unverified search-summary paraphrase in the prior round, is now confirmed verbatim from the primary document itself. | **PASS** — genuinely specified and tabulated at 3 V +/-10% (2.7-3.3 V), which spans this design's 3.3 V rail, with a real RON figure (6 Ohm typ / 11-12 Ohm max), read directly from the primary datasheet. |
+| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | Same p.3 table: RON 6 Ohm typ / 11-12 Ohm max at VDD = 3 V. This is worse than the 5 V figure (2.5 Ohm typ) — CMOS RON rises as VDD falls, as expected — but still two orders of magnitude better than CD74HC4067's uncharacterised-but-likely-70-270-Ohm figure. Combined with the ~100 nF ADC-input buffer capacitor (Task 6, this file's header ruling), which supplies the SAR sample-and-hold charge locally, an 11-12 Ohm source resistance is not a meaningful error source. | **PASS** — real 3 V RON figure from the primary datasheet, comfortably addressed by the buffer-cap design fix. |
+| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | p.3, "LEAKAGE CURRENTS VDD = 3.3 V": "Drain OFF Leakage ID(OFF) — ADG706: +/-0.4 nA typ / +/-1.5 nA max"; "Source OFF Leakage IS(OFF) — +/-0.01 nA typ / +/-0.3 nA max." Nanoamp-level, at 3.3 V specifically (the table's own leakage sub-heading states "VDD = 3.3 V"). | **PASS** — 15 deselected channels at up to 1.5 nA max each sum to ~22.5 nA worst case, utterly negligible against a 140 mV signal. Read directly at 3.3 V from the primary datasheet, not a same-family proxy. |
+| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | p.3: "ON Resistance Match Between Channels (delta-RON) — 0.4 Ohm typ / 1.2 Ohm max — VS = 0 V to VDD, IDS = 10 mA" at VDD = 3 V. | **PASS** — a 0.4-1.2 Ohm match is negligible against the 1 Ohm sense resistor's signal; read directly from the 3 V table. |
+| 1c.6 | Settling time permits stepping 12 channels within a few ms sweep | p.3: "tTRANSITION — 45 ns typ / 75 ns max — RL = 300 Ohm, CL = 35 pF" at VDD = 3 V. | **PASS** — sub-100 ns switching is negligible against a multi-millisecond, 12-channel sweep. |
 
-**Why ADG706 (the brief's suggested target) fails, confirmed twice:** (1) A
-direct fetch of the ADG706/ADG707 datasheet via a radiolocman text mirror
-(fetched 2026-09-12) returned the full "SPECIFICATIONS" table content, which
-carries exactly **one** supply-voltage header: "VDD = 5 V +/-10%, VSS = 0 V,
-GND = 0 V" — RON 2.5 Ohm typ / 4.5-5 Ohm max, RON match 0.3/0.8 Ohm typ/max,
-RFLAT(on) 0.5/1.2 Ohm typ/max, leakage +/-0.01 nA typ / up to +/-1.5 nA max —
-all at that one 5 V condition. No 3 V or 3.3 V row exists anywhere in that
-table. (2) A second attempt to fetch analog.com's own product page for a
-"fully specified at 3 V" claim seen in an AI search summary failed
-(connection reset); the search-summary claim is **not corroborated** by the
-actual specifications table text obtained directly from the datasheet, so it
-is treated as unverified marketing paraphrase, not evidence, per this task's
-rule against trusting search summaries over primary sources. ADG706 is
-therefore recorded as **FAIL on 1c.2** on the strength of its own datasheet
-table, despite superficially matching the brief's "ADG706-class" description.
+**Orderable part/package:** p.5 "ORDERING GUIDE": **ADG706BRU**, -40 degC to
++85 degC, 28-lead Thin Shrink Small Outline Package (TSSOP), package option
+RU-28. This is the exact, confirmed pinout/package — resolving the "unknown
+pinout" concern the prior round's ADG726 recommendation carried.
 
 **CD74HC4067 — excluded by the hard requirement, retained for the record**
 (from the prior pass): its Electrical Characteristics table specifies RON
@@ -260,7 +260,7 @@ modulo the one small, bounded, non-blocking open item noted above.
 |---|---|---|---|---|
 | RGB channel low-side FET (x12) | Nexperia **PMV60ENEA** | SOT23 (TO-236AB) | $0.074-$0.094 (TTI, search-summary sourced) | Digi-Key: 0, backorder to Jan 2027; TTI: ~9,000 (search-summary sourced) — **UNVERIFIED stock**, see row 1a.6 |
 | RGB channel sense resistor (x12) | Yageo **RC2512FK-071RL** | 2512 (6332 metric) | $0.72 (qty 1, search-summary sourced, not independently opened) | 27,482 (search-summary sourced) — part selection itself (1 Ohm, 1%) verified in Section 1b of this file, out of this pass's scope |
-| 16-channel analog mux | Analog Devices **ADG726BSUZ** — **see caveat** | 48-TQFP (7x7 mm) | $17.08 (qty 1) / $10.95 (qty 511+) (Digi-Key, live page fetch) | 310 (Digi-Key, live page fetch) |
+| 16-channel analog mux | Analog Devices **ADG706BRUZ** | 28-TSSOP | $9.73 (qty 1) / $5.85 (qty 1000) (Digi-Key, live page fetch 2026-09-12) | 5,789 (Digi-Key, live page fetch); Active, 21-week manufacturer lead time |
 | Dual smart high-side switch (Denali) | Infineon **BTS7008-2EPA** (order as BTS70082EPAXUMA1) | PG-TSDSO-14 | $2.30 (qty 1) / $1.17 (qty 3000) | 6,947 (Digi-Key, live page fetch) |
 | Synchronous boost controller | TI **LM5122QMHX/NOPB** | 20-HTSSOP | $6.21 (qty 1) / $3.62 (qty 1000) | 594 (Digi-Key, live page fetch) |
 | Low-quiescent buck, 3.3 V rail | TI **LM5164DDAT** | 8-PowerSOIC (HSOIC-PowerPAD) | $5.37 (qty 1) / $3.43 (qty 100) | 7,056 (Digi-Key, live page fetch); 16-week lead time noted on the page |
@@ -279,16 +279,12 @@ passes cleanly — see row 6.1 for the full readout, including dissipation at
 both Feed A (3.9 A: 0.175/0.213 W typ/max) and Feed B (6.6 A: 0.501/0.610 W
 typ/max), both well inside the part's 45 W package rating.
 
-**Mux caveat carried into the BOM:** ADG726BSUZ's Digi-Key listing describes
-it as a "Dual 16:1" switch in a 48-pin TQFP — a much larger pin count than a
-single 16-channel/4-address-line/EN device would need (~23 pins), which does
-not obviously match the "16 channels, 4 address lines" shape assumed in row
-1c.1. This was not reconciled against the primary ADG726 datasheet's pinout
-table within this session's effort cap (see row 1c.1's note). **Before
-ordering, a human must open the ADG726 datasheet directly and confirm which
-package/pinout variant actually gives a single 16:1 mux with 4 parallel
-address lines**, and adjust the exact orderable part number (there may be a
-smaller-pin-count package option in the same product family) accordingly.
+**Mux — resolved, fix round 1 Finding 5.** ADG706BRUZ is confirmed the right
+shape directly from its own primary datasheet (28-lead TSSOP, single 16:1,
+4 address lines, real 3 V table — see Section 1c) and independently
+corroborated by its Digi-Key listing ("IC MUX 16:1 4.5OHM 28TSSOP," single
+circuit, matching the ordering-guide part number ADG706BRU exactly). No
+open pinout question remains for this part.
 
 **Sourcing note on this table:** rows marked "search-summary sourced" reflect
 WebSearch's own aggregated answer text rather than a directly opened
