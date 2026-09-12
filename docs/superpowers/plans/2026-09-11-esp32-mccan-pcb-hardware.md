@@ -74,12 +74,14 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - Per RGB channel: **0.14 A**. Per RGB string (white): **0.42 A**. Per Denali channel: **3.3 A**
 - Sleep budget target **< 200 µA**, hard ceiling **500 µA**
 - All input front-end parts rated **≥ 40 V**; both switchers rated **40–60 V** input
-- TVS standoff **~24 V**; RGB MOSFET **Vds ≥ 40 V**, fully enhanced at **Vgs = 3.3 V**
+- TVS standoff **~24 V**; RGB MOSFET **Vds ≥ 40 V**, with **Id ≥ 0.5 A at Vgs ≤ 3.3 V** from the
+  output-characteristic curve (the earlier "fully enhanced at 3.3 V" wording is **withdrawn** — I9)
 - **5 V rail mandatory** (TJA1042 VCC is 4.5–5.5 V), always on and low quiescent
 - RGB sense: **1 Ω** shunt per channel = **140 mV** at 0.14 A; ADC at **0 dB attenuation** (0–1.1 V)
 - PWM: RGB **400 Hz** (PCA9685), Denali **150 Hz** (ESP32 LEDC)
-- Total internal dissipation target **~4.3 W** (revised from 3.6 W once Task 2 produced real
-  datasheet figures: P-FET 0.82 W worst case, sense resistors 0.24 W)
+- Total internal dissipation: **~4.5 W steady-state worst case** (daytime: all RGB white, Denali off
+  — see spec §2.4 for why the loads never coincide). ~5.7 W transient only. Plate **≥300 cm²**
+  effective, hard requirement
 - Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
 - Feed B power polygon: **≥ 4–5 mm** width at 2 oz for a 10 °C rise at 6.6 A
 
@@ -100,7 +102,8 @@ Copy these values verbatim; every task's requirements implicitly include this se
 | `CAN_STB` | 14 | RTC-capable |
 | `I2C_SDA` / `I2C_SCL` | 21 / 22 | |
 | `PWM_DEN_A` / `PWM_DEN_B` | 18 / 19 | LEDC (moved off 32/33 — see REVISION note) |
-| `ISNS_DEN_A` / `ISNS_DEN_B` | 34 / 39 | **ADC1 only** — ADC2 fails while WiFi is active |
+| `ISNS_DEN` (**one** multiplexed output) | 34 | **ADC1 only** — ADC2 fails while WiFi is active |
+| `DEN_DSEL` — PROFET channel select | 33 | **ADDED (C1)** — the BTS7008-2EPA has ONE `IS` output |
 | `RGB_ISNS` (mux output) | 32 | **ADC1_CH4** — the §5.1 diagnostic chain |
 | `MUX_S0` / `S1` / `S2` / `S3` | 23 / 4 / 16 / 5 | GPIO 5 is a strapping pin — pulldown mandatory |
 | `EN_BOOST` | 25 | |
@@ -109,7 +112,7 @@ Copy these values verbatim; every task's requirements implicitly include this se
 | `LED_STAT` | 13 | |
 | Programming | 0, 1, 3, EN | Reserved |
 
-Spare: GPIO 2, 12, 15, 33. Never use GPIO 6–11 (flash). **GPIO 37/38 do not exist on WROOM-32
+Spare: GPIO 2, 12, 15, **39**. Never use GPIO 6–11 (flash). **GPIO 37/38 do not exist on WROOM-32
 modules** — an earlier revision wrongly listed 38 as spare. Leave GPIO 12 unused: it selects flash
 voltage at boot.
 
@@ -122,17 +125,19 @@ voltage at boot.
 | `CAN_STB` | pull-up to VIO | Transceiver in standby |
 | All 14 `PWM_*` | pulldown to GND | All outputs off |
 | `MUX_S0`–`S3` | pulldown to GND | Defined channel; **required on GPIO 5** (strapping pin) |
+| **`IGN_SENSE`** | **pulldown, ALWAYS POPULATED** | **GPIO 34–39 have NO internal pulls; EXT1 `ANY_HIGH` is armed here (C2)** |
+| `DEN_DSEL` | pulldown to GND | Defined channel selection |
 
 **Net naming contract** — sheets connect only through these names. Use them exactly.
 
 ```
-Power:    VBAT_A  VBAT_B  VLOGIC_IN  +3V3_ALW  +3V3_SW  +24V  GND
+Power:    VBAT_A  VBAT_B  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
 Per-str:  +24V_FL  +24V_FR  +24V_RL  +24V_RR          (after each PTC)
 RGB PWM:  PWM_FL_R PWM_FL_G PWM_FL_B PWM_FR_R PWM_FR_G PWM_FR_B
           PWM_RL_R PWM_RL_G PWM_RL_B PWM_RR_R PWM_RR_G PWM_RR_B
 RGB ret:  RET_FL_R RET_FL_G RET_FL_B RET_FR_R RET_FR_G RET_FR_B
           RET_RL_R RET_RL_G RET_RL_B RET_RR_R RET_RR_G RET_RR_B
-Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN_A ISNS_DEN_B
+Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN  DEN_DSEL
 Control:  EN_BOOST EN_3V3SW EN_DIAG LED_STAT IGN_SENSE
 Bus:      I2C_SDA I2C_SCL
 Sense:    SENSE_FL_R SENSE_FL_G SENSE_FL_B SENSE_FR_R SENSE_FR_G SENSE_FR_B
@@ -650,7 +655,7 @@ Expected: `exit=0`.
 **Interfaces:**
 - Consumes: `+3V3_ALW`, `GND`
 - Produces: every control and bus net the outputs sheet needs — `I2C_SDA`, `I2C_SCL`,
-  `MUX_S0`–`MUX_S3`, `RGB_ISNS`, `PWM_DEN_A`, `PWM_DEN_B`, `ISNS_DEN_A`, `ISNS_DEN_B`,
+  `MUX_S0`–`MUX_S3`, `RGB_ISNS`, `PWM_DEN_A`, `PWM_DEN_B`, `ISNS_DEN`, `DEN_DSEL`,
   `EN_BOOST`, `EN_3V3SW`, `EN_DIAG`, `LED_STAT` — plus `CANH`, `CANL` to the connector
 
 - [ ] **Step 1: Write the sheet's acceptance criteria on the sheet**
@@ -661,7 +666,8 @@ ACCEPTANCE (spec 7, 8.1):
 - Module powered from +3V3_ALW (stays up in sleep)
 - Pin assignment EXACTLY per the plan's Global Constraints table
 - CAN_RXD on GPIO 35 (RTC-capable, EXT0 wake); IGN_SENSE on GPIO 36 (EXT1)
-- ISNS_DEN_A/B on GPIO 34/39 -- ADC1 ONLY, never ADC2
+- ISNS_DEN on GPIO 34 (ADC1 ONLY, never ADC2); DEN_DSEL on GPIO 33 -- the PROFET has ONE
+  multiplexed IS output, not two (C1). GPIO 39 is spare.
 - CAN_STB on GPIO 14, PULLED UP to VIO (floating = standby)
 - TJA1042T/3 TXD routed through an UNPOPULATED 0 ohm link, TXD pulled to VIO
 - NO 120 ohm terminator populated; unpopulated footprint present
@@ -751,7 +757,8 @@ ACCEPTANCE (spec 5, 9.1, 9.2):
 - 12 SENSE_* nodes -> 16:1 analog mux (MUX_S0-S3) -> RGB_ISNS -> GPIO 32 (ADC1_CH4)
 - NO SPI anywhere on this board
 - Dual PROFET from VBAT_B, inputs PWM_DEN_A/B from ESP32 LEDC (NOT the PCA9685)
-- PROFET current sense -> ISNS_DEN_A/B with scaling resistor to stay under 3.3 V
+- PROFET: ONE sense output -> ISNS_DEN (GPIO 34) with scaling resistor; DEN_DSEL (GPIO 33) selects
+  which channel IS reports
 - 4x PTC, one per string, on the +24V feeds
 - All 14 PWM_* nets have a pulldown to GND
 - 4 corner connectors, keyed/colour-coded differently from each other
@@ -778,7 +785,19 @@ Wire all 12 `SENSE_*` nets to the 16:1 analog mux inputs **in `ChannelIndex` ord
 corner. Mux select from `MUX_S0`–`S3` (GPIO 23/4/16/5), **each with a pulldown**; mux supply from
 `+3V3_SW`; mux output → `RGB_ISNS` → GPIO 32.
 
-Leave mux inputs 12–15 unused (tie to GND per the mux datasheet's guidance for unused inputs).
+Leave mux inputs 12–15 unused — **tie them to GND** per the mux datasheet's guidance. Also wire the
+ADG706's **`EN` pin** (tie it enabled, or to a spare GPIO if you want the mux disableable) and its
+`A0`–`A3` address inputs to `MUX_S0`–`S3`. None of these were in the net contract before 2026-09-12.
+
+**Protect the sense path (I15).** Between each sense node and its mux input place a **10 kΩ series
+resistor**, and clamp each mux input to `+3V3_SW` with a Schottky or diode array. In the "shorted"
+state the design classifies, the boost's 2.5 A limit puts **2.5 V** on a sense node — above both the
+ADC's 0–1.1 V range and the mux's 3.3 V rail — and **6.25 W** in a 1 Ω resistor. Use **2512, ≥ 1 W**
+shunts, and confirm the per-string PTC trips below 2.5 A so the PTC clears the fault rather than the
+shunt failing first.
+
+Add a **~100 nF buffer capacitor at the ADC input** (`RGB_ISNS`, GPIO 32) — it supplies the SAR
+sample-and-hold charge locally, which is what makes the 10 kΩ series resistors harmless.
 
 Add a note on the sheet:
 ```
@@ -793,9 +812,10 @@ reads, advances. Same sweep serves as the installation self-test.
 
 Supply from `VBAT_B`. Inputs from `PWM_DEN_A` / `PWM_DEN_B` (**GPIO 18/19** — moved off 32/33, which
 GPIO 32 now needs for `RGB_ISNS`), **each with a pulldown**.
-Diagnostic enable from `EN_DIAG`. Current-sense outputs through scaling resistors to `ISNS_DEN_A`
-/ `ISNS_DEN_B`, sized so a 3.3 A load reads comfortably below 3.3 V at the ADC, with a clamp
-diode. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the Denali connector.
+Diagnostic enable from `EN_DIAG`. **The BTS7008-2EPA has ONE multiplexed `IS` output, not two (C1):**
+route it through a scaling resistor to `ISNS_DEN` (GPIO 34), sized so a 3.3 A load reads comfortably
+below 3.3 V at the ADC, with a clamp diode. Wire `DSEL` to `DEN_DSEL` (GPIO 33, **with a pulldown**)
+to select which channel `IS` reports. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the Denali connector.
 
 - [ ] **Step 5: Place the four PTCs on the 24 V string feeds**
 
@@ -1025,7 +1045,7 @@ Denali path. Through the CM choke and ESD parts.
 
 - [ ] **Step 4: Route the analog sense traces**
 
-`ISNS_DEN_A` / `ISNS_DEN_B` kept short, away from PWM and the switch node, with their scaling
+`ISNS_DEN` kept short, away from PWM and the switch node, with its scaling
 resistors close to the ADC pins. These carry the diagnostics the design was chosen for; coupled
 noise here shows up as phantom faults.
 
@@ -1097,7 +1117,7 @@ Must specify, with actual values rather than descriptions:
   groove, fastener pattern and torque
 - Gap-pad specification: material, thickness, compressed thickness, thermal conductivity, and the
   contact area against the Task 8 thermal group
-- Panel layout drawing with cutout positions and diameters for all nine penetrations: four corner
+- Panel layout drawing with cutout positions and diameters for all **eleven** penetrations: four corner
   connectors, Denali, PWR A, PWR B, CAN, and the two fuse holders
 - Pressure-equalisation vent: part number and mounting position
 - Mounting: bracket design, thermal-compound interface to the plate, and the rubber isolators

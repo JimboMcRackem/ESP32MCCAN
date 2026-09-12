@@ -28,7 +28,7 @@ DRC (must exit 0, includes schematic parity):
 | power_input | Both feeds: fuses, P-FETs, TVS, pi+CM filters, Schottky OR |
 | rails | Sync boost, low-Iq buck, 3V3 load switch |
 | mcu_can | ESP32 module, TJA1042, programming header, status LED |
-| outputs | PCA9685, 2x octal low-side switch, dual PROFET, PTCs, connectors |
+| outputs | PCA9685, **12x MOSFET + 1 ohm shunt, ADG706 16:1 mux**, dual PROFET, PTCs, connectors |
 
 ## Net naming contract
 
@@ -47,14 +47,15 @@ full list and for the mandatory passive-default biasing table.
 | `PWM_DEN_A` / `PWM_DEN_B` | 18 / 19 | LEDC |
 | `RGB_ISNS` (mux output) | 32 | **ADC1_CH4** — RGB sense chain |
 | `MUX_S0` / `S1` / `S2` / `S3` | 23 / 4 / 16 / 5 | GPIO 5 is a strapping pin — pulldown mandatory |
-| `ISNS_DEN_A` / `ISNS_DEN_B` | 34 / 39 | **ADC1 only** — ADC2 fails while WiFi is active |
+| `ISNS_DEN` (**one** multiplexed output) | 34 | **ADC1 only** — ADC2 fails while WiFi is active |
+| `DEN_DSEL` — PROFET channel select | 33 | **ADDED (C1)** — the BTS7008-2EPA has ONE `IS` output |
 | `EN_BOOST` | 25 | |
 | `EN_3V3SW` | 26 | |
 | `EN_DIAG` | 27 | |
 | `LED_STAT` | 13 | |
 | Programming | 0, 1, 3, EN | Reserved |
 
-Spare: GPIO 2, 12, 15, 33. Never use GPIO 6–11 (flash).
+Spare: GPIO 2, 12, 15, **39**. Never use GPIO 6–11 (flash).
 
 **GPIO 37 and 38 do not exist on WROOM-32 modules** — they are not bonded out. Leave GPIO 12
 unused: it selects flash voltage at boot.
@@ -67,19 +68,22 @@ unused: it selects flash voltage at boot.
 | `EN_3V3SW` | pulldown to GND | Peripheral rail off |
 | `CAN_STB` | pull-up to VIO | Transceiver in standby |
 | All 14 `PWM_*` | pulldown to GND | All outputs off |
+| **`IGN_SENSE`** | **pulldown, ALWAYS POPULATED** | **Defined low.** GPIO 34–39 have NO internal pulls and EXT1 `ANY_HIGH` is armed here — floating, it wakes the board on noise (C2) |
+| `DEN_DSEL` | pulldown to GND | Defined channel selection |
 | `MUX_S0`–`S3` | pulldown to GND | Defined channel; **required on GPIO 5** (strapping pin) |
 
 **Net naming contract** — sheets connect only through these names. Use them exactly.
 
 ```
-Power:    VBAT_A  VBAT_B  VLOGIC_IN  +3V3_ALW  +3V3_SW  +24V  GND
+Power:    VBAT_A  VBAT_B  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
 Per-str:  +24V_FL  +24V_FR  +24V_RL  +24V_RR          (after each PTC)
 RGB PWM:  PWM_FL_R PWM_FL_G PWM_FL_B PWM_FR_R PWM_FR_G PWM_FR_B
           PWM_RL_R PWM_RL_G PWM_RL_B PWM_RR_R PWM_RR_G PWM_RR_B
 RGB ret:  RET_FL_R RET_FL_G RET_FL_B RET_FR_R RET_FR_G RET_FR_B
           RET_RL_R RET_RL_G RET_RL_B RET_RR_R RET_RR_G RET_RR_B
-Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN_A ISNS_DEN_B
+Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN  DEN_DSEL
 Control:  EN_BOOST EN_3V3SW EN_DIAG LED_STAT IGN_SENSE
+          (EN_3V3SW gates BOTH +3V3_SW and +5V — one enable, no extra GPIO)
 Bus:      I2C_SDA I2C_SCL
 Sense:    SENSE_FL_R SENSE_FL_G SENSE_FL_B SENSE_FR_R SENSE_FR_G SENSE_FR_B
           SENSE_RL_R SENSE_RL_G SENSE_RL_B SENSE_RR_R SENSE_RR_G SENSE_RR_B

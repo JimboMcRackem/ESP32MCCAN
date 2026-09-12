@@ -20,17 +20,22 @@ than a guessed part number.
 
 ### Why a flat plate was not an option
 
-At the spec's **4.3 W** worst case, natural convection (h ≈ 8 W/m²K) needs:
+At the steady-state worst case, natural convection (h ≈ 8 W/m²K) needs:
 
-| Effective area | Rise | Internal at 40 °C ambient | Verdict |
-|---|---|---|---|
-| 80 cm² (flat 100 × 80 mm plate) | 67 K | **107 °C** | **Fails — over the ESP32's 85 °C max** |
-| 150 cm² | 36 K | 76 °C | Fails the 65 °C target |
-| **215 cm²** | 25 K | **65 °C** | Meets target, zero margin |
-| 300 cm² | 18 K | 58 °C | Comfortable |
+**Updated 2026-09-12** for the real operating modes (spec §2.4 — the owner confirmed the loads never
+all coincide: daytime has the Denali lights off, night has the front DRLs off). Steady-state worst
+case is **daytime, ~4.5 W**; night is ~2.6 W. The old "full white plus both Denali" figure of 5.7 W
+occurs only during a flash-to-pass in daylight, for seconds, and is absorbed by thermal mass.
 
-A flat plate sized to fit this enclosure delivers roughly **a third** of what the spec's stated 65 °C
-actually required. Fins multiply effective area 3–5× for the same footprint, which closes the case.
+| Effective area | Daytime 4.5 W | Internal at 40 °C | Night 2.6 W | Verdict |
+|---|---|---|---|---|
+| 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 41 K | **Fails badly** |
+| 215 cm² | 26 K | **66 °C** | 15 K | Marginal — misses the 65 °C target |
+| **300 cm² — hard requirement** | **19 K** | **59 °C** | 11 K | Comfortable |
+| 350 cm² — design target | 16 K | 56 °C | 9 K | Ample |
+
+A flat plate sized to fit this enclosure delivers roughly **a quarter** of what is needed. Fins
+multiply effective area 3–5× for the same footprint, which closes the case.
 
 ### The contradiction that is now resolved
 
@@ -48,8 +53,8 @@ being traded away.
 |---|---|
 | Plate type | **Finned aluminium extrusion** forming one wall |
 | Footprint | ≥ 80 cm² (≈ 100 × 80 mm) **[PROVISIONAL** — confirm against Task 8's board outline**]** |
-| **Effective convective area — hard requirement** | **≥ 215 cm²** (fin multiplier ≥ 2.7×) |
-| **Effective convective area — design target** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → ~58 °C, ~27 °C margin |
+| **Effective convective area — hard requirement** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → ~59 °C |
+| **Effective convective area — design target** | **≥ 350 cm²** (fin multiplier ≥ 4.4×) → ~56 °C |
 | Base thickness | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
 | **Fin orientation** | **VERTICAL in the installed attitude** — see below |
 | Material | Aluminium, 6063 extrusion (typical for finned profiles) or 6082/6061 if machined |
@@ -102,7 +107,13 @@ Selection criteria, in priority order:
    antenna edge away from the plate).
 4. **Plastic elsewhere, not metal** — the ESP32-WROOM-32E uses its onboard antenna, so the remaining walls
    must be RF-transparent (spec §9.3). This is why a diecast aluminium box was rejected.
-5. **Panel area** for nine penetrations (§4).
+5. **Panel area** for **eleven** penetrations (§4). **[TO CONFIRM]** the wall dimension this implies:
+   eleven Superseal 1.0/1.5 cutouts plus two blade-fuse holders plus gasket lands need roughly
+   **150 × 60 mm** of wall in two rows — which is larger than the 100 × 80 mm board estimate and is
+   therefore the real size driver for the enclosure, not the board.
+   **Also confirm jointly satisfiable:** spec §9.1 puts the plate on the wall *opposite the panel*,
+   §2.3 here wants it *opposite the antenna*, and §4 forbids penetrations in the antenna wall. Three
+   constraints on a six-face box — nobody has yet checked they can all hold at once.
 6. IP67 with a gasketed lid, and lid screws accessible after installation.
 
 Candidate families known to offer IP66/67 polycarbonate boxes in this size class: Hammond 1554/1555,
@@ -135,7 +146,8 @@ not guessed here.
 
 ## 4. Panel layout
 
-**Nine penetrations.** Positions are **[PROVISIONAL]** pending Task 8, which owns the connector-edge
+**Eleven penetrations** — corrected 2026-09-12 (I11); an earlier revision said nine while listing ten
+and omitting the vent. Positions are **[PROVISIONAL]** pending Task 8, which owns the connector-edge
 ordering (controller Ruling 3 — this document matches the board, not the reverse).
 
 | # | Penetration | Notes |

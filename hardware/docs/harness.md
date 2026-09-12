@@ -50,6 +50,10 @@ Order for each: panel-mount (board side) housing, mating (harness side) housing,
 correct wire-gauge range, wire seals, and **cavity plugs for any unused cavity** — an unplugged cavity
 is an IP67 leak.
 
+**Note on Denali current sense (C1):** the board uses **one** multiplexed `IS` output with a
+`DEN_DSEL` select line (spec §7.3), not one sense pin per channel. Nothing changes in the harness,
+but the web app reports the two channels currents **alternately** rather than simultaneously.
+
 **Terminal gauge range matters:** Superseal 1.0 terminals must accept 22 AWG; Superseal 1.5 must
 accept 16–18 AWG. Verify against the terminal datasheet before ordering, and crimp with the correct
 die.
