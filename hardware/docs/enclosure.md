@@ -107,9 +107,9 @@ Selection criteria, in priority order:
    antenna edge away from the plate).
 4. **Plastic elsewhere, not metal** — the ESP32-WROOM-32E uses its onboard antenna, so the remaining walls
    must be RF-transparent (spec §9.3). This is why a diecast aluminium box was rejected.
-5. **Panel area** for **eleven** penetrations (§4). **[TO CONFIRM]** the wall dimension this implies:
-   eleven Superseal 1.0/1.5 cutouts plus two blade-fuse holders plus gasket lands need roughly
-   **150 × 60 mm** of wall in two rows — which is larger than the 100 × 80 mm board estimate and is
+5. **Panel area** for **nine** penetrations (§4). **[TO CONFIRM]** the wall dimension this implies:
+   seven Superseal 1.0/1.5 cutouts plus one blade-fuse holder plus the vent plus gasket lands need
+   roughly **130 × 55 mm** of wall in two rows — which is larger than the 100 × 80 mm board estimate and is
    therefore the real size driver for the enclosure, not the board.
    **Also confirm jointly satisfiable:** spec §9.1 puts the plate on the wall *opposite the panel*,
    §2.3 here wants it *opposite the antenna*, and §4 forbids penetrations in the antenna wall. Three
@@ -146,24 +146,27 @@ not guessed here.
 
 ## 4. Panel layout
 
-**Eleven penetrations** — corrected 2026-09-12 (I11); an earlier revision said nine while listing ten
-and omitting the vent. Positions are **[PROVISIONAL]** pending Task 8, which owns the connector-edge
-ordering (controller Ruling 3 — this document matches the board, not the reverse).
+**Nine penetrations** (single feed, decided 2026-09-12 — dropping the second feed removed its
+connector and its fuse holder, taking the count from eleven to nine). Positions are **[PROVISIONAL]**
+pending Task 8, which owns the connector-edge ordering (controller Ruling 3 — this document matches the
+board, not the reverse).
 
 | # | Penetration | Notes |
 |---|---|---|
 | 1–4 | Corner connectors FL, FR, RL, RR | Superseal 1.0 4-way panel mount; must be **distinguishable** — see `harness.md` §3 |
 | 5 | Denali | Superseal 1.5 3-way |
-| 6 | PWR A | Superseal 1.5 2-way |
-| 7 | PWR B | Superseal 1.5 2-way |
-| 8 | CAN | Superseal 1.0 2-way, sited away from the power connectors |
-| 9 | Pressure-equalisation vent | §5 |
+| 6 | **PWR** (single feed) | Superseal 1.5 2-way |
+| 7 | CAN | Superseal 1.0 2-way, sited away from the power connector |
+| 8 | Pressure-equalisation vent | §5 |
+| 9 | **Blade fuse holder, 10 A** | Sealed screw-cap, IP67 when closed |
 
-Plus **two panel-mount blade fuse holders** (7.5 A for Feed A, 10 A for Feed B) — the user chose
-panel-mounted fusing; see `harness.md` §6 for the accepted risk this carries.
+The **10 A fuse holder** is penetration 9 above. The owner chose panel-mounted fusing; see
+`harness.md` §6 for the accepted risk this carries. **No second feed connector or fuse holder** — the
+second feed exists only as unpopulated board footprints, so restoring it later needs one drilled hole
+rather than a PCB respin.
 
 **Layout rules:**
-- Keep the CAN connector away from both power connectors and from the fuse holders
+- Keep the CAN connector away from the power connector and the fuse holder
 - Group the four corner connectors, ordered to match the board's connector edge
 - Maintain the gasket land and minimum wall between adjacent cutouts per the connector datasheets
   **[TO CONFIRM]**

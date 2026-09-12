@@ -14,8 +14,7 @@ environment. Use **automotive-grade TXL or GXL** (thin-wall, cross-linked, 125 �
 
 | Circuit | Current | Gauge | Notes |
 |---|---|---|---|
-| Feed A, +12 V and return | **3.9 A** | **18 AWG** | ~10 A bundled ampacity; ample margin |
-| Feed B, +12 V and return | **6.6 A** | **16 AWG** | ~13 A bundled ampacity |
+| **Feed, +12 V and return** (single) | **7.8 A** night / 3.9 A day | **16 AWG** | ~13 A bundled ampacity. Sized for the **night** case, not daytime |
 | Denali A switched +12 V | **3.3 A** | **18 AWG** | |
 | Denali B switched +12 V | **3.3 A** | **18 AWG** | |
 | Denali shared ground | **6.6 A** | **16 AWG** | Carries **both** channels — sized for the pair, not one |
@@ -42,8 +41,7 @@ both halves. Series are fixed by the spec; the specific orderable numbers are a 
 |---|---|---|---|
 | FL, FR, RL, RR | TE Superseal 1.0 | 4 | `+24V_xx`, `RET_xx_R`, `RET_xx_G`, `RET_xx_B` |
 | DENALI | TE Superseal 1.5 | 3 | `DEN_A_OUT`, `DEN_B_OUT`, shared `GND` |
-| PWR A | TE Superseal 1.5 | 2 | +12 V Feed A, return |
-| PWR B | TE Superseal 1.5 | 2 | +12 V Feed B, return |
+| **PWR** | TE Superseal 1.5 | 2 | +12 V feed, return (**one connector** — spec 4.4) |
 | CAN | TE Superseal 1.0 | 2 | `CANH`, `CANL` |
 
 Order for each: panel-mount (board side) housing, mating (harness side) housing, terminals in the
@@ -93,23 +91,28 @@ matters on the road.
 
 ## 4. Power feeds
 
-Two **independent** Experia peripheral outlets, each rated 10 A.
+**ONE** Experia peripheral outlet, rated 10 A, with a **10 A** panel-mounted fuse.
 
-| Feed | Load | Fuse (panel-mounted) |
+| Mode | Load | % of the 10 A feed |
 |---|---|---|
-| A | Boost → RGB, plus logic — **3.9 A** | **7.5 A** |
-| B | Denali D4 2.0 pair — **6.6 A** | **10 A** |
+| Daytime (corners white, Denali off) | **3.9 A** | 39% |
+| **Night (Denali on, front DRLs off)** | **7.8 A** | **78% — the governing case** |
+| Flash-to-pass in daylight, seconds | 10.5 A | 105% — harmless; blade fuses need ~135% for minutes |
 
-**[TO CONFIRM] — verify on the vehicle before building the harness:** that the two outlets are
-genuinely **independent 10 A circuits** and not two branches of a single 10 A circuit. If they share
-one upstream circuit, the total draw is 10.5 A on a 10 A supply and the domain split buys nothing.
-This is a spec §11 verification item and it gates the whole dual-feed approach.
+This works because the loads never coincide (spec §2.4). **78% sustained is at the upper end of good
+practice** for an automotive blade fuse and is the figure to watch on the first warm-night ride. If it
+ever nuisance-opens, the fix needs no hardware: the Denali maximum level is a web-app tunable, and 90%
+of full brings the night total to 7.2 A (72%).
+
+**[TO CONFIRM] on the vehicle:** that the chosen outlet genuinely sustains **7.8 A** without voltage
+sag or a warm connector.
 
 **[TO CONFIRM]** The Experia peripheral connector part number, for the mating half.
 
-**Do not parallel the feeds anywhere in the harness.** They are domain-split by design (spec §4.4);
-the only join is a Schottky OR on the board, onto the logic rail alone. Joining them in the harness
-would defeat the split and let one outlet carry both domains.
+**If the second feed is ever populated** (its board footprints remain — spec §4.4), do **not** parallel
+the two feeds anywhere in the harness. They are domain-split by design, and the only join is a Schottky
+OR on the board onto the logic rail alone. Joining them in the harness would defeat the split and let
+one outlet carry both domains.
 
 ---
 
@@ -134,24 +137,24 @@ would defeat the split and let one outlet carry both domains.
 - Anchor within ~100 mm of each connector so vibration loads the anchor, not the crimp
 - Respect each connector's minimum bend radius at the cable exit
 - Keep all runs clear of the steering head, suspension travel, hot components and any pinch point
-- Route the two power feeds **away from the CAN pair**
+- Route the power feed **away from the CAN pair**
 
 ### Accepted risk: the feed runs are not fused at their source
 
 The fuses are **on the enclosure panel**, at the far end of the cable from the supply. This was the
 user's explicit decision, recorded in spec §4.1. The consequence is plain:
 
-> **The cable runs from the Experia's peripheral outlets to the enclosure carry no overcurrent
-> protection.** A chafe-through to the frame anywhere along those runs is not interrupted by the
-> panel fuses, because the fault is upstream of them.
+> **The cable run from the Experia's peripheral outlet to the enclosure carries no overcurrent
+> protection.** A chafe-through to the frame anywhere along that run is not interrupted by the panel
+> fuse, because the fault is upstream of it.
 
 Mitigations that partly offset it, all of which the harness build must honour:
 
-- Keep both runs **as short as practical**
+- Keep the run **as short as practical**
 - Abrasion-resistant loom over the **entire** length, with no unsleeved sections
 - Route clear of every chafe point, with anchors close enough that the cable cannot migrate
 - Booted ring terminals or sealed connections at the supply end
-- Inspect both runs at every service interval
+- Inspect the run at every service interval
 
 **A battery-end inline fuse can be added later with no board change** if this risk is reconsidered.
 That option stays open permanently.
@@ -162,7 +165,7 @@ That option stays open permanently.
 
 | Item | Needed to close |
 |---|---|
-| **Both outlets genuinely independent 10 A circuits** | **Measure on the vehicle** — gates the dual-feed design |
+| **The chosen outlet sustains 7.8 A** | **Measure on the vehicle** — 78% loading is the tight spot of the single-feed design |
 | Experia peripheral connector part number | Vehicle inspection or Energica documentation |
 | All connector housings, terminals, seals, cavity plugs | Catalogue lookup |
 | Whether keyed Superseal 1.0 4-way variants exist | Catalogue lookup — would supersede colour coding |

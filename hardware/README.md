@@ -75,7 +75,8 @@ unused: it selects flash voltage at boot.
 **Net naming contract** — sheets connect only through these names. Use them exactly.
 
 ```
-Power:    VBAT_A  VBAT_B  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
+Power:    VBAT  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
+          (VBAT_B exists only on the DNP second-feed footprints — spec 4.4)
 Per-str:  +24V_FL  +24V_FR  +24V_RL  +24V_RR          (after each PTC)
 RGB PWM:  PWM_FL_R PWM_FL_G PWM_FL_B PWM_FR_R PWM_FR_G PWM_FR_B
           PWM_RL_R PWM_RL_G PWM_RL_B PWM_RR_R PWM_RR_G PWM_RR_B

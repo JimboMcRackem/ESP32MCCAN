@@ -49,29 +49,45 @@ Common anode forces **low-side** switching on R/G/B. The Denali units are switch
 
 ### 2.2 Budget
 
-Supply is **two** Experia peripheral connectors, each rated **10 A**. Each feed is derated to
-**8.5 A continuous** (85%).
+Supply is **ONE** Experia peripheral connector rated **10 A** (decided 2026-09-12 — see below).
 
 **Confirmed load: Denali D4 2.0 TriOptic** — four 10 W CREE XPL HI LEDs per pod, **80 W / 6.6 A
 for the pair**, i.e. **40 W per light**. This is a measured manufacturer figure, not an
 assumption.
 
-| Feed | Item | Draw | Input current | Margin on 10 A |
-|---|---|---|---|---|
-| **A** | RGB: 40 W at 24 V, via boost at **92%** (conservative — §9.4) | 43.5 W | 3.6 A | |
-| **A** | Logic (ESP32 peak WiFi TX, PCA9685, transceiver) | 4 W | 0.3 A | |
-| | **Feed A total** | **47.5 W** | **3.9 A** | **61%** |
-| **B** | Denali D4 2.0 pair | 80 W | 6.6 A | **34%** |
-| | **System total** | **~128 W** | **10.5 A** | |
+Because the loads never coincide (§2.4), the budget is **per operating mode**, not a sum:
 
-**Why two feeds are required, not optional.** The total is **10.5 A — above a single 10 A
-connector.** An earlier revision of this spec assumed Denali ≤ 25 W each and specified one feed
-with the second laid out unpopulated; the confirmed D4 figure of 40 W each invalidates that.
-Both feeds are populated (§4.4).
+| Mode | RGB via boost @92% | Denali | Logic | **Feed current** | Loading on 10 A |
+|---|---|---|---|---|---|
+| **Daytime** | 43.5 W → 3.6 A | off | 0.3 A | **3.9 A** | **39%** |
+| **Night** | ~10 W → 0.9 A | 80 W → 6.6 A | 0.3 A | **7.8 A** | **78%** |
+| *Flash-to-pass in daylight (seconds)* | 3.6 A | 6.6 A | 0.3 A | *10.5 A* | *105%* |
 
-**Single-feed fallback, if ever needed:** capping the Denali maximum level in the web app — an
-existing tunable — to ~60% yields ~48 W and a 7.9 A total, which fits one feed. This sacrifices
-light output and is a configuration workaround, not the design intent.
+**The 78% night figure is the tight spot of this design** and the number to watch. It is within
+normal practice for a sustained automotive load but at the upper end of it. The 105% transient is
+harmless: an ATO blade fuse at 105% of rating effectively never opens — blade fuses need roughly
+135% for minutes — and a 10 A contact carries 10.5 A for seconds without distress.
+
+**If the fuse ever nuisance-blows,** the escape hatch needs no hardware: the Denali maximum level is
+already a web-app tunable, and 90% of full gives 6.0 A instead of 6.6 A, bringing the night total to
+7.2 A (72%).
+
+**Why one feed suffices — the history matters here, because this reversed twice.** An early revision
+assumed Denali ≤ 25 W each and specified one feed. The confirmed D4 2.0 figure of 40 W each then made
+the *arithmetic sum* 10.5 A, which exceeds one connector, so the design moved to two feeds with a
+domain split. **What was missing was how the bike is actually ridden** (§2.4, confirmed by the owner
+2026-09-12): daytime runs the corners with the Denali lights off, night runs the Denali lights with
+the front DRLs off. The 10.5 A sum is an **envelope that no steady state occupies.** The real maximum
+is the night mode's **7.8 A**, which one 10 A feed carries. **Decision 2026-09-12: single feed.**
+
+**What the single feed gives up.** The domain split's only real benefit was that a Feed B failure
+left the RGB corners (and therefore the indicators) alive. Note it never protected the indicators
+against a Feed A failure — they were always on Feed A — so the loss is narrower than it first looks:
+a feed fault now also takes the Denali lights. Against that, there is one less connector, one less
+fuse and one less cable run to fail, which on a motorcycle harness is a real reliability gain.
+
+**The second feed's board footprints remain, unpopulated** (§4.4), so the split can be restored
+without a respin if the 78% night loading ever proves uncomfortable.
 
 **The RGB figure remains assumed, not measured** — 20 W/m × 0.5 m × 4 strings. Re-verify when the
 strips are measured. Feed A has 61% margin, so a higher real figure is absorbed comfortably.
@@ -88,10 +104,10 @@ strips are measured. Feed A has 61% margin, so a higher real figure is absorbed 
 
 **Confirmed by the owner 2026-09-12.** This is load-defining and it governs the thermal design:
 
-| Mode | Denali | RGB corners | Feed A | Feed B |
-|---|---|---|---|---|
-| **Daytime** | **OFF** | All four on (white DRL) | **3.9 A** | **~0 A** |
-| **Night** | On (80 W) | Fronts **off**, indicating only; rears on | ~1.2 A | **6.6 A** |
+| Mode | Denali | RGB corners | Feed current (single feed) |
+|---|---|---|---|
+| **Daytime** | **OFF** | All four on (white DRL) | **3.9 A** |
+| **Night** | On (80 W) | Fronts **off**, indicating only; rears on | **7.8 A** |
 
 **Consequences:**
 
@@ -99,9 +115,9 @@ strips are measured. Feed A has 61% margin, so a higher real figure is absorbed 
   during a flash-to-pass in daylight — seconds at a time, absorbed by thermal mass.
 - The **steady-state thermal worst case is daytime: ~4.5 W** (§9.4), not the 5.7 W that combination
   implies.
-- **The two feeds never peak together.** Daytime loads Feed A (3.9 A) with Feed B idle; night loads
-  Feed B (6.6 A) with Feed A light. The 10.5 A system figure in §2.2 is an envelope, not an operating
-  point.
+- **This is what makes a single feed viable.** Daytime draws 3.9 A; night draws 7.8 A. The 10.5 A
+  figure is an envelope no steady state occupies, which is why the design reverted to one feed
+  (§2.2, §4.4) after briefly requiring two.
 - **C4 (the PTC) is confirmed as a real sustained condition, not a corner case:** daytime runs all
   four corners at full white continuously, so each string holds 0.42 A for hours at the enclosure's
   hot internal temperature. That is precisely the case the original 0.5 A PTC would have tripped on.
@@ -114,21 +130,20 @@ The low per-channel RGB current is what makes the discrete-FET output stage ther
 ## 3. Architecture
 
 ```
- FEED A ──[7.5 A panel fuse]──┐          FEED B ──[10 A panel fuse]──┐
- 12 V, 3.9 A                  ▼          12 V, 6.6 A                  ▼
-                   ┌──────────────────┐              ┌──────────────────┐
-                   │ INPUT PROTECT A  │              │ INPUT PROTECT B  │
-                   │ P-FET rev. pol.  │              │ P-FET rev. pol.  │
-                   │ 24 V TVS, pi+CM  │              │ 24 V TVS, pi+CM  │
-                   └────────┬─────────┘              └────────┬─────────┘
-                       VBAT_A (~12 V)                    VBAT_B (~12 V)
-                ┌───────────┴──┬──────── Schottky OR ─────┬───┴──────────┐
-                ▼              ▼                          ▼              ▼
+ SINGLE FEED ──[10 A panel fuse]──┐      (2nd feed: footprints only, DNP — §4.4)
+ 12 V: 3.9 A day / 7.8 A night     ▼
+                   ┌──────────────────┐
+                   │ INPUT PROTECTION │
+                   │ P-FET rev. pol.  │
+                   │ 24 V TVS, pi+CM  │
+                   └────────┬─────────┘
+                         VBAT (~12 V)
+                ┌───────────┴──┬──────────────────────┐
+                ▼              ▼                        ▼
     ┌───────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
     │ 3V3 BUCK +3V3_ALW │   │ 24 V SYNC BOOST      │   │ DUAL SMART HIGH-SIDE │
     │ + 5V REG (gated)  │   │ LM5122-Q1 class      │   │ PROFET, 1x IS + DSEL │
-    │ ~1 A  (OR'd: A|B) │   │ enable-gated, 60 W   │   │ enable-gated         │
-    │                   │   │      (from A)        │   │    (from B)          │
+    │ ~1 A              │   │ enable-gated, 60 W   │   │ enable-gated         │
     └─────┬─────────────┘   └──────────┬───────────┘   └──────────┬───────────┘
           │                            │                          │
           │                  +24 V, 4× PTC per string      2× switched 12 V
@@ -192,19 +207,24 @@ on `+3V3_SW`; TJA1042 VIO on `+3V3_ALW` and its VCC on `+5V`; ESP32 on `+3V3_ALW
 
 ### 4.1 Fusing
 
-**Two panel-mount sealed ATO/ATC blade fuse holders**, IP67 when capped — one per feed:
+**ONE panel-mount sealed ATO/ATC blade fuse holder, 10 A**, IP67 when capped (single feed, decided
+2026-09-12).
 
-| Feed | Load | Fuse |
+**Why 10 A:** the fuse must clear the night load of 7.8 A with margin, pass the 10.5 A flash-to-pass
+transient without opening, and **not exceed the peripheral connector's own 10 A rating** — a fuse
+above the connector rating protects nothing the connector does not already limit. 10 A is the only
+value satisfying all three.
+
+| | Current | % of fuse |
 |---|---|---|
-| A | RGB + logic, 3.9 A | **7.5 A** |
-| B | Denali D4 pair, 6.6 A | **10 A** |
+| Daytime | 3.9 A | 39% |
+| **Night — the governing case** | **7.8 A** | **78%** |
+| Flash-to-pass, seconds | 10.5 A | 105% |
 
-Each fuse matches or sits below its peripheral connector's 10 A rating — a fuse above the
-connector rating protects nothing the connector does not already limit. Feed A takes the smaller
-7.5 A fuse because its load is bounded at 3.9 A, giving tighter protection than a blanket 10 A.
-
-Both loads sit at **52–66% of fuse rating**, comfortably inside the derating band for sustained
-current, so nuisance blowing is not expected.
+**78% sustained is at the upper end of good practice** for an automotive blade fuse. It is acceptable
+here because the holder is **panel-mounted in open air** rather than buried in a hot loom, but it is
+the figure to watch at bring-up and on the first hot-weather night ride. The 105% transient will not
+open the fuse — blade fuses need roughly 135% sustained for minutes.
 
 **Documented residual risk (accepted by the author):** a fuse protects the *cable* upstream of
 itself. Mounting it at the box leaves the battery-to-box run without overcurrent protection, so
@@ -244,11 +264,25 @@ possibility of a jump start or charger on the rail.
 - Input **π filter and common-mode choke** — conducted-emissions suppression designed in, not
   retrofitted
 
-### 4.4 Dual feed — domain split, both populated
+### 4.4 Single feed, with the second laid out unpopulated
 
-Two 2-way power connectors, each with its own P-FET reverse-polarity stage, its own transient
-clamp and its own fuse (§4.1), plus a **dual Schottky OR** feeding the 3.3 V buck from either
-feed.
+**One** 2-way power connector with its own P-FET reverse-polarity stage, transient clamp and fuse
+(§4.1). **Decided 2026-09-12**, superseding the dual-feed arrangement, once §2.4 established that the
+loads never coincide.
+
+**The second feed's board footprints are retained and left unpopulated** — connector position,
+P-FET stage and the Schottky OR — so the domain split below can be restored by populating parts, not
+by respinning the board. The **panel** carries no second connector or fuse holder: drilling a plastic
+enclosure later is trivial, re-fabricating a PCB is not, so the asymmetry is deliberate.
+
+**Single-feed P-FET note:** one stage now carries the whole load, so at the 20 mΩ ceiling it
+dissipates **0.30 W in daytime and 1.22 W at night** (§9.4). Night's higher figure does not govern
+the thermal design, because night's total is only ~2.9 W against daytime's ~4.5 W.
+
+---
+
+**If the second feed is ever populated**, the arrangement below applies. It is a **domain split, not
+a parallel share:**
 
 **Split by domain, never paralleled.** Paralleling two feeds divides current by path resistance
 (wire gauge, length, contact resistance), giving something like 8 A / 4 A rather than 5 A / 5 A;
@@ -679,9 +713,9 @@ contributor to be verified against its datasheet.
         opposite wall: aluminium heat-spreader plate
 ```
 
-Both power feeds are populated (§4.4), bringing the panel to **eleven penetrations**: four corners,
-Denali, two power, CAN, the pressure-equalisation vent (§9.3), and two fuse holders. (An earlier
-revision said "nine" while listing ten items and omitting the vent — corrected 2026-09-12, I11.) Enclosure size is driven by this count more than by
+With the single feed (§4.4), the panel carries **nine penetrations**: four corners, Denali, **one**
+power connector, CAN, the pressure-equalisation vent (§9.3), and **one** fuse holder. Dropping the
+second feed removed two. Enclosure size is driven by this count more than by the board. Enclosure size is driven by this count more than by
 the board.
 
 **Power and CAN on separate connectors** — a switched high-current path and a differential bus
@@ -775,7 +809,7 @@ bring-up also confirms 94% efficiency and a gate drive near −10 V, daytime fal
 Recomputed 2026-09-12 against the **real operating modes** in §2.4, using conservative component
 figures throughout (92% boost, 20 mΩ P-FET, PROFET at its 150 °C max):
 
-| Effective area | Daytime, 4.5 W | Internal at 40 °C | Night, 2.6 W | Internal at 40 °C |
+| Effective area | Daytime, 4.5 W | Internal at 40 °C | Night, 2.9 W | Internal at 40 °C |
 |---|---|---|---|---|
 | 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 41 K | 81 °C | **Fails** |
 | 215 cm² (the old "hard requirement") | 26 K | **66 °C** | 15 K | 55 °C | Marginal |

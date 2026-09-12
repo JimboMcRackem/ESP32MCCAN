@@ -67,9 +67,10 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - Repo root: `D:\Projects\ESP32MCCAN`. All hardware files live under `hardware/`.
 
 **Electrical — exact values from the spec**
-- Feed A: 12 V, **3.9 A** (boost + logic), **7.5 A** fuse, 61% margin on a 10 A outlet
-- Feed B: 12 V, **6.6 A** (Denali D4 2.0 pair), **10 A** fuse, 34% margin
-- System total **10.5 A / ~128 W**. Feeds are **domain-split, never paralleled**
+- **SINGLE 12 V feed** (decided 2026-09-12), one **10 A** fuse. Loads never coincide (spec §2.4):
+  **daytime 3.9 A (39%)**, **night 7.8 A (78% — the governing case)**, flash-to-pass transient 10.5 A
+  (105%, harmless — blade fuses need ~135% for minutes)
+- Second feed: **board footprints retained, unpopulated**; no second panel connector or fuse holder
 - RGB rail: **24 V**, boost design point **60 W / 2.5 A**, actual load 40 W
 - Per RGB channel: **0.14 A**. Per RGB string (white): **0.42 A**. Per Denali channel: **3.3 A**
 - Sleep budget target **< 200 µA**, hard ceiling **500 µA**
@@ -131,7 +132,8 @@ voltage at boot.
 **Net naming contract** — sheets connect only through these names. Use them exactly.
 
 ```
-Power:    VBAT_A  VBAT_B  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
+Power:    VBAT  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
+          (VBAT_B exists only on the DNP second-feed footprints — spec 4.4)
 Per-str:  +24V_FL  +24V_FR  +24V_RL  +24V_RR          (after each PTC)
 RGB PWM:  PWM_FL_R PWM_FL_G PWM_FL_B PWM_FR_R PWM_FR_G PWM_FR_B
           PWM_RL_R PWM_RL_G PWM_RL_B PWM_RR_R PWM_RR_G PWM_RR_B
@@ -537,35 +539,47 @@ git commit -m "hw: part selection verification record, all criteria verified aga
 Place a KiCad text box on the sheet stating what must be true when it is done:
 
 ```
-ACCEPTANCE (spec 4.1-4.4):
-- Two independent feeds. NO net connects VBAT_A to VBAT_B except the Schottky OR.
-- Feed A: 7.5 A fuse, P-FET reverse polarity, 24 V TVS, pi + CM filter -> VBAT_A
-- Feed B: 10 A fuse, P-FET reverse polarity, 24 V TVS, pi + CM filter -> VBAT_B
-- Schottky OR: VBAT_A and VBAT_B -> VLOGIC_IN (logic survives either feed failing)
+ACCEPTANCE (spec 4.1-4.4) -- SINGLE FEED, decided 2026-09-12:
+- ONE populated feed: 10 A panel fuse, P-FET reverse polarity, 24 V TVS, pi + CM filter -> VBAT
+- Sized for the night case: 7.8 A continuous (78% of the 10 A feed), 10.5 A transient
+- Second feed laid out but DNP: connector position, P-FET stage, Schottky OR -- all footprints
+  only, so the domain split can be restored by populating parts rather than respinning
+- NO second panel connector and NO second fuse holder (the panel is 9 penetrations, not 11)
 - All front-end parts rated >= 40 V
-- Bulk capacitance on each VBAT rail
+- Bulk capacitance on the VBAT rail
 ```
 
-- [ ] **Step 2: Draw Feed A**
+- [ ] **Step 2: Draw the populated feed**
 
-Panel fuse holder footprint → P-FET reverse-polarity stage (source to feed, drain to load, gate
-to GND via resistor, Zener clamping Vgs) → TVS to GND → π filter (C–L–C) and common-mode choke →
-bulk electrolytic + ceramic → net label `VBAT_A`.
+Panel fuse holder footprint (**10 A**) → P-FET reverse-polarity stage (source to feed, drain to load,
+gate to GND via resistor, Zener clamping Vgs) → TVS to GND → π filter (C–L–C) and common-mode choke →
+bulk electrolytic + ceramic → net label `VBAT`.
 
-- [ ] **Step 3: Draw Feed B identically, output `VBAT_B`**
+**Size the P-FET for the night case, 7.8 A**, not the daytime 3.9 A: at the 20 mΩ ceiling that is
+**1.22 W** in one device (spec §9.4). Also place the **PWR connector** here (controller Ruling 2).
 
-Same topology, different fuse value (10 A) and a P-FET sized for 6.6 A rather than 3.9 A.
+**Keep the gate/Zener network ≥ 1 MΩ.** This is a sleep-budget requirement, not a style preference —
+see spec §8.2 (C3); a low-value divider here silently blows the parked-current budget.
 
-- [ ] **Step 4: Draw the Schottky OR**
+- [ ] **Step 3: Lay out the second feed as DNP footprints only**
 
-Anode of each Schottky to `VBAT_A` and `VBAT_B` respectively; cathodes tied to `VLOGIC_IN`.
-Add a ceramic to GND on `VLOGIC_IN`.
+Same topology as Step 2, placed but **do-not-populate**: connector position, P-FET stage, TVS, filter.
+Mark every part DNP in the BOM. This preserves the dual-feed upgrade path without a respin if the 78%
+night loading ever proves uncomfortable (spec §4.4).
 
-- [ ] **Step 5: Verify no accidental A↔B connection**
+- [ ] **Step 4: Draw the Schottky OR — footprints only, DNP**
 
-Run ERC, then visually trace: there must be **no** path between `VBAT_A` and `VBAT_B` other than
-through the two Schottky diodes. A short here silently defeats the entire domain split and would
-put both feeds on one load.
+With one feed there is nothing to OR, so the buck takes its input from `VBAT` directly. Place the two
+Schottky footprints anyway (anodes to `VBAT` and the DNP second feed, cathodes to `VLOGIC_IN`) and
+**populate only the `VBAT`-side diode**, or link `VBAT` → `VLOGIC_IN` with a 0 Ω. Keep a ceramic to
+GND on `VLOGIC_IN`.
+
+- [ ] **Step 5: Verify the DNP second feed is genuinely isolated**
+
+Run ERC, then visually trace: with the second feed unpopulated there must be **no** powered path into
+it, and no net shorting `VBAT` to the DNP stage except through the Schottky footprints. If the split
+is ever restored by populating parts, the same check becomes "no path between the two VBAT rails
+except through the diodes" — a short there would defeat the split and put both feeds on one load.
 
 ```bash
 cd hardware && "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" sch erc \
@@ -822,7 +836,7 @@ to select which channel `IS` reports. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the D
 `+24V` → PTC → `+24V_FL`, and likewise `+24V_FR`, `+24V_RL`, `+24V_RR`. Note on the sheet:
 "Isolates a shorted string so one crushed cable cannot extinguish all four corners (spec 5.2)."
 
-- [ ] **Step 6: Place all seven connectors**
+- [ ] **Step 6: Place all six populated connectors**
 
 | Connector | Type | Pins |
 |---|---|---|
@@ -832,7 +846,7 @@ to select which channel `IS` reports. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the D
 | RR | Superseal 1.0, 4-way | `+24V_RR`, `RET_RR_R`, `RET_RR_G`, `RET_RR_B` |
 | DENALI | Superseal 1.5, 3-way | `DEN_A_OUT`, `DEN_B_OUT`, `GND` |
 | CAN | Superseal 1.0, 2-way | `CANH`, `CANL` |
-| PWR A / PWR B | Superseal 1.5, 2-way ×2 | Feed A +/−, Feed B +/− (on the power_input sheet) |
+| PWR | Superseal 1.5, 2-way | Feed +/− (on the power_input sheet). **One connector** — the second feed is DNP footprints with no panel cutout |
 
 Annotate each corner connector with its intended **distinct colour or keying code** — the
 schematic is where that decision gets recorded, since mis-mating reverses the indicators and the
@@ -884,12 +898,12 @@ schematic; fill in the sheet and reference designator that satisfies it.
 
 | Spec | Requirement | Sheet / refdes | Verdict |
 |---|---|---|---|
-| 2.2 | Feed A and Feed B are independent; only the Schottky OR links them | | |
-| 4.1 | Two fuse holders, 7.5 A (A) and 10 A (B) | | |
-| 4.2 | P-FET reverse polarity on each feed, Vgs clamped | | |
-| 4.3 | 24 V TVS each feed; all front-end parts >= 40 V | | |
+| 2.2 | Single populated feed; second feed is DNP footprints only, with no panel cutout | | |
+| 4.1 | ONE panel fuse holder, 10 A, sized for the 7.8 A night case | | |
+| 4.2 | P-FET reverse polarity, sized for 7.8 A, Vgs clamped, gate network >= 1 MOhm (sleep budget) | | |
+| 4.3 | 24 V TVS; all front-end parts >= 40 V | | |
 | 4.3 | pi filter + CM choke on each feed | | |
-| 4.4 | Schottky OR -> VLOGIC_IN feeds the buck (NOT VBAT_A) | | |
+| 4.4 | Buck input from VLOGIC_IN; Schottky OR footprints present, second feed DNP | | |
 | 5.1 | 12x discrete MOSFET, Vds >= 40 V, enhanced at 3.3 V Vgs | | |
 | 5.1 | 1 ohm shunt per channel; 12 SENSE_* into 16:1 mux in ChannelIndex order | | |
 | 5.1 | MUX_S0-S3 on GPIO 23/4/16/5 with pulldowns; RGB_ISNS on GPIO 32 (ADC1) | | |
@@ -912,7 +926,7 @@ schematic; fill in the sheet and reference designator that satisfies it.
 | 7.3 | All 14 PWM_* nets have pulldowns | | |
 | 7.4 | Prog header + DTR/RTS auto-reset + BOOT/EN buttons | | |
 | 8.3 | Ignition-sense divider present, DNP | | |
-| 9.1 | Seven connectors, correct types and pinouts | | |
+| 9.1 | Six populated connectors + vent + one fuse holder = nine penetrations | | |
 | 9.2 | Corner connectors assigned distinct keying/colours | | |
 | 10 | DNP snubber footprints on the 12 outputs | | |
 ```
@@ -1117,8 +1131,8 @@ Must specify, with actual values rather than descriptions:
   groove, fastener pattern and torque
 - Gap-pad specification: material, thickness, compressed thickness, thermal conductivity, and the
   contact area against the Task 8 thermal group
-- Panel layout drawing with cutout positions and diameters for all **eleven** penetrations: four corner
-  connectors, Denali, PWR A, PWR B, CAN, and the two fuse holders
+- Panel layout drawing with cutout positions and diameters for all **nine** penetrations: four corner
+  connectors, Denali, PWR, CAN, the vent, and one fuse holder
 - Pressure-equalisation vent: part number and mounting position
 - Mounting: bracket design, thermal-compound interface to the plate, and the rubber isolators
   between bracket and frame — the plate must stay thermally coupled while the bracket is
@@ -1137,8 +1151,8 @@ Must specify:
   prominent warning that mis-mating reverses the indicators and is undetectable in firmware
 - Denali connector pinout showing the shared ground
 - CAN tap method: where on the vehicle, and a reminder that no terminator is populated
-- Both power feeds: which Experia peripheral outlets, and confirmation they are independent
-  10 A circuits rather than branches of one (spec §11 verification item)
+- The power feed: which Experia peripheral outlet, and confirmation it can sustain **7.8 A** (78% of
+  its 10 A rating) on a warm night
 - Loom, routing and strain-relief requirements, explicitly covering the **accepted risk** that
   the runs from the outlets to the box are not fused at their source (spec §4.1)
 

@@ -23,8 +23,10 @@ Current design baseline this procedure checks against (spec
   its own current-sense readback, independent of the RGB shunt/mux chain.
 - Four rails: `+3V3_ALW`, `+3V3_SW`, **`+5V` (always on, mandatory — the
   TJA1042 transceiver's VCC needs 4.5–5.5 V)**, and `+24V` (boost, enable-gated).
-- **Two independent 12 V feeds, domain-split**: Feed A (boost + logic) is
-  3.9 A behind a 7.5 A fuse; Feed B (Denali pair) is 6.6 A behind a 10 A fuse.
+- **ONE 12 V feed** behind a single **10 A** fuse (spec 4.4). The loads never coincide
+  (spec 2.4): daytime 3.9 A (39%), **night 7.8 A (78% — the governing case)**, with a
+  seconds-long 10.5 A flash-to-pass transient that a blade fuse ignores. The second
+  feed exists only as unpopulated board footprints.
   They are never paralleled — only a Schottky OR joins them, and only onto
   the logic rail.
 - Passive defaults are all **fail-safe when floating**: `EN_BOOST` and
@@ -47,17 +49,17 @@ so a protection failure doesn't cascade into real damage.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Feed A current with no load | < 5 mA | | |
+| Feed current with no load | < 5 mA | | |
 | `+3V3_ALW` | 3.30 V ± 3% | | |
 | `+5V` rail (mandatory, TJA1042 VCC) | within 4.5–5.5 V, nominal 5.0 V | | |
 | `+24V` with `EN_BOOST` high | 24.0 V ± 5% | | |
-| `+24V` with `EN_BOOST` floating | ~VBAT_A (boost FET body diode; see rails sheet note) | | |
+| `+24V` with `EN_BOOST` floating | ~VBAT (boost FET body diode; see rails sheet note) | | |
 | `+3V3_SW` with `EN_3V3SW` floating | 0 V (pulldown) | | |
 | `CAN_STB` net with nothing driving it | pulled high, ≥ 3.0 V (forces transceiver standby) | | |
 | All 14 `PWM_*` nets with nothing driving them | 0 V (pulldown) | | |
 | `MUX_S0`–`S3` nets with nothing driving them | 0 V (pulldown — channel 0 selected) | | |
-| Reverse-polarity test: reverse Feed A | No current, no damage | | |
-| Reverse-polarity test: reverse Feed B | No current, no damage | | |
+| Reverse-polarity test: reverse the feed | No current, no damage | | |
+| Confirm the DNP second-feed stage is unpopulated and isolated | No populated path; no voltage present | | |
 
 ## Stage 2: Boost under full dummy load
 
@@ -118,7 +120,7 @@ first surface as a bad 7-day vehicle result in Stage 9 - a week per iteration.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Firmware enters `esp_deep_sleep_start()`, measure Feed A current | Predicted **99-122 uA**<br>Pass **< 200 uA**<br>Hard fail **> 500 uA** | | |
+| Firmware enters `esp_deep_sleep_start()`, measure feed current | Predicted **99-122 uA**<br>Pass **< 200 uA**<br>Hard fail **> 500 uA** | | |
 | `IGN_SENSE` (GPIO 36) DC level in sleep | **0 V**, held by its populated pulldown - not floating | | |
 | Board stays asleep for 10 min undisturbed, bus quiet | No spurious wake | | |
 | Boost UVLO divider current (measure across the divider) | **~14 uA**, consistent with a >= 1 MOhm divider. **~207 uA means the datasheet's example values were fitted - C3** | | |
@@ -172,6 +174,7 @@ nicety. Do not skip it even if RX-only testing looks sufficient.
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
 | Four real RGB strings, full white, 30 min | No flicker; thermal rise acceptable | | |
+| **Same run, but with the enclosure at its hot internal temperature (58–65 °C)** | **No PTC trips.** This is the C4 case: 0.42 A per string is sustained for hours in daytime mode, and a PTC sized at 23 °C holds only ~0.25–0.30 A when hot. A bench run at room ambient will NOT reproduce it | | |
 | Denali D4 pair, swept across the full duty range (0–100%) | No flicker, no audible buzz, monotonic brightness | | |
 | Measured RGB string power vs. the 40 W assumption | Record actual (spec §2.2 assumed 40 W) | | |
 | Measured Denali draw vs. 6.6 A assumption | Record actual (3.3 A/channel assumed) | | |
@@ -187,7 +190,8 @@ is used going forward.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Both Experia peripheral outlets confirmed independent 10 A circuits | Independent, not branches of one 10 A circuit | | |
+| The Experia peripheral outlet sustains the night load | **7.8 A continuous (78% of its 10 A rating)** without voltage sag or a warm connector, on a warm night | | |
+| Fuse temperature after a sustained night ride | Warm but not hot; no nuisance opening. **78% is the top of good practice** — if it opens, drop the Denali maximum level in the web app (90% gives 7.2 A / 72%) | | |
 | Internal enclosure temperature after a sustained ride | < 65 °C at 40 °C ambient | | |
 | Parked quiescent drain over 7 days | Predicted: **17–21 mAh** over 7 days (99–122 µA × 168 h)<br>Pass: **< 34 mAh** (the <200 µA requirement × 168 h)<br>Hard fail: **> 84 mAh** (the 500 µA ceiling) | | |
 | Does the CAN bus actually go quiet when parked? | Bus idles → board enters deep sleep | | |
