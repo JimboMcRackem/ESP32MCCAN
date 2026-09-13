@@ -266,6 +266,44 @@ possibility of a jump start or charger on the rail.
 - Input **π filter and common-mode choke** — conducted-emissions suppression designed in, not
   retrofitted
 
+**Front-end ordering (decided 2026-09-12), and it is not arbitrary:**
+
+```
+connector -> fuse -> reverse-polarity FET -> TVS -> CM choke -> pi filter -> bulk -> load
+```
+
+- **Fuse first**, so everything downstream including the choke is protected.
+- **Reverse FET before the TVS, not after.** The SMBJ24A is *unidirectional*, so in reverse polarity
+  it is simply a forward-biased diode: placed ahead of the FET, a reversed battery drives enormous
+  current through it and destroys it. This ordering is mandatory, not preferential.
+- **TVS before the choke.** Surge clamping degrades with series inductance between the entry point
+  and the clamp — inductance causes the clamp voltage to overshoot. A choke is deliberately
+  inductive, so putting it ahead of the TVS undermines the clamp.
+- **Choke before the π filter.** The noise being blocked originates *inside* the board (the boost
+  converter), so the choke must sit between the switcher and the harness. The π filter's capacitors
+  belong downstream of it.
+
+**The CM choke splits the ground net, and this is the part that gets broken.** Both the positive
+conductor and the return pass through the choke, so the connector-side return (`GND_IN`) and the
+board ground (`GND`) are **separate nets joined only through choke winding B**.
+
+> **Nothing else may bridge `GND_IN` and `GND`** — no wire, no capacitor, and on the PCB no
+> ground-plane copper (a layout constraint for §10, not only a schematic one).
+>
+> **The usual failure is capacitive, not a wire.** A decoupling capacitor from the upstream node to
+> the downstream ground bridges winding A's input to winding B's output, giving high frequencies a
+> path straight around the choke. The circuit then works perfectly and filters nothing — and **no ERC
+> or DRC check will flag it.**
+
+Consequently: the **TVS anode and the P-FET gate resistor reference `GND_IN`** (the protection group
+must reference the ground the surge actually arrives on, and the gate must reference the return the
+battery is connected to), while **everything from the π filter onward references `GND`**.
+
+**Build option:** fit **either** the choke **or** two 0 Ω links that short its windings. Links give
+the simple tied-ground case for the first prototype, while the footprint is present either way — so
+fitting a real choke after EMI measurement needs no board revision. The footprint must be placed now
+regardless, because adding it later is a layout change.
+
 ### 4.4 Single feed, with the second laid out unpopulated
 
 **One** 2-way power connector with its own P-FET reverse-polarity stage, transient clamp and fuse
@@ -901,7 +939,7 @@ the synchronous boost's gate loops and the EMC behaviour tractable.
 
 **EMC measures:**
 
-- Input π filter and common-mode choke
+- Input π filter and common-mode choke (ordering and the GND_IN/GND split: §4.3)
 - Boost: spread-spectrum dither, shielded inductor, minimised switch-node loop area
 - CAN: common-mode choke and ESD protection
 - Output snubber footprints, unpopulated, in case the long corner runs need taming
