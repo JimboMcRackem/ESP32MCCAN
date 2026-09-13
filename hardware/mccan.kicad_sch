@@ -47,13 +47,6 @@
 				(justify left top)
 			)
 		)
-		(instances
-			(project "mccan"
-				(path "/"
-					(page "5")
-				)
-			)
-		)
 	)
 	(sheet
 		(at 101.6 50.8)
@@ -91,13 +84,6 @@
 					(size 1.27 1.27)
 				)
 				(justify left top)
-			)
-		)
-		(instances
-			(project "mccan"
-				(path "/"
-					(page "3")
-				)
 			)
 		)
 	)
@@ -139,13 +125,6 @@
 				(justify left top)
 			)
 		)
-		(instances
-			(project "mccan"
-				(path "/"
-					(page "4")
-				)
-			)
-		)
 	)
 	(sheet
 		(at 50.8 50.8)
@@ -164,7 +143,7 @@
 		)
 		(uuid "bb7f7a86-b153-4a57-9167-66f1a7c26371")
 		(property "Sheetname" "power_input"
-			(at 50.8 50.0032 0)
+			(at 50.8 50.0884 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -175,7 +154,7 @@
 			)
 		)
 		(property "Sheetfile" "sheets/power_input.kicad_sch"
-			(at 50.8 76.581 0)
+			(at 50.8 76.7846 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -185,11 +164,24 @@
 				(justify left top)
 			)
 		)
-		(instances
-			(project "mccan"
-				(path "/"
-					(page "2")
+		(pin "VLOGIC_IN" output
+			(at 50.8 50.8 90)
+			(uuid "0675ef87-ff71-4f9a-a62c-85f7fed543ba")
+			(effects
+				(font
+					(size 1.27 1.27)
 				)
+				(justify right)
+			)
+		)
+		(pin "VBAT" output
+			(at 52.4193 50.8 90)
+			(uuid "1fc575a6-c2ff-4aa4-813c-0e8322bc21b9")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
 			)
 		)
 	)
