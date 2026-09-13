@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-13T08:55:15")
+		(date "2026-09-13T08:58:01")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
