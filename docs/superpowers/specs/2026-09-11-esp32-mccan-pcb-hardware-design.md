@@ -38,7 +38,7 @@ compliance considered from the start.
 
 | Load | Type | Rail | Notes |
 |---|---|---|---|
-| 4 × RGB COB string | **24 V constant-voltage**, 4-wire common anode | 24 V | Owned; voltage is fixed |
+| 4 × RGB COB string | **24 V constant-voltage**, 4-wire common anode | 24 V | **BTF-LIGHTING COB RGB, 840 LED/m, 24 V, IP66.** ~6 cm per corner (12 cm if 6 proves too dim) |
 | 2 × Denali aux light | Self-contained 12 V units, internal drivers | 12 V | Driven identically |
 
 The RGB strings are constant-voltage with internal series resistors — **not** constant-current
@@ -59,14 +59,20 @@ Because the loads never coincide (§2.4), the budget is **per operating mode**, 
 
 | Mode | RGB via boost @92% | Denali | Logic | **Feed current** | Loading on 10 A |
 |---|---|---|---|---|---|
-| **Daytime** | 43.5 W → 3.6 A | off | 0.3 A | **3.9 A** | **39%** |
-| **Night** | ~10 W → 0.9 A | 80 W → 6.6 A | 0.3 A | **7.8 A** | **78%** |
-| *Flash-to-pass in daylight (seconds)* | 3.6 A | 6.6 A | 0.3 A | *10.5 A* | *105%* |
+| **Daytime** | 9.6 W → 0.87 A | off | 0.3 A | **1.2 A** | **12%** |
+| **Night** | ~2 W → 0.2 A | 80 W → 6.6 A | 0.3 A | **7.0 A** | **70%** |
+| *Flash-to-pass in daylight (seconds)* | 0.87 A | 6.6 A | 0.3 A | *7.8 A* | *78%* |
 
-**The 78% night figure is the tight spot of this design** and the number to watch. It is within
-normal practice for a sustained automotive load but at the upper end of it. The 105% transient is
-harmless: an ATO blade fuse at 105% of rating effectively never opens — blade fuses need roughly
-135% for minutes — and a 10 A contact carries 10.5 A for seconds without distress.
+> **REVISED 2026-09-13 — the RGB load was overstated by roughly 4×.** The design assumed
+> 20 W/m × 0.5 m = 10 W per corner. The actual strip is **~6 cm per corner** (12 cm if 6 proves too
+> dim), so on a conservative 20 W/m basis a corner draws **2.4 W**, and all four **9.6 W** — against
+> the 40 W previously budgeted. Every downstream figure moves with it: the boost design point, the
+> feed current, the thermal budget and the plate size. **The flash-to-pass transient no longer
+> exceeds the feed at all** (7.8 A, 78%), so the 105% overload case is gone.
+
+**Night remains the governing case at 70%**, comfortably inside good practice for a sustained
+automotive load and no longer the tight spot it was at 78%. It is now dominated almost entirely by
+the Denali pair; the RGB contribution is negligible.
 
 **If the fuse ever nuisance-blows,** the escape hatch needs no hardware: the Denali maximum level is
 already a web-app tunable, and 90% of full gives 6.0 A instead of 6.6 A, bringing the night total to
@@ -98,34 +104,43 @@ white.
 
 | | Value |
 |---|---|
-| Per RGB string, all three colors full (white) | 0.42 A |
-| **Per RGB channel** (R, G or B) | **~0.14 A** |
+| Per RGB string, all three colors full (white) | **0.10 A** (was 0.42 A) |
+| **Per RGB channel** (R, G or B) | **~33 mA** (was ~140 mA) |
 | Per Denali channel | **3.3 A** (D4 2.0 at 40 W) |
 
 ### 2.4 Operating modes — the loads never all coincide
 
 **Confirmed by the owner 2026-09-12.** This is load-defining and it governs the thermal design:
 
-| Mode | Denali | RGB corners | Feed current (single feed) |
-|---|---|---|---|
-| **Daytime** | **OFF** | All four on (white DRL) | **3.9 A** |
-| **Night** | On (80 W) | Fronts **off**, indicating only; rears on | **7.8 A** |
+| Mode | Denali | RGB corners | Feed current | Board dissipation |
+|---|---|---|---|---|
+| **Daytime** | **OFF** | All four on (white DRL) | **1.2 A** | ~1.4 W |
+| **Night** | On (80 W) | Fronts **off**, indicating only; rears on | **7.0 A** | **~1.9 W — governs** |
 
 **Consequences:**
 
 - **"Full-white RGB *and* both Denali at maximum" is not a reachable steady state.** It occurs only
   during a flash-to-pass in daylight — seconds at a time, absorbed by thermal mass.
-- The **steady-state thermal worst case is daytime: ~4.5 W** (§9.4), not the 5.7 W that combination
-  implies.
-- **This is what makes a single feed viable.** Daytime draws 3.9 A; night draws 7.8 A. The 10.5 A
-  figure is an envelope no steady state occupies, which is why the design reverted to one feed
-  (§2.2, §4.4) after briefly requiring two.
+- **The thermal worst case is now NIGHT, not daytime (revised 2026-09-13).** Once the RGB load fell
+  from 40 W to 9.6 W the boost stopped dominating, and the **P-FET conduction loss at the Denali
+  pair 7.0 A became the largest single term** (0.98 W of a ~1.9 W total). Daytime is now the
+  *lighter* case at ~1.4 W. This reverses the earlier conclusion, which held only while the RGB load
+  was believed to be 4x larger.
+- **The single feed is now comfortable rather than marginal.** Daytime draws 1.2 A (12%); night
+  7.0 A (70%). Even the flash-to-pass transient, at 7.8 A, no longer exceeds the feed — the 105%
+  overload case that drove the fuse discussion has disappeared entirely.
 - **C4 (the PTC) is confirmed as a real sustained condition, not a corner case:** daytime runs all
   four corners at full white continuously, so each string holds 0.42 A for hours at the enclosure's
   hot internal temperature. That is precisely the case the original 0.5 A PTC would have tripped on.
 
-The low per-channel RGB current is what makes the discrete-FET output stage thermally trivial
-(§5.1) — and it is the figure against which open-load detection must be verified (§11).
+**Design basis:** 20 W/m × 12 cm = 2.4 W per corner. This deliberately covers the worst plausible
+case — the strip's rating should be confirmed from the reel (12–20 W/m is the plausible band for
+24 V COB RGB) and 12 cm is the longer of the two lengths under consideration. At 6 cm and 12 W/m the
+figures are a quarter of this.
+
+The per-channel current is now **33 mA**, which makes the discrete-FET output stage thermally
+irrelevant — but it **breaks the sense-chain sizing** and is why §5.1's shunt changed from 1 Ω to
+10 Ω.
 
 ---
 
@@ -388,14 +403,23 @@ the output-characteristic curve showing **Id ≥ 0.5 A at Vgs ≤ 3.3 V**.
 > resistors (~171 Ω) set the current, so 1–2 Ω of series resistance shifts it under 1%. Nothing here
 > needs low Rds: not heat, not headroom, not current accuracy, not switching speed.
 
-**Diagnostics:** a **1 Ω sense resistor in each FET's source leg**, all 12 sense nodes feeding a
+**Diagnostics:** a **10 Ω sense resistor in each FET's source leg**, all 12 sense nodes feeding a
 **16-channel analog multiplexer** whose output drives one ESP32 **ADC1** input.
 
+> **SHUNT RESIZED 1 Ω → 10 Ω, 2026-09-13 — at 1 Ω the diagnostics would not have worked.** The chain
+> was sized for 140 mA per channel. The real strip draws **10–33 mA**, which across 1 Ω is
+> **10–33 mV** — down among the ADC's offset and noise, where "open" and "working" are
+> indistinguishable. The feature would have appeared to function and silently mis-classified.
+> At 10 Ω the signal is **100–330 mV**, back in the same working range the design was validated for.
+> Dissipation *falls* to **1–11 mW** per channel (from 20 mW), so the ≥1 W 2512 requirement is
+> withdrawn — an 0805 at 1% suffices.
+
 - Sense is **ground-referenced** (low-side), so no differential or high-side amplifier is needed
-- 1 Ω × 0.14 A = **140 mV** at full channel current; **0.24 W** total across 12 channels at full white
+- 10 Ω × 33 mA = **330 mV** at full channel current (100 mV at the 6 cm / 12 W/m end); **0.13 W**
+  total across 12 channels at full white
 - ADC at **0 dB attenuation** (0–1.1 V range), so 140 mV is ~13% of full scale — ample to separate
   open (≈0 mV), working (≈140 mV) and shorted (saturated)
-- 1 Ω chosen deliberately over 2.2 Ω: the larger shunt would read a cleaner 308 mV but cost 0.5 W
+- 10 Ω chosen to restore the validated ~100–330 mV window at the real load, at negligible power
 - **The mux must be specified for 3.3 V operation** — ADG706-class. Note its real figures at the rail
   actually used: **2.7–5.5 V supply, RON 6 Ω typ / 11–12 Ω max at 3 V** (the often-quoted ~2.5 Ω is the
   5 V column). The buffer capacitor below makes the difference immaterial.
@@ -479,10 +503,13 @@ PTC on each string's +24 V feed isolates the fault to one corner for a few cents
 > cool: an intermittent fault **in the indicator path**, which no bench test at room ambient
 > reproduces.
 >
-> **Requirement:** hold current **≥ 0.42 A at 65 °C** with margin — for typical PPTC derating, a
-> nominal **≥ 0.75 A hold at 23 °C**. Trip must still act before the boost's 2.5 A limit. Vmax ≥ 24 V.
+> **RESOLVED 2026-09-13 — the load fell and the failure dissolved.** The requirement was
+> ≥ 0.42 A at 65 °C, which no 1206L part rated for 24 V could meet. The real per-string load is
+> **0.10 A**, and the original candidate **1206L050/24 holds 0.31 A at 65 °C — a 3.1× margin.**
+> It passes comfortably. The hard FAIL below is retained as the record of why it was raised.
 >
-> **The Littelfuse 1206L family CANNOT meet this and no replacement is yet selected (2026-09-12).**
+> *Superseded requirement:* hold current ≥ 0.42 A at 65 °C, i.e. a nominal ≥ 0.75 A at 23 °C.
+> **The Littelfuse 1206L family could not meet THAT, and no replacement was selected (2026-09-12).**
 > Measured against the datasheet's own derating table, the best 24 V-rated part (1206L050/24) holds
 > **0.31 A at 65 °C** — 26% short of the load — and every 1206L part rated ≥ 0.75 A hold is limited to
 > Vmax ≤ 16 V. A **larger package family** is required: 1812L, Bourns MF-SMD or TE miniSMDC. Note this
@@ -549,7 +576,7 @@ constraint, not a layout convenience.
 |---|---|---|---|
 | 3.3 V | Buck, **low quiescent** (LM5164 class) | ~1 A | Always on; must supply ESP32 WiFi TX peaks (~500 mA) |
 | **5 V** | Low-quiescent regulator, **enable-gated (off in sleep)** | ~100 mA | Shares `EN_3V3SW`; feeds TJA1042 **VCC** only — see below |
-| 24 V | **Synchronous** boost controller + external FETs (LM5122-Q1 class) | 60 W design point, 2.5 A | Enable-gated |
+| 24 V | **Synchronous** boost controller + external FETs (LM5122-Q1 class) | **15 W design point, 0.6 A** (9.6 W actual) | Enable-gated |
 
 **The 5 V rail is mandatory, but it is ENABLE-GATED, not always-on (corrected 2026-09-12, I10).** Task 2b established that the **TJA1042's VCC is
 4.5–5.5 V**; the "/3" suffix provides a **VIO pin for 3.3 V logic levels, it does not make VCC
@@ -565,8 +592,15 @@ recovers 10–25 µA from a sleep budget that §8.2 shows is tighter than previo
 
 §3 accordingly describes **four** power domains.
 
-**Why synchronous:** a non-synchronous boost loses ~6 W at this power; synchronous roughly
-halves it to ~3 W. Combined with the enclosure's heat-spreader plate (§9) this gives large
+> **DESIGN POINT REDUCED 60 W → 15 W (2026-09-13)** with the RGB load. At ~10 W actual the LM5122-Q1
+> is **substantially over-specified** — it is a controller for external FETs, sized for tens of watts.
+> An integrated switcher with internal FETs would be simpler, cheaper and smaller, and would remove
+> the external-FET selection from the BOM entirely. The LM5122 will work correctly at this power; it
+> is simply more part than the job now needs. Worth revisiting before committing the BOM, noting the
+> symbol has already been added to the project library.
+
+**Why synchronous:** a non-synchronous boost loses ~6 W at the *original* 60 W point; synchronous
+roughly halves it. At 10 W the absolute saving is far smaller and the case is correspondingly weaker. Combined with the enclosure's heat-spreader plate (§9) this gives large
 thermal margin, and the topology brings EMC headroom. The cost is a controller with external
 FETs, a current-sense resistor, compensation network, bootstrap, and careful gate-loop layout.
 
@@ -856,76 +890,50 @@ ceramic and polymer capacitors preferred where they will serve.
 
 ### 9.4 Thermal
 
-**Rewritten wholesale 2026-09-12** after a re-review found this section carrying four different
-dissipation figures from successive edits. Dissipation is now stated **per operating mode** (§2.4),
-because the loads never coincide and a single mixed column was what produced the confusion.
+**Rewritten 2026-09-13** after the RGB load turned out to be ~4× smaller than assumed (§2.2). The
+governing case has **changed from daytime to night**: with the boost no longer dominating, the
+P-FET's conduction loss at the Denali pair's 7.0 A is now the largest single term on the board.
 
 | Source | **Daytime** (corners white, Denali off) | **Night** (Denali on, front DRLs off) |
 |---|---|---|
-| Synchronous boost losses (92%, conservative) | **3.50 W** (40 W of RGB) | 0.87 W (~10 W of RGB) |
-| P-FET reverse protection — **one** device, 20 mΩ ceiling | 0.30 W (3.9 A) | **1.22 W** (7.8 A) |
-| Denali PROFET, 150 °C max | **0 W** — Denali off | 0.35 W |
-| RGB discrete FETs, all 12 | 0.01 W | ~0 W |
-| RGB sense resistors, 12 × 1 Ω | 0.24 W | 0.08 W |
+| Synchronous boost losses (92%, conservative) | 0.83 W (9.6 W of RGB) | ~0.20 W |
+| P-FET reverse protection, 20 mΩ ceiling | 0.03 W (1.2 A) | **0.98 W (7.0 A) — largest term** |
+| Denali PROFET, 150 °C max | 0 W — Denali off | 0.35 W |
+| RGB sense resistors, 12 × 10 Ω | 0.13 W | ~0.03 W |
+| RGB discrete FETs, all 12 | ~0 W | ~0 W |
 | Buck and logic | 0.40 W | 0.40 W |
-| **Total** | **~4.5 W — governs the design** | **~2.9 W** |
+| **Total** | ~1.4 W | **~1.9 W — governs** |
 
-*Transient peak ~6.7 W during a flash-to-pass in daylight — seconds at a time, absorbed by thermal
-mass, not thermally sizing. (3.50 boost + 2.21 P-FET at 10.5 A and 20 mΩ + 0.35 PROFET + 0.01 + 0.24
-+ 0.40.)*
+*Flash-to-pass transient adds the boost and Denali terms together briefly — still under 2.5 W, and
+seconds at a time.*
 
-**Daytime governs even though night draws more current.** The boost carries the whole RGB load in
-daytime (3.5 W of loss), and that dwarfs the extra P-FET and PROFET dissipation at night.
+**The plate no longer needs fins.** At 1.9 W:
 
-**Conservative inputs, corrected load combination.** Three component figures are taken at their worst
-case — the right basis for a heatsink that cannot be changed after fabrication:
+| Effective area | Rise | Internal at 40 °C ambient |
+|---|---|---|
+| 80 cm² (a flat 100 × 80 mm plate) | 30 K | 70 °C |
+| **100 cm²** | 24 K | **64 °C** — meets the 65 °C target |
+| **150 cm² — recommended** | **16 K** | **56 °C** — comfortable |
+| 200 cm² | 12 K | 52 °C |
 
-| Input | Earlier | Now | Why |
-|---|---|---|---|
-| Load combination | full-white RGB **and** both Denali maxed | **the real modes in §2.4** | Not a reachable steady state: daytime has Denali off, night has the front DRLs off |
-| Boost efficiency | 94% (**UNVERIFIED** — no numeric figure in the datasheet text) | **92%**, the figure §2.2 uses | The two disagreed; the conservative one governs until measured at bring-up Stage 2 |
-| P-FET Rds(on) | 14 mΩ (the V<sub>GS</sub> = −10 V column) | **20 mΩ**, the specified ceiling | 14 mΩ silently assumed a gate drive the schematic has not yet guaranteed |
-| PROFET | 0.22 W (25 °C typ) | **0.35 W** (150 °C max) | Row 2.6 computes 0.349 W at max and fails its own 0.25 W criterion there |
+**Requirement: a flat aluminium plate of ≥ 150 cm² effective area.** A finned extrusion is no longer
+necessary — it was required only when the budget stood at 4.5 W and needed ≥ 300 cm². Fins remain a
+harmless option if a suitable profile is convenient, and they would buy a further ~10 K.
 
-Only the **load combination** was relaxed, and that came from how the bike is ridden, not from an
-optimistic datasheet reading. If bring-up confirms 94% efficiency and a gate drive near −10 V, daytime
-falls to ~3.6 W. The design does not rely on that.
+> **What this reverses, and why.** §9.3 and earlier revisions of this section required a **finned**
+> plate of ≥ 300 cm², derived from a 4.5 W budget that rested on the RGB load being 40 W. The real
+> load is 9.6 W, so total dissipation fell to ~1.9 W and the requirement fell with it. The
+> fins-vertical installation constraint and the finned/antenna wall separation become moot if a flat
+> plate is used; the **metal-to-metal plate-to-bracket and rubber-at-the-frame mounting still
+> stands**, since it costs nothing and preserves margin.
 
-### The plate must be finned — a flat plate of plausible size fails
+**Conservative inputs retained.** Boost efficiency is still taken at 92% (the datasheet's ≥94% is
+UNVERIFIED), the P-FET at its 20 mΩ ceiling rather than the better gate-drive case, and the PROFET at
+its 150 °C maximum. The design basis for the RGB load is likewise the worst plausible case —
+20 W/m × 12 cm — against a strip that may well be 12 W/m at 6 cm, which would be a quarter of it.
 
-For natural convection (h ≈ 8 W/m²K):
-
-| Effective area | Daytime 4.5 W | Internal at 40 °C | Night 2.9 W | Internal at 40 °C | Verdict |
-|---|---|---|---|---|---|
-| 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 46 K | 86 °C | **Fails — over the ESP32's 85 °C max** |
-| 215 cm² | 26 K | **66 °C** | 17 K | 57 °C | Misses the 65 °C target |
-| **300 cm² — hard requirement** | **19 K** | **59 °C** | 12 K | 52 °C | Comfortable |
-| 350 cm² — design target | 16 K | 56 °C | 10 K | 50 °C | Ample |
-
-An earlier revision claimed "~65 °C at 40 °C ambient" without checking it. That figure silently
-assumed ~215 cm², which is roughly **three times** what a flat plate sized to fit this enclosure
-provides — hence fins, which multiply effective area 3–5× for the same footprint.
-
-**Why 300 cm² rather than the 250 cm² that would just pass.** Margin is cheap in an extruded profile,
-and three inputs above could still move the wrong way: efficiency is UNVERIFIED at 92–94%, the P-FET
-figure assumes the 20 mΩ ceiling, and the PROFET line uses its 150 °C maximum. 300 cm² absorbs all
-three at once.
-
-**Requirements:**
-
-| | Value |
-|---|---|
-| Plate footprint | ≥ 80 cm² (≈ 100 × 80 mm) — sizes the **wall opening**; the fins add area outside the box |
-| **Effective convective area — hard requirement** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → **~59 °C** daytime at 40 °C ambient |
-| **Effective convective area — design target** | **≥ 350 cm²** (fin multiplier ≥ 4.4×) → ~56 °C |
-| Fin orientation | **Vertical in the installed attitude** (§9.3) |
-| Base thickness | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
-
-Stated as an area requirement rather than a named profile, so any extrusion meeting it qualifies.
-
-**The gap pad is not the bottleneck.** The thermal group is the boost FETs, the boost inductor and the
-single P-FET — **3.8 W in daytime**. Across 1000 mm² of 1.5 mm, 2 W/mK material that is **~2.9 K**.
-The constraint was always the plate's external convection.
+**The gap pad is not the bottleneck.** The thermal group is now the boost stage plus the single
+P-FET — under 1 W in either mode. Across 1000 mm² of 1.5 mm, 2 W/mK material that is well under 1 K.
 
 ---
 
