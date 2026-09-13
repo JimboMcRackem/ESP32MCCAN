@@ -163,22 +163,52 @@ document, not corrupted).
 | 2.6 | On-resistance gives <= 0.25 W for the pair at 3.3 A each | Table 13, p.27-28: "ON-State Resistance at TJ = 25 degC — RDS(ON)_25 — Typ. 9 mOhm" (P_7.5.1.1, not subject to production test); "ON-State Resistance at TJ = 150 degC — RDS(ON)_150 — Max. 16 mOhm" (P_7.5.1.2). Pair dissipation at 3.3 A each: at 25 degC typ, P = 2 x 3.3^2 x 0.009 = 0.196 W; at 150 degC max, P = 2 x 3.3^2 x 0.016 = 0.349 W. | **PASS at 25 degC typical** (0.196 W < 0.25 W) **but FAILS at the 150 degC worst-case max rating** (0.349 W > 0.25 W). This is a real thermal-margin question, not a datasheet gap: whether the device actually reaches 150 degC junction under this design's duty cycle and PCB copper/thermal relief is a Task 3 layout question. Flag for the schematic/layout pass: verify junction temperature stays low enough (via thermal simulation or bench measurement) that RDS(on) stays closer to the 25 degC figure, or accept reduced margin at temperature extremes. |
 | 2.7 | Standby current <= 20 uA | Table 1 "Product Summary", p.2: "Maximum current in Sleep mode (TJ <= 85 degC) — IVS(SLEEP)_85 — 0.6 uA." Section 6.1.3 "Sleep mode", p.16: entered when all digital inputs (INn, DEN, DSEL) are low; outputs OFF, current consumption minimum. | **PASS** — 0.6 uA max vs 20 uA required, >30x margin. (Note: Stand-by mode, entered with DEN high and inputs low, has higher consumption per Section 6.1.4 because diagnosis stays active — this is not the mode used for the sleep-budget rollup, which assumes full Sleep mode.) |
 
-## 3. Synchronous boost controller — 12 V to 24 V, 60 W
-Candidate: TI LM5122-Q1. Verified against **TI LM5122-Q1 datasheet SNVSAW9,
+## 3. Boost converter — 12 V to 24 V, ~8 W
+**SELECTED 2026-09-13: TI LM51571-Q1** (was LM5122-Q1). Verified from the primary datasheet,
+`hardware/datasheets/lm51571-q1.pdf`, held locally — the first part on this project verified without
+fetching anything.
+
+**Why it replaced the LM5122-Q1.** The RGB load fell from 40 W to ~8 W (spec §2.2), which made a
+controller-plus-external-FETs topology the wrong shape. Every criterion improved:
+
+| | LM5122-Q1 | **LM51571-Q1** |
+|---|---|---|
+| Switch | 2 external FETs + gate loops | **Integrated 50 V / 4.33 A** |
+| Input rating | needed checking against the ~39 V TVS clamp | **2.9–45 V op, 50 V abs, transient protection to 50 V** |
+| Shutdown IQ | 9 µA typ / **17 µA max** | **≤ 2.6 µA** |
+| Spread spectrum | **none** — row 3.4 had to be *relaxed* to accept an external SYNC | **Dual random, built in** |
+| Qualification | -Q1 | **AEC-Q100 grade 1**, −40 to +125 °C |
+| Package | controller + 2 FETs + inductor | **WQFN-16, 3 × 3 mm** + 1 Schottky |
+
+It is **non-synchronous**, so it needs one external Schottky rectifier — at 320 mA out that costs
+~64 mW, against two FETs and their gate drive.
+
+**Switch margin:** 4.33 A against a ~0.8 A peak inductor current — **5.4×**.. Verified against **TI LM5122-Q1 datasheet SNVSAW9,
 June 2017** (fetched 2026-09-12; extracted with PyMuPDF — same "the harness's
 text conversion garbles it, the PDF itself is fine" situation as section 2).
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 3.1 | Input rating 40-60 V (must exceed the 24 V TVS clamp voltage) | Section 6.3 "Recommended Operating Conditions", p.6: "Input supply voltage — VIN — Min 4.5 V, Max 65 V." Section 6.1 "Absolute Maximum Ratings", p.5: "VIN, CSP, CSN — Max 75 V." Feature list p.1: "Maximum Input Voltage: 65 V." | **PASS** — 65 V recommended max and 75 V absolute max both clear the 40-60 V band with margin; 4.5 V min is far below the requirement so no conflict there either. |
+| 3.1 | Input rating 40-60 V (must exceed the 24 V TVS clamp voltage) | **PASS** — datasheet p.1: "2.9-V to 45-V input operating range", "48-V maximum output (50-V abs max)", "Input transient protection up to 50 V". Clears the SMBJ24A's ~39 V clamp with margin. **This criterion is what eliminated the obvious alternatives** (TPS55340 is 32 V max, TPS61170 18 V). | **PASS** |
+| ~~3.1-old~~ | *(superseded row retained below)* | Section 6.3 "Recommended Operating Conditions", p.6: "Input supply voltage — VIN — Min 4.5 V, Max 65 V." Section 6.1 "Absolute Maximum Ratings", p.5: "VIN, CSP, CSN — Max 75 V." Feature list p.1: "Maximum Input Voltage: 65 V." | **PASS** — 65 V recommended max and 75 V absolute max both clear the 40-60 V band with margin; 4.5 V min is far below the requirement so no conflict there either. |
 | 3.2 | Synchronous (external FETs). **Efficiency: 92% is the figure the thermal budget uses (spec 9.4); >= 94% is the datasheet target and is UNVERIFIED** | **Synchronous/external FETs confirmed:** feature list p.1: "Robust 3-A Integrated Gate Drivers," "Adaptive Dead-Time Control"; pin functions p.4: "HO — High-side N-channel MOSFET gate drive output," "LO — Low-side N-channel MOSFET gate drive output" (both external FETs, true synchronous rectification, peak-current-mode control). Section 8.2 "Typical Application" worked design example, p.35, uses almost exactly this design's voltage points: VOUT = 24 V, VIN(TYP) = 12 V, VIN range 9-20 V (though at 108 W, not 60 W). **Efficiency percentage: not found.** A full-text search of all 50 pages for the word "Efficiency" returned zero hits — the "Typical Characteristics" efficiency curves in this datasheet are image-only plots with no OCR-able axis/label text extracted by PyMuPDF, and no numeric efficiency percentage appears anywhere in the document's text layer. | **PASS** for "synchronous, external FETs" (directly confirmed from pin functions and features). **UNVERIFIED** for the >= 94% efficiency figure — needs a human to open the datasheet's Typical Characteristics section visually (or run the TI WEBENCH Power Designer tool linked in Section 8.2.2.1 with this design's exact 12 V-in/24 V-out/60 W point) to read the actual efficiency curve; not stated here as a number because none could be extracted. |
 | 3.3 | Enable pin, 3.3 V logic compatible | The device has **no dedicated EN pin** (confirmed against the full pin list, Section 4 "Pin Functions" p.4: SYNCOUT, OPT, CSN, CSP, VIN, UVLO, SS, SYNCIN/RT, AGND, FB, COMP, SLOPE, RES, PGND, MODE, LO, VCC, SW, HO, BST, EP — no "EN"). The **UVLO pin** serves this role: p.4, "If the UVLO pin is below 0.4 V, the regulator is in shutdown mode with all functions disabled. If the UVLO pin voltage is greater than 0.4 V and below 1.2 V, the regulator is in standby mode... If the UVLO pin voltage is above 1.2 V, the start-up sequence begins." | **PASS, with an implementation note** — a 0 V / 3.3 V logic swing cleanly straddles both thresholds (0 V is below the 0.4 V shutdown threshold; 3.3 V is above the 1.2 V start-up threshold), so no level shifter is needed. However, UVLO's primary job is analog line-undervoltage sensing via an external resistor divider from VIN (worked example, Section 8.2.2.3, p.35: RUV2 = 49.9 kOhm, RUV1 = 8.06 kOhm for an 8.7 V start-up threshold) — to add MCU enable/disable on top of that divider, the standard technique is a small transistor across the lower divider resistor gated by the 3.3 V GPIO.  |
-| 3.4 | Spread-spectrum, frequency dither, **an external SYNC/dither input, or a documented EMC mitigation plan** (relaxed, fix round 1 Finding 4 — EMC nicety, not a functional requirement) | Pin Functions, p.4: "SYNCIN/RT — The internal oscillator frequency is programmed by a single resistor between RT and AGND. The internal oscillator can be synchronized to an external clock by applying a positive pulse signal into this SYNCIN pin." Section on Oscillator, p.7/21: synchronization up to 1 MHz (2 MHz internal in master config / 2 for 1 MHz switching). No native spread-spectrum/dither generator exists on-chip (confirmed by a full-text search of all 50 pages in the prior pass), but the part has a real, documented **external SYNC input** — exactly what the relaxed criterion accepts. | **PASS (relaxed criterion)** — the SYNCIN/RT pin is a genuine external synchronization input; driving it from a dithered clock source satisfies the EMC-mitigation intent without requiring an on-chip spread-spectrum generator. No further evaluation of an actual dither source was done (Task 3/4's EMC design decision), but the pin/capability itself is confirmed present in the datasheet. |
-| 3.5 | Disabled-state current draw <= 10 uA, or gated externally | Section 6.5 "Electrical Characteristics", p.6: "ISHUTDOWN — VIN shutdown current — VUVLO = 0 V — Typ 9 uA, Max 17 uA." Feature list p.1 also states "Low Shutdown Quiescent Current: 9 uA" (the typical figure). | **PASS on typical (9 uA), FAILS on guaranteed max (17 uA)** against the bare 10 uA threshold. **CORRECTED 2026-09-12 (project review C3).** The previous text claimed the "or gated externally" clause was met because "Section 6.1's P-FET series disconnect switch sits upstream ... and can cut it off from the battery entirely during deep sleep". **That was false.** The spec 4.2 P-FET is a **passive, self-biased reverse-polarity device** - gate resistor and Zener clamp, no enable input, no control net, no GPIO in any pin table. **Nothing disconnects the boost input from the battery in sleep.** The 17 uA max is a real, unavoidable contributor and is now **budgeted explicitly in the roll-up below**. |
-| 3.6 | Dissipation at 40 W out <= 3 W including both FETs. **BOOST POWER-STAGE REQUIREMENTS DERIVED 2026-09-13 from this design's own equations (see the block below the table) - two identical N-FETs: Vds >= 40 V, Id >= 10 A, Rds(on) <= 20 mOhm at Vgs = 7.5 V, Qg <= 20 nC, thermal-pad package** | Not determinable from this datasheet alone — HO/LO drive **external** N-channel MOSFETs (row 3.2), so total FET dissipation (conduction loss I^2 x RDS(on) plus switching loss at the chosen fSW) depends entirely on which external FETs Task 3/4 selects and what switching frequency is programmed via RT (the worked example in Section 8.2.2.2, p.35, uses 250 kHz for a 108 W/24 V design, chosen as "a reasonable compromise between small size and high-efficiency"). | **UNVERIFIED at the controller level** — this is a system-level calculation that depends on FET selection, not a fixed parameter of the LM5122-Q1. Task 3/4 must pick specific boost-stage FETs, compute conduction + switching loss for both at the 60 W/24 V operating point, and check the sum against the 3 W ceiling. |
+| 3.4 | Spread spectrum | **PASS, and the earlier RELAXATION IS WITHDRAWN.** Datasheet p.1, EMI mitigation: "Selectable dual random spread spectrum". The criterion had been relaxed to accept an external SYNC input or a documented EMC plan solely because the LM5122-Q1 lacked the feature; the LM51571-Q1 meets the original requirement properly rather than having it negotiated down. | **PASS** |
+| 3.5 | Disabled-state current draw <= 10 uA | **PASS** — datasheet p.1: "Low shutdown current (IQ <= 2.6 uA)". No external gating needed, and the false P-FET-disconnect justification that the old row relied on is moot. *(Old row retained below.)* | Section 6.5 "Electrical Characteristics", p.6: "ISHUTDOWN — VIN shutdown current — VUVLO = 0 V — Typ 9 uA, Max 17 uA." Feature list p.1 also states "Low Shutdown Quiescent Current: 9 uA" (the typical figure). | **PASS on typical (9 uA), FAILS on guaranteed max (17 uA)** against the bare 10 uA threshold. **CORRECTED 2026-09-12 (project review C3).** The previous text claimed the "or gated externally" clause was met because "Section 6.1's P-FET series disconnect switch sits upstream ... and can cut it off from the battery entirely during deep sleep". **That was false.** The spec 4.2 P-FET is a **passive, self-biased reverse-polarity device** - gate resistor and Zener clamp, no enable input, no control net, no GPIO in any pin table. **Nothing disconnects the boost input from the battery in sleep.** The 17 uA max is a real, unavoidable contributor and is now **budgeted explicitly in the roll-up below**. |
+| 3.6 | ~~Dissipation at 40 W out <= 3 W including both FETs~~ **VOID — THERE ARE NO EXTERNAL FETs.** The LM51571-Q1 integrates the switch, so the entire FET selection is deleted from the BOM. Remaining external power part: **one Schottky rectifier** — see row 3.7. | Not determinable from this datasheet alone — HO/LO drive **external** N-channel MOSFETs (row 3.2), so total FET dissipation (conduction loss I^2 x RDS(on) plus switching loss at the chosen fSW) depends entirely on which external FETs Task 3/4 selects and what switching frequency is programmed via RT (the worked example in Section 8.2.2.2, p.35, uses 250 kHz for a 108 W/24 V design, chosen as "a reasonable compromise between small size and high-efficiency"). | **UNVERIFIED at the controller level** — this is a system-level calculation that depends on FET selection, not a fixed parameter of the LM5122-Q1. Task 3/4 must pick specific boost-stage FETs, compute conduction + switching loss for both at the 60 W/24 V operating point, and check the sum against the 3 W ceiling. |
 
 > **CRITICAL CORRECTION 2026-09-12 (project review C3): the datasheet's worked divider values must NOT be used as-is.** RUV2 + RUV1 = 49.9 k + 8.06 k = **57.96 kOhm across 12 V = ~207 uA drawn continuously**, rising to ~240 uA while the enable transistor shunts RUV1. **That divider alone exceeds the entire 200 uA sleep target**, before any other contributor. **Requirement: scale to >= 1 MOhm total** at the same ratio for the 8.7 V threshold (~14 uA at 12 V, one fifteenth the current). The ratio sets the threshold; the absolute values set the quiescent draw, and the datasheet's example optimises for neither.
 
+
+### ~~Boost power stage — external-FET requirements~~ SUPERSEDED 2026-09-13
+
+> **These requirements are VOID.** They were derived for the LM5122-Q1's external FETs; the
+> LM51571-Q1 integrates the switch, so no external FETs exist. **The inductor arithmetic below still
+> stands and is still the authority for the inductor choice** — peak current, duty cycle and RMS are
+> properties of the topology, not of the controller. Retained for that, and as the record of why the
+> FET search was abandoned.
+
+#### Original block (external-FET era)
 
 ### Boost power stage — requirements derived from this design (2026-09-13)
 
@@ -246,6 +276,39 @@ carried over directly rather than re-fetched.
 rail (this section) and the 5 V transceiver rail (Section 4b) means Tasks 3-6
 place two instances of the same qualified IC with different resistor-divider
 values, rather than two different regulator part numbers.
+
+
+### The enable arrangement — and why the UVLO divider is gone
+
+The LM51571-Q1 has a **single combined `EN_UVLO_SYNC` pin** (pin 6): enable, programmable line
+undervoltage lockout and sync all share it. The LM5122-Q1 had a separate UVLO pin, and the previous
+design put a resistor divider on it — which was the second of the two ≥ 1 MΩ networks the whole sleep
+budget was made conditional on.
+
+**Decision: drive `EN_UVLO_SYNC` directly from `EN_BOOST` (GPIO 25), with no divider.**
+
+- 3.3 V logic comfortably clears the enable threshold; 0 V shuts the part down
+- The mandatory **pulldown on `EN_BOOST` still gives "floating = boost off"**, satisfying the
+  passive-default rule
+- **It removes ~14 µA of continuous divider current from the sleep budget** — the divider drew that
+  whether the part was enabled or not, because it sat across the battery rail
+- **It removes one of the two ≥ 1 MΩ conditions** the budget's PASS depended on. Only the P-FET gate
+  network remains conditional
+
+**What is given up:** programmable line UVLO. The part keeps its own internal undervoltage lockout,
+so it simply will not run below its minimum; what is lost is the ability to choose a custom
+threshold. Acceptable here — the Experia's 12 V rail is DC-DC fed and well behaved, there is no
+crank-dip to ride out on an EV, and the board sleeps when the bus goes idle anyway.
+
+### 3.7 Boost rectifier (NEW — required by the non-synchronous topology)
+
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 3.7.1 | Schottky, Vr >= 40 V (24 V rail plus ringing, consistent with the front end) | | |
+| 3.7.2 | If >= 1 A average (against ~320 mA actual, ~0.8 A peak) | | |
+| 3.7.3 | Low Vf at 320 mA — target <= 0.5 V, giving <= ~80 mW | | |
+| 3.7.4 | Fast recovery suitable for switching up to 2.2 MHz | | |
+| 3.7.5 | In stock, multi-source | | |
 
 ## 4b. 5 V regulator — mandatory, **enable-gated off in sleep**
 Feeds the TJA1042's VCC (4.5-5.5 V). **Gated off in deep sleep** (spec 6): the
@@ -321,13 +384,14 @@ here because it is discovered by this section's datasheet read.
 | ESP32 deep sleep + EXT0 RTC_PERIPH domain | **10 uA** | Espressif "ESP32 Series Datasheet" v5.3, Table 4-2 "Power Consumption by Power Modes", row "Deep-sleep — RTC timer + RTC memory — 10 uA" (fetched 2026-09-12). The datasheet does not break "RTC_PERIPH domain for EXT0 wake" out as a separate incremental line from this baseline — RTC memory + RTC timer retention is part of the same RTC power domain that EXT0/RTC_GPIO wake depends on, so the two rollup rows are combined into this single verified figure rather than inventing a split that isn't in the source. (For contrast, the datasheet's next tier up, "Deep-sleep — ULP coprocessor powered up — 150 uA", is not needed for EXT0 alone and was not used here.) A human should still check the ESP32 Technical Reference Manual's more granular power-domain table if a tighter figure specific to "RTC_PERIPH with GPIO wake, ULP off" is wanted. |
 | CAN transceiver standby | **19 uA max** | This file, row 5.3 — NXP TJA1042T/3, Table 7 p.10: ICC (Standby) max 5 uA + IIO (Standby) max 14 uA = 19 uA max, condition VTXD = VIO (firmware must hold TXD/STB high through sleep). |
 | Buck quiescent - **3.3 V rail only** | **10.5 uA typ / 25 uA max** | This file, rows 4.1 and 4b.1 — TI LM5164 (SNVSAU4D), IQ-SLEEP1 10.5 uA typ / 25 uA max **per instance**; **only ONE instance counts in sleep**: the 5 V rail is **enable-gated off** (spec 6, project review I10 - the TJA1042's low-power receiver runs on VIO alone and detects bus activity with VIO as its only supply, so VCC is not needed for wake). An earlier revision counted two always-on instances. |
-| **Boost controller shutdown (LM5122-Q1)** | **9 uA typ / 17 uA max** | This file, row 3.5 - **ADDED 2026-09-12 (C3).** Previously omitted entirely, on a false premise that the P-FET disconnects the boost in sleep. It does not. |
-| **Boost UVLO divider** | **~14 uA (requirement: >= 1 MOhm)** | This file, row 3.3 - **ADDED 2026-09-12 (C3).** The datasheet's worked values (57.96 kOhm) would draw ~207 uA. |
+| **Boost shutdown (LM51571-Q1)** | **<= 2.6 uA** | This file, row 3.5 - datasheet p.1 "Low shutdown current (IQ <= 2.6 uA)". **Was 9/17 uA with the LM5122-Q1**; the part swap saves ~14 uA. |
+| ~~Boost UVLO divider~~ **REMOVED** | **0 uA** | **Deleted 2026-09-13:** `EN_UVLO_SYNC` is now driven directly from the GPIO with no divider (see above), so this contributor no longer exists. |
 | PROFET standby | **0.6 uA max** | This file, row 2.7 — Infineon BTS7008-2EPA, Table 1 p.2: IVS(SLEEP)_85 max 0.6 uA (one device required). |
 | Low-side switches standby (12x PMV60ENEA leakage) | **<= 12 uA max (updated, fix round 1)** | This file, row 1a.8 — Nexperia PMV60ENEA Table 7: "IDSS drain leakage current — VDS = 40 V; VGS = 0 V; Tj = 25 degC — Max 1 uA." Bounded above by this 40 V figure for our lower 24 V operating point (leakage increases monotonically with reverse bias, so 24 V leakage <= the 40 V figure). 12 channels x 1 uA max = **12 uA max**. This replaces the previous IRLZ44N-based ~300 uA pessimistic bound now that the MOSFET recommendation has reverted to the SOT-23 PMV60ENEA (fix round 1, Finding 1/2) — the sleep-budget blowout was a direct symptom of the wrong package/part, not an inherent property of this design. |
 | P-FET gate + divider leakage | **UNVERIFIED — depends on a resistor value not yet chosen** | This file, row 6.1 — Vishay SQJ415EP gate leakage (IGSS) itself is negligible (max +/-100 nA per the datasheet), but the P-FET's gate resistor + Zener clamp network (spec 4.2) has a divider value that is a Task 3/4 schematic decision, not yet made. A divider sized for >= 1 MOhm total resistance would add <= 24 uA at 24 V; this is a design target to carry into Task 3/4, not a verified figure. |
 | **SUPERSEDED - known contributors, old basis** | ~~62.6 uA typ / 92.6 uA max~~ | Sum of ESP32+EXT0 (10) + CAN (19) + buck x2 (21 typ / 50 max) + PROFET (0.6) + RGB-FET leakage (12 max, itself a valid upper bound) = 62.6 uA typ / 92.6 uA max. |
-| **REVISED TOTAL 2026-09-12** | **~99 uA typ / ~122 uA max** | ESP32+EXT0 (10) + CAN (19) + buck x1 (10.5 typ / 25 max) + PROFET (0.6) + RGB-FET leakage (12) + P-FET divider target (24) + **boost shutdown (9 typ / 17 max)** + **boost UVLO divider (14)**. |
+| **3.3 V buck feedback divider (>= 500 kOhm)** | **~6.6 uA** | The LM5164's quoted IQ does NOT include the external FB divider; at a conventional 275 kOhm it would be ~12 uA. The 5 V rail's divider does not count - that rail is gated off in sleep. |
+| **REVISED TOTAL 2026-09-13** | **~85 uA typ / ~100 uA max** | ESP32+EXT0 (10) + CAN (19) + buck x1 (10.5 typ / 25 max) + PROFET (0.6) + RGB-FET leakage (12) + P-FET gate network (24) + **boost shutdown (2.6)** + **buck FB divider (6.6)**. Down from 99-122 uA: the LM51571-Q1 saves ~14 uA on shutdown current and dropping the UVLO divider saves another ~14 uA. |
 
 **Verdict, REVISED 2026-09-12 after the project review.** The earlier claim of
 "63-117 uA ... confirmed PASS" was **wrong**: it omitted the boost controller
@@ -342,10 +406,11 @@ mystery.
 but only **conditionally**, and both conditions are schematic decisions that must
 be honoured in Task 3/4 rather than assumed:
 
-1. **The boost UVLO divider must be >= 1 MOhm total** (row 3.3). At the
-   datasheet's worked values the budget fails outright.
+1. ~~The boost UVLO divider must be >= 1 MOhm~~ **CONDITION REMOVED 2026-09-13** - there is no
+   divider; `EN_UVLO_SYNC` is driven straight from the GPIO.
 2. **The P-FET gate/Zener network must be >= 1 MOhm** (row 6.1) - still a design
-   target, not a chosen value.
+   target, not a chosen value. **This is now the only remaining condition.**
+3. The 3.3 V buck's feedback divider must be **>= 500 kOhm** (new, see the roll-up).
 
 Gating the 5 V rail (I10) recovered a further 10-25 uA and is what gives the
 revised figure its margin.

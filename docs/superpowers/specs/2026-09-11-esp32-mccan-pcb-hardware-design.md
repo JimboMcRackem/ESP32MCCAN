@@ -576,7 +576,7 @@ constraint, not a layout convenience.
 |---|---|---|---|
 | 3.3 V | Buck, **low quiescent** (LM5164 class) | ~1 A | Always on; must supply ESP32 WiFi TX peaks (~500 mA) |
 | **5 V** | Low-quiescent regulator, **enable-gated (off in sleep)** | ~100 mA | Shares `EN_3V3SW`; feeds TJA1042 **VCC** only — see below |
-| 24 V | **Synchronous** boost controller + external FETs (LM5122-Q1 class) | **15 W design point, 0.6 A** (9.6 W actual) | Enable-gated |
+| 24 V | **TI LM51571-Q1** — non-synchronous boost, **integrated 50 V / 4.33 A switch** | **12 W design point, 0.5 A** (7.7 W actual) | Enable-gated, direct from `EN_BOOST` |
 
 **The 5 V rail is mandatory, but it is ENABLE-GATED, not always-on (corrected 2026-09-12, I10).** Task 2b established that the **TJA1042's VCC is
 4.5–5.5 V**; the "/3" suffix provides a **VIO pin for 3.3 V logic levels, it does not make VCC
@@ -592,15 +592,37 @@ recovers 10–25 µA from a sleep budget that §8.2 shows is tighter than previo
 
 §3 accordingly describes **four** power domains.
 
-> **DESIGN POINT REDUCED 60 W → 15 W (2026-09-13)** with the RGB load. At ~10 W actual the LM5122-Q1
-> is **substantially over-specified** — it is a controller for external FETs, sized for tens of watts.
-> An integrated switcher with internal FETs would be simpler, cheaper and smaller, and would remove
-> the external-FET selection from the BOM entirely. The LM5122 will work correctly at this power; it
-> is simply more part than the job now needs. Worth revisiting before committing the BOM, noting the
-> symbol has already been added to the project library.
+**Boost part changed 2026-09-13: LM5122-Q1 → LM51571-Q1**, verified from the primary datasheet held
+locally at `hardware/datasheets/lm51571-q1.pdf`. The RGB load fell from 40 W to ~8 W, which made a
+controller-plus-external-FETs topology the wrong shape. Every criterion improved:
 
-**Why synchronous:** a non-synchronous boost loses ~6 W at the *original* 60 W point; synchronous
-roughly halves it. At 10 W the absolute saving is far smaller and the case is correspondingly weaker. Combined with the enclosure's heat-spreader plate (§9) this gives large
+| | LM5122-Q1 | **LM51571-Q1** |
+|---|---|---|
+| Switch | 2 external FETs + gate loops | **Integrated 50 V / 4.33 A** (5.4× the ~0.8 A peak) |
+| Input rating | needed checking vs the ~39 V TVS clamp | **2.9–45 V op, 50 V abs, transient to 50 V** |
+| Shutdown IQ | 9 µA typ / **17 µA max** | **≤ 2.6 µA** |
+| Spread spectrum | **none** — §10's criterion had to be *relaxed* | **Dual random, built in** |
+| Qualification | -Q1 | **AEC-Q100 grade 1** |
+| Package | controller + 2 FETs | **WQFN-16, 3 × 3 mm** + 1 Schottky |
+
+**The input rating is the criterion that eliminated the obvious alternatives.** The SMBJ24A clamps at
+up to ~39 V, so anything downstream must survive that — which rules out TPS55340 (32 V max) and
+TPS61170 (18 V), the parts one would otherwise reach for at this power.
+
+**Non-synchronous, so it needs one external Schottky rectifier.** At 320 mA out that diode costs
+~64 mW — against two FETs, their gate drive and the switch-node layout care a synchronous stage
+demands. At 8 W the synchronous argument that justified the LM5122 no longer pays for itself.
+
+**Enable: `EN_UVLO_SYNC` (pin 6) is driven DIRECTLY from `EN_BOOST`, with no divider.** That pin
+combines enable, programmable line UVLO and sync. Driving it straight from the GPIO:
+- keeps "floating = boost off" via the mandatory `EN_BOOST` pulldown;
+- **removes ~14 µA of continuous divider current** from the sleep budget (§8.2) — that divider drew
+  current across the battery rail whether the boost was enabled or not;
+- **removes one of the two ≥ 1 MΩ conditions** the sleep budget's PASS depended on.
+
+What is given up is *programmable* line UVLO; the part's internal lockout remains. Acceptable here —
+the Experia's 12 V rail is DC-DC fed, there is no crank dip to ride out on an EV, and the board sleeps
+when the bus idles. Combined with the enclosure's heat-spreader plate (§9) this gives large
 thermal margin, and the topology brings EMC headroom. The cost is a controller with external
 FETs, a current-sense resistor, compensation network, bootstrap, and careful gate-loop layout.
 
@@ -760,17 +782,20 @@ Permanently battery-connected, so quiescent draw is a first-class requirement.
 | PROFET standby | ≤0.6 µA |
 | RGB MOSFET off-state leakage, 12 × ≤1 µA at 24 V | ≤12 µA |
 | P-FET gate + divider leakage — **requires a ≥ 1 MΩ network** | ≤24 µA |
-| **Boost controller shutdown (LM5122-Q1)** | **9 µA typ / 17 µA max** |
-| **Boost UVLO divider, ≥1 MΩ (see below)** | **~14 µA** |
-| **Revised total** | **~99 µA typ / ~122 µA max** |
+| **Boost shutdown (LM51571-Q1)** | **≤ 2.6 µA** |
+| ~~Boost UVLO divider~~ **REMOVED** — direct GPIO enable (§6) | **0 µA** |
+| **3.3 V buck feedback divider (≥ 500 kΩ)** | **~6.6 µA** |
+| **Revised total (2026-09-13)** | **~85 µA typ / ~100 µA max** |
 | **Target / ceiling** | **< 200 µA / 500 µA hard** |
 
 **This PASS is CONDITIONAL on two schematic decisions, not assumptions.** Both are Task 3/4 sizing
 jobs, and getting either wrong silently breaks the budget:
 
-1. **The boost UVLO divider must be ≥ 1 MΩ total** — the datasheet worked example is 57.96 kΩ, which
-   alone draws ~207 µA and fails the target outright.
+1. ~~The boost UVLO divider must be ≥ 1 MΩ~~ — **condition removed 2026-09-13**; there is no divider.
 2. **The P-FET gate/Zener network must be ≥ 1 MΩ** — still a design target, not a chosen value.
+   **This is now the only remaining condition.**
+3. The 3.3 V buck's **feedback divider must be ≥ 500 kΩ** — the LM5164's quoted IQ excludes it, and a
+   conventional 275 kΩ divider would add ~12 µA unbudgeted.
 
 > **C3 — CORRECTED 2026-09-12. The earlier figure of "~87–117 µA, confirmed PASS" was wrong.**
 > Two contributors were missing and one was actively harmful:
