@@ -924,12 +924,12 @@ P-FET's conduction loss at the Denali pair's 7.0 A is now the largest single ter
 | Source | **Daytime** (corners white, Denali off) | **Night** (Denali on, front DRLs off) |
 |---|---|---|
 | Synchronous boost losses (92%, conservative) | 0.83 W (9.6 W of RGB) | ~0.20 W |
-| P-FET reverse protection, 20 mΩ ceiling | 0.03 W (1.2 A) | **0.98 W (7.0 A) — largest term** |
+| P-FET reverse protection (**SQJ461EP, 16 mΩ**) | 0.02 W (1.0 A) | **0.78 W (7.0 A) — largest term** |
 | Denali PROFET, 150 °C max | 0 W — Denali off | 0.35 W |
 | RGB sense resistors, 12 × 10 Ω | 0.13 W | ~0.03 W |
 | RGB discrete FETs, all 12 | ~0 W | ~0 W |
 | Buck and logic | 0.40 W | 0.40 W |
-| **Total** | ~1.4 W | **~1.9 W — governs** |
+| **Total** | ~1.4 W | **~1.8 W — governs** |
 
 *Flash-to-pass transient adds the boost and Denali terms together briefly — still under 2.5 W, and
 seconds at a time.*

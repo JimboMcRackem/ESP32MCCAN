@@ -377,6 +377,76 @@ here because it is discovered by this section's datasheet read.
 | 6.4 | Schottky OR pair: 40 V, >= 0.5 A, low leakage. **NOTE 2026-09-12: single feed adopted, so only ONE diode is populated (or a 0 Ohm link VBAT -> VLOGIC_IN); the pair remains as footprints for the DNP second feed.** | Candidate: **Nexperia PMEG4010ER** (40 V, 1 A low-VF Schottky, SOD123W), Product data sheet, 1 January 2023, fetched and read in full. Table 1 "Quick reference data": "VR reverse voltage — Tj = 25 degC — Max 40 V"; "IF(AV) average forward current — Max 1 A"; "IR reverse current — VR = 40 V, Tj = 25 degC — Typ 10 uA, Max 50 uA"; "VF forward voltage — IF = 1 A, Tj = 25 degC — Typ 430 mV, Max 490 mV." | **PASS** — 40 V rating meets the requirement exactly (matches the design's 40 V front-end tolerance target); 1 A rating exceeds the 0.5 A floor 2x; 50 uA max reverse leakage at full 40 V reverse bias is low for a 1 A Schottky, consistent with "low leakage." Two of these in an OR configuration (Feed A / Feed B onto the logic rail) satisfy the pair requirement. |
 | 6.5 | Boost inductor: shielded, saturation current >= 1.5x peak | Candidate: **Coilcraft XAL7070-682ME** (6.8 uH shielded composite-core power inductor), Document 856-2, Revised 02/25/26, fetched and read in full. Parametric table: "XAL7070-682ME — Inductance 6.8 uH — DCR typ 17.84 mOhm / max 19.62 mOhm — SRF typ 20 MHz — Isat 12.8 A — Irms(20 degC rise) 6.8 A / Irms(40 degC rise) 9.2 A." Family description: "Shielded Power Inductors — XAL7070," "magnetically shielded" composite core, AEC-Q200 qualified. Peak inductor current for this design was estimated by scaling the LM5122-Q1 datasheet's own worked 108 W design example (Section 8.2.2.4, p.36 of that datasheet, which computes a 13.5 A peak input/inductor current for a 12 V-in/24 V-out/108 W boost) linearly by power ratio: 13.5 A x (60 W / 108 W) ~= 7.5 A estimated peak for this design's 60 W point (same voltage points, same topology, proportional scaling — not a fabricated figure, but also not a from-scratch calculation for this exact design; Task 3/4 must re-run the LM5122 design equations with the real 60 W parameters to confirm). | **PASS on the datasheet-verified Isat figure against the scaled peak-current estimate** — Isat = 12.8 A vs an estimated ~7.5 A peak gives a ratio of ~1.7x, above the 1.5x requirement, and the part is explicitly marketed and constructed as magnetically shielded. **CLOSED 2026-09-13:** the peak current is now derived from this design's own equations (see the boost power-stage block above) and is **6.25 A**, not the 7.5 A scaled estimate — giving this part **2.0x** Isat margin rather than 1.7x. |
 
+
+## Final part selections — 2026-09-13
+
+All verified from **primary datasheets held locally** in `hardware/datasheets/`. This is the first
+round on this project where every figure came from a document on disk rather than a blocked fetch.
+
+| Function | Part | Key verified figures | Datasheet |
+|---|---|---|---|
+| Boost converter | **TI LM51571-Q1** | Non-synchronous, integrated **50 V / 4.33 A** switch (5.4x the 1.22 A peak); 2.9–45 V in, **50 V abs**, transient to 50 V; **shutdown IQ ≤ 2.6 µA**; dual random spread spectrum; AEC-Q100 grade 1; WQFN-16 3×3 | `lm51571-q1.pdf` |
+| Boost inductor | **Coilcraft XAL4030-682ME** | **6.8 µH**, **Isat 3.6 A**, Irms 3.0 A, DCR 74.1 mΩ max, SRF 29 MHz, shielded, **AEC-Q200**, 4.0×4.0×3.0 mm | `xal4000.pdf` |
+| Boost rectifier | **Vishay SS5PH102** | **VRRM 100 V**, IF(AV) **5 A**, VF 0.70 V at 5 A, TJ 175 °C, SMPC (TO-277A) | `ss5ph102.pdf` |
+| Buck, 3.3 V and 5 V rails | **TI LM5164** | **6–100 V** in, **1 A** out, **1.2 V reference**, IQ-SLEEP 10.5 µA typ / 25 µA max, up to 1 MHz | `lm5164.pdf` |
+| Input TVS | **Littelfuse SMBJ24A** | Standoff **24 V**, VBR 26.7–29.5 V, **clamping 38.9 V at 15.5 A**, 600 W | `smbj.pdf` |
+| Reverse-polarity P-FET | **Vishay SQJ461EP** | **−60 V**, ID −30 A, **Rds(on) 16 mΩ at VGS −10 V** (21 mΩ at −4.5 V), VGS ±20 V, AEC-Q101, 175 °C, PowerPAK SO-8L | `sqj461ep.pdf` |
+| RGB switching FET (×6 dual = 12 ch) | **Nexperia NX5020UNBKS** | **50 V dual N-channel**, ID 300 mA, **Rds(on) specified AT VGS = 2.5 V: 1.6 Ω typ / 3 Ω max** (also 1.8 V and 1.5 V), very low threshold, SOT363 (SC-88) | `NX5020UNBKS.pdf` |
+| CAN transceiver | **NXP TJA1042T/3** | **Rev. 11, 16 Jan 2023** — bus wake-up via RXD LOW re-confirmed on current silicon | `TJA1042.pdf` |
+| Analog mux | **ADI ADG706** | **Rev. B** (supersedes the 2002 Rev. A previously used) | `ADG706_707.pdf` |
+| PTC (×4) | **Littelfuse 1206L050/24** | Ihold 0.50 A at 23 °C, **0.31 A at 65 °C**, Itrip 1.00 A, Vmax 24 V — **3.9× margin** on the 0.08 A load | `Littelfuse_1206L_PTC_series.pdf` |
+| Denali high-side | **Infineon BTS7008-2EPA** | One multiplexed IS output + DSEL; conditional PASS on thermals at 150 °C | (prior round) |
+
+### Two selections that fixed specific defects
+
+**SQJ461EP replaces SQJ415EP — the clamp-margin problem.** With the TVS clamp now *measured* at
+**38.9 V**, the 415EP's 40 V rating left **1.1 V (2.8%)** of margin on the part that sees every
+transient the vehicle produces. The 461EP's **60 V** gives **21.1 V (54%)**. Same PowerPAK SO-8L
+footprint and the same SQJ family, so nothing in the layout changes. Dissipation barely moves:
+7.0² × 0.016 = **0.78 W** at the night load, against 0.61 W.
+
+**NX5020UNBKS — specified at the gate voltage actually used.** Every earlier candidate quoted
+Rds(on) only at 4.5 V or 10 V, while the PCA9685 drives gates at **3.3 V** — the recurring trap on
+this project. This part is characterised at **2.5 V, 1.8 V and 1.5 V**, so it is verified rather than
+extrapolated. Its 1.6 Ω looks high for a MOSFET but is irrelevant here: at 26.7 mA it drops **43 mV**
+and dissipates **1.1 mW**, and against the strip's ~889 Ω per channel it shifts the loop by 0.2%.
+**The sense reading stays at 267 mV whether the FET sits at its typical or maximum Rds**, so
+part-to-part spread cannot disturb the open/working/shorted classification. Being dual, 12 channels
+need only **6 packages**.
+
+### Feedback dividers, now computable (LM5164 reference = 1.2 V)
+
+| Rail | R_top | R_bot | Total | Current | V_out |
+|---|---|---|---|---|---|
+| 3.3 V | **350 kΩ** | **200 kΩ** | 550 kΩ | 6.0 µA | 3.30 V |
+| 5 V | **633 kΩ** | **200 kΩ** | 833 kΩ | 6.0 µA | 5.00 V |
+
+Both clear the ≥ 500 kΩ sleep-budget requirement. Use E96 values (348 k / 200 k and 634 k / 200 k).
+
+### Still to decide, and one caveat
+
+- **DML3017LDC smart load switch** (`DML3017LDC.pdf`) — a single-part alternative to the discrete
+  P-FET + N-FET inverter + pull-up on the switched 3.3 V rail, adding soft-start inrush limiting,
+  fault protection and power-good. Input range 0.5–20 V covers the rail. **Confirm its EN polarity is
+  active-high** (so the mandatory pulldown still means "floating = off") **and its quiescent current**
+  before adopting — that rail's controller stays powered in sleep.
+- **SQJ461EP stock** — the datasheet is Rev. E, **28-Nov-2011**. Normal for a mature part, but two
+  parts on this project have already proved unbuyable after being written into the design.
+- **SQJ461EP gate drive** — 16 mΩ is the **−10 V** column; the **−4.5 V** column is 21 mΩ, slightly
+  above the ≤ 20 mΩ ceiling. The self-biased Zener-clamped network should pull the gate close to the
+  full rail, but confirm that at schematic review rather than assuming it.
+
+### Parts checked and rejected
+
+| Part | Why not |
+|---|---|
+| XCL105 | 0.65–6.0 V in, 1.8–5.5 V out — wrong voltage class entirely for 12→24 V |
+| 5.0SMDJ-FB | 5 kW low-clamping TVS, but the series starts at **58 V standoff** — far too high to protect a 24 V rail |
+| NX3020NAKW-Q | 30 V **N**-channel; below the 38.9 V clamp, and the open slot needed P-channel |
+| DMHT3006LFJ | 30 V N-channel **H-bridge** — motor-drive part, wrong topology and below the clamp |
+| XP202A0003MR-G | −30 V P-channel — below the clamp, so unusable for reverse polarity. Viable for the 3.3 V load switch if the discrete arrangement is kept |
+| XAL7070-682ME | Correct 6.8 µH but **Isat 12.8 A in 7×7×3 mm** — sized for the abandoned 60 W design |
+
 ## Sleep budget roll-up (spec 8.2: target < 200 uA, ceiling 500 uA)
 
 | Contributor | Datasheet value | Source |
