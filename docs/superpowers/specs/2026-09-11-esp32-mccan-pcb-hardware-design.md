@@ -687,7 +687,7 @@ Three hard constraints drive this, not convenience:
 | **RGB sense, mux output** | **32** | **ADC1_CH4** — the §5.1 diagnostic chain |
 | **Mux select S0–S3** | **23 / 4 / 16 / 5** | Freed by dropping SPI; GPIO 5 is a strapping pin, pulldown mandatory |
 | Boost enable | 25 | |
-| Peripheral 3.3 V load switch | 26 | |
+| Peripheral 3.3 V load switch (`EN` of the DML3017LDC) | 26 | Active-high with an internal pulldown — no inverter stage needed |
 | PROFET diagnostic enable | 27 | |
 | Status LED | 13 | |
 | **CAN transceiver STB** | **14** | RTC-capable; required to enter/leave transceiver standby |

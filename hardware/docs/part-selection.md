@@ -378,6 +378,46 @@ here because it is discovered by this section's datasheet read.
 | 6.5 | Boost inductor: shielded, saturation current >= 1.5x peak | Candidate: **Coilcraft XAL7070-682ME** (6.8 uH shielded composite-core power inductor), Document 856-2, Revised 02/25/26, fetched and read in full. Parametric table: "XAL7070-682ME — Inductance 6.8 uH — DCR typ 17.84 mOhm / max 19.62 mOhm — SRF typ 20 MHz — Isat 12.8 A — Irms(20 degC rise) 6.8 A / Irms(40 degC rise) 9.2 A." Family description: "Shielded Power Inductors — XAL7070," "magnetically shielded" composite core, AEC-Q200 qualified. Peak inductor current for this design was estimated by scaling the LM5122-Q1 datasheet's own worked 108 W design example (Section 8.2.2.4, p.36 of that datasheet, which computes a 13.5 A peak input/inductor current for a 12 V-in/24 V-out/108 W boost) linearly by power ratio: 13.5 A x (60 W / 108 W) ~= 7.5 A estimated peak for this design's 60 W point (same voltage points, same topology, proportional scaling — not a fabricated figure, but also not a from-scratch calculation for this exact design; Task 3/4 must re-run the LM5122 design equations with the real 60 W parameters to confirm). | **PASS on the datasheet-verified Isat figure against the scaled peak-current estimate** — Isat = 12.8 A vs an estimated ~7.5 A peak gives a ratio of ~1.7x, above the 1.5x requirement, and the part is explicitly marketed and constructed as magnetically shielded. **CLOSED 2026-09-13:** the peak current is now derived from this design's own equations (see the boost power-stage block above) and is **6.25 A**, not the 7.5 A scaled estimate — giving this part **2.0x** Isat margin rather than 1.7x. |
 
 
+
+### Switched 3.3 V rail — DML3017LDC smart load switch (ADOPTED 2026-09-13)
+
+Replaces the discrete P-FET + N-FET inverter + gate pull-up. Verified from
+`hardware/datasheets/DML3017LDC.pdf`.
+
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| LS.1 | **EN active-high**, so the mandatory `EN_3V3SW` pulldown means "floating = rail OFF" | Pin description: *"EN — **Active-high** digital input used to turn on the MOSFET, pin has an **internal pulldown resistor to GND**"* | **PASS**, and better than required — the internal pulldown holds the safe state even if the external resistor is omitted or lifts |
+| LS.2 | Shutdown current negligible against the 85–100 µA sleep budget | `ISTBY` VCC Shutdown Supply Current, VVCC = 3 V, VEN = 0 V: **0.1 µA typ / 1 µA max** | **PASS** — 1% of the budget at worst |
+| LS.3 | Controller supply covers 3.3 V | `VVCC` 3.0 V to 5.5 V | **PASS** |
+| LS.4 | Switched path covers 3.3 V | `VVIN` 0.5 V to 20 V | **PASS** |
+| LS.5 | Logic threshold compatible with a 3.3 V GPIO | `VENH` 2.0 V min | **PASS**, 1.3 V margin |
+| LS.6 | Enabled-state current acceptable | `IDYN` 150 µA typ / 250 µA max | **PASS** — applies only while the rail is enabled, i.e. while the board is awake and drawing milliamps |
+
+**Why this replaced the discrete arrangement — it removes a polarity trap, not just parts.**
+A bare P-channel high-side switch inverts the logic: its source sits at `+3V3_ALW`, so a GPIO **low**
+turns it **on**. With the mandatory pulldown on `EN_3V3SW`, floating would therefore have meant
+**rail ON** — the exact opposite of the passive-default rule that the whole biasing table exists to
+enforce. The discrete design needed an N-FET inverter stage purely to correct that. This part is
+natively active-high, so the trap does not exist.
+
+| | Discrete (3 parts) | **DML3017LDC (1 part)** |
+|---|---|---|
+| Polarity | needs an inverter, or floating = **ON** | **active-high natively** |
+| Safe default | external pulldown only | **internal pulldown as well** |
+| Sleep current | FET leakage, never budgeted | **≤ 1 µA** |
+| Inrush | uncontrolled | **soft-start limited** |
+| Protection | none | **short-circuit, thermal, VCC UVLO** |
+| Diagnostics | none | **power-good output** |
+
+**Wiring notes for the rails sheet:**
+- **`VIN` and `VCC` are separate pins** — both tie to `+3V3_ALW` here (VIN is the switched path,
+  VCC the controller supply).
+- **`EN` ← `EN_3V3SW`**, the same enable that gates the 5 V rail. Keep the external pulldown anyway:
+  belt and braces, and it keeps the biasing table uniform.
+- **Use the `BLEED` pin** (on-chip 100 Ω) so `+3V3_SW` discharges promptly when the board sleeps,
+  rather than floating on residual charge in the downstream decoupling.
+- `PG` is an open-drain output needing an external pull-up if used.
+
 ## Final part selections — 2026-09-13
 
 All verified from **primary datasheets held locally** in `hardware/datasheets/`. This is the first
@@ -395,6 +435,7 @@ round on this project where every figure came from a document on disk rather tha
 | CAN transceiver | **NXP TJA1042T/3** | **Rev. 11, 16 Jan 2023** — bus wake-up via RXD LOW re-confirmed on current silicon | `TJA1042.pdf` |
 | Analog mux | **ADI ADG706** | **Rev. B** (supersedes the 2002 Rev. A previously used) | `ADG706_707.pdf` |
 | PTC (×4) | **Littelfuse 1206L050/24** | Ihold 0.50 A at 23 °C, **0.31 A at 65 °C**, Itrip 1.00 A, Vmax 24 V — **3.9× margin** on the 0.08 A load | `Littelfuse_1206L_PTC_series.pdf` |
+| Switched 3.3 V load switch | **Diodes DML3017LDC** | **EN active-high with internal pulldown**; `ISTBY` **0.1 µA typ / 1 µA max**; VCC 3.0–5.5 V; VIN 0.5–20 V; VENH 2.0 V min; soft-start, short-circuit, thermal, UVLO, power-good | `DML3017LDC.pdf` |
 | Denali high-side | **Infineon BTS7008-2EPA** | One multiplexed IS output + DSEL; conditional PASS on thermals at 150 °C | (prior round) |
 
 ### Two selections that fixed specific defects
