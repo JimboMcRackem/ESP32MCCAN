@@ -67,13 +67,15 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - Repo root: `D:\Projects\ESP32MCCAN`. All hardware files live under `hardware/`.
 
 **Electrical — exact values from the spec**
-- **SINGLE 12 V feed** (decided 2026-09-12), one **10 A** fuse. Loads never coincide (spec §2.4):
-  **daytime 3.9 A (39%)**, **night 7.8 A (78% — the governing case)**, flash-to-pass transient 10.5 A
-  (105%, harmless — blade fuses need ~135% for minutes)
+- **SINGLE 12 V feed**, one **10 A** fuse. Loads never coincide (spec §2.4):
+  **daytime 1.0 A (10%)**, **night 7.0 A (70% — the governing case)**, flash-to-pass transient 7.8 A
+  (78%). **Revised 2026-09-13** when the RGB load fell ~4×; the old 105% overload case is gone
 - Second feed: **board footprints retained, unpopulated**; no second panel connector or fuse holder
-- RGB rail: **24 V**, boost design point **60 W / 2.5 A**, actual load 40 W
-- Per RGB channel: **0.14 A**. Per RGB string (white): **0.42 A**. Per Denali channel: **3.3 A**
-- Sleep budget target **< 200 µA**, hard ceiling **500 µA**
+- RGB rail: **24 V**, boost **LM51571-Q1**, design point **12 W / 0.5 A**, actual load **7.7 W**
+  (BTF-LIGHTING COB RGB, **16 W/m**, 12 cm per corner; 6 cm would be half)
+- Per RGB channel: **26.7 mA**. Per RGB string (white): **80 mA**. Per Denali channel: **3.3 A**
+- **Sense shunt 10 Ω** (was 1 Ω) → **267 mV** at full channel current, 133 mV at the 6 cm length
+- Sleep budget target **< 200 µA**, hard ceiling **500 µA**; predicted **85–100 µA**
 - All input front-end parts rated **≥ 40 V**; both switchers rated **40–60 V** input
 - TVS standoff **~24 V**; RGB MOSFET **Vds ≥ 40 V**, with **Id ≥ 0.5 A at Vgs ≤ 3.3 V** from the
   output-characteristic curve (the earlier "fully enhanced at 3.3 V" wording is **withdrawn** — I9)
@@ -82,12 +84,12 @@ Copy these values verbatim; every task's requirements implicitly include this se
   alone, so VCC is needed only for normal mode
 - RGB sense: **1 Ω** shunt per channel = **140 mV** at 0.14 A; ADC at **0 dB attenuation** (0–1.1 V)
 - PWM: RGB **400 Hz** (PCA9685), Denali **150 Hz** (ESP32 LEDC)
-- Total internal dissipation: **~4.5 W steady-state worst case** (daytime: all RGB white, Denali off
-  — see spec §2.4 for why the loads never coincide). ~6.7 W transient only. Plate **≥300 cm²**
-  effective, hard requirement
+- Total internal dissipation: **~1.9 W, and NIGHT now governs** — the P-FET's 0.98 W at the Denali
+  pair's 7.0 A is the largest single term. Daytime is the lighter case at ~1.2 W. Plate: **FLAT,
+  ≥150 cm²** — **fins are no longer required**; they were needed only at the superseded 4.5 W
 - Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
-- Power polygon: **≥ 5–6 mm** width at 2 oz for a 10 °C rise at the single feed's **7.8 A**
-  continuous (10.5 A transient)
+- Power polygon: **≥ 4–5 mm** width at 2 oz for a 10 °C rise at the single feed's **7.0 A**
+  continuous (7.8 A transient)
 
 **Firmware-imposed, non-negotiable**
 - `ChannelIndex` (`src/domain/channel_map.h`) fixes PWM ordering. PCA9685 **LED0–11** =

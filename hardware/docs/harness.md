@@ -14,12 +14,12 @@ environment. Use **automotive-grade TXL or GXL** (thin-wall, cross-linked, 125 �
 
 | Circuit | Current | Gauge | Notes |
 |---|---|---|---|
-| **Feed, +12 V and return** (single) | **7.8 A** night / 3.9 A day | **16 AWG** | ~13 A bundled ampacity. Sized for the **night** case, not daytime |
+| **Feed, +12 V and return** (single) | **7.0 A** night / 1.0 A day | **16 AWG** | ~13 A bundled ampacity. Sized for the **night** case, which is now almost entirely the Denali pair |
 | Denali A switched +12 V | **3.3 A** | **18 AWG** | |
 | Denali B switched +12 V | **3.3 A** | **18 AWG** | |
 | Denali shared ground | **6.6 A** | **16 AWG** | Carries **both** channels — sized for the pair, not one |
-| RGB string +24 V feed | 0.42 A | **22 AWG** | Gauge set by mechanical robustness and terminal range, not current |
-| RGB colour return (×3 per corner) | 0.14 A | **22 AWG** | Same reasoning |
+| RGB string +24 V feed | **80 mA** | **22 AWG** | Gauge set by mechanical robustness and terminal range, not current — at 80 mA the electrical requirement is trivial |
+| RGB colour return (×3 per corner) | **26.7 mA** | **22 AWG** | Same reasoning |
 | CAN H / CAN L | signal | **22 AWG twisted pair** | Twist is required, not optional — see §5 |
 
 **The Denali shared ground is the one easy mistake here.** Both channels return through it, so it
@@ -95,9 +95,9 @@ matters on the road.
 
 | Mode | Load | % of the 10 A feed |
 |---|---|---|
-| Daytime (corners white, Denali off) | **3.9 A** | 39% |
-| **Night (Denali on, front DRLs off)** | **7.8 A** | **78% — the governing case** |
-| Flash-to-pass in daylight, seconds | 10.5 A | 105% — harmless; blade fuses need ~135% for minutes |
+| Daytime (corners white, Denali off) | **1.0 A** | 10% |
+| **Night (Denali on, front DRLs off)** | **7.0 A** | **70% — the governing case** |
+| Flash-to-pass in daylight, seconds | 7.8 A | 78% — no longer an overload at all |
 
 This works because the loads never coincide (spec §2.4). **78% sustained is at the upper end of good
 practice** for an automotive blade fuse and is the figure to watch on the first warm-night ride. If it

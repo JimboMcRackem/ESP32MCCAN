@@ -16,16 +16,16 @@ Current design baseline this procedure checks against (spec
   smart low-side switches for RGB — any earlier reference to either is void.
 - Diagnostics are **shunt → 16:1 analog mux (ADG706) → ADC1 GPIO 32**, mux
   select `MUX_S0`–`S3` on GPIO 23/4/16/5. A channel at full current reads
-  **~140 mV**; the ADC runs at **0 dB attenuation** (0–1.1 V range).
-  Classification is open (~0 mV) / working (~140 mV) / shorted (saturated) —
+  **~267 mV**; the ADC runs at **0 dB attenuation** (0–1.1 V range).
+  Classification is open (~0 mV) / working (~267 mV) / shorted (saturated) —
   not precision metering.
 - Denali (D4 2.0 pair) uses a separate **dual PROFET high-side** stage with
   its own current-sense readback, independent of the RGB shunt/mux chain.
 - Four rails: `+3V3_ALW`, `+3V3_SW`, **`+5V` (switched, gated with `+3V3_SW` — the
   TJA1042 transceiver's VCC needs 4.5–5.5 V)**, and `+24V` (boost, enable-gated).
 - **ONE 12 V feed** behind a single **10 A** fuse (spec 4.4). The loads never coincide
-  (spec 2.4): daytime 3.9 A (39%), **night 7.8 A (78% — the governing case)**, with a
-  seconds-long 10.5 A flash-to-pass transient that a blade fuse ignores. The second
+  (spec 2.4): daytime **1.0 A (10%)**, **night 7.0 A (70% — the governing case)**, with a
+  seconds-long 7.8 A flash-to-pass transient. **Revised 2026-09-13** when the RGB load fell ~4x. The second
   feed exists only as unpopulated board footprints.
   If it is ever populated they are never paralleled — only a Schottky OR joins them, and only onto
   the logic rail.
@@ -66,21 +66,21 @@ so a protection failure doesn't cascade into real damage.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| 24 V into 2.5 A dummy load | 24.0 V ± 5%, stable | | |
-| Efficiency at 40 W out | **≥ 92%** is the budgeted figure (spec 9.4). ≥ 94% is the datasheet target and is **UNVERIFIED** — record the measured value, it decides whether the thermal budget has margin | | |
+| 24 V into a **0.5 A** dummy load (the 12 W design point; 0.32 A is the real load) | 24.0 V ± 5%, stable | | |
+| Efficiency at **7.7 W** out | **>= 92%** is the budgeted figure (spec 9.4). Record the measured value | | |
 | Output ripple | < 200 mV pk-pk | | |
-| Boost group temperature rise after 30 min | consistent with **~3.5 W** (the 92% figure the budget uses); ~2.6 W would mean 94% was achieved | | |
+| Boost temperature rise after 30 min | consistent with **~0.7 W** of loss at 7.7 W out | | |
 
 ## Stage 3: Quiescent current in simulated sleep
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Total, with `EN_BOOST`/`EN_3V3SW` floating and transceiver held in standby | Predicted (part-selection roll-up, **revised 2026-09-12**): **99–122 µA**<br>Pass (design requirement): **< 200 µA**<br>Hard fail (ceiling): **> 500 µA** | | |
+| Total, with `EN_BOOST`/`EN_3V3SW` floating and transceiver held in standby | Predicted (part-selection roll-up, **revised 2026-09-12**): **85–100 µA**<br>Pass (design requirement): **< 200 µA**<br>Hard fail (ceiling): **> 500 µA** | | |
 
 These are three different numbers doing three different jobs, and the row
 keeps all three on purpose:
 
-- **99–122 µA** is the *prediction* — what the datasheet roll-up in
+- **85–100 µA** is the *prediction* — what the datasheet roll-up in
   `hardware/docs/part-selection.md` says this board should draw. **It supersedes an
   earlier 87–117 µA figure that omitted the boost controller entirely** (C3), and it
   holds only if the boost UVLO divider and the P-FET gate network are both ≥ 1 MΩ.
@@ -89,7 +89,7 @@ keeps all three on purpose:
 - **> 500 µA** is the *hard fail* — the ceiling past which the sleep
   strategy does not work at all.
 
-A reading **between 122 µA and 200 µA passes** — it is inside the design
+A reading **between 100 µA and 200 µA passes** — it is inside the design
 requirement — but should still be investigated per contributor against the
 roll-up (ESP32 deep sleep + EXT0 RTC domain ~10 µA, CAN transceiver standby
 ≤19 µA, buck quiescent 10.5 µA typ/25 µA max for the ONE instance that stays powered — the 5 V regulator is gated off, PROFET
@@ -121,10 +121,10 @@ first surface as a bad 7-day vehicle result in Stage 9 - a week per iteration.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Firmware enters `esp_deep_sleep_start()`, measure feed current | Predicted **99-122 uA**<br>Pass **< 200 uA**<br>Hard fail **> 500 uA** | | |
+| Firmware enters `esp_deep_sleep_start()`, measure feed current | Predicted **85-100 uA**<br>Pass **< 200 uA**<br>Hard fail **> 500 uA** | | |
 | `IGN_SENSE` (GPIO 36) DC level in sleep | **0 V**, held by its populated pulldown - not floating | | |
 | Board stays asleep for 10 min undisturbed, bus quiet | No spurious wake | | |
-| Boost UVLO divider current (measure across the divider) | **~14 uA**, consistent with a >= 1 MOhm divider. **~207 uA means the datasheet's example values were fitted - C3** | | |
+| ~~Boost UVLO divider current~~ **N/A** — `EN_UVLO_SYNC` is driven directly from the GPIO; there is no divider (spec 6) | | |
 | `+5V` rail in sleep | **0 V** - gated off with `+3V3_SW` (I10) | | |
 | Wake on bus activity, then re-enter sleep | Returns to the same current | | |
 
@@ -137,8 +137,8 @@ random wakes point at `IGN_SENSE`.
 |---|---|---|---|
 | PCA9685 responds at its I²C address | ACK | | |
 | Mux steps through all 16 channels | `RGB_ISNS` follows the selected channel | | |
-| **Mux address maps to the RIGHT channel** — for each k in 0..11: drive channel k to 100%, confirm **address k reads ~140 mV and every other address reads ~0 mV** | All 12 correct | | |
-| Open channel vs. working channel at 100% duty | ~0 mV vs. ~140 mV, clearly distinguishable | | |
+| **Mux address maps to the RIGHT channel** — for each k in 0..11: drive channel k to 100%, confirm **address k reads ~267 mV (133 mV at 6 cm) and every other address reads ~0 mV** | All 12 correct | | |
+| Open channel vs. working channel at 100% duty | ~0 mV vs. ~267 mV, clearly distinguishable | | |
 | PROFET diagnostic (Denali) readable | Sense output tracks load | | |
 
 ## Stage 6: All 14 outputs into dummy resistive loads
@@ -175,9 +175,9 @@ nicety. Do not skip it even if RX-only testing looks sufficient.
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
 | Four real RGB strings, full white, 30 min | No flicker; thermal rise acceptable | | |
-| **Same run, but with the enclosure at its hot internal temperature (58–65 °C)** | **No PTC trips.** This is the C4 case: 0.42 A per string is sustained for hours in daytime mode, and a PTC sized at 23 °C holds only ~0.25–0.30 A when hot. A bench run at room ambient will NOT reproduce it | | |
+| Same run with the enclosure at its hot internal temperature (56–64 °C) | **No PTC trips.** Margin is now comfortable — 0.08 A per string against 0.31 A hold at 65 °C (3.9x). This check was critical while the load was believed to be 0.42 A; it is retained as cheap confirmation | | |
 | Denali D4 pair, swept across the full duty range (0–100%) | No flicker, no audible buzz, monotonic brightness | | |
-| Measured RGB string power vs. the 40 W assumption | Record actual (spec §2.2 assumed 40 W) | | |
+| Measured RGB string power vs. the **7.7 W** design basis | Record actual. Basis is 16 W/m x 12 cm x 4 corners; if the 6 cm length is used the figure halves (spec 2.2) | | |
 | Measured Denali draw vs. 6.6 A assumption | Record actual (3.3 A/channel assumed) | | |
 
 The D4 2.0 contains its own DataDim electronics, which may interact with
@@ -194,7 +194,7 @@ is used going forward.
 | The Experia peripheral outlet sustains the night load | **7.8 A continuous (78% of its 10 A rating)** without voltage sag or a warm connector, on a warm night | | |
 | Fuse temperature after a sustained night ride | Warm but not hot; no nuisance opening. **78% is the top of good practice** — if it opens, drop the Denali maximum level in the web app (90% gives 7.2 A / 72%) | | |
 | Internal enclosure temperature after a sustained ride | < 65 °C at 40 °C ambient | | |
-| Parked quiescent drain over 7 days | Predicted: **17–21 mAh** over 7 days (99–122 µA × 168 h)<br>Pass: **< 34 mAh** (the <200 µA requirement × 168 h)<br>Hard fail: **> 84 mAh** (the 500 µA ceiling) | | |
+| Parked quiescent drain over 7 days | Predicted: **14–17 mAh** over 7 days (85–100 µA × 168 h)<br>Pass: **< 34 mAh** (the <200 µA requirement × 168 h)<br>Hard fail: **> 84 mAh** (the 500 µA ceiling) | | |
 | Does the CAN bus actually go quiet when parked? | Bus idles → board enters deep sleep | | |
 | Corner mapping verified by the installation self-test | All four corners correct (FL, FR, RL, RR) | | |
 
@@ -210,7 +210,7 @@ For scale: 34 mAh over a week is negligible against a motorcycle's 12 V battery 
 
 The CAN-idle check is the one the entire sleep strategy depends on and is
 currently unconfirmed — if the bus never goes quiet, the board never sleeps
-and the 99–122 µA figure from Stage 3 is academic. If this fails, the
+and the 85–100 µA figure from Stage 3 is academic. If this fails, the
 mitigation already designed in is the unpopulated ignition-sense input
 (GPIO 36, EXT1) plus a configurable idle timeout, tuned once real bus
 behaviour is observed — not a hardware change.

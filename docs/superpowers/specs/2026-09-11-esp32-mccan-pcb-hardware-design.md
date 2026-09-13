@@ -159,8 +159,8 @@ irrelevant — but it **breaks the sense-chain sizing** and is why §5.1's shunt
                 ▼              ▼                        ▼
     ┌───────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
     │ 3V3 BUCK +3V3_ALW │   │ 24 V SYNC BOOST      │   │ DUAL SMART HIGH-SIDE │
-    │ + 5V REG (gated)  │   │ LM5122-Q1 class      │   │ PROFET, 1x IS + DSEL │
-    │ ~1 A              │   │ enable-gated, 60 W   │   │ enable-gated         │
+    │ + 5V REG (gated)  │   │ LM51571-Q1, int. sw  │   │ PROFET, 1x IS + DSEL │
+    │ ~1 A              │   │ enable-gated, 12 W   │   │ enable-gated         │
     └─────┬─────────────┘   └──────────┬───────────┘   └──────────┬───────────┘
           │                            │                          │
           │                  +24 V, 4× PTC per string      2× switched 12 V
@@ -348,7 +348,7 @@ load that cannot divide unevenly:
 
 | Feed | Powers | Current | Ceiling | Margin on 10 A |
 |---|---|---|---|---|
-| A | Boost → 24 V → RGB, plus logic | 3.9 A | 5.9 A (boost at its full 60 W design point) | 61% nominal / **41% at the ceiling** |
+| A | Boost → 24 V → RGB, plus logic | 1.0 A | 1.4 A (boost at its full 12 W design point) | 90% nominal / **86% at the ceiling** |
 | B | Denali D4 2.0 pair via PROFET | 6.6 A | 6.6 A (fixed load) | 34% |
 
 **The Schottky OR on the logic rail** costs cents and means the MCU keeps power while *either*
@@ -382,8 +382,9 @@ short-to-battery and overtemperature share one 2-bit code, and standby current i
 85 °C with zero margin (60 µA at 150 °C, plus ~36 µA leakage).
 
 Since the integrated parts were chosen *for* those diagnostics, and the OFF-state detection they do
-offer is marginal at 0.14 A anyway (the injected pull-down reaches 150 mA while a healthy channel
-sources only ~140 mA, so a working channel could read as open), the RGB stage is now **12 discrete
+offer is marginal anyway (the injected pull-down reaches 150 mA while a healthy channel sources only
+~140 mA at the then-assumed current, and just 27 mA at the real one — so a working channel would read
+as open), the RGB stage is now **12 discrete
 logic-level N-MOSFETs plus a purpose-built diagnostic chain** that does what the ICs could not.
 
 **Switching:** one logic-level N-channel MOSFET per channel, gate driven directly from a PCA9685
@@ -397,8 +398,9 @@ the output-characteristic curve showing **Id ≥ 0.5 A at Vgs ≤ 3.3 V**.
 
 > **Note on gate drive (2026-09-11).** An earlier revision demanded the FET be "fully enhanced at
 > 3.3 V". No MOSFET in this class publishes Rds(on) below 4.5 V Vgs, and the requirement was wrong
-> anyway: at **0.14 A**, even a pessimistic 1 Ω Rds(on) costs 140 mV and 20 mW on a rail with 24 V of
-> headroom — and the design **deliberately adds a 1 Ω sense resistor in the same leg**, so a fraction
+> anyway: at **0.14 A** (and far more so at the real **26.7 mA**), even a pessimistic 1 Ω Rds(on)
+> costs 140 mV and 20 mW on a rail with 24 V of headroom — and the design **deliberately adds a sense
+> resistor in the same leg** (now 10 Ω), so a fraction
 > of an ohm from the FET is the same order as a part chosen on purpose. The strip's internal
 > resistors (~171 Ω) set the current, so 1–2 Ω of series resistance shifts it under 1%. Nothing here
 > needs low Rds: not heat, not headroom, not current accuracy, not switching speed.

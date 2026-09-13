@@ -14,9 +14,16 @@ than a guessed part number.
 
 ---
 
-## 1. Thermal design — RESOLVED 2026-09-12
+## 1. Thermal design — REVISED 2026-09-13: fins no longer required
 
-**Decision: finned plate, metal-to-metal plate-to-bracket, rubber isolators at the frame only.**
+**Decision: FLAT plate ≥ 150 cm², metal-to-metal plate-to-bracket, rubber isolators at the frame only.**
+
+> **This supersedes the finned-plate decision of 2026-09-12.** Fins were required when the budget
+> stood at 4.5 W and needed ≥ 300 cm² of effective area. The RGB load then turned out to be ~4×
+> smaller than assumed (spec §2.2), total dissipation fell to **~1.9 W**, and a flat plate of
+> **150 cm²** now gives 56 °C at 40 °C ambient. Fins remain a harmless option — they would buy a
+> further ~10 K — but nothing depends on them, and the "fins must be vertical" installation
+> constraint falls away with them.
 
 ### Why a flat plate was not an option
 
@@ -27,12 +34,12 @@ all coincide: daytime has the Denali lights off, night has the front DRLs off). 
 case is **daytime, ~4.5 W**; night is **~2.9 W**. The old "full white plus both Denali" figure of 5.7 W
 occurs only during a flash-to-pass in daylight, for seconds, and is absorbed by thermal mass.
 
-| Effective area | Daytime 4.5 W | Internal at 40 °C | Night 2.9 W | Verdict |
+| Effective area | Night 1.9 W (governs) | Internal at 40 °C | Daytime 1.2 W | Verdict |
 |---|---|---|---|---|
-| 80 cm² (flat 100 × 80 mm plate) | 70 K | **110 °C** | 46 K | **Fails badly** |
-| 215 cm² | 26 K | **66 °C** | 17 K | Marginal — misses the 65 °C target |
-| **300 cm² — hard requirement** | **19 K** | **59 °C** | 12 K | Comfortable |
-| 350 cm² — design target | 16 K | 56 °C | 10 K | Ample |
+| 80 cm² (flat 100 × 80 mm plate) | 30 K | 70 °C | 19 K | Marginal |
+| **100 cm²** | 24 K | **64 °C** | 15 K | Meets the 65 °C target |
+| **150 cm² — requirement** | **16 K** | **56 °C** | 10 K | Comfortable |
+| 200 cm² | 12 K | 52 °C | 7 K | Ample |
 
 A flat plate sized to fit this enclosure delivers roughly **a quarter** of what is needed. Fins
 multiply effective area 3–5× for the same footprint, which closes the case.
@@ -51,10 +58,10 @@ being traded away.
 
 | | Value |
 |---|---|
-| Plate type | **Finned aluminium extrusion** forming one wall |
+| Plate type | **Flat aluminium plate** forming one wall (a finned extrusion is optional, not required) |
 | Footprint | ≥ 80 cm² (≈ 100 × 80 mm) **[PROVISIONAL** — confirm against Task 8's board outline**]** |
-| **Effective convective area — hard requirement** | **≥ 300 cm²** (fin multiplier ≥ 3.75×) → ~59 °C |
-| **Effective convective area — design target** | **≥ 350 cm²** (fin multiplier ≥ 4.4×) → ~56 °C |
+| **Effective area — requirement** | **≥ 150 cm²** → ~56 °C at 40 °C ambient |
+| Effective area — minimum acceptable | ≥ 100 cm² → ~64 °C, meets the target with no margin |
 | Base thickness | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
 | **Fin orientation** | **VERTICAL in the installed attitude** — see below |
 | Material | Aluminium, 6063 extrusion (typical for finned profiles) or 6082/6061 if machined |
