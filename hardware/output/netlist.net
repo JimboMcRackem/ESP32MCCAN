@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-12T22:15:45")
+		(date "2026-09-13T08:55:15")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -841,6 +841,66 @@
 			)
 		)
 		(comp
+			(ref "L2")
+			(value "CM choke")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "L_Coupled")
+				(description "Coupled inductor")
+			)
+			(property
+				(name "Sheetname")
+				(value "power_input")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/power_input.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "inductor choke coil reactor magnetic coupled")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "Choke_* *Coil* Inductor_* L_*")
+			)
+			(sheetpath
+				(names "/power_input/")
+				(tstamps "/bb7f7a86-b153-4a57-9167-66f1a7c26371/")
+			)
+			(tstamps "f99cd86a-8a35-5ac5-8ceb-e4a26827f9c1")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "4")
+						)
+					)
+				)
+			)
+		)
+		(comp
 			(ref "Q1")
 			(value "SQJ415EP")
 			(fields
@@ -933,6 +993,114 @@
 				(tstamps "/bb7f7a86-b153-4a57-9167-66f1a7c26371/")
 			)
 			(tstamps "a25d4378-18a5-53f7-896e-77c618a35761")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R2")
+			(value "0R (link)")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "power_input")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/power_input.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/power_input/")
+				(tstamps "/bb7f7a86-b153-4a57-9167-66f1a7c26371/")
+			)
+			(tstamps "e65a36aa-4fb0-5b9b-ae9a-cf7851a5a526")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R3")
+			(value "0R (link)")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "power_input")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/power_input.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/power_input/")
+				(tstamps "/bb7f7a86-b153-4a57-9167-66f1a7c26371/")
+			)
+			(tstamps "44ff9bb5-5b90-5918-8143-fb29815671f6")
 			(units
 				(unit
 					(name "A")
@@ -1237,6 +1405,53 @@
 		)
 		(libpart
 			(lib "Device")
+			(part "L_Coupled")
+			(description "Coupled inductor")
+			(footprints
+				(fp "Choke_*")
+				(fp "*Coil*")
+				(fp "Inductor_*")
+				(fp "L_*")
+			)
+			(fields
+				(field
+					(name "Reference") "L")
+				(field
+					(name "Value") "L_Coupled")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Coupled inductor")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "3")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "4")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "Device")
 			(part "R")
 			(description "Resistor")
 			(footprints
@@ -1355,6 +1570,39 @@
 		)
 		(net
 			(code "3")
+			(name "/power_input/GND_IN")
+			(class "Default")
+			(node
+				(ref "D2")
+				(pin "2")
+				(pinfunction "A2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "2")
+				(pinfunction "Pin_2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "L2")
+				(pin "3")
+				(pinfunction "3_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R3")
+				(pin "1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "4")
 			(name "/power_input/Q1_G")
 			(class "Default")
 			(node
@@ -1376,7 +1624,7 @@
 			)
 		)
 		(net
-			(code "4")
+			(code "5")
 			(name "/power_input/VBAT")
 			(class "Default")
 			(node
@@ -1408,14 +1656,36 @@
 			)
 		)
 		(net
-			(code "5")
-			(name "/power_input/VBAT_PROT")
+			(code "6")
+			(name "/power_input/VBAT_F")
 			(class "Default")
 			(node
 				(ref "C1")
 				(pin "1")
 				(pintype "passive")
 			)
+			(node
+				(ref "L1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "L2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "7")
+			(name "/power_input/VBAT_PROT")
+			(class "Default")
 			(node
 				(ref "D1")
 				(pin "1")
@@ -1429,7 +1699,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "L1")
+				(ref "L2")
 				(pin "1")
 				(pinfunction "1_1")
 				(pintype "passive")
@@ -1440,9 +1710,14 @@
 				(pinfunction "S_2")
 				(pintype "passive")
 			)
+			(node
+				(ref "R2")
+				(pin "1")
+				(pintype "passive")
+			)
 		)
 		(net
-			(code "6")
+			(code "8")
 			(name "/power_input/VLOGIC_IN")
 			(class "Default")
 			(node
@@ -1458,7 +1733,7 @@
 			)
 		)
 		(net
-			(code "7")
+			(code "9")
 			(name "GND")
 			(class "Default")
 			(node
@@ -1487,19 +1762,13 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "D2")
-				(pin "2")
-				(pinfunction "A2_2")
+				(ref "L2")
+				(pin "4")
+				(pinfunction "4_4")
 				(pintype "passive")
 			)
 			(node
-				(ref "J1")
-				(pin "2")
-				(pinfunction "Pin_2_2")
-				(pintype "passive")
-			)
-			(node
-				(ref "R1")
+				(ref "R3")
 				(pin "2")
 				(pintype "passive")
 			)
