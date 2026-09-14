@@ -14,7 +14,8 @@ The four sheet UUIDs are FIXED here: every symbol instance inside a child sheet
 carries the parent path, so changing one orphans every reference designator on that
 sheet.
 """
-import os, uuid
+import os, sys, uuid
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 HW = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
@@ -200,7 +201,9 @@ A("\t)")
 A("\t(embedded_fonts no)")
 A(")")
 
-open(os.path.join(HW, "mccan.kicad_sch"), "w", encoding="utf-8", newline="\n").write(
-    "\n".join(out) + "\n")
+import kicanon
+_text = kicanon.canonicalise("\n".join(out) + "\n")
+open(os.path.join(HW, "mccan.kicad_sch"), "w",
+     encoding="utf-8", newline="\n").write(_text)
 print("sheets: 4  pins:", sum(len(v) for v in PINS.values()),
       " wires:", len(WIRES), " labels:", len(LABELS))

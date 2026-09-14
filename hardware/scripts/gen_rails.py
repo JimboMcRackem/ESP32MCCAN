@@ -519,6 +519,9 @@ for s in SYMS:
     A("\t)")
 
 A(")")
-open(os.path.join(HW, "sheets", "rails.kicad_sch"), "w", encoding="utf-8", newline="\n").write("\n".join(out) + "\n")
+import kicanon
+_text = kicanon.canonicalise("\n".join(out) + "\n")
+open(os.path.join(HW, "sheets", "rails.kicad_sch"), "w",
+     encoding="utf-8", newline="\n").write(_text)
 print("symbols:", len(SYMS), " wires:", len(WIRES), " junctions:", len(set(JUNCS)),
       " labels:", len(LABELS), " hlabels:", len(HLABELS), " notes end y:", ny)

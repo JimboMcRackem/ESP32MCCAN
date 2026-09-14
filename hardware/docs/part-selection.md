@@ -768,12 +768,24 @@ wire entering a sealed enclosure onto a high-impedance node. C40 forms an RC wit
 R_thev = 90.9 kΩ ∥ 24.8 kΩ = **19.5 kΩ**, so τ ≈ **2 ms**. Ignition state changes over seconds, so
 this costs nothing in wake latency.
 
-**`power_input` has no working generator.** `gen.py` in the scratchpad no longer reproduces the
-committed sheet — its notes module was lost to a filename collision, and when the rest was
-reconstructed it emitted a materially different file (4465 lines against the committed 4723). The
-committed sheet is the verified artefact, so this change was made by surgical text edit instead and
-the stale generator was **not** committed. Every other sheet is generated; this one is not, and that
-is a real inconsistency to resolve before layout.
+**`power_input`'s generator: RESOLVED 2026-09-15.** It had drifted out of step with the
+committed sheet, which had been saved from the KiCad GUI. Diagnosed rather than rewritten: the
+entire 258-line delta was cosmetic — `(show_name no)` x110, `(do_not_autoplace no)` x110,
+`(body_style 1)` x22, `(in_pos_files yes)` x22, less a `sheet_instances`/`embedded_fonts` block
+a child sheet does not carry — plus two orderings the GUI imposes (top-level elements grouped by
+type, each group sorted by UUID). **110 + 110 + 22 + 22 − 6 = 258, exactly.**
+
+All twelve `lib_symbols` blocks were already byte-identical, and the symbol, wire, junction,
+label and text-box counts already matched, so nothing about the circuit was ever in question.
+
+Repaired, the generator reproduces the pre-J1 committed sheet **byte for byte** — which is what
+proves it faithful — and it now also carries the J1 3-way change, so it produces the current
+design. Verified three ways: byte-identical against the committed sheet, **all 84 nets identical**
+before and after, and ERC unchanged at 23 violations.
+
+The fix generalises. `kicanon.py` now canonicalises **every** generator's output, so opening a
+sheet in KiCad and saving it no longer breaks the generator relationship for any sheet — which is
+how this one drifted in the first place. All five generators are idempotent.
 
 ### Still open
 

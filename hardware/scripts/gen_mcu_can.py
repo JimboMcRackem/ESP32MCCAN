@@ -5,7 +5,8 @@
 Task 5: ESP32-WROOM-32E-N8, TJA1042T/3 with hardware-enforced listen-only,
 programming header with auto-reset, status LED, ignition-sense divider.
 """
-import os, re, uuid
+import os, re, sys, uuid
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 HW = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 STOCK = r"C:\Program Files\KiCad\10.0\share\kicad\symbols"
@@ -669,8 +670,10 @@ for s in SYMS:
     A("\t)")
 
 A(")")
+import kicanon
+_text = kicanon.canonicalise("\n".join(out) + "\n")
 open(os.path.join(HW, "sheets", "mcu_can.kicad_sch"), "w",
-     encoding="utf-8", newline="\n").write("\n".join(out) + "\n")
+     encoding="utf-8", newline="\n").write(_text)
 print("symbols:", len(SYMS), " wires:", len(WIRES), " junctions:", len(set(JUNCS)),
       " no-connects:", len(set(NOCONN)), " labels:", len(LABELS),
       " hlabels:", len(HLABELS), " notes end y:", ny)
