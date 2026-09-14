@@ -194,8 +194,10 @@ is used going forward.
 | The Experia peripheral outlet sustains the night load | **7.8 A continuous (78% of its 10 A rating)** without voltage sag or a warm connector, on a warm night | | |
 | Fuse temperature after a sustained night ride | Warm but not hot; no nuisance opening. **78% is the top of good practice** — if it opens, drop the Denali maximum level in the web app (90% gives 7.2 A / 72%) | | |
 | Internal enclosure temperature after a sustained ride | < 65 °C at 40 °C ambient | | |
-| Parked quiescent drain over 7 days | Predicted: **14–17 mAh** over 7 days (85–100 µA × 168 h)<br>Pass: **< 34 mAh** (the <200 µA requirement × 168 h)<br>Hard fail: **> 84 mAh** (the 500 µA ceiling) | | |
-| Does the CAN bus actually go quiet when parked? | Bus idles → board enters deep sleep | | |
+| Parked quiescent drain over 7 days — **TOPOLOGY B ONLY.** Under topology A (the Experia, ignition-switched feed) the board is unpowered when parked and this row is N/A; confirm instead that the feed really does go dead, by measuring it at the connector with the bike off | Predicted: **14–17 mAh** over 7 days (85–100 µA × 168 h)<br>Pass: **< 34 mAh** (the <200 µA requirement × 168 h)<br>Hard fail: **> 84 mAh** (the 500 µA ceiling) | | |
+| Does the CAN bus actually go quiet when parked? **Topology B only** | Bus idles → board enters deep sleep. Under topology A this no longer gates anything | | |
+| **Cold boot to lights-on, measured from ignition-on** | **Topology A pays a full boot on every ride and the rider sees it.** Record the figure; if it is slow, bring the lighting outputs up before the network stack | | |
+| **Inrush on repeated ignition cycles** | Switch the bike on and off 20 times. No fuse nuisance trip, no P-FET stress. Topology A power-cycles the input stage every ride, not a handful of times in its life | | |
 | Corner mapping verified by the installation self-test | All four corners correct (FL, FR, RL, RR) | | |
 
 Express the 7-day drain as charge rather than current, because that is what a meter on a parked

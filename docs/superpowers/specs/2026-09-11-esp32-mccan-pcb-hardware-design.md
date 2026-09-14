@@ -771,9 +771,54 @@ done with the bike on. No wake button, no post-idle window.
 4. Bus activity → transceiver drives RXD low → ESP32 wakes, restores the transceiver to normal
    mode, re-enables both rails
 
+> **PREMISE CORRECTED 2026-09-14.** This section previously read *"Permanently battery-connected,
+> so quiescent draw is a first-class requirement."* **That is not true of the Experia.** The user
+> confirms the Experia's peripheral connector is **ignition-switched**: it supplies the unit when the
+> bike is on and nothing when it is off. On the reference bike the board is therefore **unpowered**
+> when parked, not asleep, and the quiescent budget below does not apply to it at all.
+>
+> The budget is retained in full because it governs the **other** supported topology, and because
+> the hardware that serves it costs nothing when unused.
+
+### 8.1a Two supported supply topologies
+
+| | **A — switched feed (the Experia)** | **B — battery feed + ignition sense** |
+|---|---|---|
+| PWR connector | +12 V **switched**, GND | +12 V **permanent**, GND, **`IGN_IN`** |
+| Parked draw | **zero — the board is unpowered** | 85–100 µA (the budget below) |
+| Sleep / wake | not used | deep sleep, EXT0 bus wake + EXT1 ignition wake |
+| `IGN_SENSE` divider (R37/R38) | **DNP**, third cavity plugged | **POPULATED** |
+| Run condition | being powered *is* the signal | `IGN_SENSE` high |
+
+The board is a **superset** serving both. In topology A the sleep path simply never executes, the
+switched rails stay enabled, and `IGN_SENSE` rests low behind its populated pulldown (R39). Nothing
+has to be removed, and nothing is wasted: the always-on/switched rail split, the TJA1042 VIO/VCC
+split and the `VLOGIC_IN` diode-OR all exist for topology B and are inert in A.
+
+**This is what `IGN_IN` is for.** It is not a contingency against the CAN bus never idling — that was
+the original framing and it understated it. It is the signal that makes topology B possible at all,
+because a permanently-fed board has no other way to know the bike has been switched off.
+
+### 8.1b Consequences of topology A that do NOT apply to B
+
+These follow from the board losing power outright, and are firmware and bring-up items:
+
+1. **There is no graceful shutdown.** Power disappears mid-instruction when the rider switches off.
+   Anything that must survive to the next ride has to be committed to NVS **when it changes**, not
+   on the way down. Do not design a save-on-shutdown path — there is nowhere to hang it.
+2. **Cold boot happens on every ride, and the rider sees it.** Topology B wakes from deep sleep in
+   hundreds of milliseconds; topology A pays a full boot, including Wi-Fi bring-up, every ignition
+   cycle. **Measure cold-boot-to-lights-on and treat it as a UX figure**, not just a number. If it
+   is slow, bring the lighting outputs up before the network stack rather than after.
+3. **The input stage is power-cycled on every ride** rather than a handful of times in its life.
+   Inrush into the bulk capacitance is repeated thousands of times: confirm at bring-up that it
+   neither nuisance-trips the 10 A fuse nor stresses the reverse-polarity P-FET. Soft-start already
+   exists on every downstream converter (LM5164 internal, boost `SS` via C25, DML3017LDC), so the
+   exposure is the input bulk, not the rails.
+
 ### 8.2 Budget
 
-Permanently battery-connected, so quiescent draw is a first-class requirement.
+Applies to **topology B only** (see §8.1a). Under topology A the parked draw is zero.
 
 | Contributor | Target |
 |---|---|
@@ -824,7 +869,8 @@ contributor to be verified against its datasheet.
 
 | Failure | Mitigation |
 |---|---|
-| **Bus never idles** → board never sleeps, battery drains | Unpopulated ignition-sense input (GPIO 36); configurable idle timeout tunable once real bus behaviour is observed |
+| **Bus never idles** → board never sleeps, battery drains | **Topology A is immune** — the feed is switched, so the board cannot drain anything when parked. Under topology B, populate the ignition-sense divider (GPIO 36) and use the configurable idle timeout |
+| **Topology B wired but `IGN_IN` left unconnected** | Safe but **silently non-functional**: GPIO 36 sits low on R38∥R39 = 24.8 kΩ, EXT1 never fires and the board never wakes on ignition. Reads like a firmware fault. Covered by a continuity check at install |
 | **Wake thrashing** — bus chirps every few seconds | Minimum awake period (a few seconds) so each wake does useful work |
 
 ---
@@ -1048,7 +1094,7 @@ gets its own plan.
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| Experia CAN bus may never idle → no sleep, battery drain | High | Unpopulated ignition-sense input; configurable idle timeout |
+| ~~Experia CAN bus may never idle → no sleep, battery drain~~ **RISK RETIRED 2026-09-14** | — | The Experia's peripheral feed is **ignition-switched** (§8.1a), so the board is unpowered when parked and cannot drain the battery however the bus behaves. The risk survives only for topology B installs, where the ignition-sense divider is populated |
 | ~~Open-load detection threshold~~ **CLOSED: failed category-wide (Task 2b)** | — | Redesigned — §5.1 discrete FETs + 1 Ω shunt + mux + ADC1 |
 | 140 mV sense signal may be noisy near the ESP32 ADC's accuracy floor | Medium | 0 dB attenuation, averaging, on-demand sweep at 100% duty; classification is open/working/shorted, not precision metering |
 | ~~Real Denali wattage unknown~~ **RESOLVED**: D4 2.0 confirmed at 40 W each / 6.6 A per pair | — | Absorbed by a **single** feed once §2.4 established the loads never coincide; night peaks at 7.8 A (78%) |
