@@ -409,14 +409,28 @@ natively active-high, so the trap does not exist.
 | Protection | none | **short-circuit, thermal, VCC UVLO** |
 | Diagnostics | none | **power-good output** |
 
-**Wiring notes for the rails sheet:**
-- **`VIN` and `VCC` are separate pins** — both tie to `+3V3_ALW` here (VIN is the switched path,
-  VCC the controller supply).
-- **`EN` ← `EN_3V3SW`**, the same enable that gates the 5 V rail. Keep the external pulldown anyway:
-  belt and braces, and it keeps the biasing table uniform.
-- **Use the `BLEED` pin** (on-chip 100 Ω) so `+3V3_SW` discharges promptly when the board sleeps,
-  rather than floating on residual charge in the downstream decoupling.
-- `PG` is an open-drain output needing an external pull-up if used.
+**Wiring notes for the rails sheet** — corrected 2026-09-14 against the pin-description table
+and the typical application circuit on p.2–3 of `DML3017LDC.pdf`. Two of the notes below were
+wrong when first written from the feature list alone:
+
+- **`VIN` is pins 1 AND 13, and the datasheet requires them tied together.** `VCC` (pin 3) is a
+  separate controller supply. All three tie to `+3V3_ALW` here.
+- **`EN` ← `EN_3V3SW`**, the same enable that gates the 5 V rail. The external pulldown lives on
+  R19 next to the LM5164, so one resistor covers the whole net.
+- **`BLEED` (pin 7) is mandatory, not optional, and the 100 Ω is EXTERNAL.**
+  ~~"Use the BLEED pin (on-chip 100 Ω)"~~ — there is no internal bleed resistor. The pin
+  description reads *"must be tied to VOUT either directly or through a resistor ≤ 1 kΩ"*, and the
+  application circuit shows `RBLEED` at 10–100 Ω. Implemented as **R21, 100 Ω** from pin 7 to
+  `+3V3_SW`. The discharge-at-sleep benefit is real; the part count was not.
+- **`SR` (pin 5) needs `CSR`** — it sets the output slew rate (Table 1). Implemented as C32, 1 nF,
+  the datasheet's typical value.
+- **`PG` (pin 6) is tied to GND, not left floating.** ~~"needs an external pull-up if used"~~ is
+  true as far as it goes, but the pin description also says *"tie to GND if not used"*, and unused
+  is the case here — no GPIO is allocated to it. A pull-up was considered and **rejected on the
+  sleep budget**: `PG` sits low whenever the switch is off, so a 100 kΩ pull-up to 3.3 V would burn
+  **33 µA continuously**, a third of the entire 85–100 µA budget.
+- The symbol carries **`PG` as `passive` rather than `open_collector`** so that ERC does not read
+  the deliberate tie-off as an output driving into a power net.
 
 ## Final part selections — 2026-09-13
 
@@ -487,6 +501,122 @@ Both clear the ≥ 500 kΩ sleep-budget requirement. Use E96 values (348 k / 200
 | DMHT3006LFJ | 30 V N-channel **H-bridge** — motor-drive part, wrong topology and below the clamp |
 | XP202A0003MR-G | −30 V P-channel — below the clamp, so unusable for reverse polarity. Viable for the 3.3 V load switch if the discrete arrangement is kept |
 | XAL7070-682ME | Correct 6.8 µH but **Isat 12.8 A in 7×7×3 mm** — sized for the abandoned 60 W design |
+
+## Rails sheet verification — 2026-09-14
+
+The rails draft was checked against the primary datasheets rather than accepted as drafted.
+Topology was sound; four defects were found and fixed. Values below are from
+`lm5164.pdf` (SNVSAU4D, Feb 2026), `lm51571-q1.pdf` (SNVSBK8B, Aug 2023) and
+`DML3017LDC.pdf` (DS46371 Rev. 1-2).
+
+### Confirmed correct — things that looked wrong and were not
+
+| Item | Doubt | Datasheet says | Verdict |
+|---|---|---|---|
+| `R15` 5.1 Ω in series with `C26` 1 µF on the LM51571 `VCC` | A series resistor in front of a bypass cap looks like a mistake — `VCC` needs a low-impedance bypass | Pin table: *"Connect a **5-Ω resistor in series with a 1-µF** ceramic bypass capacitor from this pin to PGND"* | **Exactly as specified** |
+| `R11` = 37.4 kΩ on `MODE` | Arbitrary-looking value | 37.4 kΩ is the one value that enables **both** dual random spread spectrum (§9.3.5) **and** hiccup-mode overload protection (§9.3.11). 100 kΩ gives spread spectrum only; 62.0 kΩ gives hiccup only | **Deliberate and optimal** |
+| `R10` = 9.09 kΩ on `RT` | — | fSW = **2200 kHz** typ. Clears the AM broadcast band (530–1710 kHz) entirely, fundamental and harmonics | **Correct for automotive EMI** |
+| `R12`/`R13` = 115 k / 4.99 k | — | VREF = **1.000 V** ±1%. Vout = 1.0 × (1 + 115/4.99) = **24.05 V** | **Correct** |
+| LM5164 `EN/UVLO` tied straight to `VLOGIC_IN` (~11.5 V) | A logic-level enable at 11.5 V would be a classic overstress | Abs max **EN to GND: −0.3 to 100 V**; recommended VEN/UVLO to 100 V | **Correct**, it is a precision high-voltage enable |
+| `R16` = 0 Ω feeding `BIAS` from VBAT | BIAS is usually tied to the output | Pin table: *"Supply voltage input to the VCC regulator"*, operates to 45 V | **Correct**; the 0 Ω link keeps the option to re-source BIAS later |
+
+### Defect 1 — the constant-on-time loop had no ripple to work with (FIXED)
+
+**This was the one that would have cost a respin.** The LM5164 is a **constant-on-time** regulator:
+after the on-time expires the high-side FET stays off until FB falls to the 1.2 V reference. §6.2:
+
+> *"To maintain stability, the feedback comparator requires a minimal ripple voltage that is in
+> phase with the inductor current during the off-time … **The minimum recommended ripple voltage
+> is 20 mV.**"*
+
+The draft used an all-ceramic output stage (2 × 22 µF, ESR ≈ 2 mΩ) with a 100 pF feedforward cap —
+TI's **Type 2** scheme, which assumes an `RESR` in series with the output capacitor. Without it:
+
+| | 3.3 V rail | 5 V rail |
+|---|---|---|
+| Inductor ripple ΔIL | 0.266 A | 0.28 A |
+| Output ripple (ESR + capacitive) | ~3.2 mV | ~3.4 mV |
+| **Ripple delivered to FB** | **~3.1 mV** | **~3.3 mV** |
+| **Required** | **20 mV** | **20 mV** |
+| Shortfall | **6.5×** | **6×** |
+
+Too little ripple at FB in a COT converter does not fail cleanly — it shows up as jitter, audible
+subharmonic behaviour, or erratic pulse bunching that a bench test at one operating point can miss.
+
+**Fix: the datasheet's Type-3 ripple injection network (§7.2.2.6)**, chosen over adding series ESR
+because this board runs an ADC sense chain off these rails and Type 3 generates the ramp *without*
+raising output ripple. `RA` from SW, `CA` to VOUT, `CB` couples the ramp into FB:
+
+```
+CA    >= 10 / (fSW x (RFB1 || RFB2))
+RA.CA >= tON(nom) x (VIN(nom) - VOUT) / 20 mV
+CB    =  t(settling) / (3 x RFB1)
+```
+
+| Rail | RFB1‖RFB2 | fSW | CA min | **CA** | tON | **RA** | **CB** |
+|---|---|---|---|---|---|---|---|
+| 3.3 V | 127 kΩ | 402 kHz | 196 pF | **2.2 nF** (C28) | 714 ns | **133 kΩ** (R17) | **68 pF** (C9) |
+| 5 V | 152 kΩ | 396 kHz | 166 pF | **2.2 nF** (C29) | 1010 ns | **174 kΩ** (R18) | **39 pF** (C15) |
+
+Checked against the datasheet's second criterion — **≥ 12 mV at minimum VIN**: the 3.3 V rail holds
+12.6 mV down to VIN = 6 V (the LM5164's own floor), the 5 V rail holds 12.4 mV at VIN = 8 V and is
+in dropout below that anyway. Both pass. C9 and C15 were re-used as `CB`, so the part count is
+unchanged at the 3.3 V rail and +1 R +1 C per rail overall.
+
+### Defect 2 — both enables were missing their mandatory pulldowns (FIXED)
+
+`EN_3V3SW` and `EN_BOOST` reached their pins with **nothing else on the net**. The plan's
+passive-default biasing table makes a pulldown mandatory on both, and the LM51571 datasheet
+independently states the UVLO/EN pin *"must not be left floating"*. Added **R19** and **R20**,
+100 kΩ to GND. This is the same class of defect as the `EN_DIAG` omission caught in round 3 —
+invisible on a schematic, a board rework if it ships.
+
+### Defect 3 — the switched 3.3 V rail did not exist (FIXED)
+
+The load-switch block was dropped when the sheet was restructured around the boost. Added as
+**block 4**: `+3V3_ALW` → **U4 DML3017LDC** → `+3V3_SW`, with C30/C31 (1 µF each on VIN and VCC),
+C32 (1 nF on SR), R21 (100 Ω, BLEED to VOUT) and C33/C34 on the output. `PG` tied to GND.
+
+### Defect 4 — symbol pin types were generating false ERC violations (FIXED)
+
+The LM51571 symbol typed **`SW` (pins 12–14) as `power_in`**, so ERC demanded an external driver
+for the converter's own switch node. Retyped per Table 7-1: `VCC` → `power_out` (it is the internal
+LDO's output), `SW`/`RT`/`COMP`/`SS`/`MODE`/`EP` → `passive`, `PGOOD` → `open_collector`,
+`NC` → `no_connect`. `BIAS` is typed `passive` rather than `power_in` because R16 sits between it
+and VBAT, leaving it on an isolated net as far as ERC can see.
+
+### ERC status
+
+**26 violations → 6.** All six remaining are `pin_not_connected` on root sheet pins
+(`EN_3V3SW`, `EN_BOOST`, `+3V3_ALW`, `+3V3_SW`, `+5V`, `+24V`) whose counterparts live on the
+`mcu_can` and `outputs` sheets, which are not drawn yet. They clear in Tasks 5 and 6.
+
+`PWR_FLAG` symbols were added on `VBAT`, `VLOGIC_IN`, `GND` and each generated rail: every supply
+on this board originates at a connector whose pins are passive, so without them ERC cannot see
+what drives the power inputs.
+
+### Netlist verification (independent, not taken from the drafting agent)
+
+Confirmed from `hardware/output/netlist.net`:
+
+- `VBAT` and `VLOGIC_IN` now span **both** sheets — the parent sheet pins were missing, so the
+  two halves of each rail were separate nets until the root was wired.
+- `EN_3V3SW` = `R19.1 U2.3 U4.2` — one enable gates both the 5 V rail and the switched 3.3 V rail,
+  as the net contract requires.
+- Type-3 injection nodes are correct on both rails: `RA`–`CA`–`CB` meeting at one node, with
+  `RA` on SW, `CA` on VOUT and `CB` on FB.
+- `+3V3_SW` = `C33.1 C34.1 R21.1` + all five `VOUT` pins.
+
+### Still open
+
+- **No footprints are assigned anywhere in this project yet** — every `Footprint` field on both
+  sheets is empty. That is Task 8's job, but note one trap for it: the DML3017LDC's
+  **V-DFN3030-12 pin-1 orientation is ambiguous between the two figures** in DS46371. The package
+  outline puts the pin-1 ID at top-left; the suggested pad layout labels pad 1 at bottom-left.
+  Resolve from the package-outline drawing before committing the footprint, do not infer it.
+- The bucks run at **~400 kHz**, below the AM band, but their 2nd and 3rd harmonics (800 kHz,
+  1.2 MHz) land inside it. The LM5164 tops out at 1 MHz so 2.2 MHz is not available; ~400 kHz with
+  the fundamental below the band is the best this part can do. Flagged for the EMI pre-scan.
 
 ## Sleep budget roll-up (spec 8.2: target < 200 uA, ceiling 500 uA)
 

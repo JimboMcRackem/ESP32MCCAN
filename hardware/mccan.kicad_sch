@@ -9,6 +9,26 @@
 		(comment 1 "Net naming contract: see hardware/README.md")
 	)
 	(lib_symbols)
+	(wire
+		(pts
+			(xy 76.2 60.96) (xy 101.6 60.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4fd954a4-50fe-5388-ab3d-eb6f02ee6835")
+	)
+	(wire
+		(pts
+			(xy 76.2 66.04) (xy 101.6 66.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cb8e57d8-189d-5975-9bd3-166bce610062")
+	)
 	(sheet
 		(at 101.6 101.6)
 		(size 25.4 25.4)
@@ -50,7 +70,7 @@
 	)
 	(sheet
 		(at 101.6 50.8)
-		(size 25.4 25.4)
+		(size 44.45 44.45)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
@@ -84,6 +104,86 @@
 					(size 1.27 1.27)
 				)
 				(justify left top)
+			)
+		)
+		(pin "VBAT" input
+			(at 101.6 60.96 180)
+			(uuid "d5fa20d8-da7a-5853-a691-52ac0558aa23")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "VLOGIC_IN" input
+			(at 101.6 66.04 180)
+			(uuid "a5533c19-8c53-5bb9-8e90-89d4740b7222")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "EN_3V3SW" input
+			(at 101.6 71.12 180)
+			(uuid "810758d1-ffc6-5924-8cf5-1a1950fb810a")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "EN_BOOST" input
+			(at 101.6 76.2 180)
+			(uuid "b5bee489-872e-5e75-b49d-db6e4889bd44")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "+3V3_ALW" output
+			(at 146.05 60.96 0)
+			(uuid "9c4ef348-ca6d-578a-9008-10b292e3065b")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "+3V3_SW" output
+			(at 146.05 66.04 0)
+			(uuid "00f7e7ab-4c44-598e-987e-92e1069eeae8")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "+5V" output
+			(at 146.05 71.12 0)
+			(uuid "7e243973-2da7-56c3-8ee7-da933e633206")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "+24V" output
+			(at 146.05 76.2 0)
+			(uuid "6ba5cc21-beac-57e2-87fa-153af5ab9433")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 			)
 		)
 	)
@@ -165,23 +265,23 @@
 			)
 		)
 		(pin "VLOGIC_IN" output
-			(at 50.8 50.8 90)
+			(at 76.2 66.04 0)
 			(uuid "0675ef87-ff71-4f9a-a62c-85f7fed543ba")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify right)
+				(justify left)
 			)
 		)
 		(pin "VBAT" output
-			(at 52.4193 50.8 90)
+			(at 76.2 60.96 0)
 			(uuid "1fc575a6-c2ff-4aa4-813c-0e8322bc21b9")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify right)
+				(justify left)
 			)
 		)
 	)

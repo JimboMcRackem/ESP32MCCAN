@@ -1055,7 +1055,7 @@
 					)
 				)
 			)
-			(pin power_in line
+			(pin power_out line
 				(at -25.4 17.78 0)
 				(length 5.08)
 				(name "VCC"
@@ -1073,7 +1073,7 @@
 					)
 				)
 			)
-			(pin unspecified line
+			(pin passive line
 				(at -25.4 12.7 0)
 				(length 5.08)
 				(name "BIAS"
@@ -1091,7 +1091,7 @@
 					)
 				)
 			)
-			(pin unspecified line
+			(pin open_collector line
 				(at 25.4 -2.54 180)
 				(length 5.08)
 				(name "PGOOD"
@@ -1109,7 +1109,7 @@
 					)
 				)
 			)
-			(pin unspecified line
+			(pin passive line
 				(at -25.4 -10.16 0)
 				(length 5.08)
 				(name "RT"
@@ -1163,7 +1163,7 @@
 					)
 				)
 			)
-			(pin unspecified line
+			(pin passive line
 				(at -25.4 -20.32 0)
 				(length 5.08)
 				(name "COMP"
@@ -1199,7 +1199,7 @@
 					)
 				)
 			)
-			(pin input line
+			(pin passive line
 				(at -25.4 -15.24 0)
 				(length 5.08)
 				(name "SS"
@@ -1217,7 +1217,7 @@
 					)
 				)
 			)
-			(pin input line
+			(pin passive line
 				(at -25.4 -5.08 0)
 				(length 5.08)
 				(name "MODE"
@@ -1235,7 +1235,7 @@
 					)
 				)
 			)
-			(pin power_in line
+			(pin passive line
 				(at 25.4 17.78 180)
 				(length 5.08)
 				(name "SW"
@@ -1253,7 +1253,7 @@
 					)
 				)
 			)
-			(pin power_in line
+			(pin passive line
 				(at 25.4 15.24 180)
 				(length 5.08)
 				(name "SW"
@@ -1271,7 +1271,7 @@
 					)
 				)
 			)
-			(pin power_in line
+			(pin passive line
 				(at 25.4 12.7 180)
 				(length 5.08)
 				(name "SW"
@@ -1289,7 +1289,7 @@
 					)
 				)
 			)
-			(pin unspecified line
+			(pin no_connect line
 				(at 25.4 5.08 180)
 				(length 5.08)
 				(name "NC"
@@ -1325,7 +1325,7 @@
 					)
 				)
 			)
-			(pin unspecified line
+			(pin passive line
 				(at 25.4 -10.16 180)
 				(length 5.08)
 				(name "EP"
@@ -1345,5 +1345,318 @@
 			)
 		)
 		(embedded_fonts no)
+	)
+	(symbol "DML3017LDC"
+		(pin_names
+			(offset 0.254)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "U"
+			(at 0 17.78 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "DML3017LDC"
+			(at 0 15.24 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.diodes.com/assets/Datasheets/DML3017LDC.pdf"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+			)
+		)
+		(property "Description" "Single-channel smart load switch, 0.5-20 V in, active-high EN with internal pulldown, soft-start, short-circuit and thermal protection, power-good, V-DFN3030-12"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+			)
+		)
+		(symbol "DML3017LDC_0_1"
+			(rectangle
+				(start -10.16 12.7)
+				(end 10.16 -12.7)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type background)
+				)
+			)
+			(pin power_in line
+				(at -12.7 10.16 0)
+				(length 2.54)
+				(name "VIN"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at -12.7 7.62 0)
+				(length 2.54)
+				(name "VIN"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "13"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at -12.7 2.54 0)
+				(length 2.54)
+				(name "VCC"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin input line
+				(at -12.7 -2.54 0)
+				(length 2.54)
+				(name "EN"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at -12.7 -7.62 0)
+				(length 2.54)
+				(name "SR"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "5"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 10.16 180)
+				(length 2.54)
+				(name "VOUT"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "12"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 7.62 180)
+				(length 2.54)
+				(name "VOUT"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "11"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 5.08 180)
+				(length 2.54)
+				(name "VOUT"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "10"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 2.54 180)
+				(length 2.54)
+				(name "VOUT"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "9"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 0 180)
+				(length 2.54)
+				(name "VOUT"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "8"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 -5.08 180)
+				(length 2.54)
+				(name "BLEED"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "7"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 -10.16 180)
+				(length 2.54)
+				(name "PG"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "6"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at 0 -15.24 90)
+				(length 2.54)
+				(name "GND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
 	)
 )
