@@ -887,7 +887,7 @@ contributor to be verified against its datasheet.
         │  4-way  4-way  4-way  4-way            │  (+24 V, R, G, B) — 0.42 A
         │                                        │
         │  [DENALI]    [PWR]    [CAN]   (VENT)   │  Denali: SS1.5 3-way
-        │   3-way      2-way    2-way            │  Power:  1× SS1.5 2-way
+        │   3-way      3-way    2-way            │  Power:  1× SS1.5 3-way
         │            (FUSE 10 A)                 │  CAN:    SS1.0 2-way
         └────────────────────────────────────────┘  Fuse:   1× sealed ATO, 10 A
         opposite wall: finned aluminium heat-spreader plate
@@ -897,7 +897,7 @@ contributor to be verified against its datasheet.
 |---|---|---|
 | 1–4 | Corners FL, FR, RL, RR | Superseal 1.0, 4-way |
 | 5 | Denali | Superseal 1.5, 3-way |
-| 6 | Power (single feed) | Superseal 1.5, 2-way |
+| 6 | Power (single feed) | Superseal 1.5, **3-way** — cavity 1 `IGN_IN` (§8.1a), plugged under topology A |
 | 7 | CAN | Superseal 1.0, 2-way |
 | 8 | Pressure-equalisation vent | §9.3 |
 | 9 | Blade fuse holder, **10 A** | Sealed screw-cap |

@@ -3177,6 +3177,12 @@
 		(uuid "652fefc0-ef73-50ee-8761-0c405f3f6f23")
 	)
 	(junction
+		(at 78.74 111.76)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "961b4da0-c977-5a15-a494-160914bab15c")
+	)
+	(junction
 		(at 109.22 76.2)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3948,13 +3954,23 @@
 	)
 	(wire
 		(pts
-			(xy 72.39 111.76) (xy 83.82 111.76)
+			(xy 72.39 111.76) (xy 78.74 111.76)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "bf2cad98-38bb-56ff-be86-486070ba78c1")
+		(uuid "3ea87b9e-5b26-555f-9e2d-09dc6d2e696a")
+	)
+	(wire
+		(pts
+			(xy 78.74 111.76) (xy 83.82 111.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c6974b86-9818-55a3-a290-2a6a5547f89b")
 	)
 	(wire
 		(pts
@@ -8178,6 +8194,167 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:C")
+		(at 78.74 115.57 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "51af446e-465e-5408-b46a-065fdd2b7937")
+		(property "Reference" "C40"
+			(at 80.391 114.3 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100nF"
+			(at 80.391 116.84 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 78.74 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 78.74 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 78.74 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "75b2323f-6bc0-58ee-9e24-09858066b214")
+		)
+		(pin "2"
+			(uuid "700054a7-7482-5796-9c67-23fbba2af1b8")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
+					(reference "C40")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 78.74 119.38 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "1e1baf1d-c94d-5de0-b8db-61a642d37d8f")
+		(property "Reference" "#PWR216"
+			(at 78.74 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND"
+			(at 78.74 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 78.74 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 78.74 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 78.74 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "23191531-ffe2-5050-a3fa-8c65f1670642")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
+					(reference "#PWR216")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:D_Schottky")
 		(at 83.82 107.95 270)
 		(unit 1)
@@ -8349,8 +8526,8 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "1e1baf1d-c94d-5de0-b8db-61a642d37d8f")
-		(property "Reference" "#PWR216"
+		(uuid "8b8d5ff8-affe-5035-a37e-682a40491f79")
+		(property "Reference" "#PWR217"
 			(at 40.64 234.95 0)
 			(hide yes)
 			(show_name no)
@@ -8408,12 +8585,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "23191531-ffe2-5050-a3fa-8c65f1670642")
+			(uuid "2e8b159d-b6e1-520a-8774-3ae4249ec981")
 		)
 		(instances
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
-					(reference "#PWR216")
+					(reference "#PWR217")
 					(unit 1)
 				)
 			)
@@ -8510,8 +8687,8 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "8b8d5ff8-affe-5035-a37e-682a40491f79")
-		(property "Reference" "#PWR217"
+		(uuid "10b5d91d-5739-5f93-8ff2-71dabd12ab2c")
+		(property "Reference" "#PWR218"
 			(at 55.88 234.95 0)
 			(hide yes)
 			(show_name no)
@@ -8569,12 +8746,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "2e8b159d-b6e1-520a-8774-3ae4249ec981")
+			(uuid "9b371845-d6a6-5bb9-8d45-69ed0d839ae4")
 		)
 		(instances
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
-					(reference "#PWR217")
+					(reference "#PWR218")
 					(unit 1)
 				)
 			)
@@ -8671,8 +8848,8 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "10b5d91d-5739-5f93-8ff2-71dabd12ab2c")
-		(property "Reference" "#PWR218"
+		(uuid "04e91365-55e6-5285-a655-3f8425607a36")
+		(property "Reference" "#PWR219"
 			(at 71.12 234.95 0)
 			(hide yes)
 			(show_name no)
@@ -8730,12 +8907,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "9b371845-d6a6-5bb9-8d45-69ed0d839ae4")
+			(uuid "309738f7-60f0-5f0a-839e-dcfbcf8d50bb")
 		)
 		(instances
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
-					(reference "#PWR218")
+					(reference "#PWR219")
 					(unit 1)
 				)
 			)
@@ -8832,8 +9009,8 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "04e91365-55e6-5285-a655-3f8425607a36")
-		(property "Reference" "#PWR219"
+		(uuid "f3334ca8-77dd-5154-b164-a3da15b2df18")
+		(property "Reference" "#PWR220"
 			(at 86.36 234.95 0)
 			(hide yes)
 			(show_name no)
@@ -8891,12 +9068,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "309738f7-60f0-5f0a-839e-dcfbcf8d50bb")
+			(uuid "866c56fb-f99e-5e0e-b1f4-387ee0dad6c1")
 		)
 		(instances
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
-					(reference "#PWR219")
+					(reference "#PWR220")
 					(unit 1)
 				)
 			)
@@ -8993,8 +9170,8 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "f3334ca8-77dd-5154-b164-a3da15b2df18")
-		(property "Reference" "#PWR220"
+		(uuid "64d1b9fd-6789-5a85-b69c-b0954a608bab")
+		(property "Reference" "#PWR221"
 			(at 101.6 234.95 0)
 			(hide yes)
 			(show_name no)
@@ -9052,12 +9229,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "866c56fb-f99e-5e0e-b1f4-387ee0dad6c1")
+			(uuid "3e7efe59-d0d3-5fc9-a4e9-dd0948350619")
 		)
 		(instances
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
-					(reference "#PWR220")
+					(reference "#PWR221")
 					(unit 1)
 				)
 			)
@@ -9154,8 +9331,8 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "64d1b9fd-6789-5a85-b69c-b0954a608bab")
-		(property "Reference" "#PWR221"
+		(uuid "bc1372d9-0938-57bb-ab84-5def7351203b")
+		(property "Reference" "#PWR222"
 			(at 116.84 234.95 0)
 			(hide yes)
 			(show_name no)
@@ -9213,12 +9390,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "3e7efe59-d0d3-5fc9-a4e9-dd0948350619")
+			(uuid "10024437-c3fc-5ce2-bff8-9951a8133549")
 		)
 		(instances
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
-					(reference "#PWR221")
+					(reference "#PWR222")
 					(unit 1)
 				)
 			)
@@ -9315,8 +9492,8 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "bc1372d9-0938-57bb-ab84-5def7351203b")
-		(property "Reference" "#PWR222"
+		(uuid "77bd61f6-9474-5f5b-8fae-0120bfa3c684")
+		(property "Reference" "#PWR223"
 			(at 132.08 234.95 0)
 			(hide yes)
 			(show_name no)
@@ -9374,12 +9551,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "10024437-c3fc-5ce2-bff8-9951a8133549")
+			(uuid "754bcc1e-927d-52b6-8ddc-727dfb690053")
 		)
 		(instances
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/5a511665-9b85-4ced-b6e3-f23e247294e2"
-					(reference "#PWR222")
+					(reference "#PWR223")
 					(unit 1)
 				)
 			)

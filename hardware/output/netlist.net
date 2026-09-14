@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-14T23:33:35")
+		(date "2026-09-14T23:59:41")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -734,7 +734,7 @@
 		)
 		(comp
 			(ref "J1")
-			(value "PWR (SS1.5 2-way)")
+			(value "PWR (SS1.5 3-way)")
 			(fields
 				(field
 					(name "Footprint")
@@ -748,8 +748,8 @@
 			)
 			(libsource
 				(lib "Connector")
-				(part "Conn_01x02_Pin")
-				(description "Generic connector, single row, 01x02, script generated")
+				(part "Conn_01x03_Pin")
+				(description "Generic connector, single row, 01x03, script generated")
 			)
 			(property
 				(name "Sheetname")
@@ -781,6 +781,9 @@
 						)
 						(pin
 							(num "2")
+						)
+						(pin
+							(num "3")
 						)
 					)
 				)
@@ -1371,6 +1374,60 @@
 				(tstamps "/5a511665-9b85-4ced-b6e3-f23e247294e2/")
 			)
 			(tstamps "80cda6cf-be02-58b8-b971-9536df62b2a5")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C40")
+			(value "100nF")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "C")
+				(description "Unpolarized capacitor")
+			)
+			(property
+				(name "Sheetname")
+				(value "mcu_can")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/mcu_can.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "cap capacitor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "C_*")
+			)
+			(sheetpath
+				(names "/mcu_can/")
+				(tstamps "/5a511665-9b85-4ced-b6e3-f23e247294e2/")
+			)
+			(tstamps "51af446e-465e-5408-b46a-065fdd2b7937")
 			(units
 				(unit
 					(name "A")
@@ -6242,8 +6299,8 @@
 	(libparts
 		(libpart
 			(lib "Connector")
-			(part "Conn_01x02_Pin")
-			(description "Generic connector, single row, 01x02, script generated")
+			(part "Conn_01x03_Pin")
+			(description "Generic connector, single row, 01x03, script generated")
 			(footprints
 				(fp "Connector*:*_1x??_*")
 			)
@@ -6251,7 +6308,7 @@
 				(field
 					(name "Reference") "J")
 				(field
-					(name "Value") "Conn_01x02_Pin")
+					(name "Value") "Conn_01x03_Pin")
 				(field
 					(name "Footprint")
 				)
@@ -6259,7 +6316,7 @@
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Generic connector, single row, 01x02, script generated")
+					(name "Description") "Generic connector, single row, 01x03, script generated")
 			)
 			(pins
 				(pin
@@ -6270,6 +6327,11 @@
 				(pin
 					(num "2")
 					(name "Pin_2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "Pin_3")
 					(type "passive")
 				)
 			)
@@ -7780,6 +7842,12 @@
 			(name "/IGN_IN")
 			(class "Default")
 			(node
+				(ref "J1")
+				(pin "1")
+				(pinfunction "Pin_1_1")
+				(pintype "passive")
+			)
+			(node
 				(ref "R37")
 				(pin "1")
 				(pintype "passive")
@@ -8138,6 +8206,11 @@
 			(name "/mcu_can/IGN_SENSE")
 			(class "Default")
 			(node
+				(ref "C40")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "D8")
 				(pin "2")
 				(pinfunction "A_2")
@@ -8280,8 +8353,8 @@
 			)
 			(node
 				(ref "J1")
-				(pin "1")
-				(pinfunction "Pin_1_1")
+				(pin "2")
+				(pinfunction "Pin_2_2")
 				(pintype "passive")
 			)
 		)
@@ -8297,8 +8370,8 @@
 			)
 			(node
 				(ref "J1")
-				(pin "2")
-				(pinfunction "Pin_2_2")
+				(pin "3")
+				(pinfunction "Pin_3_3")
 				(pintype "passive")
 			)
 			(node
@@ -8714,6 +8787,11 @@
 			)
 			(node
 				(ref "C4")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C40")
 				(pin "2")
 				(pintype "passive")
 			)

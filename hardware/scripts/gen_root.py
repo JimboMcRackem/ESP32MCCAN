@@ -42,6 +42,8 @@ PINS = {
     "power_input": [
         ("VBAT",      "output", "R"),
         ("VLOGIC_IN", "output", "R"),
+        # J1 cavity 1, topology B only (spec 8.1a); plugged on the Experia build
+        ("IGN_IN",    "output", "R"),
     ],
     "rails": [
         ("VBAT",      "input",  "L"),

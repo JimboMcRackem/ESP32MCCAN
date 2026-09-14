@@ -751,6 +751,30 @@ Two mechanical classes were found and fixed during this task, both silent killer
 - **14 `unconnected_wire_endpoint` warnings** from putting local labels in the *middle* of a stub
   instead of at its end. The net still forms, so the netlist looks right, but the wire end dangles.
 
+### J1 to 3-way, and C40 — added 2026-09-14/15
+
+`J1` is now `Conn_01x03_Pin`, cavity 1 carrying `IGN_IN` (spec §8.1a topology B). The third cavity
+went **above** the existing two, not below: `GND_IN` drops vertically from pin 2 at x = 31.75 all
+the way to y = 101.6, so a pin placed below would have landed on that wire and shorted `IGN_IN` to
+ground. Placing it above left **every existing wire, junction and net on this verified sheet
+untouched** — the netlist confirms `FEED_P` and `GND_IN` keep exactly their previous membership,
+and `GND_IN` is still separate from `GND` so the common-mode choke split is intact.
+
+The pins renumber as a consequence: **1 = `IGN_IN`, 2 = +12 V, 3 = GND**. Cavity 1 is an end
+cavity, so it is the easy one to plug on the Experia build.
+
+**C40, 100 nF on `IGN_SENSE` — an addition, flag it if unwanted.** `IGN_IN` is an unshielded 12 V
+wire entering a sealed enclosure onto a high-impedance node. C40 forms an RC with R37:
+R_thev = 90.9 kΩ ∥ 24.8 kΩ = **19.5 kΩ**, so τ ≈ **2 ms**. Ignition state changes over seconds, so
+this costs nothing in wake latency.
+
+**`power_input` has no working generator.** `gen.py` in the scratchpad no longer reproduces the
+committed sheet — its notes module was lost to a filename collision, and when the rest was
+reconstructed it emitted a materially different file (4465 lines against the committed 4723). The
+committed sheet is the verified artefact, so this change was made by surgical text edit instead and
+the stale generator was **not** committed. Every other sheet is generated; this one is not, and that
+is a real inconsistency to resolve before layout.
+
 ### Still open
 
 - **The root sheet is now generated, not patched.** `gen_root.py` rewrites `mccan.kicad_sch` from a

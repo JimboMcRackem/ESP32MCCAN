@@ -394,7 +394,13 @@ j((60.96, IGN_Y)); lab("IGN_SENSE", 62.23, IGN_Y)
 w((60.96, IGN_Y), (72.39, IGN_Y))
 e, f = vpart("R39", "Device:R", "100k", 72.39, IGN_Y); gnd(*f)
 j((72.39, IGN_Y))
-w((72.39, IGN_Y), (83.82, IGN_Y))
+# C40 forms an RC with R37: Rthev = 90.9k || 24.8k = 19.5k, so tau ~ 2 ms.  IGN_IN is
+# an unshielded 12 V wire entering a sealed box onto a high-impedance node; ignition
+# state changes over seconds, so the filter costs nothing in wake latency.
+a2, b2 = vpart("C40", "Device:C", "100nF", 78.74, IGN_Y); gnd(*b2)
+j((78.74, IGN_Y))
+w((72.39, IGN_Y), (78.74, IGN_Y))
+w((78.74, IGN_Y), (83.82, IGN_Y))
 place("D8", "Device:D_Schottky", "BAT54", 83.82, 107.95, 270, DIODE,
       [("Reference", "D8", 86.36, 106.68, 0), ("Value", "BAT54", 86.36, 109.22, 0)],
       desc="Schottky diode")

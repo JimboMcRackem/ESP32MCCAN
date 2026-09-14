@@ -41,12 +41,39 @@ both halves. Series are fixed by the spec; the specific orderable numbers are a 
 |---|---|---|---|
 | FL, FR, RL, RR | TE Superseal 1.0 | 4 | `+24V_xx`, `RET_xx_R`, `RET_xx_G`, `RET_xx_B` |
 | DENALI | TE Superseal 1.5 | 3 | `DEN_A_OUT`, `DEN_B_OUT`, shared `GND` |
-| **PWR** | TE Superseal 1.5 | 2 | +12 V feed, return (**one connector** — spec 4.4) |
+| **PWR** | TE Superseal 1.5 | **3** | **cavity 1 `IGN_IN`**, cavity 2 +12 V feed, cavity 3 return |
 | CAN | TE Superseal 1.0 | 2 | `CANH`, `CANL` |
 
 Order for each: panel-mount (board side) housing, mating (harness side) housing, terminals in the
 correct wire-gauge range, wire seals, and **cavity plugs for any unused cavity** — an unplugged cavity
 is an IP67 leak.
+
+### PWR connector — three cavities, two wiring topologies
+
+**Changed from 2-way to 3-way on 2026-09-14.** The extra cavity carries `IGN_IN` and exists so that
+the board can serve an installation other than the Experia **without a new panel**. Superseal 1.5
+2-way and 3-way are different panel cutouts, so this could not have been retrofitted.
+
+| Cavity | Topology A — the Experia (shipped build) | Topology B — battery feed + ignition |
+|---|---|---|
+| **1** | **CAVITY PLUG** — no wire | `IGN_IN`, ignition-switched +12 V |
+| **2** | +12 V, **ignition-switched** by the bike | +12 V, **permanent battery** |
+| **3** | Return | Return |
+
+On the Experia the peripheral outlet closes all 12 V at shut-off, so the board is simply unpowered
+when parked and needs no ignition signal. Cavity 1 is an **end** cavity, so it is the easy one to
+plug — and an unplugged cavity is an IP67 leak, so the plug is not optional.
+
+Converting an installation to topology B is then a harness change plus populating **R37 and R38**
+on the mcu_can sheet. No board or panel rework.
+
+| Circuit | Current | Gauge | Notes |
+|---|---|---|---|
+| `IGN_IN` | **< 0.2 mA** | **22 AWG** | Sense only — it feeds a 90.9 kΩ series resistor. Gauge is set by the terminal range and mechanical robustness, not by current |
+
+**Wiring `IGN_IN` matters if you use it.** Left unconnected under topology B the board is safe but
+**silently non-functional**: GPIO 36 sits low on R38∥R39 = 24.8 kΩ, EXT1 never fires, and the board
+never wakes on ignition. That reads like a firmware fault, so check continuity at install.
 
 **Note on Denali current sense (C1):** the board uses **one** multiplexed `IS` output with a
 `DEN_DSEL` select line (spec §7.3), not one sense pin per channel. Nothing changes in the harness,

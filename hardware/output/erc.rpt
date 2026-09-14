@@ -1,4 +1,4 @@
-ERC report (2026-09-14T23:33:35, Encoding UTF8)
+ERC report (2026-09-14T23:59:33, Encoding UTF8)
 Report includes: Errors, Warnings
 
 ***** Sheet /
@@ -40,9 +40,6 @@ Report includes: Errors, Warnings
     @(31.75 mm, 151.13 mm): Label 'ISNS_DEN'
 [isolated_pin_label]: Label connected to only one pin
     ; warning
-    @(31.75 mm, 154.94 mm): Label 'IGN_IN'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
     @(110.49 mm, 139.70 mm): Label 'I2C_SDA'
 [isolated_pin_label]: Label connected to only one pin
     ; warning
@@ -53,9 +50,6 @@ Report includes: Errors, Warnings
 [isolated_pin_label]: Label connected to only one pin
     ; warning
     @(110.49 mm, 166.37 mm): Label 'PWM_DEN_B'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(39.37 mm, 104.14 mm): Hierarchical Label 'IGN_IN'
 [isolated_pin_label]: Label connected to only one pin
     ; warning
     @(172.72 mm, 120.65 mm): Hierarchical Label 'PWM_DEN_A'
@@ -86,7 +80,7 @@ Report includes: Errors, Warnings
 
 ***** Sheet /outputs/
 
- ** ERC messages: 25  Errors 11  Warnings 14
+ ** ERC messages: 23  Errors 11  Warnings 12
 
  ** Ignored checks:
     - Global label only appears once in the schematic

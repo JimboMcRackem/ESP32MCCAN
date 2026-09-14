@@ -32,6 +32,16 @@
 	)
 	(wire
 		(pts
+			(xy 101.6 55.88) (xy 110.49 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "14e91660-dda3-5841-aa6b-1317dd44f1d5")
+	)
+	(wire
+		(pts
 			(xy 165.1 48.26) (xy 156.21 48.26)
 		)
 		(stroke
@@ -319,6 +329,16 @@
 			(justify left bottom)
 		)
 		(uuid "fe00c30c-71a1-5b07-9db2-6e6a99b0bd4a")
+	)
+	(label "IGN_IN"
+		(at 110.49 55.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f5c63456-70f3-5708-a4a2-9c77caa37841")
 	)
 	(label "VBAT"
 		(at 156.21 48.26 180)
@@ -640,6 +660,16 @@
 		(pin "VLOGIC_IN" output
 			(at 101.6 52.07 0)
 			(uuid "55b076bc-1ce4-5cfa-9afd-fc4557db3dff")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "IGN_IN" output
+			(at 101.6 55.88 0)
+			(uuid "788255ef-7209-5704-a1af-630b69acfd5a")
 			(effects
 				(font
 					(size 1.27 1.27)
