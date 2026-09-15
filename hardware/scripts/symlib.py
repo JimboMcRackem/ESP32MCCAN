@@ -210,3 +210,186 @@ else:
 
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(s)
 print("written")
+
+STOCKFET = r"C:\Program Files\KiCad\10.0\share\kicad\symbols\Transistor_FET.kicad_sym"
+
+
+def extract_graphics(path, symname):
+    """Return the graphic children of <symname>_0_1, at 2-tab indentation."""
+    src = io.open(path, encoding="utf-8").read()
+    i = src.index('(symbol "%s_0_1"' % symname)
+    end = balanced_end(src, i)
+    blk = src[src.index("(", i):end]
+    lines = blk.split("\n")[1:-1]          # drop the wrapper and its closing paren
+    out = []
+    for ln in lines:
+        stripped = ln.lstrip("\t")
+        depth = len(ln) - len(stripped)
+        out.append("\t" * (depth - 2 + 2) + stripped)
+    return "\n".join(out)
+
+
+
+# ================================================================ generic builder
+def emit(name, value, desc, datasheet, units, rect=None, graphics_from=None):
+    """units: {unit_no: [(number, pinname, type, x, y, angle), ...]}"""
+    L = []
+    A = L.append
+    A('\t(symbol "%s"' % name)
+    A('\t\t(pin_names')
+    A('\t\t\t(offset 0.254)')
+    A('\t\t)')
+    A('\t\t(exclude_from_sim no)')
+    A('\t\t(in_bom yes)')
+    A('\t\t(on_board yes)')
+    A('\t\t(in_pos_files yes)')
+    A('\t\t(duplicate_pin_numbers_are_jumpers no)')
+    for pname, pval, hide in (("Reference", "U", False), ("Value", value, False),
+                              ("Footprint", "", True), ("Datasheet", datasheet, True),
+                              ("Description", desc, True)):
+        A('\t\t(property "%s" "%s"' % (pname, pval))
+        A('\t\t\t(at 0 %s 0)' % ("2.54" if pname == "Reference" else "0"))
+        A('\t\t\t(show_name no)')
+        A('\t\t\t(do_not_autoplace no)')
+        if hide:
+            A('\t\t\t(hide yes)')
+        A('\t\t\t(effects')
+        A('\t\t\t\t(font')
+        A('\t\t\t\t\t(size 1.27 1.27)')
+        if hide:
+            A('\t\t\t\t\t(italic yes)')
+        A('\t\t\t\t)')
+        A('\t\t\t)')
+        A('\t\t)')
+    for unit, pinlist in sorted(units.items()):
+        A('\t\t(symbol "%s_%d_1"' % (name.split(":")[-1], unit))
+        if graphics_from:
+            for ln in graphics_from.split("\n"):
+                A("\t" + ln if ln.strip() else ln)
+        elif rect:
+            x0, y0, x1, y1 = rect
+            A('\t\t\t(rectangle')
+            A('\t\t\t\t(start %s %s)' % (x0, y0))
+            A('\t\t\t\t(end %s %s)' % (x1, y1))
+            A('\t\t\t\t(stroke')
+            A('\t\t\t\t\t(width 0.254)')
+            A('\t\t\t\t\t(type default)')
+            A('\t\t\t\t)')
+            A('\t\t\t\t(fill')
+            A('\t\t\t\t\t(type background)')
+            A('\t\t\t\t)')
+            A('\t\t\t)')
+        for pnum, pname, ptype, px, py, ang in pinlist:
+            A('\t\t\t(pin %s line' % ptype)
+            A('\t\t\t\t(at %s %s %d)' % (fs_(px), fs_(py), ang))
+            A('\t\t\t\t(length 2.54)')
+            A('\t\t\t\t(name "%s"' % pname)
+            A('\t\t\t\t\t(effects')
+            A('\t\t\t\t\t\t(font')
+            A('\t\t\t\t\t\t\t(size 1.27 1.27)')
+            A('\t\t\t\t\t\t)')
+            A('\t\t\t\t\t)')
+            A('\t\t\t\t)')
+            A('\t\t\t\t(number "%s"' % pnum)
+            A('\t\t\t\t\t(effects')
+            A('\t\t\t\t\t\t(font')
+            A('\t\t\t\t\t\t\t(size 1.27 1.27)')
+            A('\t\t\t\t\t\t)')
+            A('\t\t\t\t\t)')
+            A('\t\t\t\t)')
+            A('\t\t\t)')
+        A('\t\t)')
+    A('\t)')
+    return "\n".join(L) + "\n"
+
+
+def fs_(v):
+    t = ("%.4f" % v).rstrip("0").rstrip(".")
+    return t if t not in ("", "-0") else "0"
+
+
+def install(lib_text, name, block):
+    if '(symbol "%s"' % name in lib_text:
+        a = lib_text.index('\t(symbol "%s"' % name)
+        b = balanced_end(lib_text, a)
+        return lib_text[:a] + block.rstrip("\n") + lib_text[b:], "replaced"
+    k = lib_text.rstrip().rfind(")")
+    return lib_text[:k] + block + ")\n", "appended"
+
+
+# ---------------------------------------------------------------- ADG706
+# ADG706_707.pdf, PIN CONFIGURATIONS (TSSOP-28):
+#   1 VDD  2 NC  3 NC  4 S16  5 S15  6 S14  7 S13  8 S12  9 S11  10 S10  11 S9
+#   12 GND  13 NC  14 A3  15 A2  16 A1  17 A0  18 EN  19 S1  20 S2  21 S3  22 S4
+#   23 S5  24 S6  25 S7  26 S8  27 VSS  28 D
+_S_NUM = {1: "19", 2: "20", 3: "21", 4: "22", 5: "23", 6: "24", 7: "25", 8: "26",
+          9: "11", 10: "10", 11: "9", 12: "8", 13: "7", 14: "6", 15: "5", 16: "4"}
+_adg = []
+for _i in range(1, 17):
+    _adg.append((_S_NUM[_i], "S%d" % _i, "passive", -15.24, 17.78 - (_i - 1) * 2.54, 0))
+_adg += [
+    ("28", "D",   "passive",    15.24,  17.78, 180),
+    ("18", "EN",  "input",      15.24,   7.62, 180),
+    ("17", "A0",  "input",      15.24,   2.54, 180),
+    ("16", "A1",  "input",      15.24,   0.0,  180),
+    ("15", "A2",  "input",      15.24,  -2.54, 180),
+    ("14", "A3",  "input",      15.24,  -5.08, 180),
+    ("2",  "NC",  "no_connect", 15.24, -12.7,  180),
+    ("3",  "NC",  "no_connect", 15.24, -15.24, 180),
+    ("13", "NC",  "no_connect", 15.24, -17.78, 180),
+    ("1",  "VDD", "power_in",    0.0,   25.4,  270),
+    ("12", "GND", "power_in",   -5.08, -27.94,  90),
+    ("27", "VSS", "power_in",    5.08, -27.94,  90),
+]
+LIBTXT = io.open(LIB, encoding="utf-8").read()
+blk = emit("ADG706", "ADG706",
+           "16-to-1 analog multiplexer, 1.8 V to 5.5 V single supply, 2.5 ohm on-resistance, TSSOP-28",
+           "https://www.analog.com/media/en/technical-documentation/data-sheets/ADG706_707.pdf",
+           {1: _adg}, rect=(-12.7, 22.86, 12.7, -25.4))
+LIBTXT, how = install(LIBTXT, "ADG706", blk)
+print("ADG706", how)
+
+# ---------------------------------------------------------------- NX5020UNBKS
+# NX5020UNBKS.pdf Table 2: 1 S1, 2 G1, 3 D2, 4 S2, 5 G2, 6 D1.
+# Two units so each RGB channel draws as one FET; 6 packages cover 12 channels.
+_g = extract_graphics(STOCKFET, "Q_NMOS_GSD")
+_u1 = [("2", "G1", "input", -5.08, 0.0, 0),
+       ("1", "S1", "passive", 2.54, -5.08, 90),
+       ("6", "D1", "passive", 2.54, 5.08, 270)]
+_u2 = [("5", "G2", "input", -5.08, 0.0, 0),
+       ("4", "S2", "passive", 2.54, -5.08, 90),
+       ("3", "D2", "passive", 2.54, 5.08, 270)]
+blk = emit("NX5020UNBKS", "NX5020UNBKS",
+           "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363",
+           "https://assets.nexperia.com/documents/data-sheet/NX5020UNBKS.pdf",
+           {1: _u1, 2: _u2}, graphics_from=_g)
+LIBTXT, how = install(LIBTXT, "NX5020UNBKS", blk)
+print("NX5020UNBKS", how)
+
+# ---------------------------------------------------------------- BTS7008-2EPA
+# !! PIN NUMBERS ARE PLACEHOLDERS !!  No Infineon datasheet is held locally.  The pin
+# NAMES come from part-selection.md's verified notes (one multiplexed IS output plus a
+# DSEL select line); the NUMBERS are invented and must be replaced from Infineon
+# BTS7008-2EPA Rev. 1.21 before a footprint is assigned in Task 8.  The package is
+# PG-TSDSO-14, so five further pins exist that are not modelled here.
+_bts = [
+    ("1", "IN0",  "input",    -12.7,   7.62, 0),
+    ("2", "IN1",  "input",    -12.7,   5.08, 0),
+    ("3", "DEN",  "input",    -12.7,   0.0,  0),
+    ("4", "DSEL", "input",    -12.7,  -2.54, 0),
+    ("5", "OUT0", "passive",   12.7,   7.62, 180),
+    ("6", "OUT1", "passive",   12.7,   5.08, 180),
+    ("7", "IS",   "passive",   12.7,  -5.08, 180),
+    ("8", "VS",   "power_in",   0.0,  17.78, 270),
+    ("9", "GND",  "power_in",   0.0, -17.78, 90),
+]
+blk = emit("BTS7008_2EPA", "BTS7008-2EPA",
+           "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14. "
+           "PIN NUMBERS ARE PLACEHOLDERS - verify against Infineon Rev. 1.21 before Task 8.",
+           "https://www.infineon.com/BTS7008-2EPA",
+           {1: _bts}, rect=(-10.16, 15.24, 10.16, -15.24))
+LIBTXT, how = install(LIBTXT, "BTS7008_2EPA", blk)
+print("BTS7008_2EPA", how, "(PIN NUMBERS ARE PLACEHOLDERS)")
+
+io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
+print("written")

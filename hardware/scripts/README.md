@@ -6,14 +6,15 @@ hand-edited s-expressions are not.
 
 | Script | Produces |
 |---|---|
-| `symlib.py` | `../symbols/mccan_parts.kicad_sym` — LM51571-Q1 pin types, DML3017LDC symbol |
+| `symlib.py` | `../symbols/mccan_parts.kicad_sym` — LM51571-Q1 pin types, plus the DML3017LDC, ADG706, NX5020UNBKS (2-unit) and BTS7008_2EPA symbols |
 | `gen_power_input.py` + `layout_power_input.py` + `notes_power_input.py` + `power_input_libsyms.txt` | `../sheets/power_input.kicad_sch` |
 | `gen_rails.py` + `notes.py` | `../sheets/rails.kicad_sch` |
 | `gen_mcu_can.py` | `../sheets/mcu_can.kicad_sch` |
+| `gen_outputs.py` | `../sheets/outputs.kicad_sch` |
 | `gen_root.py` | `../mccan.kicad_sch` — sheet boxes, their pins, and the root-level labels that join them |
 | `kicanon.py` | shared: canonicalises every generator's output into the form KiCad's GUI writes |
 
-Run from this directory, `symlib.py` first. **All five are idempotent** — running any of them
+Run from this directory, `symlib.py` first. **All six are idempotent** — running any of them
 twice in a row leaves the file byte-identical.
 
 ## You CAN open these in KiCad. That is the whole point of `kicanon.py`.

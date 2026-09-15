@@ -77,7 +77,26 @@ PINS = {
         ("CANH",      "bidirectional", "R"),
         ("CANL",      "bidirectional", "R"),
     ],
-    "outputs": [],          # Task 6
+    "outputs": [
+        ("+3V3_SW",   "input",         "L"),
+        ("+3V3_ALW",  "input",         "L"),
+        ("+24V",      "input",         "L"),
+        ("VBAT",      "input",         "L"),
+        ("MUX_S0",    "input",         "L"),
+        ("MUX_S1",    "input",         "L"),
+        ("MUX_S2",    "input",         "L"),
+        ("MUX_S3",    "input",         "L"),
+        ("PWM_DEN_A", "input",         "L"),
+        ("PWM_DEN_B", "input",         "L"),
+        ("EN_DIAG",   "input",         "L"),
+        ("DEN_DSEL",  "input",         "L"),
+        ("I2C_SDA",   "bidirectional", "R"),
+        ("I2C_SCL",   "bidirectional", "R"),
+        ("RGB_ISNS",  "output",        "R"),
+        ("ISNS_DEN",  "output",        "R"),
+        ("CANH",      "bidirectional", "R"),
+        ("CANL",      "bidirectional", "R"),
+    ],
 }
 
 GRID = 1.27

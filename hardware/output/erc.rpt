@@ -1,86 +1,17 @@
-ERC report (2026-09-15T00:11:15, Encoding UTF8)
-Report includes: Errors, Warnings
+ERC report (2026-09-15T13:24:43, Encoding UTF8)
+Report includes: Errors, Warnings, Exclusions
 
 ***** Sheet /
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 147.32 mm): Label 'MUX_S0'
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 151.13 mm): Label 'MUX_S1'
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 154.94 mm): Label 'MUX_S2'
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 158.75 mm): Label 'MUX_S3'
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 170.18 mm): Label 'DEN_DSEL'
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 173.99 mm): Label 'EN_DIAG'
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 177.80 mm): Label 'CANH'
-[label_dangling]: Label not connected
-    ; error
-    @(110.49 mm, 181.61 mm): Label 'CANL'
-[label_dangling]: Label not connected
-    ; error
-    @(234.95 mm, 52.07 mm): Label '+3V3_SW'
-[label_dangling]: Label not connected
-    ; error
-    @(234.95 mm, 59.69 mm): Label '+24V'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(31.75 mm, 147.32 mm): Label 'RGB_ISNS'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(31.75 mm, 151.13 mm): Label 'ISNS_DEN'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(110.49 mm, 139.70 mm): Label 'I2C_SDA'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(110.49 mm, 143.51 mm): Label 'I2C_SCL'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(110.49 mm, 162.56 mm): Label 'PWM_DEN_A'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(110.49 mm, 166.37 mm): Label 'PWM_DEN_B'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(172.72 mm, 120.65 mm): Hierarchical Label 'PWM_DEN_A'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(172.72 mm, 123.19 mm): Hierarchical Label 'PWM_DEN_B'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(172.72 mm, 125.73 mm): Hierarchical Label 'I2C_SDA'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(172.72 mm, 128.27 mm): Hierarchical Label 'I2C_SCL'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(172.72 mm, 140.97 mm): Hierarchical Label 'RGB_ISNS'
-[isolated_pin_label]: Label connected to only one pin
-    ; warning
-    @(172.72 mm, 146.05 mm): Hierarchical Label 'ISNS_DEN'
 
 ***** Sheet /power_input/
 
 ***** Sheet /mcu_can/
-[pin_not_driven]: Input pin not driven by any Output pins
-    ; error
-    @(165.10 mm, 146.05 mm): Symbol U5 Pin 6 [IO34, Input, Line]
 
 ***** Sheet /rails/
 
 ***** Sheet /outputs/
 
- ** ERC messages: 23  Errors 11  Warnings 12
+ ** ERC messages: 0  Errors 0  Warnings 0
 
  ** Ignored checks:
     - Global label only appears once in the schematic
