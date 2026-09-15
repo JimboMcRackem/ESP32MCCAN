@@ -2791,7 +2791,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "https://www.infineon.com/BTS7008-2EPA"
+		(property "Datasheet" "https://www.infineon.com/dgdl/Infineon-BTS7008-2EPA-DataSheet-v01_21-EN.pdf"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2803,7 +2803,7 @@
 				)
 			)
 		)
-		(property "Description" "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14. PIN NUMBERS ARE PLACEHOLDERS - verify against Infineon Rev. 1.21 before Task 8."
+		(property "Description" "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2817,8 +2817,8 @@
 		)
 		(symbol "BTS7008_2EPA_1_1"
 			(rectangle
-				(start -10.16 15.24)
-				(end 10.16 -15.24)
+				(start -10.16 20.32)
+				(end 10.16 -22.86)
 				(stroke
 					(width 0.254)
 					(type default)
@@ -2828,7 +2828,7 @@
 				)
 			)
 			(pin input line
-				(at -12.7 7.62 0)
+				(at -12.7 10.16 0)
 				(length 2.54)
 				(name "IN0"
 					(effects
@@ -2837,7 +2837,7 @@
 						)
 					)
 				)
-				(number "1"
+				(number "2"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -2855,7 +2855,7 @@
 						)
 					)
 				)
-				(number "2"
+				(number "6"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -2864,7 +2864,7 @@
 				)
 			)
 			(pin input line
-				(at -12.7 0 0)
+				(at -12.7 -2.54 0)
 				(length 2.54)
 				(name "DEN"
 					(effects
@@ -2882,7 +2882,7 @@
 				)
 			)
 			(pin input line
-				(at -12.7 -2.54 0)
+				(at -12.7 -7.62 0)
 				(length 2.54)
 				(name "DSEL"
 					(effects
@@ -2891,7 +2891,25 @@
 						)
 					)
 				)
-				(number "4"
+				(number "5"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 10.16 180)
+				(length 2.54)
+				(name "OUT0"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "14"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -2909,7 +2927,7 @@
 						)
 					)
 				)
-				(number "5"
+				(number "13"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -2920,6 +2938,24 @@
 			(pin passive line
 				(at 12.7 5.08 180)
 				(length 2.54)
+				(name "OUT0"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "12"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 0 180)
+				(length 2.54)
 				(name "OUT1"
 					(effects
 						(font
@@ -2927,7 +2963,25 @@
 						)
 					)
 				)
-				(number "6"
+				(number "10"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 12.7 -2.54 180)
+				(length 2.54)
+				(name "OUT1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "9"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -2938,25 +2992,7 @@
 			(pin passive line
 				(at 12.7 -5.08 180)
 				(length 2.54)
-				(name "IS"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-				(number "7"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-			)
-			(pin power_in line
-				(at 0 17.78 270)
-				(length 2.54)
-				(name "VS"
+				(name "OUT1"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -2971,8 +3007,80 @@
 					)
 				)
 			)
+			(pin passive line
+				(at 12.7 -12.7 180)
+				(length 2.54)
+				(name "IS"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin no_connect line
+				(at 12.7 -17.78 180)
+				(length 2.54)
+				(name "n.c."
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "7"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin no_connect line
+				(at 12.7 -20.32 180)
+				(length 2.54)
+				(name "n.c."
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "11"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
 			(pin power_in line
-				(at 0 -17.78 90)
+				(at 0 22.86 270)
+				(length 2.54)
+				(name "VS"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "15"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at 0 -25.4 90)
 				(length 2.54)
 				(name "GND"
 					(effects
@@ -2981,7 +3089,7 @@
 						)
 					)
 				)
-				(number "9"
+				(number "1"
 					(effects
 						(font
 							(size 1.27 1.27)

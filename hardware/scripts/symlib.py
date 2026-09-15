@@ -367,29 +367,48 @@ LIBTXT, how = install(LIBTXT, "NX5020UNBKS", blk)
 print("NX5020UNBKS", how)
 
 # ---------------------------------------------------------------- BTS7008-2EPA
-# !! PIN NUMBERS ARE PLACEHOLDERS !!  No Infineon datasheet is held locally.  The pin
-# NAMES come from part-selection.md's verified notes (one multiplexed IS output plus a
-# DSEL select line); the NUMBERS are invented and must be replaced from Infineon
-# BTS7008-2EPA Rev. 1.21 before a footprint is assigned in Task 8.  The package is
-# PG-TSDSO-14, so five further pins exist that are not modelled here.
+# VERIFIED 2026-09-15 against Infineon BTS7008-2EPA Data Sheet Rev. 1.21, 2024-07-29
+# (hardware/datasheets/infineon_bts7008_2epa_datasheet_en.pdf), Table 2 "Pin Definition",
+# p.6, cross-checked against Figure 4 "Pin Configuration", p.5:
+#
+#   EP     VS     supply voltage (battery), the exposed pad -- this is the ONLY VS
+#   1      GND    signal ground
+#   2, 6   INn    input channel n, "high" active        (2 = IN0, 6 = IN1 per Figure 4)
+#   3      DEN    diagnostic enable, "high" active
+#   4      IS     SENSE current output
+#   5      DSEL   diagnosis channel select, "high" active
+#   7, 11  n.c.   not connected, internally not bonded
+#   8-10   OUT1   |  Table 2 note: "All output pins of the channel must be connected
+#   12-14  OUT0   |  together on the PCB."  Modelled as three pins each, tied on the sheet.
+#
+# The exposed pad is numbered 15 to match KiCad's own footprint for this package,
+# Package_SO:Infineon_PG-TSDSO-14-22 (pad 15 = 2.65 x 4 mm thermal pad at the origin).
+# PG-TSDSO-14-22 is the former name of PG-TSDSO-14 -- see the datasheet revision history,
+# "Page 1: updated (Package PG-TSDSO-14-22 -> PG-TSDSO-14)".
 _bts = [
-    ("1", "IN0",  "input",    -12.7,   7.62, 0),
-    ("2", "IN1",  "input",    -12.7,   5.08, 0),
-    ("3", "DEN",  "input",    -12.7,   0.0,  0),
-    ("4", "DSEL", "input",    -12.7,  -2.54, 0),
-    ("5", "OUT0", "passive",   12.7,   7.62, 180),
-    ("6", "OUT1", "passive",   12.7,   5.08, 180),
-    ("7", "IS",   "passive",   12.7,  -5.08, 180),
-    ("8", "VS",   "power_in",   0.0,  17.78, 270),
-    ("9", "GND",  "power_in",   0.0, -17.78, 90),
+    ("2",  "IN0",  "input",      -12.7,  10.16, 0),
+    ("6",  "IN1",  "input",      -12.7,   5.08, 0),
+    ("3",  "DEN",  "input",      -12.7,  -2.54, 0),
+    ("5",  "DSEL", "input",      -12.7,  -7.62, 0),
+    ("14", "OUT0", "passive",     12.7,  10.16, 180),
+    ("13", "OUT0", "passive",     12.7,   7.62, 180),
+    ("12", "OUT0", "passive",     12.7,   5.08, 180),
+    ("10", "OUT1", "passive",     12.7,   0.0,  180),
+    ("9",  "OUT1", "passive",     12.7,  -2.54, 180),
+    ("8",  "OUT1", "passive",     12.7,  -5.08, 180),
+    ("4",  "IS",   "passive",     12.7, -12.7,  180),
+    ("7",  "n.c.", "no_connect",  12.7, -17.78, 180),
+    ("11", "n.c.", "no_connect",  12.7, -20.32, 180),
+    ("15", "VS",   "power_in",     0.0,  22.86, 270),
+    ("1",  "GND",  "power_in",     0.0, -25.4,  90),
 ]
 blk = emit("BTS7008_2EPA", "BTS7008-2EPA",
-           "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14. "
-           "PIN NUMBERS ARE PLACEHOLDERS - verify against Infineon Rev. 1.21 before Task 8.",
-           "https://www.infineon.com/BTS7008-2EPA",
-           {1: _bts}, rect=(-10.16, 15.24, 10.16, -15.24))
+           "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, "
+           "PG-TSDSO-14 with the exposed pad as VS (pin 15)",
+           "https://www.infineon.com/dgdl/Infineon-BTS7008-2EPA-DataSheet-v01_21-EN.pdf",
+           {1: _bts}, rect=(-10.16, 20.32, 10.16, -22.86))
 LIBTXT, how = install(LIBTXT, "BTS7008_2EPA", blk)
-print("BTS7008_2EPA", how, "(PIN NUMBERS ARE PLACEHOLDERS)")
+print("BTS7008_2EPA", how, "(Rev. 1.21 Table 2 - VERIFIED)")
 
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
 print("written")

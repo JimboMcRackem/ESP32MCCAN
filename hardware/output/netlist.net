@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-15T13:24:53")
+		(date "2026-09-15T20:17:50")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -6456,8 +6456,62 @@
 			)
 		)
 		(comp
-			(ref "C45")
+			(ref "C44")
 			(value "10nF")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "C")
+				(description "Unpolarized capacitor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "cap capacitor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "C_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "d6f7dd30-cb9c-5fb1-9260-49e40bf6ea30")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C45")
+			(value "10uF")
 			(fields
 				(field
 					(name "Footprint")
@@ -6511,7 +6565,7 @@
 		)
 		(comp
 			(ref "C46")
-			(value "10uF")
+			(value "100nF")
 			(fields
 				(field
 					(name "Footprint")
@@ -6565,7 +6619,7 @@
 		)
 		(comp
 			(ref "C47")
-			(value "100nF")
+			(value "220pF")
 			(fields
 				(field
 					(name "Footprint")
@@ -6643,9 +6697,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -7287,6 +7338,63 @@
 				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
 			)
 			(tstamps "ee0511bd-9c70-5c4a-baaa-bb355b1df286")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C60")
+			(value "10nF")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "C")
+				(description "Unpolarized capacitor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "cap capacitor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "C_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "89083a74-6c28-5a25-944c-6c3b0b1f7f1c")
 			(units
 				(unit
 					(name "A")
@@ -11056,7 +11164,7 @@
 		)
 		(comp
 			(ref "R79")
-			(value "10k")
+			(value "4.7k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11110,7 +11218,7 @@
 		)
 		(comp
 			(ref "R80")
-			(value "10k")
+			(value "4.7k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11164,7 +11272,7 @@
 		)
 		(comp
 			(ref "R81")
-			(value "TBD-see-note")
+			(value "2.2k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11218,7 +11326,7 @@
 		)
 		(comp
 			(ref "R82")
-			(value "100R")
+			(value "4.7k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11242,9 +11350,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -11275,7 +11380,7 @@
 		)
 		(comp
 			(ref "R83")
-			(value "100R")
+			(value "4.7k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11299,9 +11404,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -11332,7 +11434,7 @@
 		)
 		(comp
 			(ref "R84")
-			(value "100R")
+			(value "4.7k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11356,9 +11458,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -11389,7 +11488,7 @@
 		)
 		(comp
 			(ref "R85")
-			(value "100R")
+			(value "4.7k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11413,9 +11512,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -11446,7 +11542,7 @@
 		)
 		(comp
 			(ref "R86")
-			(value "100R")
+			(value "10k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11470,9 +11566,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -11503,7 +11596,7 @@
 		)
 		(comp
 			(ref "R87")
-			(value "100R")
+			(value "10k")
 			(fields
 				(field
 					(name "Footprint")
@@ -11527,9 +11620,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -11901,6 +11991,348 @@
 			)
 		)
 		(comp
+			(ref "R94")
+			(value "100R")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "38d84d69-fe77-5ebc-93d9-6d6c4cc4a3f9")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R95")
+			(value "100R")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "f9418635-1340-5889-b572-ca3d46a91ea6")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R96")
+			(value "100R")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "c8e2d05f-d153-55e6-b6bd-3314cc730634")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R97")
+			(value "100R")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "755b0486-a4f7-5d5a-9033-b4728e12f2fb")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R98")
+			(value "100R")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "42bc5bde-c796-5458-822a-bde1da6102c4")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R99")
+			(value "100R")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "07a1868b-4483-5ed2-b1c5-aff0a6d6bdf9")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
 			(ref "U7")
 			(value "PCA9685PW")
 			(description "16-channel, 12-bit PWM Fm+ I2C-bus LED controller, TSSOP-28")
@@ -12159,7 +12591,7 @@
 		(comp
 			(ref "U9")
 			(value "BTS7008-2EPA")
-			(description "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14.  PIN NUMBERS ARE PLACEHOLDERS - verify before Task 8.")
+			(description "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
 			(fields
 				(field
 					(name "Footprint")
@@ -12168,12 +12600,12 @@
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14.  PIN NUMBERS ARE PLACEHOLDERS - verify before Task 8.")
+					(name "Description") "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
 			)
 			(libsource
 				(lib "mccan_parts")
 				(part "BTS7008_2EPA")
-				(description "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14. PIN NUMBERS ARE PLACEHOLDERS - verify against Infineon Rev. 1.21 before Task 8.")
+				(description "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
 			)
 			(property
 				(name "Sheetname")
@@ -12193,31 +12625,49 @@
 					(name "A")
 					(pins
 						(pin
-							(num "1")
-						)
-						(pin
 							(num "2")
-						)
-						(pin
-							(num "3")
-						)
-						(pin
-							(num "4")
-						)
-						(pin
-							(num "8")
-						)
-						(pin
-							(num "9")
-						)
-						(pin
-							(num "5")
 						)
 						(pin
 							(num "6")
 						)
 						(pin
+							(num "3")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "15")
+						)
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "14")
+						)
+						(pin
+							(num "13")
+						)
+						(pin
+							(num "12")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
 							(num "7")
+						)
+						(pin
+							(num "11")
 						)
 					)
 				)
@@ -13585,8 +14035,8 @@
 		(libpart
 			(lib "mccan_parts")
 			(part "BTS7008_2EPA")
-			(description "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14. PIN NUMBERS ARE PLACEHOLDERS - verify against Infineon Rev. 1.21 before Task 8.")
-			(docs "https://www.infineon.com/BTS7008-2EPA")
+			(description "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
+			(docs "https://www.infineon.com/dgdl/Infineon-BTS7008-2EPA-DataSheet-v01_21-EN.pdf")
 			(fields
 				(field
 					(name "Reference") "U")
@@ -13596,19 +14046,19 @@
 					(name "Footprint")
 				)
 				(field
-					(name "Datasheet") "https://www.infineon.com/BTS7008-2EPA")
+					(name "Datasheet") "https://www.infineon.com/dgdl/Infineon-BTS7008-2EPA-DataSheet-v01_21-EN.pdf")
 				(field
-					(name "Description") "Dual smart high-side switch, one multiplexed IS output with DSEL select, PG-TSDSO-14. PIN NUMBERS ARE PLACEHOLDERS - verify against Infineon Rev. 1.21 before Task 8.")
+					(name "Description") "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
 			)
 			(pins
 				(pin
 					(num "1")
-					(name "IN0")
-					(type "input")
+					(name "GND")
+					(type "power_in")
 				)
 				(pin
 					(num "2")
-					(name "IN1")
+					(name "IN0")
 					(type "input")
 				)
 				(pin
@@ -13618,32 +14068,62 @@
 				)
 				(pin
 					(num "4")
-					(name "DSEL")
-					(type "input")
-				)
-				(pin
-					(num "5")
-					(name "OUT0")
-					(type "passive")
-				)
-				(pin
-					(num "6")
-					(name "OUT1")
-					(type "passive")
-				)
-				(pin
-					(num "7")
 					(name "IS")
 					(type "passive")
 				)
 				(pin
+					(num "5")
+					(name "DSEL")
+					(type "input")
+				)
+				(pin
+					(num "6")
+					(name "IN1")
+					(type "input")
+				)
+				(pin
+					(num "7")
+					(name "n.c.")
+					(type "no_connect")
+				)
+				(pin
 					(num "8")
-					(name "VS")
-					(type "power_in")
+					(name "OUT1")
+					(type "passive")
 				)
 				(pin
 					(num "9")
-					(name "GND")
+					(name "OUT1")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "OUT1")
+					(type "passive")
+				)
+				(pin
+					(num "11")
+					(name "n.c.")
+					(type "no_connect")
+				)
+				(pin
+					(num "12")
+					(name "OUT0")
+					(type "passive")
+				)
+				(pin
+					(num "13")
+					(name "OUT0")
+					(type "passive")
+				)
+				(pin
+					(num "14")
+					(name "OUT0")
+					(type "passive")
+				)
+				(pin
+					(num "15")
+					(name "VS")
 					(type "power_in")
 				)
 			)
@@ -14384,16 +14864,15 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "R85")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "U5")
 				(pin "9")
 				(pinfunction "IO33_9")
 				(pintype "bidirectional")
-			)
-			(node
-				(ref "U9")
-				(pin "4")
-				(pinfunction "DSEL_4")
-				(pintype "input")
 			)
 		)
 		(net
@@ -14456,16 +14935,15 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "R84")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "U5")
 				(pin "12")
 				(pinfunction "IO27_12")
 				(pintype "bidirectional")
-			)
-			(node
-				(ref "U9")
-				(pin "3")
-				(pinfunction "DEN_3")
-				(pintype "input")
 			)
 		)
 		(net
@@ -14533,14 +15011,19 @@
 			(name "/ISNS_DEN")
 			(class "Default")
 			(node
+				(ref "C48")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "D21")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
 			)
 			(node
-				(ref "R81")
-				(pin "1")
+				(ref "R83")
+				(pin "2")
 				(pintype "passive")
 			)
 			(node
@@ -14548,12 +15031,6 @@
 				(pin "6")
 				(pinfunction "IO34_6")
 				(pintype "input")
-			)
-			(node
-				(ref "U9")
-				(pin "7")
-				(pinfunction "IS_7")
-				(pintype "passive")
 			)
 		)
 		(net
@@ -14654,16 +15131,15 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "R86")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "U5")
 				(pin "30")
 				(pinfunction "IO18_30")
 				(pintype "bidirectional")
-			)
-			(node
-				(ref "U9")
-				(pin "1")
-				(pinfunction "IN0_1")
-				(pintype "input")
 			)
 		)
 		(net
@@ -14676,16 +15152,15 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "R87")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "U5")
 				(pin "31")
 				(pinfunction "IO19_31")
 				(pintype "bidirectional")
-			)
-			(node
-				(ref "U9")
-				(pin "2")
-				(pinfunction "IN1_2")
-				(pintype "input")
 			)
 		)
 		(net
@@ -14693,7 +15168,7 @@
 			(name "/RGB_ISNS")
 			(class "Default")
 			(node
-				(ref "C45")
+				(ref "C44")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -14750,12 +15225,12 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "C46")
+				(ref "C45")
 				(pin "1")
 				(pintype "passive")
 			)
 			(node
-				(ref "C47")
+				(ref "C46")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -14790,8 +15265,8 @@
 			)
 			(node
 				(ref "U9")
-				(pin "8")
-				(pinfunction "VS_8")
+				(pin "15")
+				(pinfunction "VS_15")
 				(pintype "power_in")
 			)
 		)
@@ -15167,8 +15642,20 @@
 			)
 			(node
 				(ref "U9")
-				(pin "5")
-				(pinfunction "OUT0_5")
+				(pin "12")
+				(pinfunction "OUT0_12")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "13")
+				(pinfunction "OUT0_13")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "14")
+				(pinfunction "OUT0_14")
 				(pintype "passive")
 			)
 		)
@@ -15184,8 +15671,20 @@
 			)
 			(node
 				(ref "U9")
-				(pin "6")
-				(pinfunction "OUT1_6")
+				(pin "10")
+				(pinfunction "OUT1_10")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "8")
+				(pinfunction "OUT1_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "9")
+				(pinfunction "OUT1_9")
 				(pintype "passive")
 			)
 		)
@@ -15734,7 +16233,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R84")
+				(ref "R90")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15756,7 +16255,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R83")
+				(ref "R89")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15778,7 +16277,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R82")
+				(ref "R88")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15800,7 +16299,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R87")
+				(ref "R93")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15822,7 +16321,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R86")
+				(ref "R92")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15844,7 +16343,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R85")
+				(ref "R91")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15866,7 +16365,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R90")
+				(ref "R96")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15888,7 +16387,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R89")
+				(ref "R95")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15910,7 +16409,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R88")
+				(ref "R94")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15932,7 +16431,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R93")
+				(ref "R99")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15954,7 +16453,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R92")
+				(ref "R98")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -15976,7 +16475,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R91")
+				(ref "R97")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -16718,6 +17217,11 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "C44")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
 				(ref "C45")
 				(pin "2")
 				(pintype "passive")
@@ -16799,6 +17303,11 @@
 			)
 			(node
 				(ref "C6")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C60")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17059,17 +17568,17 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R79")
-				(pin "2")
-				(pintype "passive")
-			)
-			(node
-				(ref "R80")
-				(pin "2")
-				(pintype "passive")
-			)
-			(node
 				(ref "R81")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R86")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R87")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17266,8 +17775,8 @@
 			)
 			(node
 				(ref "U9")
-				(pin "9")
-				(pinfunction "GND_9")
+				(pin "1")
+				(pinfunction "GND_1")
 				(pintype "power_in")
 			)
 		)
@@ -17343,16 +17852,26 @@
 		)
 		(net
 			(code "107")
-			(name "Net-(C48-Pad1)")
+			(name "Net-(C47-Pad1)")
 			(class "Default")
 			(node
-				(ref "C48")
+				(ref "C47")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R81")
 				(pin "1")
 				(pintype "passive")
 			)
 			(node
 				(ref "R82")
 				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R83")
+				(pin "1")
 				(pintype "passive")
 			)
 		)
@@ -17366,7 +17885,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R83")
+				(ref "R88")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17381,7 +17900,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R84")
+				(ref "R89")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17396,7 +17915,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R85")
+				(ref "R90")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17411,7 +17930,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R86")
+				(ref "R91")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17426,7 +17945,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R87")
+				(ref "R92")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17441,7 +17960,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R88")
+				(ref "R93")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17456,7 +17975,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R89")
+				(ref "R94")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17471,7 +17990,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R90")
+				(ref "R95")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17486,7 +18005,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R91")
+				(ref "R96")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17501,7 +18020,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R92")
+				(ref "R97")
 				(pin "2")
 				(pintype "passive")
 			)
@@ -17516,13 +18035,28 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R93")
+				(ref "R98")
 				(pin "2")
 				(pintype "passive")
 			)
 		)
 		(net
 			(code "119")
+			(name "Net-(C60-Pad1)")
+			(class "Default")
+			(node
+				(ref "C60")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R99")
+				(pin "2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "120")
 			(name "Net-(D5-A)")
 			(class "Default")
 			(node
@@ -17538,7 +18072,7 @@
 			)
 		)
 		(net
-			(code "120")
+			(code "121")
 			(name "Net-(Q2-B)")
 			(class "Default")
 			(node
@@ -17554,7 +18088,7 @@
 			)
 		)
 		(net
-			(code "121")
+			(code "122")
 			(name "Net-(Q3-B)")
 			(class "Default")
 			(node
@@ -17570,7 +18104,7 @@
 			)
 		)
 		(net
-			(code "122")
+			(code "123")
 			(name "Net-(U1-BST)")
 			(class "Default")
 			(node
@@ -17586,7 +18120,7 @@
 			)
 		)
 		(net
-			(code "123")
+			(code "124")
 			(name "Net-(U1-RON)")
 			(class "Default")
 			(node
@@ -17602,7 +18136,7 @@
 			)
 		)
 		(net
-			(code "124")
+			(code "125")
 			(name "Net-(U2-BST)")
 			(class "Default")
 			(node
@@ -17618,7 +18152,7 @@
 			)
 		)
 		(net
-			(code "125")
+			(code "126")
 			(name "Net-(U2-RON)")
 			(class "Default")
 			(node
@@ -17634,7 +18168,7 @@
 			)
 		)
 		(net
-			(code "126")
+			(code "127")
 			(name "Net-(U3-BIAS)")
 			(class "Default")
 			(node
@@ -17655,7 +18189,7 @@
 			)
 		)
 		(net
-			(code "127")
+			(code "128")
 			(name "Net-(U3-COMP)")
 			(class "Default")
 			(node
@@ -17676,7 +18210,7 @@
 			)
 		)
 		(net
-			(code "128")
+			(code "129")
 			(name "Net-(U3-MODE)")
 			(class "Default")
 			(node
@@ -17692,7 +18226,7 @@
 			)
 		)
 		(net
-			(code "129")
+			(code "130")
 			(name "Net-(U3-RT)")
 			(class "Default")
 			(node
@@ -17708,7 +18242,7 @@
 			)
 		)
 		(net
-			(code "130")
+			(code "131")
 			(name "Net-(U3-SS)")
 			(class "Default")
 			(node
@@ -17724,7 +18258,7 @@
 			)
 		)
 		(net
-			(code "131")
+			(code "132")
 			(name "Net-(U3-VCC)")
 			(class "Default")
 			(node
@@ -17740,7 +18274,7 @@
 			)
 		)
 		(net
-			(code "132")
+			(code "133")
 			(name "Net-(U4-BLEED)")
 			(class "Default")
 			(node
@@ -17756,7 +18290,7 @@
 			)
 		)
 		(net
-			(code "133")
+			(code "134")
 			(name "Net-(U4-SR)")
 			(class "Default")
 			(node
@@ -17772,7 +18306,7 @@
 			)
 		)
 		(net
-			(code "134")
+			(code "135")
 			(name "Net-(U6-CANH)")
 			(class "Default")
 			(node
@@ -17789,7 +18323,7 @@
 			)
 		)
 		(net
-			(code "135")
+			(code "136")
 			(name "Net-(U6-CANL)")
 			(class "Default")
 			(node
@@ -17806,7 +18340,7 @@
 			)
 		)
 		(net
-			(code "136")
+			(code "137")
 			(name "Net-(U6-TXD)")
 			(class "Default")
 			(node
@@ -17827,7 +18361,7 @@
 			)
 		)
 		(net
-			(code "137")
+			(code "138")
 			(name "Net-(U7-~{OE})")
 			(class "Default")
 			(node
@@ -17843,7 +18377,87 @@
 			)
 		)
 		(net
-			(code "138")
+			(code "139")
+			(name "Net-(U9-DEN)")
+			(class "Default")
+			(node
+				(ref "R84")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "3")
+				(pinfunction "DEN_3")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "140")
+			(name "Net-(U9-DSEL)")
+			(class "Default")
+			(node
+				(ref "R85")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "5")
+				(pinfunction "DSEL_5")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "141")
+			(name "Net-(U9-IN0)")
+			(class "Default")
+			(node
+				(ref "R79")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "2")
+				(pinfunction "IN0_2")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "142")
+			(name "Net-(U9-IN1)")
+			(class "Default")
+			(node
+				(ref "R80")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "6")
+				(pinfunction "IN1_6")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "143")
+			(name "Net-(U9-IS)")
+			(class "Default")
+			(node
+				(ref "R82")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U9")
+				(pin "4")
+				(pinfunction "IS_4")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "144")
 			(name "unconnected-(U1-PGOOD-Pad6)")
 			(class "Default")
 			(node
@@ -17854,7 +18468,7 @@
 			)
 		)
 		(net
-			(code "139")
+			(code "145")
 			(name "unconnected-(U2-PGOOD-Pad6)")
 			(class "Default")
 			(node
@@ -17865,7 +18479,7 @@
 			)
 		)
 		(net
-			(code "140")
+			(code "146")
 			(name "unconnected-(U3-NC-Pad15)")
 			(class "Default")
 			(node
@@ -17876,7 +18490,7 @@
 			)
 		)
 		(net
-			(code "141")
+			(code "147")
 			(name "unconnected-(U3-PGOOD-Pad4)")
 			(class "Default")
 			(node
@@ -17887,7 +18501,7 @@
 			)
 		)
 		(net
-			(code "142")
+			(code "148")
 			(name "unconnected-(U5-IO2-Pad24)")
 			(class "Default")
 			(node
@@ -17898,7 +18512,7 @@
 			)
 		)
 		(net
-			(code "143")
+			(code "149")
 			(name "unconnected-(U5-IO15-Pad23)")
 			(class "Default")
 			(node
@@ -17909,7 +18523,7 @@
 			)
 		)
 		(net
-			(code "144")
+			(code "150")
 			(name "unconnected-(U5-NC-Pad17)")
 			(class "Default")
 			(node
@@ -17920,7 +18534,7 @@
 			)
 		)
 		(net
-			(code "145")
+			(code "151")
 			(name "unconnected-(U5-NC-Pad18)")
 			(class "Default")
 			(node
@@ -17931,7 +18545,7 @@
 			)
 		)
 		(net
-			(code "146")
+			(code "152")
 			(name "unconnected-(U5-NC-Pad19)")
 			(class "Default")
 			(node
@@ -17942,7 +18556,7 @@
 			)
 		)
 		(net
-			(code "147")
+			(code "153")
 			(name "unconnected-(U5-NC-Pad20)")
 			(class "Default")
 			(node
@@ -17953,7 +18567,7 @@
 			)
 		)
 		(net
-			(code "148")
+			(code "154")
 			(name "unconnected-(U5-NC-Pad21)")
 			(class "Default")
 			(node
@@ -17964,7 +18578,7 @@
 			)
 		)
 		(net
-			(code "149")
+			(code "155")
 			(name "unconnected-(U5-NC-Pad22)")
 			(class "Default")
 			(node
@@ -17975,7 +18589,7 @@
 			)
 		)
 		(net
-			(code "150")
+			(code "156")
 			(name "unconnected-(U5-NC-Pad32)")
 			(class "Default")
 			(node
@@ -17986,7 +18600,7 @@
 			)
 		)
 		(net
-			(code "151")
+			(code "157")
 			(name "unconnected-(U5-SENSOR_VN-Pad5)")
 			(class "Default")
 			(node
@@ -17997,7 +18611,7 @@
 			)
 		)
 		(net
-			(code "152")
+			(code "158")
 			(name "unconnected-(U7-LED12-Pad19)")
 			(class "Default")
 			(node
@@ -18008,7 +18622,7 @@
 			)
 		)
 		(net
-			(code "153")
+			(code "159")
 			(name "unconnected-(U7-LED13-Pad20)")
 			(class "Default")
 			(node
@@ -18019,7 +18633,7 @@
 			)
 		)
 		(net
-			(code "154")
+			(code "160")
 			(name "unconnected-(U7-LED14-Pad21)")
 			(class "Default")
 			(node
@@ -18030,7 +18644,7 @@
 			)
 		)
 		(net
-			(code "155")
+			(code "161")
 			(name "unconnected-(U7-LED15-Pad22)")
 			(class "Default")
 			(node
@@ -18041,7 +18655,7 @@
 			)
 		)
 		(net
-			(code "156")
+			(code "162")
 			(name "unconnected-(U8-NC-Pad2)")
 			(class "Default")
 			(node
@@ -18052,7 +18666,7 @@
 			)
 		)
 		(net
-			(code "157")
+			(code "163")
 			(name "unconnected-(U8-NC-Pad3)")
 			(class "Default")
 			(node
@@ -18063,13 +18677,35 @@
 			)
 		)
 		(net
-			(code "158")
+			(code "164")
 			(name "unconnected-(U8-NC-Pad13)")
 			(class "Default")
 			(node
 				(ref "U8")
 				(pin "13")
 				(pinfunction "NC_13")
+				(pintype "no_connect")
+			)
+		)
+		(net
+			(code "165")
+			(name "unconnected-(U9-n.c.-Pad7)")
+			(class "Default")
+			(node
+				(ref "U9")
+				(pin "7")
+				(pinfunction "n.c._7")
+				(pintype "no_connect")
+			)
+		)
+		(net
+			(code "166")
+			(name "unconnected-(U9-n.c.-Pad11)")
+			(class "Default")
+			(node
+				(ref "U9")
+				(pin "11")
+				(pinfunction "n.c._11")
 				(pintype "no_connect")
 			)
 		)

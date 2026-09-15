@@ -153,6 +153,11 @@ Verified against **Infineon BTS7008-2EPA Data Sheet Rev. 1.21, 2024-07-29**
 conversion garbled the file — the underlying PDF is a normal text-layer
 document, not corrupted).
 
+> **The datasheet is now held locally** at `hardware/datasheets/infineon_bts7008_2epa_datasheet_en.pdf`
+> (added 2026-09-15). The pinout, the sense-resistor sizing and the thermal data that these rows
+> could not reach are worked out in **"PROFET — pinout, sense chain and control lines"** below.
+> Row 2.2 is unchanged; **row 2.6's conditional is now quantified** there.
+
 | # | Required | Actual | Verdict |
 |---|---|---|---|
 | 2.1 | Continuous current per channel >= 3.3 A with margin | Table 13 "Electrical Characteristics: Power Stages - 8 mOhm", p.28: "Nominal Load Current per Channel (all Channels Active) — IL(NOM) — Typ. 7.5 A — TA = 85 degC, TJ <= 150 degC" (P_7.5.1.8). | **PASS** — 7.5 A nominal (both channels active simultaneously) vs 3.3 A required, >2x margin. |
@@ -839,7 +844,7 @@ Per-channel chain confirmed on both ends of the range:
 ```
 /outputs/SENSE_FL_R   Q4.1[S1]  R52.1(shunt)  R64.1(10k series)
 /outputs/MUXIN_FL_R   D9.2[clamp A]  R64.2  U8.19[S1]
-/outputs/RET_RR_B     J6.4  Q9.3[D2]  R93.1(DNP snubber)
+/outputs/RET_RR_B     J6.4  Q9.3[D2]  R99.1(DNP snubber)
 ```
 
 ### A cross-domain dependency worth naming
@@ -874,7 +879,7 @@ Each sense node reaches its mux input through **10 kΩ** (R64–R75) with a Scho
 admits **2 mA**, far inside the ADG706's input rating. The clamps are redundancy, and a quad
 array may replace the twelve discretes at layout to save area.
 
-**C45, 10 nF at the mux output**, supplies the ADC's sample-and-hold charge locally, which is
+**C44, 10 nF at the mux output**, supplies the ADC's sample-and-hold charge locally, which is
 what makes 10 kΩ series resistors harmless. τ = 100 µs, so **firmware must wait ≥ 500 µs after
 each mux step** before reading. 100 nF would stretch that to 1 ms.
 
@@ -884,19 +889,19 @@ each mux step** before reading. 100 nF would stretch that to 1 ms.
 |---|---|---|
 | `ADG706` | `ADG706_707.pdf`, pin configuration p.8 | **Verified** — all 28 pins |
 | `NX5020UNBKS` | `NX5020UNBKS.pdf`, Table 2 | **Verified** — 1 S1, 2 G1, 3 D2, 4 S2, 5 G2, 6 D1. Built as a **2-unit** symbol so each channel draws as one FET and six packages cover twelve channels |
-| `BTS7008_2EPA` | — | **PIN NUMBERS ARE PLACEHOLDERS** |
+| `BTS7008_2EPA` | `infineon_bts7008_2epa_datasheet_en.pdf`, Rev. 1.21, Table 2 p.6 | **Verified 2026-09-15** — all 14 pins plus the exposed pad. See "PROFET resolved" below |
 
-### BLOCKER for Task 8 — the PROFET
+### ~~BLOCKER for Task 8 — the PROFET~~ **RESOLVED 2026-09-15**
 
-**No Infineon datasheet for the BTS7008-2EPA is held locally.** The pin *names* on U9 come from
-verified notes earlier in this document; the pin *numbers* are invented, and the package is
-PG-TSDSO-14, so **five further pins exist that are not modelled at all**.
+The Infineon datasheet arrived (`hardware/datasheets/infineon_bts7008_2epa_datasheet_en.pdf`,
+**Rev. 1.21, 2024-07-29**) and the whole block was rebuilt against it. See
+**"PROFET — pinout, sense chain and control lines"** below for the full record. In summary:
 
-`R81`, the IS scaling resistor, is likewise unsized — it needs the part's `kILIS` current-sense
-ratio. Its value reads `TBD-see-note` deliberately, so it cannot pass a BOM review unnoticed.
-
-Nothing here can reach fabrication without passing through footprint assignment in Task 8, which
-is where this must be resolved. **Get the datasheet before Task 8.**
+- **U9's pin numbers were all wrong** and are now verified against Table 2. Six pins that did
+  not exist in the placeholder symbol do exist in the part.
+- **`R81` is sized: 2.2 kΩ.** The `TBD-see-note` value is gone.
+- **The footprint is identified** — `Package_SO:Infineon_PG-TSDSO-14-22`, which ships with
+  KiCad — so Task 8 does not have to draw one.
 
 ### Corner connectors — a safety item, recorded in the schematic
 
@@ -913,6 +918,146 @@ PTC feeds exactly one corner; `+3V3_SW` carries the load switch, both ICs and al
 cathodes; `CANH`/`CANL` join the choke on `mcu_can` to the connector here; `VBAT` spans
 `power_input`, `rails` and the PROFET; and `GND_IN` is **still separate from `GND`**, so the
 common-mode choke split survives intact. All six generators remain idempotent.
+
+## PROFET — pinout, sense chain and control lines — 2026-09-15
+
+Verified against **Infineon BTS7008-2EPA Data Sheet Rev. 1.21, 2024-07-29**, held locally at
+`hardware/datasheets/infineon_bts7008_2epa_datasheet_en.pdf`. This closes the Task 8 blocker.
+
+### The placeholder pinout was wrong in every position
+
+Table 2 "Pin Definition" (p.6), cross-checked against Figure 4 "Pin Configuration" (p.5):
+
+| Pin | Symbol | Was (placeholder) |
+|---|---|---|
+| **EP (pad 15)** | **VS** — battery supply, *the only supply connection* | invented pin 8, a normal side pin |
+| 1 | GND | was IN0 |
+| 2 | IN0 | was IN1 |
+| 3 | DEN | was DEN — right name, wrong number |
+| 4 | IS | was DSEL |
+| 5 | DSEL | was OUT0 |
+| 6 | IN1 | was OUT1 |
+| 7, 11 | n.c., internally not bonded | did not exist |
+| 8–10 | OUT1 | did not exist |
+| 12–14 | OUT0 | did not exist |
+
+Two things the placeholder could not have guessed:
+
+**VS is the exposed pad.** There is no side pin for battery. A layout that treats the pad as a
+thermal-only feature would leave the part unpowered.
+
+**Each output is three pins, and Table 2 note 1 is mandatory** — "All output pins of the channel
+must be connected together on the PCB. ... PCB traces have to be designed to withstand the maximum
+current which can flow." All six are modelled and tied on the sheet, so Task 9 cannot route one
+pin per channel and call it done: **3.3 A has to be carried on all three.**
+
+### Footprint — already in KiCad, and it fixes the pad number
+
+`Package_SO:Infineon_PG-TSDSO-14-22` ships with KiCad 10. Its **pad 15** is the 2.65 × 4 mm thermal
+pad at the origin, which is why VS is numbered 15 in the symbol rather than "EP". PG-TSDSO-14-22 is
+the former name of the same package — the datasheet's own revision history records the rename
+("Page 1: updated (Package PG-TSDSO-14-22 → PG-TSDSO-14)").
+
+### R81 = 2.2 kΩ — how the sense chain was sized
+
+`kILIS` = **5400** at IL14 = 2.8 A (±5.8%) and **5450** at IL16 = 5.5 A (±4.0%), Table 22 p.53.
+The Denali draws **3.3 A per channel** (spec §2.2), so the IS pin sources 3.3 / 5400 = **611 µA**.
+
+| | Value | Consequence |
+|---|---|---|
+| **R81** (RSENSE) | **2.2 kΩ** | 611 µA × 2.2 k = **1.34 V** at 3.3 A — mid-scale for ADC1 at 11 dB (usable ≈ 0.15–2.45 V) |
+| ADC full scale | 2.45 V | = **6.0 A**: above the working point, below the 7.5 A nominal rating, so a real overcurrent still reads *on scale* instead of pinning |
+| ADC floor | 0.15 V | = **368 mA**. Open load is IL(OL) ≈ 21 mA (Table 22), so an open channel reads a hard zero — unambiguous |
+
+**R82 (RIS_PROT, 4.7 kΩ) and R83 (RADC, 4.7 kΩ) are not optional, and their absence was a real
+defect in the Task 6 sheet.** Under a fault the IS pin *saturates*: Table 20 p.50 gives
+IIS(SAT) = 4.1–15 mA and a saturation voltage VS − VIS of only **0.5 V typ / 1 V max**. The sense
+node therefore sits within a volt of battery — **about 12.5 V** — and the earlier chain wired that
+node to GPIO 34 through nothing but a Schottky clamp. R83 is what keeps it off the pin; D21 then
+clamps the remainder to `+3V3_ALW` at under 2 mA.
+
+C47 (220 pF) with R83 gives the ≥1 µs time constant the datasheet's Table 24 asks for. **C48
+(10 nF) at the ADC end** supplies the SAR sample-and-hold charge locally — that is what makes a
+4.7 kΩ series resistor harmless. τ = 47 µs, so **firmware must settle ≥ 250 µs after selecting a
+channel with DSEL** before reading. (Compare the RGB chain's 500 µs at C44 — same principle,
+different constant.)
+
+### Control lines — and a divider that would have failed at temperature
+
+R79, R80, R84 and R85 are the datasheet's **RIN / RDEN / RDSEL, 4.7 kΩ** (Table 24 p.54). They
+protect the MCU during overvoltage and reverse polarity, and — the part that matters on a vehicle
+— they are what allows the outputs to switch **OFF on loss of ground**.
+
+The pulldowns are deliberately on the **MCU side** of those resistors. In series the two would form
+a divider: 3.3 V × 10 k / 14.7 k = **2.24 V** at the input pin, against a guaranteed-high threshold
+of **2.0 V max** (Table 7 p.14). A 240 mV margin across tolerance and −40…150 °C is not a margin.
+On the MCU side the pin is driven through 4.7 kΩ into a microamp input, so the drop is negligible.
+
+Only `PWM_DEN_A` / `PWM_DEN_B` needed a pulldown adding (R86, R87). `EN_DIAG` and `DEN_DSEL`
+already have R35 and R34 in **mcu_can's passive-defaults block**, and that block exists precisely
+so these live in one place — duplicating them here would have defeated it. All four must be low
+for the PROFET to reach **Sleep mode (0.6 µA)** rather than Stand-by, and GPIO 18/19 float in reset.
+
+### Deliberately not fitted
+
+No **RPD** (47 kΩ output pulldown), **ROL** or **T1**. Those exist only for *OFF-state* open-load
+diagnosis, which §5.3 does not ask for — ON-state sense through IS covers what this design needs.
+RPD would also draw ~290 µA per channel whenever the output is on.
+
+### Row 2.6's conditional PASS — now quantified, still conditional
+
+Thermal data was not available when row 2.6 was written. Table 6 p.11 gives **RthJC = 0.8 K/W typ
+/ 1.4 max** (junction to exposed pad) and **RthJA = 30.9 K/W** on a JEDEC 2s2p board; Figure 10
+p.12 plots RthJA against cooling area for a 1s0p board, running roughly from the low forties to
+about 110 K/W — read that curve visually before relying on a number from it.
+
+At the budgeted 0.35 W for the pair, that is an **11–38 K rise**, so TJ at 85 °C ambient lands
+somewhere around **96–123 °C — never the 150 °C at which the 16 mΩ maximum is specified.** The
+0.349 W worst case in row 2.6 is therefore not a reachable operating point, and the realistic
+figure is ~0.30–0.32 W. **Row 2.6 stays a conditional PASS** — the condition is now numeric rather
+than open-ended, and §9.4's 0.35 W budget is conservative against it. Confirm at layout, once the
+copper area under the pad is known.
+
+### Component changes on the outputs sheet
+
+| Ref | Was | Now |
+|---|---|---|
+| R79, R80 | 10 kΩ pulldowns | **4.7 kΩ series** (RIN) |
+| R81 | `TBD-see-note` | **2.2 kΩ** (RSENSE) |
+| R82, R83 | *(did not exist)* | **4.7 kΩ** RIS_PROT, RADC |
+| R84, R85 | *(did not exist)* | **4.7 kΩ series** (RDEN, RDSEL) |
+| R86, R87 | *(did not exist)* | **10 kΩ pulldowns**, MCU side |
+| C47, C48 | *(did not exist)* | **220 pF** CSENSE, **10 nF** ADC hold |
+| C44–C48 | were C45–C49 | shifted down one to **close a pre-existing C44 gap** in the BOM |
+| R88–R99, C49–C60 | were R82–R93, C48–C59 | DNP snubbers, shifted to make room |
+
+**Designators are now gapless**: R1–R99, C1–C60, D1–D21, Q1–Q9, U1–U9, J1–J8, F1–F5, L1–L6,
+SW1–SW2, with no holes in any series.
+
+### Verification after the rebuild
+
+```
+kicad-cli sch erc --severity-all --exit-code-violations
+exit=0     0 errors   0 warnings
+```
+
+**166 nets** (was 158; the eight new ones are the series resistors' local nets, the sense node,
+and the two n.c. pins). Read back from the netlist:
+
+```
+/VBAT                  ... U9.15[VS]                       <- the exposed pad
+/outputs/DEN_A_OUT     J7.1  U9.12  U9.13  U9.14           <- all three OUT0 pins
+/outputs/DEN_B_OUT     J7.2  U9.8   U9.9   U9.10           <- all three OUT1 pins
+Net-(U9-IS)            R82.1  U9.4
+Net-(C47-Pad1)         C47.1  R81.1  R82.2  R83.1          <- the sense node
+/ISNS_DEN              C48.1  D21.2  R83.2  U5.6[IO34]
+/PWM_DEN_A             R79.1  R86.1  U5.30[IO18]           <- pulldown on the MCU side
+/DEN_DSEL              R34.1  R85.1  U5.9[IO33]            <- R34 from mcu_can, not duplicated
+unconnected-(U9-n.c.-Pad7), -Pad11                         <- no-connect flagged
+```
+
+ChannelIndex order re-checked and unchanged: LED0 → `PWM_FL_R` → Q4 unit A … LED11 →
+`PWM_RR_B` → Q9 unit B.
 
 ## Sleep budget roll-up (spec 8.2: target < 200 uA, ceiling 500 uA)
 
