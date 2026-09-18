@@ -8,6 +8,8 @@ fp-info-cache
 # Kept locally for traceability; see datasheets/README.md to publish them.
 datasheets/*.pdf
 datasheets/*.png
+# Text/table extractions are the same copyrighted content in another form.
+datasheets/*.txt
 
 # Editor local-history extension (an embedded git repo; never commit it)
 .history/
