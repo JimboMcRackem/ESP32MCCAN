@@ -88,19 +88,20 @@ SYMS, WIRES, JUNCS, LABELS, HLABELS, NOTES, NOCONN = [], [], [], [], [], [], []
 PINMAP = {}   # ref -> {num: (x, y)}
 GNDN = [0]
 
-def place(ref, libid, val, x, y, rot=0, pins=None, fields=None, npins=1, desc=""):
+def place(ref, libid, val, x, y, rot=0, pins=None, fields=None, npins=1, desc="",
+          dnp=False):
     SYMS.append(dict(ref=ref, libid=libid, val=val, x=x, y=y, rot=rot,
-                     fields=fields or [], npins=npins, desc=desc))
+                     fields=fields or [], npins=npins, desc=desc, dnp=dnp))
     if pins:
         PINMAP[ref] = {n: pin(x, y, rot, *p) for n, p in pins.items()}
     return PINMAP.get(ref)
 
-def vpart(ref, libid, val, x, ytop, rot=0):
+def vpart(ref, libid, val, x, ytop, rot=0, dnp=False):
     """Vertical 2-pin part: pin1 at ytop, pin2 at ytop+7.62."""
     cy = round(ytop + 3.81, 4)
     fields = [("Reference", ref, x + 1.651, cy - 1.27, 0),
               ("Value", val, x + 1.651, cy + 1.27, 0)]
-    place(ref, libid, val, x, cy, rot, TWOPIN, fields, npins=2)
+    place(ref, libid, val, x, cy, rot, TWOPIN, fields, npins=2, dnp=dnp)
     return (x, ytop), (x, round(ytop + 7.62, 4))
 
 def gnd(x, y):
@@ -257,9 +258,21 @@ r20a, r20b = vpart("R20", "Device:R", "100k", 66.04, 139.7); gnd(*r20b)
 w(U3[9], (30.48, 142.24))
 w((165.1, 127.0), (165.1, 100.33)); j((165.1, 127.0))
 w((165.1, 100.33), (30.48, 100.33)); w((30.48, 100.33), (30.48, 134.62))
-r9a, r9b = vpart("R12", "Device:R", "115k", 30.48, 134.62)
-r10a, r10b = vpart("R13", "Device:R", "4.99k", 30.48, 142.24); gnd(*r10b); j(r10a)
+# 576k / 24.9k, NOT 115k / 4.99k.  Same ratio (24.13 V vs 24.05 V, a 0.3% shift), but
+# five times the impedance, because this divider is powered in DEEP SLEEP: with the boost
+# disabled the +24V node still sits at VBAT minus D4's drop, through L3 and D4, so the
+# divider conducts continuously.  At 120 kOhm that was 103 uA -- larger than every other
+# sleep contributor combined and absent from the spec 8.2 budget.  At 601 kOhm it is 21 uA.
+r9a, r9b = vpart("R12", "Device:R", "576k", 30.48, 134.62)
+r10a, r10b = vpart("R13", "Device:R", "24.9k", 30.48, 142.24); gnd(*r10b); j(r10a)
 lab("FB_24V", 53.34, 142.24)
+# Feedforward cap across R12, DNP.  Raising the divider raises the FB node impedance
+# (576k || 24.9k = 23.9 kOhm), so stray capacitance forms a pole nearer the crossover than
+# before.  It should still sit far above it, but the remedy if bring-up says otherwise is
+# a Cff here, and a fitted footprint is the difference between a stuff option and a respin.
+c_ff_a, c_ff_b = vpart("C61", "Device:C", "10pF", 38.1, 134.62, dnp=True)
+j((30.48, 134.62)); w((30.48, 134.62), (38.1, 134.62))
+w((38.1, 142.24), (30.48, 142.24))
 # --- MODE (pin 11): 37.4k -> AGND  (hiccup ON + spread spectrum ON)
 w(U3[11], (55.88, 147.32))
 r8a, r8b = vpart("R11", "Device:R", "37.4k", 55.88, 147.32); gnd(*r8b)
@@ -474,7 +487,7 @@ for s in SYMS:
     A("\t\t(in_bom yes)")
     A("\t\t(on_board yes)")
     A("\t\t(in_pos_files yes)")
-    A("\t\t(dnp no)")
+    A("\t\t(dnp %s)" % ("yes" if s.get("dnp") else "no"))
     A('\t\t(uuid "%s")' % U("s" + s["ref"]))
     props = list(s["fields"])
     have = {p[0] for p in props}

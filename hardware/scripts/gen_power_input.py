@@ -226,7 +226,7 @@ def emit_symbol(ref, lib_id, x, y, rot, value, footprint, desc, hide_ref=False,
     w(2, "(in_bom yes)")
     w(2, "(on_board yes)")
     w(2, "(in_pos_files yes)")
-    w(2, "(dnp no)")
+    w(2, "(dnp %s)" % ("yes" if ref in getattr(layout, "DNP", ()) else "no"))
     w(2, '(uuid "%s")' % U("sym" + ref))
     rx, ry = ref_at if ref_at else (x, y)
     vx, vy = val_at if val_at else (x, y)

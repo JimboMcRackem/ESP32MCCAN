@@ -12,7 +12,7 @@
 COMPS = [
     ("J1", "Connector:Conn_01x03_Pin",  26.67, 76.20,   0, "PWR (SS1.5 3-way)", ""),
     ("F1", "Device:Fuse",               40.64, 76.20,  90, "10A", ""),
-    ("Q1", "Transistor_FET:Q_PMOS_GSD", 54.61, 78.74,  90, "SQJ415EP", ""),
+    ("Q1", "Transistor_FET:Q_PMOS_GSD", 54.61, 78.74,  90, "SQJ461EP", ""),
     ("D1", "Device:D_Zener",            62.23, 85.09, 270, "12V", ""),
     ("R1", "Device:R",                  54.61, 92.71,   0, "1M", ""),
     ("D2", "Device:D_TVS",              66.04, 80.01, 270, "SMBJ24A", ""),
@@ -28,6 +28,13 @@ COMPS = [
     ("C5", "Device:C",                 151.13, 80.01,   0, "100nF", ""),
 ]
 HORIZONTAL = {"F1", "L1", "D3", "R2", "R3"}
+
+# DO NOT POPULATE.  R2 and R3 are 0R links that SHORT OUT both windings of the
+# common-mode choke; they are the alternative build to L2, never a companion to it.
+# Spec 4.3 requires the choke, so the choke is the populated option and these two are
+# DNP.  Leaving them stuffed silently defeats the entire common-mode filter -- the board
+# works perfectly and filters nothing, and no ERC or DRC check will say so.
+DNP = {"R2", "R3"}
 
 # board GND only -- GND_IN deliberately has NO power symbol (see the split-ground note)
 GNDS = [

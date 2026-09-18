@@ -2150,6 +2150,12 @@
 		(uuid "54b8eb17-fb71-5e51-90d1-630dc81bdc06")
 	)
 	(junction
+		(at 30.48 134.62)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "594dca65-76b3-5ca9-9ad4-851d8d34a430")
+	)
+	(junction
 		(at 76.2 45.72)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2634,6 +2640,16 @@
 			(type default)
 		)
 		(uuid "4afd59e7-b105-5494-9770-7d0f2d566564")
+	)
+	(wire
+		(pts
+			(xy 38.1 142.24) (xy 30.48 142.24)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4b2c63b5-e910-5202-8be3-21a9902ef19d")
 	)
 	(wire
 		(pts
@@ -3174,6 +3190,16 @@
 			(type default)
 		)
 		(uuid "e2737447-9992-5255-b96e-fb761f6749d5")
+	)
+	(wire
+		(pts
+			(xy 30.48 134.62) (xy 38.1 134.62)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e32367bd-e63c-5dea-a747-45431b3adbf0")
 	)
 	(wire
 		(pts
@@ -3821,6 +3847,87 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4a66277e-62b8-454b-8781-170494cf9f57"
 					(reference "C12")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 38.1 138.43 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp yes)
+		(uuid "11447256-4f9e-50b2-886c-0976b2121b71")
+		(property "Reference" "C61"
+			(at 39.751 137.16 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10pF"
+			(at 39.751 139.7 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 38.1 138.43 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 38.1 138.43 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 38.1 138.43 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "76130ef1-1ff9-586b-8e66-4e60407cc1bd")
+		)
+		(pin "2"
+			(uuid "40d1282e-d3ec-53de-bf9f-f26b3e4ba6c7")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4a66277e-62b8-454b-8781-170494cf9f57"
+					(reference "C61")
 					(unit 1)
 				)
 			)
@@ -4653,7 +4760,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "4.99k"
+		(property "Value" "24.9k"
 			(at 32.131 147.32 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11218,7 +11325,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "115k"
+		(property "Value" "576k"
 			(at 32.131 139.7 0)
 			(show_name no)
 			(do_not_autoplace no)

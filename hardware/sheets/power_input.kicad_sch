@@ -3413,7 +3413,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp no)
+		(dnp yes)
 		(uuid "44ff9bb5-5b90-5918-8143-fb29815671f6")
 		(property "Reference" "R3"
 			(at 92.71 92.71 90)
@@ -4154,7 +4154,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "SQJ415EP"
+		(property "Value" "SQJ461EP"
 			(at 44.45 88.9 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4306,7 +4306,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp no)
+		(dnp yes)
 		(uuid "e65a36aa-4fb0-5b9b-ae9a-cf7851a5a526")
 		(property "Reference" "R2"
 			(at 74.93 65.41 90)

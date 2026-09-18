@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-15T20:17:50")
+		(date "2026-09-18T23:14:50")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -905,7 +905,7 @@
 		)
 		(comp
 			(ref "Q1")
-			(value "SQJ415EP")
+			(value "SQJ461EP")
 			(fields
 				(field
 					(name "Footprint")
@@ -1038,6 +1038,9 @@
 				(value "sheets/power_input.kicad_sch")
 			)
 			(property
+				(name "dnp")
+			)
+			(property
 				(name "ki_keywords")
 				(value "R res resistor")
 			)
@@ -1090,6 +1093,9 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/power_input.kicad_sch")
+			)
+			(property
+				(name "dnp")
 			)
 			(property
 				(name "ki_keywords")
@@ -4778,6 +4784,63 @@
 			)
 		)
 		(comp
+			(ref "C61")
+			(value "10pF")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "C")
+				(description "Unpolarized capacitor")
+			)
+			(property
+				(name "Sheetname")
+				(value "rails")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/rails.kicad_sch")
+			)
+			(property
+				(name "dnp")
+			)
+			(property
+				(name "ki_keywords")
+				(value "cap capacitor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "C_*")
+			)
+			(sheetpath
+				(names "/rails/")
+				(tstamps "/4a66277e-62b8-454b-8781-170494cf9f57/")
+			)
+			(tstamps "11447256-4f9e-50b2-886c-0976b2121b71")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
 			(ref "D4")
 			(value "SS5PH102")
 			(description "Schottky diode")
@@ -5427,7 +5490,7 @@
 		)
 		(comp
 			(ref "R12")
-			(value "115k")
+			(value "576k")
 			(fields
 				(field
 					(name "Footprint")
@@ -5481,7 +5544,7 @@
 		)
 		(comp
 			(ref "R13")
-			(value "4.99k")
+			(value "24.9k")
 			(fields
 				(field
 					(name "Footprint")
@@ -14767,6 +14830,11 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "C61")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "D4")
 				(pin "1")
 				(pinfunction "K_1")
@@ -16936,6 +17004,11 @@
 			(code "98")
 			(name "/rails/FB_24V")
 			(class "Default")
+			(node
+				(ref "C61")
+				(pin "2")
+				(pintype "passive")
+			)
 			(node
 				(ref "R12")
 				(pin "2")
