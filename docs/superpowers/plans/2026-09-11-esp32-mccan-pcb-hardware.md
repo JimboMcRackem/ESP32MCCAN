@@ -40,6 +40,26 @@ Recorded at the Task 7 schematic review (2026-09-18), observation **O6** plus th
 **Task 3 Steps 3–5** (lay out the second feed as DNP, draw the Schottky OR, verify the DNP feed is
 isolated) are **withdrawn by F5** and must not be executed. Task 3 is complete without them.
 
+**Task 8 Step 3's thermal figures are STALE and its part list is wrong.** The step reads *"These are
+~3.8 W of the board's dissipation in daytime — 3.50 W boost + 0.30 W P-FET"*, and names *"Boost
+high-side and low-side FETs, the boost inductor, the single P-FET and the PROFET"*. All of that
+predates the 2026-09-13 rewrite of spec §9.4. Corrected:
+
+| Step 3 says | Current truth | Source |
+|---|---|---|
+| ~3.8 W, **daytime** governs | **~2.70 W, NIGHT governs.** Daytime is ~1.4 W + inductors | spec §9.4 |
+| 3.50 W boost | **0.83 W daytime / ~0.20 W night** — the RGB load fell ~4× | spec §9.4 |
+| "Boost high-side and low-side FETs" | **THERE ARE NO EXTERNAL BOOST FETs.** The LM51571-Q1 integrates the switch | part-selection row 3.6 (VOID) |
+| — | **L1 + L2 dissipate 0.90 W of the ~2.70 W** and are not mentioned at all | review F4 |
+
+**The thermal group to place on the plate edge is therefore:** **Q1** (P-FET, **0.78 W — the largest
+single term**), **L2** (input CM choke, **0.78 W across both windings**), **U9** (PROFET, 0.35 W),
+**L1** (0.28 W), **U3** (boost IC, 0.20 W night / 0.83 W daytime) and **L3** (boost inductor).
+
+> **L2 is the most constrained placement on the board** and should be placed first: it is
+> simultaneously a top-two heat source, **the tallest part at ~24 mm**, **through-hole** on an
+> otherwise-SMD board, and **23.0 × 17.0 mm** in the board plane.
+
 **Two review findings gate Task 8:**
 - **F4** — L1, L2, L4, L5 and L6 have **no part numbers**, and L1/L2 carry the full 7.0 A. New
   requirement: **L1 plus both L2 windings ≤ 22 mΩ total** (budget L1 ≤ 8 mΩ, L2 ≤ 7 mΩ/winding).
