@@ -6,7 +6,8 @@
 enclosure and harness documentation and a bring-up procedure, for the ESP32 MCCAN motorcycle
 lighting controller.
 
-**Architecture:** Single 12 V feed (second feed as DNP footprints); synchronous boost to 24 V for four
+**Architecture:** Single 12 V feed, 3-way connector (**no second-feed provision** — see amendments);
+**non-synchronous** boost to 24 V for four
 common-anode RGB COB strings switched low-side through discrete MOSFETs with a shunt/mux/ADC
 per-channel diagnostic chain;
 Denali D4 2.0 pair switched high-side through a dual PROFET; ESP32-WROOM-32E-N8 with a PCA9685
@@ -16,6 +17,37 @@ generating RGB PWM and LEDC generating Denali PWM; deep sleep with wake on CAN b
 design records committed alongside the design files.
 
 **Spec:** `docs/superpowers/specs/2026-09-11-esp32-mccan-pcb-hardware-design.md`
+
+---
+
+## AMENDMENTS — read before working any task
+
+**The spec is the source of truth, and it has moved ahead of this plan in several places.** The
+schematic is built to the *spec*. Do **not** "correct" the schematic to match a plan row listed
+below — the row is what is wrong.
+
+Recorded at the Task 7 schematic review (2026-09-18), observation **O6** plus the **F5** ruling:
+
+| Plan says | Current truth | Superseded |
+|---|---|---|
+| Second feed retained as **DNP footprints**; `VBAT_B`; **Schottky OR pair** | **No second-feed provision at all.** One feed, one fuse, one P-FET stage, and **D3 is a single Schottky**. `VBAT_B` does not exist. Restoring the domain split needs a respin | **F5, 2026-09-18** — spec §4.4 amended |
+| PWR connector **2-way** | **3-way** — the third cavity carries `IGN_IN` for the topology-B battery feed | spec §8.1a |
+| **1 Ω** RGB shunt, 0.14 A, 140 mV, 2512 | **10 Ω**, 26.7 mA, 267 mV — the RGB load fell ~4x | spec §5.1, 2026-09-13 |
+| **Synchronous** boost | **Non-synchronous** — the selected LM51571-Q1 is non-sync, hence D4 | part selection |
+| Boost **UVLO divider ≥ 1 MΩ** | **No divider.** The enable pin is driven straight from the GPIO | spec §6 |
+| P-FET **SQJ415EP** (40 V) | **SQJ461EP** (60 V) — the SMBJ24A clamps at 38.9 V | 2026-09-13 |
+
+**Task 3 Steps 3–5** (lay out the second feed as DNP, draw the Schottky OR, verify the DNP feed is
+isolated) are **withdrawn by F5** and must not be executed. Task 3 is complete without them.
+
+**Two review findings gate Task 8:**
+- **F4** — L1, L2, L4, L5 and L6 have **no part numbers**, and L1/L2 carry the full 7.0 A. New
+  requirement: **L1 plus both L2 windings ≤ 22 mΩ total** (budget L1 ≤ 8 mΩ, L2 ≤ 7 mΩ/winding).
+  Also reconsider L1 = 10 µH; ~2.2 µH still gives ~70 dB at 400 kHz with far less DCR and size.
+- Nothing in the project has a footprint except the PROFET's
+  (`Package_SO:Infineon_PG-TSDSO-14-22`). Assigning them all is Task 8's job.
+
+Full detail: `hardware/docs/schematic-review.md`.
 
 ---
 
@@ -874,7 +906,7 @@ to select which channel `IS` reports. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the D
 | RR | Superseal 1.0, 4-way | `+24V_RR`, `RET_RR_R`, `RET_RR_G`, `RET_RR_B` |
 | DENALI | Superseal 1.5, 3-way | `DEN_A_OUT`, `DEN_B_OUT`, `GND` |
 | CAN | Superseal 1.0, 2-way | `CANH`, `CANL` |
-| PWR | Superseal 1.5, 2-way | Feed +/− (on the power_input sheet). **One connector** — the second feed is DNP footprints with no panel cutout |
+| PWR | Superseal 1.5, **3-way** | Feed +/− plus `IGN_IN` (on the power_input sheet). **One connector** — there is no second feed (F5) |
 
 Annotate each corner connector with its intended **distinct colour or keying code** — the
 schematic is where that decision gets recorded, since mis-mating reverses the indicators and the
@@ -926,12 +958,12 @@ schematic; fill in the sheet and reference designator that satisfies it.
 
 | Spec | Requirement | Sheet / refdes | Verdict |
 |---|---|---|---|
-| 2.2 | Single populated feed; second feed is DNP footprints only, with no panel cutout | | |
+| 2.2 | Single populated feed, 3-way connector. **No second-feed provision** (F5, 2026-09-18) | | |
 | 4.1 | ONE panel fuse holder, 10 A, sized for the 7.8 A night case | | |
 | 4.2 | P-FET reverse polarity, sized for **7.8 A** (1.22 W at the 20 mOhm ceiling), Vgs clamped, **gate network >= 1 MOhm** (sleep budget) | | |
 | 4.3 | 24 V TVS; all front-end parts >= 40 V | | |
 | 4.3 | pi filter + CM choke on each feed | | |
-| 4.4 | Buck input from VLOGIC_IN; Schottky OR footprints present, second feed DNP | | |
+| 4.4 | Buck input from `VLOGIC_IN` via **D3, a single Schottky**. No second feed, no OR pair (F5) | | |
 | 5.1 | 12x discrete MOSFET, Vds >= 40 V, **Id >= 0.5 A at Vgs <= 3.3 V from the output curve** (NO Vgs(th) threshold - withdrawn, I9) | | |
 | 5.1 | 1 ohm shunt per channel; 12 SENSE_* into 16:1 mux in ChannelIndex order | | |
 | 5.1 | MUX_S0-S3 on GPIO 23/4/16/5 with pulldowns; RGB_ISNS on GPIO 32 (ADC1) | | |
@@ -1317,7 +1349,7 @@ git commit -m "hw(docs): staged bring-up procedure with pass criteria and measur
 | §4.1 Fusing, one holder | 3, 10 |
 | §4.2 P-FET reverse polarity | 3 |
 | §4.3 Transient protection | 3 |
-| §4.4 Single feed; second feed DNP; Schottky OR | 3, 7 |
+| §4.4 Single feed; **no second-feed provision** (F5); D3 single Schottky | 3, 7 |
 | §5.1 Discrete FETs + shunt/mux/ADC sense chain | 2 (revised criteria), 6 |
 | §5.2 Per-string PTC | 6 |
 | §5.3 Dual PROFET | 2, 6 |

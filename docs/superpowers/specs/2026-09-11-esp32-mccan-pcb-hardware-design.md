@@ -92,8 +92,12 @@ against a Feed A failure — they were always on Feed A — so the loss is narro
 a feed fault now also takes the Denali lights. Against that, there is one less connector, one less
 fuse and one less cable run to fail, which on a motorcycle harness is a real reliability gain.
 
-**The second feed's board footprints remain, unpopulated** (§4.4), so the split can be restored
-without a respin if the 78% night loading ever proves uncomfortable.
+**No provision for a second feed is carried on the board** (§4.4, amended 2026-09-18). An earlier
+revision retained the second feed's footprints unpopulated; that retention was dropped once the
+design moved on — J1 became a **3-way** carrying `IGN_IN` for the topology-B battery-feed case
+(§8.1a), which is a better and already-built answer to "what if the supply arrangement changes",
+and the board's area is thermally constrained by the ≥ 150 cm² heat-spreader plate (§9.4).
+Restoring the domain split would need a respin.
 
 **The RGB figure remains assumed, not measured** — 20 W/m × 0.5 m × 4 strings. Re-verify when the
 strips are measured. The daytime load is only 39% of the feed, so a higher real figure is absorbed
@@ -319,16 +323,34 @@ the simple tied-ground case for the first prototype, while the footprint is pres
 fitting a real choke after EMI measurement needs no board revision. The footprint must be placed now
 regardless, because adding it later is a layout change.
 
-### 4.4 Single feed, with the second laid out unpopulated
+### 4.4 Single feed
 
-**One** 2-way power connector with its own P-FET reverse-polarity stage, transient clamp and fuse
+**One** power connector with its own P-FET reverse-polarity stage, transient clamp and fuse
 (§4.1). **Decided 2026-09-12**, superseding the dual-feed arrangement, once §2.4 established that the
-loads never coincide.
+loads never coincide. The connector is **3-way**, not 2-way — the third cavity carries `IGN_IN`
+(§8.1a).
 
-**The second feed's board footprints are retained and left unpopulated** — connector position,
-P-FET stage and the Schottky OR — so the domain split below can be restored by populating parts, not
-by respinning the board. The **panel** carries no second connector or fuse holder: drilling a plastic
-enclosure later is trivial, re-fabricating a PCB is not, so the asymmetry is deliberate.
+> **Amended 2026-09-18 (schematic review, F5).** This section previously required the second feed's
+> footprints — connector position, P-FET stage and a Schottky OR pair — to be **retained unpopulated**
+> so the domain split could be restored by stuffing parts rather than respinning. **That requirement
+> is withdrawn, and the board carries no second-feed provision.** Three reasons:
+>
+> 1. **The load analysis has held through two reversals.** Night, the governing case, draws **7.0 A
+>    of a 10 A feed**, and §2.4's operating modes are owner-confirmed rather than assumed. The
+>    contingency the footprints insured against has not become more likely; it has become less so.
+> 2. **The design already has a better answer.** J1 is now a 3-way carrying `IGN_IN` for the
+>    topology-B battery-feed case (§8.1a). "What if the supply arrangement changes" is handled by a
+>    populated pin, not by dormant copper.
+> 3. **Board area is thermally constrained.** §9.4 requires a ≥ 150 cm² flat heat-spreader plate,
+>    and the single-feed front end already carries L1 and L2 at the full 7.0 A. A second
+>    high-current connector footprint and P-FET stage that will never be populated on the reference
+>    bike costs area the thermal design needs.
+>
+> The **Schottky OR** likewise reduces to what is built: **D3, a single Schottky** feeding
+> `VLOGIC_IN` from `VBAT`. There is no second diode and no `VBAT_B` net.
+>
+> The domain-split material below is **retained as design rationale only** — it records why the dual
+> feed was retired and what restoring it would entail. **Restoring it requires a board respin.**
 
 **Single-feed P-FET note:** one stage now carries the whole load, so at the 20 mΩ ceiling it
 dissipates **0.30 W in daytime and 1.22 W at night** (§9.4). Night's higher figure does not govern
@@ -336,8 +358,8 @@ the thermal design, because night's total is only ~2.9 W against daytime's ~4.5 
 
 ---
 
-**If the second feed is ever populated**, the arrangement below applies. It is a **domain split, not
-a parallel share:**
+**If a second feed were ever added** — which now requires a respin, see the amendment above — the
+arrangement below would apply. It is a **domain split, not a parallel share:**
 
 **Split by domain, never paralleled.** Paralleling two feeds divides current by path resistance
 (wire gauge, length, contact resistance), giving something like 8 A / 4 A rather than 5 A / 5 A;

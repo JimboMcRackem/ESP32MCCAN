@@ -1,0 +1,506 @@
+                                             Features                                           Applications
+
+                                              RoHS compliant*                                    IEC 61000-4-2 ESD (Min. Level 4)
+                                              Surface Mount SMB package                          IEC 61000-4-4 EFT
+                                              Standoff Voltage: 5 to 495 volts                   IEC 61000-4-5 Surge
+                                              Power Dissipation: 600 watts
+
+                                             SMBJ Transient Voltage Suppressor Diode Series
+
+  General Information                                                                             Additional Information
+                                                                                                Click these links for more information:
+The markets of portable communications, computing and video equipment are challenging the
+semiconductor industry to develop increasingly smaller electronic components.                       PRODUCT TECHNICAL INVENTORY SAMPLES CONTACT
+                                                                                                    SELECTOR LIBRARY
+Bourns offers Transient Voltage Suppressor Diodes for surge and ESD protection
+applications, in compact chip package DO-214AA (SMB) size format. The Transient Voltage               Agency Recognition
+Suppressor series offers a choice of Working Peak Reverse Voltage from 5 V up to 495 V and
+Breakdown Voltage up to 550 V. Typical fast response times are less than 1.0 picosecond                     Description
+for unidirectional devices and less than 5.0 picoseconds for bidirectional devices from 0 V to
+Minimum Breakdown Voltage.                                                                              UL  File Number: E153537
+
+Bourns® Chip Diodes conform to JEDEC standards, are easy to handle with standard pick and
+place equipment and the flat configuration minimizes roll away.
+
+Electrical Characteristics (@ TA = 25 °C Unless Otherwise Noted)
+
+Parameter                                                                                       Symbol      Value         Unit
+                                                                                                                          Watts
+Minimum Peak Pulse Power Dissipation (TP = 1 ms) (Note 1,2)                                     PPK         600
+                                                                                                                          Amps
+Peak Forward Surge Current                                                                      IFSM        100
+8.3 ms Single Half Sine Wave Superimposed on Rated Load                                                                   Watts
+(JEDEC Method) (Note 3)                                                                                                   Volts
+
+Steady State Power Dissipation @ TL = 75 °C                                                     PM(AV)      5.0             °C
+                                                                                                                            °C
+Maximum Instantaneous Forward Voltage @ IPP = 50 A SMBJ5.0A ~ SMBJ90A                           VF          3.5
+                                                                                                            5.0
+(For Unidirectional Units Only)                    SMBJ100A ~ SMBJ495A
+
+Operating Temperature Range                                                                     TJ          -55 to +150
+
+Storage Temperature Range                                                                       TSTG        -55 to +150
+
+1. Non-repetitive current pulse, per Pulse Waveform graph and derated above TA = 25 °C per Pulse Derating Curve.
+2. Thermal Resistance Junction to Lead.
+
+3. 8.3 ms Single Half-Sine Wave duty cycle = 4 pulses maximum per minute (unidirectional units only).
+
+                                                               How to Order                                        SMBJ 5.0 CA - H
+
+Asia-Pacific:                                                Package
+Tel: +886-2 2562-4117 · Email: asiacus@bourns.com                 SMBJ = SMB/DO-214AA
+
+EMEA:                                                        Working Peak Reverse Voltage
+Tel: +36 88 885 877 · Email: eurocus@bourns.com                   5.0 = 5.0 VRWM (Volts)
+
+The Americas:                                                Suffix
+Tel: +1-951 781-5500 · Email: americus@bourns.com                 A = 5 % Tolerance Unidirectional Device
+                                                                  CA = 5 % Tolerance Bidirectional Device
+www.bourns.com
+                                                             Reel
+                                                                  (blank) = 13 inch reel
+                                                                  -H = 7 inch reel
+
+             WARNING Cancer and Reproductive Harm - www.P65Warnings.ca.gov
+
+*RoHS Directive 2015/863, Mar 31, 2015 and Annex.
+Specifications are subject to change without notice.
+Users should verify actual device performance in their specific applications.
+The products described herein and this document are subject to specific legal disclaimers as set forth on the last page of this document, and at www.bourns.com/docs/legal/disclaimer.pdf.
+SMBJ Transient Voltage Suppressor Diode Series
+
+Electrical Characteristics (@ TA = 25 °C Unless Otherwise Noted)
+
+Unidirectional Device Bidirectional Device  Breakdown Voltage                        Working  Maximum   Maximum      Maximum      Maximum     Maximum
+                                                 VBR (Volts)                           Peak    Reverse  Clamping        Peak      Clamping       Peak
+                                                                                              Leakage                  Pulse                    Pulse
+                                                                                     Reverse  @ VRWM     Voltage                   Voltage
+                                                                                     Voltage              @ Ipp       Current       @ Ipp      Current
+
+Part No. Marking  Part No.  Marking Min.    Max.  @ IT                               VRWM      IR       (10/1000 s)  (10/1000 s)    (8/20 s)    (8/20 s)
+                                                  (mA)                                 (V)    (A)
+                                                                                                             Vc           Ipp          Vc          Ipp
+SMBJ5.0A  KE SMBJ5.0CA      AE              6.40 7.00 10                               5.0    800            (V)          (A)          (V)         (A)
+                                                                                       6.0    800
+SMBJ6.0A  KG SMBJ6.0CA      AG              6.67 7.37 10                               6.5    500           9.2          65.3         12.0       326.5
+                                                                                       7.0    200           10.3         58.3         13.4       291.5
+SMBJ6.5A  KK SMBJ6.5CA      AK              7.22 7.98 10                               7.5    100           11.2         53.6         14.6       268.0
+                                                                                       8.0     50           12.0         50.0         15.6       250.0
+SMBJ7.0A  KM SMBJ7.0CA      AM              7.78 8.60 10                               8.5     20           12.9         46.6         16.8       233.0
+                                                                                       9.0     10           13.6         44.2         17.7       221.0
+SMBJ7.5A  KP SMBJ7.5CA      AP              8.33 9.21 1.0                              10      5.0          14.4         41.7         18.7       208.5
+                                                                                        11     1.0          15.4         39.0         20.0       195.0
+SMBJ8.0A  KR SMBJ8.0CA      AR              8.89 9.83 1.0                              12      1.0          17.0         35.3         22.1       176.5
+                                                                                       13      1.0          18.2         33.0         23.7       165.0
+SMBJ8.5A  KT SMBJ8.5CA      AT              9.44 10.4 1.0                              14      1.0          19.9         30.2         25.9       151.0
+                                                                                       15      1.0          21.5         28.0         28.0       140.0
+SMBJ9.0A  KV SMBJ9.0CA      AV              10.0 11.1 1.0                              16      1.0          23.2         25.9         30.2       129.5
+                                                                                       17      1.0          24.4         24.6         31.7       123.0
+SMBJ10A   KX SMBJ10CA       AX              11.1 12.3 1.0                              18      1.0          26.0         23.1         33.8       115.5
+                                                                                       20      1.0          27.6         21.8         35.9       109.0
+SMBJ11A   KZ SMBJ11CA       AZ              12.2 13.5 1.0                              22      1.0          29.2         20.6         38.0       103.0
+                                                                                       24      1.0          32.4         18.6         42.1        93.0
+SMBJ12A   LE SMBJ12CA       BE              13.3 14.7 1.0                              26      1.0          35.5         16.9         46.2        84.5
+                                                                                       28      1.0          38.9         15.5         50.6        77.5
+SMBJ13A   LG SMBJ13CA       BG              14.4 15.9 1.0                              30      1.0          42.1         14.3         54.7        71.5
+                                                                                       33      1.0          45.4         13.3         59.0        66.5
+SMBJ14A   LK SMBJ14CA       BK              15.6 17.2 1.0                              36      1.0          48.4         12.4         62.9        62.0
+                                                                                       40      1.0          53.3         11.3         69.3        56.5
+SMBJ15A   LM SMBJ15CA       BM              16.7 18.5 1.0                              43      1.0          58.1         10.4         75.5        52.0
+                                                                                       45      1.0          64.5         9.3          83.9        46.5
+SMBJ16A   LP SMBJ16CA       BP              17.8 19.7 1.0                              48      1.0          69.4         8.7          90.2        43.5
+                                                                                       51      1.0          72.7         8.3          94.5        41.5
+SMBJ17A   LR SMBJ17CA       BR              18.9 20.9 1.0                              54      1.0          77.4         7.8         100.6        39.0
+                                                                                       58      1.0          82.4         7.3         107.1        36.5
+SMBJ18A   LT SMBJ18CA       BT              20.0 22.1 1.0                              60      1.0          87.1         6.9         113.2        34.5
+                                                                                       64      1.0          93.6         6.5         121.7        32.5
+SMBJ20A   LV SMBJ20CA       BV              22.2 24.5 1.0                              70      1.0          96.8         6.2         125.8        31.0
+                                                                                       75      1.0          103          5.9         133.9        29.5
+SMBJ22A   LX SMBJ22CA       BX              24.4 26.9 1.0                              78      1.0          113          5.3         146.9        26.5
+                                                                                       85      1.0          121          5.0         157.3        25.0
+SMBJ24A   LZ SMBJ24CA       BZ              26.7 29.5 1.0                              90      1.0          126          4.8         163.8        24.0
+                                                                                       100     1.0          137          4.4         178.1        22.0
+SMBJ26A   ME SMBJ26CA       CE              28.9 31.9 1.0                              110     1.0          146          4.1         189.8        20.5
+                                                                                       120     1.0          162          3.7         210.6        18.5
+SMBJ28A   MG SMBJ28CA       CG 31.1 34.4 1.0                                           130     1.0          177          3.4         230.1        17.0
+                                                                                       150     1.0          193          3.1         250.9        15.5
+SMBJ30A   MK SMBJ30CA       CK              33.3 36.8 1.0                              160     1.0          209          2.9         271.7        14.5
+                                                                                       170     1.0          243          2.5         315.9        12.5
+SMBJ33A   MM SMBJ33CA       CM 36.7 40.6 1.0                                           180     1.0          259          2.3         336.7        11.5
+                                                                                       200     1.0          275          2.2         357.5        11.0
+SMBJ36A   MP SMBJ36CA       CP              40 44.2 1.0                                220     1.0          292          2.1         379.6        10.5
+                                                                                       250     1.0          324          1.9         421.2
+SMBJ40A   MR SMBJ40CA       CR              44.4 49.1 1.0                              300     1.0          356          1.7         462.8        9.5
+                                                                                       350     1.0          405          1.5         526.5        8.5
+SMBJ43A   MT SMBJ43CA       CT              47.8 52.8 1.0                              376     1.0          486          1.3         631.8        7.5
+                                                                                       400     1.0          567          1.1         737.1        6.5
+SMBJ45A   MV SMBJ45CA       CV              50 55.3 1.0                                408     1.0          602          1.0         782.6        5.5
+                                                                                       440     1.0          648          0.9         842.4        5.0
+SMBJ48A   MX SMBJ48CA       CX              53.3 58.9 1.0                              495     1.0          658          0.9         855.4        4.5
+                                                                                                            713          0.9         926.9        4.6
+SMBJ51A   MZ SMBJ51CA       CZ              56.7 62.7 1.0                                                   760          0.8         988.0        4.5
+                                                                                                                                                  3.9
+SMBJ54A   NE SMBJ54CA       DE              60 66.3 1.0
+
+SMBJ58A   NG SMBJ58CA       DG              64.4 71.2 1.0
+
+SMBJ60A   NK SMBJ60CA       DK              66.7 73.7 1.0
+
+SMBJ64A   NM SMBJ64CA       DM              71.1 78.6 1.0
+
+SMBJ70A   NP SMBJ70CA       DP              77.8 86.0 1.0
+
+SMBJ75A   NR SMBJ75CA       DR              83.3 92.1 1.0
+
+SMBJ78A   NT SMBJ78CA       DT              86.7 95.8 1.0
+
+SMBJ85A   NV SMBJ85CA       DV              94.4 104 1.0
+
+SMBJ90A   NX SMBJ90CA       DX              100 111 1.0
+
+SMBJ100A NZ SMBJ100CA DZ                    111 123 1.0
+
+SMBJ110A PE SMBJ110CA EE                    122 135 1.0
+
+SMBJ120A PG SMBJ120CA EG                    133 147 1.0
+
+SMBJ130A PK SMBJ130CA EK                    144 159 1.0
+
+SMBJ150A PM SMBJ150CA EM                    167 185 1.0
+
+SMBJ160A PP SMBJ160CA EP                    178 197 1.0
+
+SMBJ170A PR SMBJ170CA ER                    189 209 1.0
+
+SMBJ180A PT SMBJ180CA ET                    201 222 1.0
+
+SMBJ200A PV SMBJ200CA EV                    224 247 1.0
+
+SMBJ220A PX SMBJ220CA EX                    246 272 1.0
+
+SMBJ250A PZ SMBJ250CA EZ                    279 309 1.0
+
+SMBJ300A QE SMBJ300CA WE                    335 371 1.0
+
+SMBJ350A QG SMBJ350CA WG                    391 432 1.0
+
+SMBJ376A 376A SMBJ376CA 376C 418 462 1.0
+
+SMBJ400A QK SMBJ400CA WK                    447 494 1.0
+
+SMBJ408A 408A SMBJ408CA 408C 456 504 1.0
+
+SMBJ440A QM SMBJ440CA WM                    492 543 1.0
+
+SMBJ495A 495A SMBJ495CA 495C 522 578 1.0
+
+Notes:
+1. Suffix `A' denotes a 5 % tolerance unidirectional device.
+2. Suffix `CA' denotes a 5 % tolerance bidirectional device.
+3. For bidirectional devices with a VR of 10 volts or less, the IR limit is double.
+
+Specifications are subject to change without notice.
+Users should verify actual device performance in their specific applications.
+The products described herein and this document are subject to specific legal disclaimers as set forth on the last page of this document, and at www.bourns.com/docs/legal/disclaimer.pdf.
+SMBJ Transient Voltage Suppressor Diode Series
+
+Product Dimensions                                                        Recommended Footprint
+
+                                                       A                                                                         A
+
+B                                                                      C                                                                         B
+
+                                                                                                                                              C
+
+G
+
+   H          F                                                        D  Dimension   SMB (DO-214AA)
+                                                                            A (Max.)           2.69
+                                                          E                 B (Min.)
+                                                                            C (Min.)         (0.106)
+                                                                                               2.10
+   Dimension     SMB (DO-214AA)
+         A            4.06 - 4.57                                                            (0.083)
+         B                                                                                     1.27
+         C         (0.160 - 0.180)
+         D            3.30 - 3.94                                                            (0.050)
+         E
+         F         (0.130 - 0.155)                                        DIMENSIONS:                                                  MM
+         G            1.95 - 2.20                                                                                                   (INCHES)
+         H
+                   (0.077 - 0.087)                                          Physical Specifications
+                      0.15 - 0.31
+                                                                          Case ............................................ Molded plastic per UL Class 94V-0
+                   (0.006 - 0.012)                                        Polarity.........................Cathode band indicates unidirectional device
+                      5.21 - 5.59
+                                                                                                      No cathode band indicates bidirectional device
+                   (0.205 - 0.220)                                        Weight ............................................................................ 0.093 grams
+                     0.05 - 0.203
+
+                   (0.002 - 0.008)
+                      2.13 - 2.44
+
+                   (0.084 - 0.096)
+                      0.76 - 1.52
+
+                   (0.030 - 0.060)
+
+      DIMENSIONS:                                               MM
+                                                             (INCHES)
+
+Specifications are subject to change without notice.
+Users should verify actual device performance in their specific applications.
+The products described herein and this document are subject to specific legal disclaimers as set forth on the last page of this document, and at www.bourns.com/docs/legal/disclaimer.pdf.
+SMBJ Transient Voltage Suppressor Diode Series
+
+Rating & Characteristic Curves                                                                           Maximum Non-Repetitive Surge Current
+
+Pulse Derating Curve                                                                                            120
+                                                                                                                100
+          100
+
+Peak Pulse Derating in Percent of  75                                                                                                               Peak Forward Surge Current (Amps)
+   Peak Power or Current
+                                                                                                                                                                                       80
+
+                                   50                                                                                                                                                  60
+
+                                                                                                                                                                                       40
+
+                                   25                                                                                                                                                             Pulse Width 8.3 ms
+
+                                          10 x 1000 Waveform as Defined                                                                                                                20         Single Half Sine-Wave
+
+                                             by R.E.A.
+
+                                   0                                                                                                                                                   0       1  2   5                  10 20            50    100
+
+                                       0     25 50 75 100 125 150 175 200
+
+                                                     Ambient Temperature (°C)                                                                                                                                  Number of Cycles at 60 Hz
+
+Pulse Waveform                                                                                           Typical Junction Capacitance
+
+                                             TR=10 µs                                                                                               10000                                             Bidirectional
+                                                                                                                                                                                                           v-0v
+                                             Peak value (IRSM)
+                                   100
+                                                                                                                                                                                                                                Unidirectional
+IP, Peak Pulse Current (%)                           Half  value=  IRSM                                  CJ - Junction Capacitance (pF)             1000 Unidirectional                                                              v-0v
+                                                                     2                                                                                             @ VR
+
+                                                                            Pulse width (TP)                                                                                           100
+                                                                        is defined as that point
+                                   50                                    where the peak current                                                                                               TJ = 25 °C
+                                                                        decays to 50 % of IPSM.                                                                                        10 f = 1.0 MHz
+                                           TA=25 °C
+                                               TP                         10 x 1000 waveform                                                                                                  Vsig = 50 mVp-p
+                                                                          as defined by R.E.A.
+
+                                                                                                                                                                                                                          Bidirectional
+                                                                                                                                                                                                                              @ VR
+
+                                       0                                                                                                                                                    1
+
+                                          0          1.0           2.0           3.0              4.0                                                                                          1               10               100             1000
+
+                                                                   T, Time (ms)                                                                                                                       VBR - Reverse Breakdown Voltage (V)
+
+Pulse Rating Curve                                                                                       Steady State Power Derating Curve
+
+        100                                                                                                   5.0
+
+          10                                                            TA = 25 °C                       RM(AV) Steady State Power Dissipation (W)                                     4.0
+
+PP, Peak Power (KW)                                                   Non-repetitive                                                                                                   3.0
+                                                                    Pulse Waveform
+                                                           Shown in Pulse Waveform Graph
+
+                                                                                                                                                                                       2.0
+
+                     1.0                                                                                                                                                               1.0
+                                  5.0 mm Lead Areas
+
+                                                                                                                                                                                                      60 Hz Resistive or
+
+                     0.1                                                                                                                                                                              Inductive Load
+                        0.1 µs
+                                             1.0 µs        10 µs         100 µs  1.0 ms           10 ms                                                                                0.0
+
+                                                                                                                                                                                            0     25  50 75 100 125 150 175 200
+
+                                                           TP, Pulse Width                                                                                                                            TL, Lead Temperature (°C)
+
+Specifications are subject to change without notice.
+Users should verify actual device performance in their specific applications.
+The products described herein and this document are subject to specific legal disclaimers as set forth on the last page of this document, and at www.bourns.com/docs/legal/disclaimer.pdf.
+     SMBJ Transient Voltage Suppressor Diode Series
+
+  Packaging Information
+The product will be dispensed in tape and reel format (see diagram below).
+
+              P0
+
+              P1                                 E                                      T
+                        d Index Hole
+
+                                                                     F                                                                     120 °
+                                                                                                                                                         D2
+                                                                            W
+B                                                                                                                                                            D1 D
+
+              P                         A                                      C
+     Trailer                                                                            Leader
+                        Unidirectional     Device
+                               Product
+
+                           Orientation
+
+     .......            .......            .......                             .......                                                                       W1
+
+End  .......            .......                    .......                     .......            Start
+
+                                                                                                                              DIMENSIONS:     MM
+                                                                                                                                           (INCHES)
+     10 pitches (min.)                                                         10 pitches (min.)
+
+                                                                                                           Devices are packed in accordance with EIA standard
+
+                                                                               Direction of Feed           RS-481-A and specifications shown here.
+
+                        Item                                                   Symbol                      SMB (DO-214AA)
+                        Carrier Width                                              A
+                        Carrier Length                                             B              7 Inch Reel                13 Inch Reel
+                        Carrier Depth                                              C
+                        Sprocket Hole                                              d                         3.67 ± 0.20
+                        Reel Outside Diameter                                      D                       (0.144 ± 0.008)
+                        Reel Inner Diameter                                       D1
+                        Feed Hole Diameter                                        D2                         5.60 ± 0.20
+                        Sprocket Hole Position                                     E                       (0.220 ± 0.008)
+                        Punch Hole Position                                        F
+                        Punch Hole Pitch                                           P                         2.57 ± 0.20
+                        Sprocket Hole Pitch                                       P0                       (0.101 ± 0.008)
+                        Embossment Center                                         P1
+                        Overall Tape Thickness                                     T                         1.50 ± 0.10
+                        Tape Width                                                 W                       (0.059 ± 0.004)
+                        Reel Width                                                W1
+                        Quantity per Reel                                          --               178                         330
+                                                                                                  (7.008)                    (12.992)
+
+                                                                                                                50.0    MIN.
+                                                                                                               (1.969)
+
+                                                                                                             13.0 ± 0.20
+                                                                                                           (0.512 ± 0.008)
+
+                                                                                                             1.75 ± 0.10
+                                                                                                           (0.069 ± 0.004)
+
+                                                                                                             5.50 ± 0.05
+                                                                                                           (0.217 ± 0.002)
+
+                                                                                                             8.00 ± 0.10
+                                                                                                           (0.315 ± 0.004)
+
+                                                                                                             4.00 ± 0.10
+                                                                                                           (0.157 ± 0.004)
+
+                                                                                                             2.00 ± 0.05
+                                                                                                           (0.079 ± 0.002)
+
+                                                                                                             0.30 ± 0.10
+                                                                                                           (0.012 ± 0.004)
+
+                                                                                                               12.00 ± 0.30
+
+                                                                                                           (0.472 ± 0.012)
+
+                                                                                                                18.4    MAX.
+                                                                                                               (0.724)
+
+                                                                                                  500                         3,000
+
+REV. 09/20
+
+Specifications are subject to change without notice.
+Users should verify actual device performance in their specific applications.
+The products described herein and this document are subject to specific legal disclaimers as set forth on the last page of this document, and at www.bourns.com/docs/legal/disclaimer.pdf.
+    Legal Disclaimer Notice
+
+This legal disclaimer applies to purchasers and users of Bourns® products manufactured by or on behalf of Bourns, Inc. and
+P[ZHSPH[LZJVSSLJ[P]LS`¸)V\YUZ¹
+
+Unless otherwise expressly indicated in writing, Bourns® products and data sheets relating thereto are subject to change
+^P[OV\[UV[PJL<ZLYZZOV\SKJOLJRMVYHUKVI[HPU[OLSH[LZ[YLSL]HU[PUMVYTH[PVUHUK]LYPM`[OH[Z\JOPUMVYTH[PVUPZJ\YYLU[
+and complete before placing orders for Bourns® products.
+
+The characteristics and parameters of a Bourns® product set forth in its data sheet are based on laboratory conditions, and
+statements regarding the suitability of products for certain types of applications are based on Bourns' knowledge of typical
+requirements in generic applications. The characteristics and parameters of a Bourns®WYVK\J[PUH\ZLYHWWSPJH[PVUTH`]HY`
+MYVT[OLKH[HZOLL[JOHYHJ[LYPZ[PJZHUKWHYHTL[LYZK\L[VP[OLJVTIPUH[PVUVM[OL)V\YUZ® product with other components
+PU[OL\ZLY»ZHWWSPJH[PVUVYPP[OLLU]PYVUTLU[VM[OL\ZLYHWWSPJH[PVUP[ZLSM;OLJOHYHJ[LYPZ[PJZHUKWHYHTL[LYZVMH)V\YUZ®
+WYVK\J[HSZVJHUHUKKV]HY`PUKPLYLU[HWWSPJH[PVUZHUKHJ[\HSWLYMVYTHUJLTH`]HY`V]LY[PTL<ZLYZZOV\SKHS^H`Z]LYPM`
+the actual performance of the Bourns®WYVK\J[PU[OLPYZWLJPÄJKL]PJLZHUKHWWSPJH[PVUZHUKTHRL[OLPYV^UPUKLWLUKLU[
+Q\KNTLU[ZYLNHYKPUN[OLHTV\U[VMHKKP[PVUHS[LZ[THYNPU[VKLZPNUPU[V[OLPYKL]PJLVYHWWSPJH[PVU[VJVTWLUZH[LMVY
+KPLYLUJLZIL[^LLUSHIVYH[VY`HUKYLHS^VYSKJVUKP[PVUZ
+
+<USLZZ)V\YUZOHZL_WSPJP[S`KLZPNUH[LKHUPUKP]PK\HS)V\YUZ® product as meeting the requirements of a particular industry
+Z[HUKHYKLN0:6;:  VYHWHY[PJ\SHYX\HSPÄJH[PVULN<3SPZ[LKVYYLJVNUPaLK)V\YUZPZUV[YLZWVUZPISLMVYHU`
+MHPS\YLVMHUPUKP]PK\HS)V\YUZ®WYVK\J[[VTLL[[OLYLX\PYLTLU[ZVMZ\JOPUK\Z[Y`Z[HUKHYKVYWHY[PJ\SHYX\HSPÄJH[PVU<ZLYZ
+of Bourns® products are responsible for ensuring compliance with safety-related requirements and standards applicable to
+[OLPYKL]PJLZVYHWWSPJH[PVUZ
+
+Bourns®WYVK\J[ZHYLUV[YLJVTTLUKLKH\[OVYPaLKVYPU[LUKLKMVY\ZLPUU\JSLHYSPMLZH]PUNSPMLJYP[PJHSVYSPMLZ\Z[HPUPUN
+HWWSPJH[PVUZUVYPUHU`V[OLYHWWSPJH[PVUZ^OLYLMHPS\YLVYTHSM\UJ[PVUTH`YLZ\S[PUWLYZVUHSPUQ\Y`KLH[OVYZL]LYLWYVWLY[`
+VYLU]PYVUTLU[HSKHTHNL<USLZZL_WYLZZS`HUKZWLJPÄJHSS`HWWYV]LKPU^YP[PUNI`[^VH\[OVYPaLK)V\YUZYLWYLZLU[H[P]LZ
+on a case-by-case basis, use of any Bourns®WYVK\J[ZPUZ\JO\UH\[OVYPaLKHWWSPJH[PVUZTPNO[UV[ILZHMLHUK[O\ZPZH[
+[OL\ZLY»ZZVSLYPZR3PMLJYP[PJHSHWWSPJH[PVUZPUJS\KLKL]PJLZPKLU[PÄLKI`[OL<:-VVKHUK+Y\N(KTPUPZ[YH[PVUHZ*SHZZ000
+KL]PJLZHUKNLULYHSS`LX\P]HSLU[JSHZZPÄJH[PVUZV\[ZPKLVM[OL<UP[LK:[H[LZ
+
+)V\YUZL_WYLZZS`PKLU[PÄLZ[OVZL)V\YUZ®Z[HUKHYKWYVK\J[Z[OH[HYLZ\P[HISLMVY\ZLPUH\[VTV[P]LHWWSPJH[PVUZVUZ\JO
+WYVK\J[Z»KH[HZOLL[ZPU[OLZLJ[PVULU[P[SLK¸(WWSPJH[PVUZ¹<USLZZL_WYLZZS`HUKZWLJPÄJHSS`HWWYV]LKPU^YP[PUNI`[^V
+H\[OVYPaLK)V\YUZYLWYLZLU[H[P]LZVUHJHZLI`JHZLIHZPZ\ZLVMHU`V[OLY)V\YUZ®Z[HUKHYKWYVK\J[ZPUHUH\[VTV[P]L
+HWWSPJH[PVUTPNO[UV[ILZHMLHUK[O\ZPZUV[YLJVTTLUKLKH\[OVYPaLKVYPU[LUKLKHUKPZH[[OL\ZLY»ZZVSLYPZR0M)V\YUZ
+L_WYLZZS`PKLU[PÄLZHZ\IJH[LNVY`VMH\[VTV[P]LHWWSPJH[PVUPU[OLKH[HZOLL[MVYP[ZZ[HUKHYKWYVK\J[ZZ\JOHZPUMV[HPUTLU[
+VYSPNO[PUNZ\JOPKLU[PÄJH[PVUTLHUZ[OH[)V\YUZOHZYL]PL^LKP[ZZ[HUKHYKWYVK\J[HUKOHZKL[LYTPULK[OH[PMZ\JO)V\YUZ®
+Z[HUKHYKWYVK\J[PZJVUZPKLYLKMVYWV[LU[PHS\ZLPUH\[VTV[P]LHWWSPJH[PVUZP[ZOV\SKVUS`IL\ZLKPUZ\JOZ\IJH[LNVY`VM
+H\[VTV[P]LHWWSPJH[PVUZ(U`YLMLYLUJL[V)V\YUZ®Z[HUKHYKWYVK\J[PU[OLKH[HZOLL[HZJVTWSPHU[^P[O[OL(,*8Z[HUKHYK
+VY¸H\[VTV[P]LNYHKL¹KVLZUV[I`P[ZLSMTLHU[OH[)V\YUZOHZHWWYV]LKZ\JOWYVK\J[MVY\ZLPUHUH\[VTV[P]LHWWSPJH[PVU
+
+Bourns®Z[HUKHYKWYVK\J[ZHYLUV[[LZ[LK[VJVTWS`^P[O<UP[LK:[H[LZ-LKLYHS(]PH[PVU(KTPUPZ[YH[PVUZ[HUKHYKZNLULYHSS`
+VYHU`V[OLYNLULYHSS`LX\P]HSLU[NV]LYUTLU[HSVYNHUPaH[PVUZ[HUKHYKHWWSPJHISL[VWYVK\J[ZKLZPNULKVYTHU\MHJ[\YLKMVY
+\ZLPUHPYJYHM[VYZWHJLHWWSPJH[PVUZ)V\YUZL_WYLZZS`PKLU[PÄLZ)V\YUZ® standard products that are suitable for use in aircraft
+VYZWHJLHWWSPJH[PVUZVUZ\JOWYVK\J[Z»KH[HZOLL[ZPU[OLZLJ[PVULU[P[SLK¸(WWSPJH[PVUZ¹<USLZZL_WYLZZS`HUKZWLJPÄJHSS`
+HWWYV]LKPU^YP[PUNI`[^VH\[OVYPaLK)V\YUZYLWYLZLU[H[P]LZVUHJHZLI`JHZLIHZPZ\ZLVMHU`V[OLY)V\YUZ® standard
+WYVK\J[PUHUHPYJYHM[VYZWHJLHWWSPJH[PVUTPNO[UV[ILZHMLHUK[O\ZPZUV[YLJVTTLUKLKH\[OVYPaLKVYPU[LUKLKHUKPZH[
+the user's sole risk.
+
+;OL\ZLHUKSL]LSVM[LZ[PUNHWWSPJHISL[V)V\YUZ® custom products shall be negotiated on a case-by-case basis by Bourns
+and the user for which such Bourns®J\Z[VTWYVK\J[ZHYLZWLJPHSS`KLZPNULK(IZLU[H^YP[[LUHNYLLTLU[IL[^LLU)V\YUZ
+HUK[OL\ZLYYLNHYKPUN[OL\ZLHUKSL]LSVMZ\JO[LZ[PUN[OLHIV]LWYV]PZPVUZHWWSPJHISL[V)V\YUZ® standard products shall
+also apply to such Bourns® custom products.
+
+Users shall not sell, transfer, export or re-export any Bourns®WYVK\J[ZVY[LJOUVSVN`MVY\ZLPUHJ[P]P[PLZ^OPJOPU]VS]L[OL
+KLZPNUKL]LSVWTLU[WYVK\J[PVU\ZLVYZ[VJRWPSPUNVMU\JSLHYJOLTPJHSVYIPVSVNPJHS^LHWVUZVYTPZZPSLZUVYZOHSS[OL`\ZL
+Bourns®WYVK\J[ZVY[LJOUVSVN`PUHU`MHJPSP[`^OPJOLUNHNLZPUHJ[P]P[PLZYLSH[PUN[VZ\JOKL]PJLZ;OLMVYLNVPUNYLZ[YPJ[PVUZ
+HWWS`[VHSS\ZLZHUKHWWSPJH[PVUZ[OH[]PVSH[LUH[PVUHSVYPU[LYUH[PVUHSWYVOPIP[PVUZPUJS\KPUNLTIHYNVZVYPU[LYUH[PVUHS
+YLN\SH[PVUZ-\Y[OLY)V\YUZ® products and Bourns technology and technical data may not under any circumstance be
+exported or re-exported to countries subject to international sanctions or embargoes. Bourns® products may not, without
+WYPVYH\[OVYPaH[PVUMYVT)V\YUZHUKVY[OL<:.V]LYUTLU[ILYLZVSK[YHUZMLYYLKVYYLL_WVY[LK[VHU`WHY[`UV[LSPNPISL
+[VYLJLP]L<:JVTTVKP[PLZZVM[^HYLHUK[LJOUPJHSKH[H
+
+;V[OLTH_PT\TL_[LU[WLYTP[[LKI`HWWSPJHISLSH^)V\YUZKPZJSHPTZPHU`HUKHSSSPHIPSP[`MVYZWLJPHSW\UP[P]LJVUZLX\LU[PHS
+PUJPKLU[HSVYPUKPYLJ[KHTHNLZVYSVZ[YL]LU\LZVYSVZ[WYVÄ[ZHUKPPHU`HUKHSSPTWSPLK^HYYHU[PLZPUJS\KPUNPTWSPLK^HYYHU[PLZ
+VMÄ[ULZZMVYWHY[PJ\SHYW\YWVZLUVUPUMYPUNLTLU[HUKTLYJOHU[HIPSP[`
+
+)RU\RXUFRQYHQLHQFHFRSLHVRIWKLV/HJDO'LVFODLPHU1RWLFHZLWK*HUPDQ6SDQLVK-DSDQHVH7UDGLWLRQDO&KLQHVHDQG6LPSOLÀHG&KLQHVH
+bilingual versions are available at:
+
+                           Web Page: http://www.bourns.com/legal/disclaimers-terms-and-policies
+
+                                  PDF: http://www.bourns.com/docs/Legal/disclaimer.pdf
+
+                                                                                                                                                                                                  *9
+

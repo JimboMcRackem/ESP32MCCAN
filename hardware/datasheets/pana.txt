@@ -1,0 +1,1545 @@
+                                     UPDATE
+
+Power Inductors
+ Power Choke Coil (Automotive Grade)
+
+ PCC-M0530M, M0540M, M0630M, M0645M series
+ PCC-M0754M, M0750M, M0854M, M0850M series
+ PCC-M1054M, M1050M, M1040ML, M1050ML, M1060ML series
+
+High heat resistance and high reliability using metal composite core (MC)
+
+Industrial property : Patents 21 (Registered 2 / Pending 19)
+
+ Features                                                                                                                            (Fig.1)
+                                                                                                                                     Inductance v.s. DC current, Temp.
+ High heat resistance                                                                                                                ETQP5M470YFM (reference)
+   : Operation up to 150 °C including self-heating. (180 °C short time*)
+                                                                                                                  Inductors (H)  60
+        * Please contact for possible to use over 150 °C condition. Temperature up to 180 °C may possibly be used.               50
+                                                                                                                                 40
+ High-reliability :
+   : High vibration resistance as result of newly developed                                                                      30
+     integral construction; under severe reliability conditions                                                                                                               25 °C
+     of automotive and other strenuous applications
+                                                                                                                                 20                                 100 °C
+ High bias current                                                                                                                                                  125 °C
+   : Excellent inductance stability using ferrous alloy magnetic material (Fig.1)
+                                                                                                                                 10                                 150 °C
+ Temp. stability
+   : Excellent inductance stability over broad temp. range (Fig.1)                                                               0
+
+ Low audible (buzz) noise                                                                                                            0 0.5 1                 1.5    2 2.5            3
+   : A gapless structure achieved with metal composite core
+                                                                                                                                                       DC Bias (A)
+ High efficiency
+   : Low DC resistance of winding and low eddy-current loss of the core
+
+ Shielded construction
+ AEC-Q200 compliant
+ RoHS compliant
+
+Recommended applications
+
+ Noise filter for various drive circuitry requiring high temp. operation and peak current handling capability
+ Boost-Converter, Buck-Converter DC/DC
+
+Standard packing quantity (Minimum quantity/Packing unit)
+
+ 1,000 pcs/box (2 reel)     : PCC -  M0645MM0754MM0750MM0854MM0850M
+ 2,000 pcs/box (2 reel)              M1054MM1050MM1040MLM1050MLM1060ML
+                                     M0530MM0540MM0630M
+                            : PCC -
+
+Explanation of part numbers
+
+1  2             3       4  5        6             7          8           9  10                                                      11                12
+
+ETQ P                                M
+
+   Product code     Classification Height Winding             Inductance     Core                                                    Suffix            Size
+
+                                                   (Example)  Inductance                                                                               Code           Size
+                                                                  4.7 H                                                                                  P
+                                                     Code         22 H                                                                                   N         5 mm
+                                                     4R7         100 H                                                                                   M         6 mm
+                                                      220                                                                                                K         7 mm
+                                                      101                                                                                                C         8 mm
+                                                                                                                                                                   10 mm
+
+Temperature rating
+
+      Operating temperature range                  Tc : -40 °C to +150 °C (Including self-temperature rise)
+                                                   Ta : -5 °C to +35 °C 85%RH max.
+Storage condition         After PWB mounting
+                         Before PWB mounting
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                                6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                             Power Choke Coil (Automotive Grade)
+
+1. PCC-M0530M / PCC-M0540M series (ETQP3MYFP / ETQP4MYFP)
+Standard parts
+
+                                Inductance*1          DCR (at 20 °C)         Rated current (A) Typ.                 Vibration                             MSL          Series
+                                                            ()                                                      resistance                                    [Size L×W×H]
+                                L0 Tolerance
+Part No.                       (H) (%)                                                                                (G)                                              (mm)
+
+                                                   Typ. (max.)    Tolerance  T= 40 K*2                 L=              *5                                 *6      PCC-M0530M
+                                                                                 ()*3                ­30 %*4                                                       [5.0×5.5×3.0]
+                                                                    (%)
+                                                                                                                                                                  PCC-M0540M
+ETQP3M2R2YFP 2.2                                   22.6 [ 24.8]              5.8 [4.8]                     10.8                                                    [5.0×5.5×4.0]
+ETQP3M3R3YFP 3.3                                   31.3 [ 34.4]
+                                                                             5.0 [4.0]                     8.6
+
+ETQP4M4R7YFP 4.6                           ±20     36.0 [ 39.6]   ±10        4.8 [4.0]                     7.7         10.0 1
+
+ETQP4M100YFP 10.0                                  95.0 [104.5]              3.0 [2.5]                     3.9
+
+ETQP4M220YFP 22.0                                  163.0 [179.0]             2.3 [1.9]                     3.1
+
+*1: Measured at 100 kHz
+*2: The proved current value for making the overall temperature rise of 40K, when mounted on a multi-layer board with
+
+       high-heat dissipation (heat dissipation constant 5.5x5.0x3.0 mm : approx. 52 K/W, 5.5x5.0x4.0 mmapprox. 48 K/W).
+*3: The proved current value for making the overall temperature rise of 40K, when mounted on a 4-layer circuit board of
+
+       FR4 t=1.6 mm and DC current is applied.
+*4: Saturation rated current : DC current which causes L(0) drop ­30 %.
+*5: Vibration resistance conditions : Amplitude: 5 mm or less, sweep speed: 1 oct / min, frequency 5-2000 Hz, 3 directions/2 hours each,
+
+   total 6 hours.
+   Test temperature: Room temperature. Mounted by solder reflow using our recommended land pattern and a printing mask thickness of
+   150 m.
+*6: The solderability is guaranteed for 1 year only. The product out of expiration date shall not be used
+ Within a suitable application, the part's temperature depends on circuit design and certain heat dissipation conditions. This
+   should be double checked in a worst case operation mode. In normal case, the max.standard operating temperature of +150°C
+   should not be exceeded. Please contact for possible to use over 150 °C condition. Temperature up to 180 °C may possibly be used.
+
+Performance characteristics (Reference)
+
+ Inductance vs DC Current
+
+                                ETQP3M2R2YFP                                                          ETQP3M3R3YFP 
+
+Inductance (H)  2.5                                                          Inductance (H)  5
+                2.0                                                                          4
+                1.5         2     4     6       8  10 12 14                                  3       2     4        6                                  8  10   12 14
+                1.0                                                                          2
+                0.5                                                                          1
+                0.0                                                                          0
+
+                      0                                                                           0
+
+                                     DC Bias (A)                                                                    DC Bias (A)
+
+                                ETQP4M4R7YFP                                                                ETQP4M100YFP 
+
+                5                                                                            12
+
+Inductance (H)  4                                                            Inductance (H)  9
+                3                                                                            6
+
+                2
+
+                                                                                             3
+
+                1
+
+                0                                                                            0
+
+                    0       2     4     6       8  10 12 14                                     0       1        2     3                                  4    5      6
+
+                                     DC Bias (A)                                                                       DC Bias (A)
+
+                                ETQP4M220YFP 
+
+Inductance (H)  30
+                25
+
+                20
+                15
+
+                10
+
+                5
+
+                0
+
+                         0     1     2          3  4  5
+
+                                     DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                    6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                           Power Choke Coil (Automotive Grade)
+
+Performance characteristics (Reference)
+
+ Case Temperature vs DC Current
+                        PWB condition A : Four-layer PWB (1.6 mm FR4).*3
+                        PWB condition B : Multilayer PWB with high heat dissipation performance.*2
+
+Temperature rise T(K)             ETQP3M2R2YFP                        Temperature rise T(K)                  ETQP3M3R3YFP 
+
+                       80                                                                    80
+                                                                                             60
+                       60
+                                                                                             40
+                       40                                                                    20
+
+                       20
+
+                       00          1  2     345             6  78                            0      0  1  2     3                                      4  5  6  7
+
+                                            DC Bias (A)                                                         DC Bias (A)
+
+Temperature rise T(K)              ETQP4M4R7YFP                       Temperature rise T(K)                    ETQP4M100YFP 
+
+                       80                                                                       80
+
+                       60                                                                       60
+
+                       40                                                                       40
+                       20
+                                                                                                20
+
+                       0                 2  3  4         5     6   7                            0      0.5 1.0  1.5 2.0 2.5 3.0 3.5 4.0
+                            01                                                                      0              DC Bias (A)
+
+                                            DC Bias (A)
+
+Temperature rise T(K)  80              ETQP4M220YFP 
+                       60
+                       40          0.5 1.0 1.5 2.0 2.5 3.0 3.5
+                       20                            DC Bias (A)
+                       0
+
+                                0
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.              6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                  Power Choke Coil (Automotive Grade)
+
+2. PCC-M0630M / PCC-M0645M series (ETQP3MYFN / ETQP4MYFN)
+
+Standard parts
+
+                                Inductance*1         DCR (at 20 °C)                    Rated current (A) Typ.       Vibration                          MSL        Series
+                                                           ()                                                       resistance                               [Size L×W×H]
+      Part No.
+ETQP3MR68YFN                                                                           T= 40 K*2                      (G)                                         (mm)
+                                                                                           ()*3                                                              PCC-M0630M
+                              L0          Tolerance  Typ. (max.)            Tolerance                        L=                     *5                 *6     [6.0×6.5×3.0]
+                             (H)                      6.3 [6.90]                        12.0 [9.8]         ­30 %*4
+                                            (%)                               (%)                                                                            PCC-M0645M
+                             0.68                                                                            24.0                                             [6.0×6.5×4.5]
+
+ETQP3M1R0YFN 1.0                                     7.9 [8.70]                            10.7 [8.8]      20.0
+
+ETQP4M2R2YFN 2.2                                     10.4 [11.44]                          10.2 [8.0]      14.4
+
+ETQP4M3R3YFN 3.3                                     16.1 [17.71]                          8.2 [6.4]       13.3                                        1
+
+ETQP4M6R8YFN 6.8                          ±20        39.3 [43.20]           ±10            5.2 [4.1]       10.0                     10.0
+
+ETQP4M100YFN 10.0                                    54.2 [59.60]                          4.5 [3.5]       8.3
+
+ETQP4M220YFN 22.0                                    126.0 [138.60]                        2.9 [2.3]       6.0
+
+ETQP4M330YFN 33.0                                    172.0 [189.20]                        2.5 [2.0]       4.1                                         3
+
+ETQP4M470YFN 47.0                                    210.0 [231.00]                        2.2 [1.8]       3.8                                         1
+
+*1: Measured at 100 kHz
+*2: The proved current value for making the overall temperature rise of 40K, when mounted on a multi-layer board with
+
+       high-heat dissipation (heat dissipation constant 6.5x6.0x3.0 mm : approx. 44 K/W, 6.5x6.0x4.5 mmapprox. 37 K/W).
+*3: The proved current value for making the overall temperature rise of 40K, when mounted on a 4-layer circuit board of
+
+       FR4 t=1.6 mm and DC current is applied.
+*4: Saturation rated current : DC current which causes L(0) drop ­30 %.
+*5: Vibration resistance conditions : Amplitude: 5 mm or less, sweep speed: 1 oct / min, frequency 5-2000 Hz, 3 directions/2 hours each,
+
+   total 6 hours.
+   Test temperature: Room temperature. Mounted by solder reflow using our recommended land pattern and a printing mask thickness of
+   150 m.
+*6: The solderability is guaranteed for 1 year only. The product out of expiration date shall not be used
+ Within a suitable application, the part's temperature depends on circuit design and certain heat dissipation conditions. This
+
+   should be double checked in a worst case operation mode. In normal case, the max.standard operating temperature of +150°C
+   should not be exceeded. Please contact for possible to use over 150 °C condition. Temperature up to 180 °C may possibly be used.
+
+Performance characteristics (Reference)
+
+ Inductance vs DC Current
+
+                       ETQP3MR68YFN                                         ETQP3M1R0YFN                                                   ETQP4M2R2YFN 
+
+                0.7                                                  1.0                                                            3.0
+
+Inductance (H)  0.6                                  Inductance (H)  0.8                                            Inductance (H)  2.5
+
+                0.5                                                                                                                 2.0
+
+                0.4                                                  0.6
+
+                                                                                                                                    1.5
+
+                0.3                                                  0.4                                                            1.0
+                0.2
+
+                0.1                                                  0.2                                                            0.5
+
+                0.0      48  12 16 20 24                             0.0 0  5          10     15       20                           0.0 0                 5  10           15  20
+                      0
+                                                                                                                                                             DC Bias (A)
+                         DC Bias (A)                                             DC Bias (A)
+
+                     ETQP4M3R3YFN                                           ETQP4M6R8YFN                                                   ETQP4M100YFN 
+
+                4                                                    8                                                              12
+                                                                     7                                                              10
+Inductance (H)  3                                    Inductance (H)  6                                              Inductance (H)  8
+                                                                     5                                                              6
+                2                                                                                                                   4
+                1                                                    4                                                              2
+                                                                     3                                                              0
+                0
+                   0 2 4 6 8 10 12 14 16 18 20                       2                                                                     0 1 2 3 4 5 6 7 89
+                                                                     1                                                                                     DC Bias (A)
+                                    DC Bias (A)
+                                                                     0
+                                                                           0 1 2 3 4 5 6 7 8 9 10
+                                                                                           DC Bias (A)
+
+                       ETQP4M220YFN                                        ETQP4M330YFN                                                   ETQP4M470YFN 
+
+                30                                                   40                                                             50
+                25                                                                                                                  40
+Inductance (H)  20                                   Inductance (H)  30                                             Inductance (H)  30
+                                                                     20                                                             20
+                15                                                                                                                  10
+
+                10                                                   10
+                5
+
+                0    02  4   6  8 10 12                              0 0 0.5 1 1.5 2 2.5 3 3.5 4 4.5 5                              0 0 0.5 1 1.5 2 2.5 3 3.5 4 4.5 5
+                                                                                           DC Bias (A)                                                 DC Bias (A)
+                             DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                     6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                         Power Choke Coil (Automotive Grade)
+
+Performance characteristics (Reference)
+
+ Case Temperature vs DC Current
+                        PWB condition A : Four-layer PWB (1.6 mm FR4).*3
+                        PWB condition B : Multilayer PWB with high heat dissipation performance.*2
+
+                              ETQP3MR68YFN                                           ETQP3M1R0YFN                                              ETQP4M2R2YFN 
+
+                       80                                                      80                                                      80
+
+Temperature rise T(K)  60                               Temperature rise T(K)  60                               Temperature rise T(K)  60
+
+                       40                                                      40                                                      40
+
+                       20                                                      20                                                      20
+
+                       0                                                       0                                                       0
+                             0 2 4 6 8 10 12 14 16 18                             0 2 4 6 8 10 12 14 16 18                                    0 2 4 6 8 10 12 14 16
+                                           DC Bias (A)                                             DC Bias (A)                                            DC Bias (A)
+
+Temperature rise T(K)         ETQP4M3R3YFN              Temperature rise T(K)          ETQP4M6R8YFN             Temperature rise T(K)         ETQP4M100YFN 
+
+                       80                                                      80                                                      80
+                       60
+                                                                               60                                                      60
+
+                       40                                                      40                                                      40
+
+                       20                                                      20                                                      20
+
+                       0                                                       0                                                       0
+                             02                                                      0 12
+                                    46  8 10 12                                             34           56 7                              01          2  3         45      6
+
+                                    DC Bias (A)                                             DC Bias (A)                                                DC Bias (A)
+
+                              ETQP4M220YFN                                             ETQP4M330YFN                                           ETQP4M470YFN 
+
+                       80                                                      80                                                      80
+
+Temperature rise T(K)  60                               Temperature rise T(K)  60                               Temperature rise T(K)  60
+                                                                               40
+                       40                                                      20                                                      40
+                       20
+                                                                                                                                       20
+
+                       0                                                       0                                                       0               0.5 1 1.5 2          2.5 3
+                                                                                     0 0.5                                                  0                  DC Bias (A)
+                           0     1  2            3  4                                       1 1.5 2      2.5 3
+
+                                    DC Bias (A)                                             DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                       6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                             Power Choke Coil (Automotive Grade)
+
+3. PCC-M0754M / PCC-M750M series (ETQP5MYFM / YGM)
+
+Standard parts
+
+                                    Inductance*1               DCR (at 20 °C)                           Rated current (A) Typ.                  Vibration   MSL               Series
+                                                                     ()                                                                         resistance               [Size L×W×H]
+      Part No.
+ETQP5M3R3YFM                                                                                            T= 40 K*2                                 (G)                         (mm)
+                                                                                                            ()*3
+                                 L0                 Tolerance  Typ. (max.)            Tolerance                        L=                       *5             *6
+                                (H)                            11.9 [13.09]                              10.4 [8.3]  ­30 %*4
+                                 3.3                  (%)                               (%)
+                                                                                                                       14.4
+
+ETQP5M4R7YFM 4.7                                               20.4 [22.50]                              8.0 [6.3]   13.1
+
+ETQP5M6R8YFM 6.8                                               26.7 [29.40]                              6.9 [5.5]   12.1
+
+ETQP5M100YFM 10.0                                              37.6 [41.30]                              5.7 [4.7]   10.6                                    1           PCC-M0754M
+                                                                                                         3.7 [3.0]   5.8                        10.0                     [7.0×7.5×5.4]
+ETQP5M220YFM 22.0                                   ±20        92.0 [102.00]                ±10          3.3 [2.6]
+
+ETQP5M330YFM 33.0                                              120.0 [132.00]                                        4.8
+
+ETQP5M470YFM 48.0                                              156.0 [172.00]                            2.9 [2.3]   4.1
+
+ETQP5M680YFM 68.0                                              251.0 [276.10]                            2.3 [1.9]   3.9
+
+ETQP5M101YGM 95.0                                              348.0 [382.80]                            1.9 [1.4]   3.5                                       3         PCC-M0750M
+                                                                                                                                                                         [7.0×7.5×5.0]
+
+*1: Measured at 100 kHz
+
+*2: The proved current value for making the overall temperature rise of 40K, when mounted on a multi-layer board with
+
+       high-heat dissipation (heat dissipation constant 7.5x7.0x5.4 mm : approx. 31 K/W, 7.5x7.0x5.0 mmapprox. 29 K/W).
+*3: The proved current value for making the overall temperature rise of 40K, when mounted on a 4-layer circuit board of
+
+                    FR4 t=1.6 mm and DC current is applied.
+
+*4: Saturation rated current : DC current which causes L(0) drop ­30 %.
+
+*5: Vibration resistance conditions : Amplitude: 5 mm or less, sweep speed: 1 oct / min, frequency 5-2000 Hz, 3 directions/2 hours each,
+
+                total 6 hours.
+
+                Test temperature: Room temperature. Mounted by solder reflow using our recommended land pattern and a printing mask thickness of
+
+                150 m.
+
+*6: The solderability is guaranteed for 1 year only. The product out of expiration date shall not be used
+ Within a suitable application, the part's temperature depends on circuit design and certain heat dissipation conditions. This
+
+   should be double checked in a worst case operation mode. In normal case, the max.standard operating temperature of +150°C
+
+                should not be exceeded. Please contact for possible to use over 150 °C condition. Temperature up to 180 °C may possibly be used.
+
+Performance characteristics (Reference)
+
+ Inductance vs DC Current
+
+Inductance (H)       ETQP5M3R3YFM                              Inductance (H)       ETQP5M4R7YFM                                Inductance (H)        ETQP5M6R8YFM
+
+                4                                                              6                                                                8
+                                                                                                                                                7
+                3                                                              5                                                                6
+                                                                                                                                                5
+                                                                               4
+                                                                                                                                                4
+                2                                                              3                                                                3
+                                                                               2                                                                2
+                                                                                                                                                1
+                1                                                                                                                               0
+
+                                                                               1                                                                     0 2 4 6 8 10 12 14 16
+                                                                                                                                                                    DC Bias (A)
+                0                                                              0
+                                                                                                                                                      ETQP5M330YFM 
+                    0      5    10              15  20                             0     5       10      15  20
+                                                                                                                                                40
+                                DC Bias (A)                                                 DC Bias (A)
+
+                      ETQP5M100YFM                                                   ETQP5M220YFM 
+
+                12                                                             25
+
+Inductance (H)  10                                             Inductance (H)  20                                               Inductance (H)
+
+                8                                                              15                                                               30
+                                                                                                                                                20
+                6
+
+                4                                                              10
+
+                                                                               5                                                                10
+
+                2
+
+                0 0 2 4 6 8 10 12 14 16                                        0   0  2     4        6   8   10                                 0    0         2      4         6     8
+                                   DC Bias (A)
+                                                                                            DC Bias (A)                                                            DC Bias (A)
+
+                      ETQP5M470YFM                                                    ETQP5M680YFM                                                       ETQP5M101YGM 
+
+                60                                                             80                                                               100
+
+Inductance (H)  50                                             Inductance (H)  60                                                               80
+
+                40                                                                                                              Inductance (H)  60
+
+                30                                                             40
+                20
+                                                                                                                                                40
+
+                10                                                             20                                                               20
+
+                0   0   1       23           4      56                         0                                                                00          1      2     3         4  5
+                                                                                   0 1 23 4 5 6 78
+                                DC Bias (A)                                                           DC Bias (A)                                                  DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                              6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                              Power Choke Coil (Automotive Grade)
+
+Performance characteristics (Reference)
+
+ Case Temperature vs DC Current
+                        PWB condition A : Four-layer PWB (1.6 mm FR4).*3
+                        PWB condition B : Multilayer PWB with high heat dissipation performance.*2
+
+                               ETQP5M3R3YFM                                       ETQP5M4R7YFM                                                             ETQP5M6R8YFM
+
+Temperature rise T(K)  80                                                    80                                                         80
+
+                       60                             Temperature rise T(K)  60                                  Temperature rise T(K)  60
+
+                       40                                                    40                                                         40
+
+                       20                                                    20                                                         20
+
+                       0                                                     0                                                          0
+                          0 2 4 6 8 10 12 14                                      0
+                                         DC Bias (A)                                 2     4     6 8 10                                                0  2  4  6         8  10
+
+                                                                                           DC Bias (A)                                                       DC Bias (A)
+
+Temperature rise T(K)         ETQP5M100YFM            Temperature rise T(K)         ETQP5M220YFM                 Temperature rise T(K)         ETQP5M330YFM 
+
+                       80                                                    80                                                         80
+
+                       60                                                    60                                                         60
+
+                       40                                                    40                                                         40
+
+                       20                                                    20                                                         20
+
+                       0                                                     0                                                          0
+
+                           0  2  4            6  8                               0   1     2     3         4  5                                        0  1  2  3         4  5
+
+                                 DC Bias (A)                                               DC Bias (A)                                                       DC Bias (A)
+
+Temperature rise T(K)         ETQP5M470YFM                                         ETQP5M680YFM                                                ETQP5M101YGM 
+
+                       80                                                    80                                                         80
+
+                       60                             Temperature rise T(K)  60                                  Temperature rise T(K)  60
+
+                       40                                                    40                                                         40
+
+                       20                                                    20                                                         20
+
+                       0                                                     0                                                          0
+                                                                                                                                             0 0.5 1
+                           0  1  2            3  4                               0      1     2         3     4                                                 1.5 2 2.5 3
+
+                                 DC Bias (A)                                               DC Bias (A)                                                       DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                     6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                     Power Choke Coil (Automotive Grade)
+
+4. PCC-M0854M / PCC-M0850M series (ETQP5MYFK / GAK / YGK)
+
+Standard parts
+
+                            Inductance*1            DCR (at 20 °C)                 Rated current (A) Typ.                       Vibration              MSL               Series
+                                                          ()                                                                    resistance                          [Size L×W×H]
+        Part No.
+                                                                                                                                  (G)                                    (mm)
+  ETQP5M2R5YFK
+  ETQP5M3R3YFK               L0          Tolerance   Typ. (max.)        Tolerance  T= 40 K*2             L=                         *5                    *6        PCC-M0854M
+NEW ETQP5M6R8GAK            (H)                                                        ()*3            ­30 %*4                                                       [8.0×8.5×5.4]
+  ETQP5M100YFK                             (%)         7.6 [8.40]         (%)                                                                1
+  ETQP5M150YFK               2.5                      9.5 [10.45]                  14.0 [11.9]           20.1                   10.0                                PCC-M0850M
+  ETQP5M220YFK               3.3            ±20      18.0 [19.80]          ±10     12.5 [10.7]           17.9                                                        [8.0×8.5×5.0]
+  ETQP5M470YFK               6.8                     33.4 [36.80]                                        12.8                                3
+  ETQP5M100GAK              10.0                     48.2 [53.10]                    9.1 [7.7]           11.3
+                            15.0                     63.0 [70.00]                    6.7 [5.7]            7.7
+                            22.0                    125.0 [138.00]                   5.5 [4.7]            6.9
+                            48.0                     31.5 [34.65]                    4.8 [4.1]            5.4
+                            10.0                                                     3.4 [2.9]           11.1
+                                                                                     6.9 [5.9]
+ETQP5M101YGK 100.0                                  302.0 [333.00]                                        3.0
+                                                                                     2.1 [1.7]
+
+*1: Measured at 100 kHz
+*2: The proved current value for making the overall temperature rise of 40K, when mounted on a multi-layer board with
+
+       high-heat dissipation (heat dissipation constant 8.5x8.0x5.4 mm : approx. 27 K/W, 8.5x8.0x5.0 mmapprox. 29 K/W).
+*3: The proved current value for making the overall temperature rise of 40K, when mounted on a 4-layer circuit board of
+
+       FR4 t=1.6 mm and DC current is applied.
+*4: Saturation rated current : DC current which causes L(0) drop ­30 %.
+*5: Vibration resistance conditions : Amplitude: 5 mm or less, sweep speed: 1 oct / min, frequency 5-2000 Hz, 3 directions/2 hours each,
+
+   total 6 hours.
+   Test temperature: Room temperature. Mounted by solder reflow using our recommended land pattern and a printing mask thickness of
+   150 m.
+
+*6: The solderability is guaranteed for 1 year only. The product out of expiration date shall not be used
+ Within a suitable application, the part's temperature depends on circuit design and certain heat dissipation conditions. This
+
+   should be double checked in a worst case operation mode. In normal case, the max.standard operating temperature of +150°C
+   should not be exceeded. Please contact for possible to use over 150 °C condition. Temperature up to 180 °C may possibly be used.
+
+Performance characteristics (Reference)
+
+ Inductance vs DC Current
+
+                        ETQP5M2R5YFK                                      ETQP5M3R3YFK                                                ETQP5M6R8GAK 
+
+                3.0                                                 4                                                           8
+                2.5
+Inductance (H)                                      Inductance (H)  3                                           Inductance (H)  6
+                2.0                                                                                                             4
+                1.5                                                 2
+                                                                                                                                2
+                1.0                                                 1
+                                                                                                                                0   0                  4      8     12 16 20
+                0.5                                                 0
+                                                                       0 5 10 15 20 25 30                                                                     DC Bias (A)
+                0.0                                                                     DC Bias (A)
+                      0 5 10 15 20 25 30
+                                      DC Bias (A)
+
+                       ETQP5M100YFK                                        ETQP5M150YFK                                                  ETQP5M220YFK 
+
+                12                                                  20                                                          25
+                10
+Inductance (H)  8                                   Inductance (H)  15                                          Inductance (H)  20
+                6                                                   10
+                4                                                   5                                                           15
+
+                2                                                                                                               10
+                0
+                                                                                                                                5
+                     0 2 4 6 8 10 12 14 16
+                                     DC Bias (A)                    0              6 8 10 12                                    0   0                  2         4  6      8  10
+                                                                       024
+
+                                                                        DC Bias (A)                                                                           DC Bias (A)
+
+                          ETQ5M470YFK                                     ETQP5M100GAK                                                   ETQP5M101YGK 
+
+Inductance (H)  60                                  Inductance (H)  12                                          Inductance (H)  120
+                50                                                  10
+                                                                                                                                100
+                40                                                  8
+                30                                                  6                                                           80
+                20                                                  4
+                                                                                                                                60
+                10                                                  2                                                           40
+                0
+                                                                    0                                                           20
+                      0                                                 0 2 4 6 8 10 12 14 16 18 20
+                         2  4            6  8                                             DC Bias (A)                           0
+
+                                                                                                                                    0                  1         2  3      4  5
+
+                            DC Bias (A)                                                                                                                       DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                      6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                           Power Choke Coil (Automotive Grade)
+
+Performance characteristics (Reference)
+
+ Case Temperature vs DC Current
+                        PWB condition A : Four-layer PWB (1.6 mm FR4).*3
+                        PWB condition B : Multilayer PWB with high heat dissipation performance.*2
+
+Temperature rise T(K)         ETQP5M2R5YFK                 Temperature rise T(K)         ETQP5M3R3YFK                                   Temperature rise T(K)        ETQP5M6R8GAK 
+
+                       80                                                         80                                                                           80
+
+                       60                                                         60                                                                           60
+                                                                                  40
+                       40                                                                                                                                      40
+
+                       20                                                         20                                                                           20
+
+                       0                                                          0                                                                            0
+                                                                                       0                                                                           0 2 4 6 8 10 12 14
+                           0     4     8     12     16 20                                                       36     9 12 15 18                                                    DC Bias (A)
+
+                                       DC Bias (A)                                                                 DC Bias (A)
+
+Temperature rise T(K)         ETQP5M100YFK                 Temperature rise T(K)         ETQP5M150YFK                                   Temperature rise T(K)         ETQP5M220YFK 
+
+                       80                                                         80                                                                           80
+
+                       60                                                         60                                                                           60
+
+                       40                                                         40                                                                           40
+
+                       20                                                         20                                                                           20
+
+                       0                                                          0                                                                            0
+                                                                                       01 2 3 4 5 6 7 8                                                            0 1 2 34 56 7
+                           0     2     4     6      8 10                                               DC Bias (A)                                                                  DC Bias (A)
+
+                                       DC Bias (A)
+
+Temperature rise T(K)          ETQ5M470YFK                                                                     ETQP5M100GAK             Temperature rise T(K)         ETQP5M101YGK 
+
+                       80                                                                                80                                                    80
+
+                       60                                                         Temperature rise T(K)  60                                                    60
+                                                                                                         40
+                       40                                                                                                                                      40
+
+                       20                                                                                20                                                    20
+
+                       0                                                                                 0                                                     0
+                                                                                                                                                                     0 0.5 1.0 1.5 2.0 2.5 3.0
+                              0     1     2     3   4  5                                                     0  2   4  6         8  10                                             DC Bias (A)
+
+                                       DC Bias (A)                                                                  DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.          6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                  Power Choke Coil (Automotive Grade)
+
+5. PCC-M1054M / PCC-M1050M series (ETQP5MYFC / YGC)
+Standard parts
+
+                                Inductance*1         DCR (at 20 °C)                            Rated current (A) Typ.       Vibration                     MSL          Series
+                                                           ()                                                               resistance                            [Size L×W×H]
+      Part No.
+                                                                                                                              (G)                                       (mm)
+ETQP5M1R5YFC
+ETQP5M2R5YFC                  L0          Tolerance   Typ. (max.)            Tolerance         T= 40 K*2      L=                *5                        *6       PCC-M1054M
+ETQP5M3R3YFC                 (H)                                                                   ()*3     ­30 %*4                                               [10.0×10.7×5.4]
+ETQP5M4R7YFC                  1.5           (%)         3.8 [4.20]             (%)                                                           1
+ETQP5M100YFC                  2.5                       5.3 [5.90]                             21.4 [17.9]    35.1              10.0                               PCC-M1050M
+ETQP5M150YFC                  3.3            ±20        7.1 [7.81]              ±10            18.1 [15.1]    27.2                                                [10.0×10.7×5.0]
+ETQP5M220YFC                  4.7                     10.2 [11.30]                             15.7 [13.1]    22.7                           3
+ETQP5M330YFC                 10.0                     23.8 [26.20]                             13.1 [10.9]    20.0
+ETQP5M470YFC                 15.0                     35.6 [39.16]                                            12.0
+ETQP5M680YFC                 22.0                     45.0 [50.00]                               8.5 [7.1]    11.2
+ETQP5M3R3YGC                 33.0                     68.5 [75.40]                               7.0 [5.8]     9.2
+ETQP5M820YGC                 47.0                    99.0 [108.90]                               6.2 [5.2]     7.6
+ETQP5M101YGC                 66.0                    136.0 [149.60]                              5.0 [4.2]     6.8
+                              3.3                       7.1 [7.81]                               4.2 [3.5]     5.2
+                             82.0                    194.0 [213.4]                               3.6 [3.0]    23.4
+                             97.0                    208.0 [229.00]                            14.7 [11.8]     4.3
+                                                                                                 2.8 [2.2]     3.0
+                                                                                                 2.7 [2.2]
+
+*1: Measured at 100 kHz
+*2: The proved current value for making the overall temperature rise of 40K, when mounted on a multi-layer board with
+
+       high-heat dissipation (heat dissipation constant 10.7x10.0x5.4 mm : approx. 23 K/W, 10.7x10.0x5.0 mmapprox. 26 K/W).
+*3: The proved current value for making the overall temperature rise of 40K, when mounted on a 4-layer circuit board of
+
+       FR4 t=1.6 mm and DC current is applied.
+*4: Saturation rated current : DC current which causes L(0) drop ­30 %.
+*5: Vibration resistance conditions : Amplitude: 5 mm or less, sweep speed: 1 oct / min, frequency 5-2000 Hz, 3 directions/2 hours each,
+
+   total 6 hours.
+   Test temperature: Room temperature. Mounted by solder reflow using our recommended land pattern and a printing mask thickness of
+   150 m.
+*6: The solderability is guaranteed for 1 year only. The product out of expiration date shall not be used
+ Within a suitable application, the part's temperature depends on circuit design and certain heat dissipation conditions. This
+   should be double checked in a worst case operation mode. In normal case, the max.standard operating temperature of +150°C
+   should not be exceeded. Please contact for possible to use over 150 °C condition. Temperature up to 180 °C may possibly be used.
+
+Performance characteristics (Reference)
+
+ Inductance vs DC Current
+
+                      ETQP5M1R5YFC                                            ETQP5M2R5YFC                                      ETQP5M3R3YFC 
+
+                1.6                                                  3.0                                                    4
+                                                                     2.5
+Inductance (H)  1.2                                  Inductance (H)                                         Inductance (H)  3
+
+                0.8                                                  2.0                                                    2
+                                                                     1.5
+
+                0.4                                                  1.0                                                    1
+
+                0.0      10     20        30 40                      0.5     10         20     30 40                         0 0 5 10 15 20 25 30
+                      0                                              0.0                                                                      DC Bias (A)
+
+                                                                          0                                                     ETQP5M150YFC 
+
+                             DC Bias (A)                                         DC Bias (A)                                20
+
+                     ETQP5M4R7YFC                                             ETQP5M100YFC                                  15
+
+                6                                                    12
+                                                                     10
+Inductance (H)  5                                    Inductance (H)                                         Inductance (H)
+                4                                                    8
+                                                                     6
+                3                                                    4                                                      10
+
+                2                                                    2                                                      5
+                1
+                         5      10        15  20                     0 0 2 4 6 8 10 12 14 16                                0
+                0                                                                     DC Bias (A)                                0 2 4 6 8 10 12 14
+                    0                                                                                                                         DC Bias (A)
+                                                                         ETQP5M330YFC 
+                            DC Bias (A)                                                                                        ETQP5M470YFC 
+                                                                     40
+                      ETQP5M220YFC                                                                          Inductance (H)  60
+Inductance (H)                                       Inductance (H)                                                         50
+                25
+                                                                                                                            40
+                20                                                   30
+
+                15
+
+                10                                                   20                                                     30
+
+                5                                                    10                                                     20
+                                                                                                                            10
+
+                0        2   4      6 8 10                           0       24             6  8  10                        0   0                      2  4    6       8 10
+                      0                                                   0
+
+                             DC Bias (A)                                         DC Bias (A)                                                              DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                  6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                                                           Power Choke Coil (Automotive Grade)
+
+Performance characteristics (Reference)
+
+Inductors (H)                ETQP5M680YFC                                                         ETQP5M3R3YGC                                                                                      ETQP5M820YGC 
+
+                       80                                                                    4                                                                                                100
+                       60                                                                                                                                                                      80
+                                                                                             3                                                                                                 60
+                       40
+                                                                                             2                                                                                                 40
+                       20                                                                                                                                                                      20
+                                                                                             1                                                                                                  0
+                       0
+                            0 12 3 4 5 6 7 8 9                                               0                                                                                                       0 12 345 6 7 8
+                                       DC Bias (A)                                               0 5 10 15 20 25 30 35                                                                                               DC Bias (A)
+                                                                                                                 DC Bias (A)
+                                                                                          Inductors (H)
+                                                                                                                                                                               Inductors (H)
+
+Inductors (H)                ETQP5M101YGC 
+
+                       120
+                       100
+
+                        80
+
+                        60
+                        40
+                        20
+
+                         0
+                             0 12 3 4 5 67
+                                          DC Bias (A)
+
+Performance characteristics (Reference)
+
+ Case Temperature vs DC Current
+                        PWB condition A : Four-layer PWB (1.6 mm FR4).*3
+                        PWB condition B : Multilayer PWB with high heat dissipation performance.*2
+
+Temperature rise T(K)       ETQP5M1R5YFC                Temperature rise T(K)       ETQP5M2R5YFC             Temperature rise T(K)       ETQP5M3R3YFC                                         Temperature rise T(K)       ETQP5M4R7YFC 
+
+                       80                                                      80                                                   80                                                                               80
+
+                       60                                                      60                                                   60                                                                               60
+
+                       40                                                      40                                                   40                                                                               40
+
+                       20                                                      20                                                   20                                                                               20
+                                                                                                                                                                                                                     0
+                       00      5  10 15 20 25 30                               00      5  10 15 20 25                               0          8 12 16 20 24                                                                 4  8 12 16 20
+                                                                                                                                        04      DC Bias (A)                                                               0
+
+                                  DC Bias (A)                                             DC Bias (A)                                                                                                                           DC Bias (A)
+
+Temperature rise T(K)        ETQP5M100YFC               Temperature rise T(K)       ETQP5M150YFC             Temperature rise T(K)       ETQP5M220YFC                                         Temperature rise T(K)       ETQP5M330YFC 
+
+                       80                                                      80                                                   80                                                                               80
+                                                                                                                                    60
+                       60                                                      60                                                                                                                                    60
+
+                       40                                                      40                                                   40                                                                               40
+                       20                                                                                                           20
+                                                                               20                                                                                                                                    20
+
+                       0                                                       0                                                    0   0   2  4      6      8 10                                                    00 1       2 3 4 567
+                            0                                                       0                                                                                                                                              DC Bias (A)
+                               2 4 6 8 10 12                                           2  4  6         8 10
+                                      DC Bias (A)
+                                                                                          DC Bias (A)                                          DC Bias (A)
+
+                            ETQP5M470YFC                Temperature rise T(K)       ETQP5M680YFC             Temperature rise T(K)       ETQP5M3R3YGC                                         Temperature rise T(K)      ETQP5M820YGC 
+
+                       80                                                      80                                                   80                                                                               80
+
+Temperature rise T(K)  60                                                      60                                                   60                                                                               60
+
+                       40                                                      40                                                   40                                                                               40
+
+                       20                                                      20                                                   20                                                                               20
+
+                       0                                                       0                                                    0                                                                                0
+                            0123 456                                               01
+                                           DC Bias (A)                                    2 34 56                                       0   5     10     15  20                                                          0   1  2  3         4  5
+                                                                                           DC Bias (A)
+                                                                                                                                               DC Bias (A)                                                                      DC Bias (A)
+
+Temperature rise T(K)        ETQP5M101YGC 
+
+                       80
+
+                       60
+
+                       40
+
+                       20
+
+                       00      1  2  3         4  5
+
+                                  DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                                                                                 6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                      Power Choke Coil (Automotive Grade)
+
+6. PCC-M1040ML / PCC-M1050ML / PCC-M1060ML series
+     (ETQP4MKLC / ETQP5MYLC / ETQP6MYLC / KLC)
+
+Standard parts
+
+                               Inductance*1          DCR (at 20 °C)                            Rated current (A) Typ.                Vibration             MSL           Series
+                                                           ()                                                                        resistance                     [Size L×W×H]
+                               L0 Tolerance
+                Part No.      (H) (%)                                                                                                  (G)                               (mm)
+
+                                                     Typ. (max.)                Tolerance  T= 40 K*2              L=                     *5                *6
+                                                                                               ()*3             ­30 %*4
+                                                                                  (%)
+
+NEW ETQP4MR33KLC 0.33                                1.08 [1.19]                               37.1 [30.4]      45.9                                                PCC-M1040ML
+                                                     1.53 [1.68]
+ETQP4MR47KLC 0.47                                     1.1 [1.21]                               31.1 [24.9]      47.3                                                [10.0×10.9×4.0]
+                                                     1.75 [1.93]
+ETQP5MR33YLC 0.33                                     2.3 [2.53]                               39.7 [33.2]      56.7
+                                                      4.6 [5.06]
+ETQP5MR68YLC 0.68                                     3.2 [3.52]                               31.5 [26.3]      40.0                                                PCC-M1050ML
+                                                     4.55 [5.00]
+ETQP5M1R0YLC 1.0                                      6.0 [6.60]                               27.5 [23.0]      37.8                                                [10.0×10.9×5.0]
+                                                      8.7 [9.57]
+ETQP5M2R0YLC 2.0                           ±20       19.0 [20.90]               ±10            19.4 [16.2]      31.3                 10.0 1
+ETQP6M1R5YLC 1.5                                     28.0 [30.80]                              23.3 [19.5]      32.0
+
+ETQP6M2R5YLC 2.5                                                                               19.6 [16.3]      25.8
+
+ETQP6M3R3YLC 3.3                                                                               17.0 [14.2]      26.3                                                PCC-M1060ML
+
+ETQP6M4R7YLC 4.7                                                                               14.1 [11.8]      24.7                                                [10.0×10.9×6.0]
+
+NEW ETQP6M100GAC 10.0                                                                          9.6 [8.0]        14.0
+
+ETQP6M150KLC 14.0                                                                              7.9 [6.5]        11.2
+
+*1: Measured at 100 kHz
+*2: The proved current value for making the overall temperature rise of 40K, when mounted on a multi-layer board with
+
+   high-heat dissipation (heat dissipation constant 10.9x10.0x4.0 mm : approx. 27 K/W, 10.9x10.0x5.0 mm : approx. 23 K/W,
+   10.9x10.0x6.0 mmapprox. 23 K/W).
+*3: The proved current value for making the overall temperature rise of 40K, when mounted on a 4-layer circuit board of
+
+   FR4 t=1.6 mm and DC current is applied.
+*4: Saturation rated current : DC current which causes L(0) drop ­30 %.
+*5: Vibration resistance conditions : Amplitude: 5 mm or less, sweep speed: 1 oct / min, frequency 5-2000 Hz, 3 directions/2 hours each,
+
+   total 6 hours.
+   Test temperature: Room temperature. Mounted by solder reflow using our recommended land pattern and a printing mask thickness of
+   150 m.
+*6: The solderability is guaranteed for 1 year only. The product out of expiration date shall not be used
+ Within a suitable application, the part's temperature depends on circuit design and certain heat dissipation conditions. This
+
+   should be double checked in a worst case operation mode. In normal case, the max.standard operating temperature of +150°C
+   should not be exceeded. Please contact for possible to use over 150 °C condition. Temperature up to 180 °C may possibly be used.
+
+Performance characteristics (Reference)
+
+ Inductance vs DC Current
+
+Inductance (H)          ETQP4MR33KLC                 Inductance (H)          ETQP4MR47KLC                       Inductance (H)          ETQP5MR33YLC 
+
+                0.4                                                  0.6                                                        0.4
+                                                                     0.5                                                        0.3
+                0.3                                                  0.4
+                                                                     0.3                                                        0.2
+                0.2                                                  0.2
+                                                                     0.1                                                        0.1
+                0.1
+                  0 0 10 20 30 40 50 60                                 0 0 10 20 30 40 50 60 70 80                             0                      20 30 40 50 60 70 80
+                                        DC Bias (A)                                        DC Bias (A)                              0 10                    DC Bias (A)
+
+                         ETQP5MR68YLC                                1.2         ETQP5M1R0YLC                                             ETQP5M2R0YLC 
+                                                                     1.0
+Inductance (H)  0.7      10 20 30 40 50 60           Inductance (H)  0.8         10 20 30 40 50 60              Inductance (H)  2.5
+                0.6                 DC Bias (A)                      0.6                    DC Bias (A)                         2.0
+                0.5                                                  0.4                                                        1.5                    10  20       30  40  50
+
+                0.4                                                  0.2                                                        1.0
+                                                                       0                                                        0.5
+                0.3                                                       0
+                0.2                                                                                                               00
+                0.1
+
+                  00
+
+                                                                                                                                                           DC Bias (A)
+
+                        ETQP6M1R5YLC                                        ETQP6M2R5YLC                                                  ETQP6M3R3YLC 
+
+Inductance (H)  2.0                                  Inductance (H)  3.0                                                        3.5
+                                                                                                                                3.0
+                1.5                                                  2.5                                        Inductance (H)  2.5
+                                                                     2.0                                                        2.0
+                                                                                                                                1.5
+                1.0                                                  1.5
+                                                                     1.0                                                        1.0
+                0.5                                                                                                             0.5
+                   0                                                 0.5                                                        0.0
+                     0
+                          10  20  30       40   50                   0.0     0  10         20     30        40                        0
+
+                              DC Bias (A)                                                                                                              10       20      30  40
+
+                                                                                     DC Bias (A)                                                           DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                       6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                                           Power Choke Coil (Automotive Grade)
+
+Performance characteristics (Reference)
+
+                                              ETQP6M4R7YLC                                                  ETQP6M100GAC                                         ETQP6M150KLC 
+
+                                       5                                                           12                                                   16
+                                                                                                                                                        12
+                       Inductance (H)  4                                    Inductance (H)                                              Inductance (H)   8
+                                                                                                                                                         4
+                                       3                                                           8
+                                                                                                                                                          0
+                                       2                                                           4                                                        0 2 4 6 8 10 12 14
+                                                                                                                                                                                  DC Bias (A)
+                                       1
+
+                                       0                                                           0          8   12       16  20
+
+                                          0     10  20           30  40                                0  4
+
+                                                    DC Bias (A)                                               DC Bias (A)
+
+Performance characteristics (Reference)
+
+ Case Temperature vs DC Current
+                        PWB condition A : Four-layer PWB (1.6 mm FR4).*3
+                        PWB condition B : Multilayer PWB with high heat dissipation performance.*2
+
+Temperature rise T(K)             ETQP4MR33KLC                              Temperature rise T(K)            ETQP4MR47KLC                               Temperature rise T(K)          ETQP5MR33YLC 
+
+                       80                                                                          80                                                                          80
+                                                                                                   60
+                       60                                                                                                                                                      60
+
+                       40                                                                          40                                                                          40
+
+                       20                                                                          20                                                                          20
+                                                                                                                                                                                0
+                       0                                                                           0   0  10  20  30           50                                                  0 10 20 30 40 50 60
+                                                                                                                                                                                                       DC Bias (A)
+                                       0     10 20  30  40           50 60                                                 40
+
+                                                    DC Bias (A)                                               DC Bias (A)
+
+Temperature rise T(K)            ETQP5MR68YLC                               Temperature rise T(K)            ETQP5M1R0YLC                               Temperature rise T(K)          ETQP5M2R0YLC 
+
+                       80                                                                          80                                                                          80
+                       60                                                                                                                                                      60
+                                                                                                   60                                                                          40
+                       40                                                                                                                                                      20
+                                                                                                   40                                                                           0
+                       20
+                        0                                                                          20                                                                               0 5 10 15 20 25 30
+                            0 5 10 15 20 25 30 35 40 45                                                                                                                                                 DC Bias (A)
+                                               DC Bias (A)                                          0
+                                                                                                       0 5 10 15 20 25 30 35
+                                                                                                                          DC Bias (A)
+
+Temperature rise T(K)            ETQP6M1R5YLC                               Temperature rise T(K)           ETQP6M2R5YLC                                Temperature rise T(K)          ETQP6M3R3YLC 
+
+                       80                                                                          80                                                                          80
+                       60                                                                          60
+                       40                                                                                                                                                      60
+                       20                                                                          40
+                                                                                                   20                                                                          40
+                        0
+                          0 5 10 15 20 25 30 35                                                     0                                                                          20
+                                             DC Bias (A)                                                0 4 8 12 16 20 24 28
+                                                                                                                           DC Bias (A)                                         0                         20 25
+
+                                                                                                                                                                                   0  5     10     15
+
+                                                                                                                                                                                            DC Bias (A)
+
+Temperature rise T(K)            ETQP6M4R7YLC                               Temperature rise T(K)            ETQP6M100GAC                                                               ETQP6M150KLC 
+
+                       80                                                                          80                                                                          80
+
+                       60                                                                          60                                   Temperature rise T(K)                  60
+
+                       40                                                                          40                                                                          40
+
+                       20                                                                          20                                                                          20
+
+                       0                                                                           0          46  8 10 12 14                                                   0
+                                                                                                     02
+                                       0     5      10           15  20                                                                                                            0  2  4      6      8 10 12
+
+                                                    DC Bias (A)                                               DC Bias (A)                                                                   DC Bias (A)
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                                                    6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                         Power Choke Coil (Automotive Grade)
+
+Dimensions in mm (not to scale)
+
+Dimensional tolerance unless noted : ±0.5
+
+        Series PCC-M0530M                                                        Series PCC-M0630M
+        Series PCC-M0540M                                                        Series PCC-M0645M
+
+(ETQP3MYFP/ETQP4MYFP)                                                    (ETQP3MYFN/ETQP4MYFN)
+
+Inductance               Suffix                                          Inductance               Suffix
+                5.5±0.4                                                              6.5±0.4
+
+                         5.0±0.4                                3.0±0.3                           6.0±0.4                                                                       3.0±0.3
+
+Date Code Polarity                  1.2          1.2                     Date Code Polarity                                                            1.5       1.5
+
+                         0.05 min.   Series         Unit : mm                                     0.05 min.                                             Series      Unit : mm
+                            H       M0530M           H                                                 H                                               M0630M        H
+                                    M0540M                                                                                                             M0645M
+                                                 3.0 max.                                                                                                        3.0 max.
+                                                 4.0 max.                                                                                                        4.5 max.
+
+                       Series PCC-M0754M                                   Series PCC-M0854M
+                       Series PCC-M0750M                                   Series PCC-M0850M
+
+                       (ETQP5MYFM/YGM)                                   (ETQP5MYFK/GAK/YGK)
+
+Inductance               Suffix                                          Inductance               Suffix
+              7.5±0.4                                                                    8.5±0.4
+
+                         7.0±0.4                                3.0±0.3                           8.0±0.4                                                                       3.0±0.3
+
+Date Code Polarity                          2.0            2.0
+
+                                     Series         Unit : mm            Date Code Polarity                                                                2.0             2.0
+                                    M0754M           H
+                         0.1 min.   M0750M                                                        0.1 min.                                              Series      Unit : mm
+                            H                    5.4 max.                                             H                                                M0854M        H
+                                                 5.0 max.                                                                                              M0850M
+                                                                                                                                                                 5.4 max.
+                                                                                                                                                                 5.0 max.
+
+                       Series PCC-M1054M                                 Series PCC-M1040ML
+                       Series PCC-M1050M
+                                                                             (ETQP4MKLC)
+                       (ETQP5MYFC/YGC)
+
+Inductance               Suffix                                          Inductance               Suffix
+           10.7±0.5                                                                    10.9±0.6
+
+                         10.0±0.4                               4.2±0.3                           10.0±0.4                                                                      4.7±0.3
+
+Date Code Polarity                                                       Date Code Polarity
+
+                                      2.0               2.0                                                  2±0.5                                                              2±0.5
+
+                         0.1 min.    Series         Unit : mm                                     0.05 min.                                              Series      Unit : mm
+                             H      M1054M           H                                                 H                                               M1040ML        H
+                                    M1050M
+                                                 5.4 max.                                                                                                        4.0 max.
+                                                 5.0 max.
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.                           6-Feb-26
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                 Power Choke Coil (Automotive Grade)
+
+Dimensions in mm (not to scale)                      Inductance          Suffix
+
+Dimensional tolerance unless noted : ±0.5                  10.9±0.6
+
+                  Series PCC-M1050ML                                       10.0±0.4                                                                         7.3±0.3
+                  Series PCC-M1060ML
+
+         (ETQP5MYLC/ETQP6MYLC/KLC)
+
+                                                     Date Code Polarity
+
+                                                                                      1.8                                                              1.8
+
+                              Series           H                           0.05 min.
+                            M1050ML        5.0 max.                              H
+                            M1060ML        6.0 max.
+
+Recommended land pattern in mm (not to scale)
+
+Dimensional tolerance unless noted : ±0.5
+
+      Series PCC-M0530M                          Series PCC-M0630M                    Series PCC-M0754M
+      Series PCC-M0540M                          Series PCC-M0645M                    Series PCC-M0750M
+
+(ETQP3MYFP/ETQP4MYFP)                      (ETQP3MYFN/ETQP4MYFN)                       (ETQP5MYFM/YGM)
+
+                        6.1                                           7.1                              8.4
+
+3.6  6.0                                                         3.6
+                                                                      7.0
+                                                                                                                                        3.6
+                                                                                                                                             8.0
+
+                2.2                                         2.8                                          2.8
+                7.2                                                                                    10.0
+                                                            8.8
+Series PCC-M0854M                                                                     Series PCC-M1040ML
+Series PCC-M0850M                          Series PCC-M1054M
+                                           Series PCC-M1050M                                (ETQP4MKLC)
+(ETQP5MYFK/GAK/YGK)
+                  9.4                       (ETQP5MYFC/YGC)                                              11.9
+                                                            11.7
+
+     4.0               9.0                                        4.8
+                                                                      11.0
+
+                                                                                                                                        5.0
+                                                                                                                                            11.0
+
+                       3.8                            6.1                                   5.8
+                      12.4                           13.7                                  12.7
+
+    Series PCC-M1050ML
+    Series PCC-M1060ML
+
+(ETQP5MYLC/ETQP6MYLC/KLC)
+
+                       11.9
+
+                                           Don't wire on the pattern on shaded portion the PWB.                                                             Unit : mm
+                                                                                                                                                            6-Feb-26
+     7.9               11.0
+                                                                       As for soldering conditions and safety precautions
+                                                                          (Power choke coils (Automotive grade)),
+                                                                         please see data files
+
+                            6.5
+                           13.9
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+Packaging methods (Taping)                                                             Power Choke Coil (Automotive Grade)
+
+ Embossed carrier tape                                                                                                   t2
+                                                                                                                   t1
+                                                              P2    P0
+
+                                                                                       E
+
+                                                                         A             F
+
+                                                                                 B                W
+
+                                                          P1             Tape running direction
+
+                                                                                                                                                                                                                         Unit : mm
+
+                         Series                               A     B    W          E  F          P1  P                                                P    øD0                                                     t1   t2
+ PCC-M0530M
+ PCC-M0540M                                                   5.6 6.1                                                                                                                                                    3.3
+ PCC-M0630M                                                                                                                                                                                                              4.3
+ PCC-M0645M
+ PCC-M0754M/M0750M                                            7.1   6.6 16.0           7.5 12.0                                                                                                                     0.4  3.3
+ PCC-M0854M/M0850M                                                                                                                                                                                                       5.0
+ PCC-M1054M/M1050M                                            8.1   7.6          1.75                 2.0                                              4.0  1.5
+ PCC-M1040ML/M1050ML/M1060ML                                  9.1                                                                                                                                                        6.0
+                                                                    8.6
+ Taping reel
+                                                              10.65 11.75 24.0         11.5 16.0                                                                                                                    0.5 6.35
+                       E
+                        C                                                                                                                                                                                                Unit : mm
+
+                                     øD                                  Serise                   A   B                                                C øD                                                         E    W
+                                                       W
+                                                              PCC-M0530M/M0540M
+                    A
+                                                              PCC-M0630M/M0645M                                                                                                                                             17.5
+                                                                                                                                                                                                                    2
+                                                        B     PCC-M0754M/M0750M                   330 100 13 21
+                                                              PCC-M0854M/M0850M                                                                                                                                             25.5
+                                                                                                                                                                                                          Terminal
+                                                              PCC-M1054M/M1050M
+
+                                                              PCC-M1040ML/M1050ML/M1060ML
+
+Parts mounting (Taping)
+
+Serise                                                                           Serise
+M0630M/M0645M                                                                    M0530M/M0540M
+M0754M/M0750M                                                                    M1054M/M1050M
+M0854M/M0850M                                                                    M1040ML/M1050ML
+                                                                                 M1060ML
+
+                                                          Terminal
+
+Standard packing quantity / Reel
+
+            Serise               Part No.                                Minimum quantity / Packing unit                                                    Quantity per reel
+                                                                              2,000 pcs / box (2 reel)                                                          1,000 pcs
+PCC-M0530M          ETQP3MYFP                                                                                                                                    500 pcs
+PCC-M0540M          ETQP4MYFP                                                 1,000 pcs / box (2 reel)
+PCC-M0630M          ETQP3MYFN                                                                                                                                                            6-Feb-26
+PCC-M0645M          ETQP4MYFN
+PCC-M0754M          ETQP5MYFM
+PCC-M0750M          ETQP5MYGM
+PCC-M0854M          ETQP5MYFK/GAK
+PCC-M0850M          ETQP5MYGK
+PCC-M1054M          ETQP5MYFC
+PCC-M1050M          ETQP5MYGC
+PCC-M1040ML         ETQP4MKLC
+PCC-M1050ML         ETQP5MYLC
+PCC-M1060ML         ETQP6MYLC/KLC
+
+Design and specifications are each subject to change without notice. Ask factory for the current technical specifications before purchase and/or use.
+Should a safety concern arise regarding this product, please be sure to contact us immediately.
+                                                                                                  Safety and Legal Matters to Be Observed
+
+                   Safety and Legal Matters to Be Observed
+
+Product specifications and applications
+
+    Please be advised that this product and product specifications are subject to change without notice for
+      improvement purposes. Therefore, please request and confirm the latest delivery specifications that explain
+      the specifications in detail before the final design, or purchase or use of the product, regardless of the
+      application. In addition, do not use this product in any way that deviates from the contents of the company's
+      delivery specifications.
+
+   
+    Unless otherwise specified in this catalog or the product specifications, this product is intended for use in
+
+      general electronic equipment (AV products, home appliances, commercial equipment, office equipment,
+      information and communication equipment, etc.).
+      When this product is used for the following special cases, the specification document suited to each application
+      shall be signed/sealed (with Panasonic Industry and the user) in advance..These include applications requiring
+      special quality and reliability, wherein their failures or malfunctions may directly threaten human life or cause harm
+      to the human body (e.g.: space/aircraft equipment, transportation/traffic equipment, combustion equipment,
+      medical equipment, disaster prevention/crime prevention equipment, safety equipment, etc.).
+   
+
+Safety design and product evaluation
+
+    Please ensure safety through protection circuits, redundant circuits, etc., in the customer's system design so
+      that a defect in our company's product will not endanger human life or cause other serious damage.
+
+    This catalog shows the quality and performance of individual parts. The durability of parts varies depending on
+      the usage environment and conditions. Therefore, please ensure to evaluate and confirm the state of each part
+      after it has been mounted in your product in the actual operating environment before use.
+      If you have any doubts about the safety of this product, then please notify us immediately, and be sure to conduct
+      a technical review including the above protection circuits and redundant circuits at your company.
+
+Laws / Regulations / Intellectual property
+
+    The transportation of dangerous goods as designated by UN numbers, UN classifications, etc., does not apply
+      to this product. In addition, when exporting products, product specifications, and technical information described
+      in this catalog, please comply with the laws and regulations of the countries to which the products are exported,
+      especially those concerning security export control.
+
+    Each model of this product complies with the RoHS Directive (Restriction of the use of hazardous substances in
+      electrical and electronic equipment) (2011/65/EU and (EU) 2015/863). The date of compliance with the RoHS
+      Directive and REACH Regulation varies depending on the product model.
+      Further, if you are using product models in stock and are not sure whether or not they comply with the RoHS
+      Directive or REACH Regulation, please contact us by selecting "Sales Inquiry" from the inquiry form.
+
+    During the manufacturing process of this product and any of its components and materials to be used,
+      Panasonic Industry does not intentionally use ozone-depleting substances stipulated in the Montreal Protocol
+      and specific bromine-based flame retardants such as PBBs (Poly-Brominated Biphenyls) / PBDEs
+      (Poly-Brominated Diphenyl Ethers). In addition, the materials used in this product are all listed as existing
+      chemical substances based on the Act on the Regulation of Manufacture and Evaluation of Chemical Substances.
+
+    With regard to the disposal of this product, please confirm the disposal method in each country and region
+      where it is incorporated into your company's product and used.
+
+   
+    The technical information contained in this catalog is intended to show only typical operation and application
+
+      circuit examples of this product. This catalog does not guarantee that such information does not infringe upon
+      the intellectual property rights of Panasonic Industry or any third party, nor imply that the license of such rights
+      has been granted.
+
+    Design, materials, or process related to technical owned by Panasonic Industry are subject to change without
+      notice.
+
+              Panasonic Industry will assume no liability whatsoever if the use of our company's
+              products deviates from the contents of this catalog or does not comply with the
+              precautions. Please be advised of these restrictions.
+
+                                                                                                                                                                                                                                                       10-May-24
+                                                                                     Matters to Be Observed When Using This Product
+
+                    Matters to Be Observed When Using This Product
+
+                                            (Power inductor for Automotive)
+
+Use environments and cleaning conditions
+
+   This product is not designed for use in special environments. Do not use in the following special environments or conditions
+   as performance may be affected. If you use this product, please thoroughly verify its performance and reliability at your own
+   risk.
+
+      (1) Use in environments directly exposed to water, salt water, or oil, or in liquids such as water, oil, chemicals, or organic
+           solvents.
+
+      (2) Use in an environment exposed to direct sunlight such as outdoor exposure, ozone, radiation or ultraviolet rays, or dust.
+      (3) Use in a place with large amounts of moisture (Condensation, water leakage, etc.), sea breeze, corrosive gases such
+
+           as Cl2, H2S, NH3, SO2, NOX, etc.
+      (4) Environment filled with toxic gases (Hydrogen sulfide, sulfurous acid, nitrous acid, chlorine and its compounds,
+
+           bromine and its compounds, ammonia, etc.)
+      (5) Use in an acidic or alkaline environment.
+      (6) Use in an environment where the voltage exceeds HBM (2 kV), MM (200 V) or where there are strong
+
+           electromagnetic waves.
+      (7) Use solvents, water, water-soluble detergents, etc. for soldering and flux cleaning after soldering.
+      (8) Use after sealing or coating the product with resin, etc.
+      (9) Use when shock or stress is applied by dropping or excessive loading.
+
+Response to anomalies and handling conditions
+
+    The inductor, as a single component, does not have a protective function against a problem such as overloading,
+      short circuit, or open failure. Make sure to provide a circuit set with a protection device or circuit that protects the inductor,
+      and confirm that smoke generation/ignition, weakened dielectric strength, lower insulation resistance, etc., do not occur.
+
+    The temperature rise rate of the inductor changes depending on the state in which the inductor is incorporated in the
+      circuit set. Make sure to confirm that the temperature of the inductor is equal to or lower than the temperature
+      corresponding to the specified insulation class (heat-resistant class) when the inductor is incorporated in the circuit set.
+
+    Do not use this product in circuit conditions where the voltage load exceeds the specified dielectric strength.
+
+    When severe mechanical stress is applied to an inductor, its core may chip or crack.
+      There are also some cases where the core already has a chipped or cracked part. However, this chip or crack is
+      negligible and has no effect on the quality of the inductor.
+
+Reliability and product life
+
+   A product conforming to "AEC-Q200" refers to a product having passed some or all of the evaluation test items defined
+   in AEC-Q200. To know the detailed specifications of individual products or specific evaluation test scores, please contact us.
+   We issue a delivery specification sheet for each product ordered. Please confirm with the sheet when you place an order
+   with us.
+
+Circuit design and circuit board design
+
+    When the inductor is used in a different product set among a series of similar product sets, there are times when the
+       inductor will fail to achieve 100% of its capability because of the difference in service conditions, etc. In such a case,
+      consult us first.
+
+    When the inductor is used in an audible frequency range (= about 20 Hz to 20 kHz) or burst mode, it may emit a sound
+      (beat) under certain operation conditions (current waveform conditions). This sound may be heard as noise, depending
+      on circuits/board configurations in which the inductor is incorporated. Check for this problem before using the inductor.
+
+    When there is a possibility that electrostatic noise is applied to circuit components, place an ESD preventing component,
+      such as a capacitor resistant to static electricity, in a preceding stage to the inductor. In such a case, consult us first.
+
+                                                                                                                                                                                                                                                       25-Dec-24
+                                               Matters to Be Observed When Using This Product / Reference Information
+
+ To ensure insulation between the internal coil of the inductor and the upper surface of the board, avoid forming patterns
+   or vias in which voltage exceeding the guaranteed operating voltage is applied, on the uppermost layer of the board in
+   counter to the inductor bottom. (DUST series)
+
+ Do not form a pattern, via, etc., on the counter to the bottom of the inductor. (MC series/* Fig.1, Dust type/*Fig.2)
+
+ Keep a component placed around the inductor from being in contact with the surface (top face, side face) of the inductor.
+   (MC series/* Fig. 3)
+
+ Different from a ferrite core type with a magnetic energy concentration gap, the inductor described herein has a vertical
+   leakage flux distribution.
+   Exercise special caution when using a component or a circuit configuration susceptible to leakage flux from an inductor.
+
+Counter to the bottom part                              Counter to the bottom part                                 Top face
+                         8.4                                   1.9
+
+                                                                        4.4                      Side face
+
+                                                                                    Counter to the
+                                                                                      bottom part
+
+                                                                             5
+
+                              3.8
+                                   8
+
+                                                  20.6
+
+                                                                             8.4
+
+2.8                                                                                                         (PWB)  Side face
+10
+                                                        10.35         10.35
+Fig.1
+                                                               Fig.2                                        Fig.3
+
+                                 Reference information
+
+Labeling on package
+
+   On the inductor package, a product number, the number of components, and the place of origin are indicated. Usually,
+   the place of origin is written in English.
+
+                                                                                                                             25-Dec-24
+

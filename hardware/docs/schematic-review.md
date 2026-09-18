@@ -7,9 +7,10 @@ Source of truth for the traces below: `hardware/output/netlist.net`, 166 nets, e
 `mccan.kicad_sch` at commit-time. ERC gate after all fixes: **`--severity-all
 --exit-code-violations` → exit=0, 0 errors, 0 warnings.**
 
-**Result: 29 of 31 rows PASS. Three defects were found and fixed. One row is a spec-versus-design
-divergence that needs a decision (F5), and one row passes on presence but carries an unbudgeted
-thermal term (F4).**
+**Result: 29 of 31 rows PASS. Three defects were found and fixed. One row was a spec-versus-design
+divergence (F5 — resolved 2026-09-18 by amending the spec; the schematic was already right), and
+one row passes on presence but carries an unbudgeted thermal term (F4 — still open, the constraint
+is now specified but the parts are not chosen).**
 
 ---
 
@@ -17,12 +18,12 @@ thermal term (F4).**
 
 | Spec | Requirement | Sheet / refdes | Verdict |
 |---|---|---|---|
-| 2.2 | Single populated feed; second feed is DNP footprints only, with no panel cutout | `power_input` J1/F1/Q1 — single feed correct. **No second-feed footprints exist.** | **See F5** |
+| 2.2 | Single populated feed; ~~second feed is DNP footprints only~~ **no second-feed provision** | `power_input` J1 (3-way)/F1/Q1 — single feed correct. *(Spec §4.4 amended 2026-09-18 — F5.)* | **PASS** |
 | 4.1 | ONE panel fuse holder, 10 A, sized for the 7.8 A night case | `power_input` **F1**, 10 A, `FEED_P` → `FEED_FUSED` | **PASS** |
 | 4.2 | P-FET reverse polarity, sized for 7.8 A (1.22 W at the 20 mΩ ceiling), Vgs clamped, gate network ≥ 1 MΩ | `power_input` **Q1 SQJ461EP** (was SQJ415EP — **F1**), **D1** 12 V Zener clamp, **R1 1 MΩ** to `GND_IN` | **PASS after F1** |
 | 4.3 | 24 V TVS; all front-end parts ≥ 40 V | **D2 SMBJ24A**; Q1 now 60 V (**F1**). L1/L2/C1–C5 carry no part number or voltage rating — **O1, O5** | **PASS after F1** |
 | 4.3 | π filter + CM choke on each feed | **L2** (CM choke) → **C1 / L1 / C2+C3+C4** (π). **R2/R3 were shorting both choke windings — F2.** | **PASS after F2** |
-| 4.4 | Buck input from VLOGIC_IN; Schottky OR footprints present, second feed DNP | `VLOGIC_IN` ← **D3** ← `VBAT` → U1.2/U1.3 ✓. **Schottky OR is one diode, not a pair; no second feed.** | **See F5** |
+| 4.4 | Buck input from VLOGIC_IN; ~~Schottky OR pair, second feed DNP~~ **single Schottky** | `VLOGIC_IN` ← **D3** ← `VBAT` → U1.2/U1.3 ✓. One diode by design. *(Spec §4.4 amended — F5.)* | **PASS** |
 | 5.1 | 12× discrete MOSFET, Vds ≥ 40 V, Id ≥ 0.5 A at Vgs ≤ 3.3 V from the output curve | **Q4–Q9**, NX5020UNBKS, 6 dual packages = 12 channels, 50 V, Rds(on) characterised **at Vgs 2.5 V** | **PASS** |
 | 5.1 | ~~1 Ω~~ **10 Ω** shunt per channel; 12 `SENSE_*` into 16:1 mux in ChannelIndex order | **R52–R63 = 10 Ω**; `SENSE_*` → **R64–R75** → **U8** S1–S12 in order. *(Plan row says 1 Ω; spec §5.1 resized it to 10 Ω on 2026-09-13 — stale plan, see O6.)* | **PASS** |
 | 5.1 | MUX_S0–S3 on GPIO 23/4/16/5 with pulldowns; RGB_ISNS on GPIO 32 (ADC1) | U5.37/26/27/29 = IO23/4/16/5 → U8.17/16/15/14; **R30–R33** pulldowns; `RGB_ISNS` U5.8 = **IO32** | **PASS** |
@@ -209,7 +210,7 @@ several-fold. Flag this at the EMI pre-scan (spec §10) rather than treating 10 
 
 ---
 
-## F5 — the second feed's DNP footprints do not exist *(OPEN — needs a decision)*
+## F5 — the second feed's DNP footprints do not exist *(RESOLVED 2026-09-18 — spec amended)*
 
 Spec **§4.4 is explicit**: *"The second feed's board footprints are retained and left unpopulated —
 connector position, P-FET stage and the Schottky OR — so the domain split below can be restored by
@@ -238,6 +239,21 @@ it costs.
 
 Either way the spec and the schematic must be made to agree before Task 8 commits to an outline.
 
+### Resolution — 2026-09-18: **(b), the spec was amended**
+
+The owner chose to **drop the second-feed retention requirement**. Spec **§4.4 has been rewritten**
+(heading is now "Single feed") and **§2.2 updated**; both now state that the board carries no
+second-feed provision and that restoring the domain split would require a respin. The domain-split
+material in §4.4 is kept as **design rationale only**, explicitly marked as such.
+
+The **plan** has been amended too, since it repeated the old requirement in a dozen places: it now
+carries an **AMENDMENTS** block at the top listing every stale row (this one plus the five in O6),
+and **Task 3 Steps 3–5 are formally withdrawn** — they called for exactly the footprints that are
+not being built.
+
+**The schematic is unchanged. It was already correct;** it was the documents that were behind.
+**F5 no longer gates Task 8.**
+
 ---
 
 ## Observations — not failures, but they should not stay unwritten
@@ -245,8 +261,18 @@ Either way the spec and the schematic must be made to agree before Task 8 commit
 **O1 — no capacitor carries a voltage rating or dielectric.** Every `C*` value on the board is bare
 capacitance. Two places where that is load-bearing rather than tidy-up:
 
-- **C3, 220 µF electrolytic on `VBAT`** must be ≥ 50 V to survive the 38.9 V TVS clamp. A 25 V part
-  fits the same footprint and fails on the first transient.
+- **C3, 220 µF electrolytic on `VBAT`** must be **63 V** — *revised 2026-09-18, see below*. A 25 V
+  part fits the same footprint and fails on the first transient.
+
+  > **Revision.** This originally said "≥ 50 V to survive the 38.9 V TVS clamp." Closing row 6.2
+  > against the primary Bourns datasheet (`smbj.pdf`, found already in `hardware/datasheets/` and
+  > previously unindexed) showed that **38.9 V is only the 10/1000 µs clamp. The 8/20 µs clamp is
+  > 50.6 V at 77.5 A** — a figure no distributor summary carried. A 50 V part therefore has no
+  > margin at all, and **63 V is the correct call**. Two knock-ons are recorded in
+  > `part-selection.md`, "Correction 2": the LM51571-Q1's 50 V transient limit is no longer clearly
+  > above the clamp, and **F1 was more load-bearing than it looked** — against 50.6 V the retired
+  > 40 V SQJ415EP would have been *destroyed*, not merely run at 2.8% margin, while the SQJ461EP
+  > keeps 9.4 V.
 - **C20–C22, 4.7 µF on `+24V`.** If these are X7R, **DC-bias derating at 24 V typically leaves
   40–60% of the nameplate** — so the boost's output capacitance may be ~6–8 µF, not 14.1 µF. That
   needs checking against the LM51571's ripple and loop requirements before the BOM freezes.
@@ -340,8 +366,12 @@ All six generators re-run and idempotent.
 
 ## Sign-off
 
-**Rows 1–31: 29 PASS, 2 carried forward (F4 constraint recorded, F5 awaiting a decision).**
+**Rows 1–31: 29 PASS, 3 defects fixed, 1 constraint recorded (F4), 1 divergence resolved (F5).**
 
-Task 8 must not start on the outline until **F5** is resolved, since it determines the board area
-`power_input` needs, and should not freeze the BOM until **F4**'s two inductors are chosen against
-the 22 mΩ ceiling.
+**F5 is resolved** — the spec and plan were amended to match the built design, so the board area
+`power_input` needs is settled and **Task 8 may start on the outline.**
+
+**F4 remains open.** Task 8 must not freeze the BOM until L1 and L2 are chosen against the 22 mΩ
+ceiling, and should treat the board outline as provisional until L1/L2's real bodies are known —
+at 7.0 A they may be large enough to drive it. The owner is supplying the four blocking datasheets
+(CAN CM choke L6, CAN ESD D6/D7, input L1/L2, buck inductors L4/L5) into `hardware/datasheets/`.

@@ -15,7 +15,40 @@ FAIL verdict there can be traced back to the document it was read from.
 | `infineon_bts7008_2epa_datasheet_en.pdf` | Infineon BTS7008-2EPA | Dual smart high-side switch for the Denali pair | **Rev. 1.21, 2024-07-29.** Added 2026-09-15, and it closed the Task 8 blocker. Source for: the pinout (Table 2 p.6 — VS is the **exposed pad**, each output is three pins), kILIS = 5400/5450 (Table 22 p.53) which sizes R81 at 2.2 kΩ, IIS(SAT) and the saturation voltage (Table 20 p.50) which is why R83 exists, the suggested external components (Table 24 p.54), and the thermal resistances (Table 6 p.11) that quantify row 2.6. |
 | `Littelfuse_1206L_PTC_series.pdf` | Littelfuse 1206L series | Resettable PTC, one per RGB string | Row 6.3 **FAILS — family-wide.** This PDF is the evidence: its own p.2 derating table (0.33 A @ 60 °C, 0.29 A @ 70 °C) puts the best 24 V-rated part, 1206L050/24, at only **0.31 A at 65 °C** against a 0.42 A sustained load. Needs a larger family — 1812L, Bourns MF-SMD or TE miniSMDC. |
 | `PMV60ENEA_fig6_output_characteristics.png` | Nexperia PMV60ENEA | RGB low-side switching MOSFET (×12) | Row 1a.2 **PASS**. This figure *is* the evidence: the output-characteristic curve sits clearly above 0.5 A at Vgs ≤ 3.3 V. Read **qualitatively** — no precision is claimed from a graph. |
-| ~~`SMBJ24A_TVS.pdf`~~, ~~`SMBJ_series_TVS.pdf`~~ | **NEITHER IS AN SMBJ24A DATASHEET** | — | **See "Correction" below.** `SMBJ24A_TVS.pdf` is a Diodes Inc. **wafer-fab process-change notice** with no electrical specifications; `SMBJ_series_TVS.pdf` is an unrelated **Powerex SCR/diode module** datasheet. Row 6.2 remains **UNVERIFIED**. |
+| ~~`SMBJ24A_TVS.pdf`~~, ~~`SMBJ_series_TVS.pdf`~~ | **NEITHER IS AN SMBJ24A DATASHEET** | — | **See "Correction" below.** `SMBJ24A_TVS.pdf` is a Diodes Inc. **wafer-fab process-change notice** with no electrical specifications; `SMBJ_series_TVS.pdf` is an unrelated **Powerex SCR/diode module** datasheet. **Row 6.2 is nonetheless CLOSED as of 2026-09-18** — by `smbj.pdf`, a genuine Bourns SMBJ series datasheet that was already in this folder, unindexed. See the section below. |
+
+## Added later — indexed 2026-09-18
+
+**These thirteen files were in the folder but not in this index.** That gap had a real cost: row 6.2
+of `../docs/part-selection.md` sat **UNVERIFIED across two sessions and nine failed fetch attempts**,
+with a note that "a human must obtain a genuine PDF by a non-automated channel" — while
+**`smbj.pdf`, a genuine primary datasheet, was already here.** *List the directory before concluding
+a document is unobtainable.*
+
+| File | Part | Role | Status |
+|---|---|---|---|
+| `smbj.pdf` | **Bourns SMBJ TVS series** (600 W, standoff 5–495 V) | Front-end clamp D2 = SMBJ24A | **CLOSES ROW 6.2 — 2026-09-18.** V<sub>RWM</sub> 24.0 V, V<sub>BR</sub> 26.7–29.5 V, **V<sub>C</sub> 38.9 V @ 15.5 A (10/1000 µs)**, **V<sub>C</sub> 50.6 V @ 77.5 A (8/20 µs)**. The 8/20 figure appears in **no distributor summary** and changes C3 to 63 V — see "Correction 2" in part-selection.md. **Read with care: `pdftotext -layout` staggers the three column blocks against each other**; the alignment was pinned from the document itself (V<sub>C</sub>/V<sub>BR(max)</sub> ≈ 1.31 across the series, +2-line offset), not assumed |
+| `sqj461ep.pdf` | Vishay **SQJ461EP** | Reverse-polarity P-FET Q1 | The **60 V** replacement for the 40 V SQJ415EP. Task 7 finding **F1** — the schematic still carried the old number five days after the swap |
+| `lm5164.pdf` | TI **LM5164** | 3.3 V and 5 V bucks U1/U2 | Selected. 100 V input rating clears the TVS clamp with large margin |
+| `lm51571-q1.pdf` | TI **LM51571-Q1** | 24 V boost U3 | Selected, **non-synchronous**. Source of the 37.4k MODE value and the 2.6 µA typ / 5 µA max shutdown bias. **Its "transient protection up to 50 V" is at/just past the SMBJ24A's 50.6 V 8/20 clamp** — re-examine at EMI pre-scan |
+| `DML3017LDC.pdf` | Diodes **DML3017LDC** | `+3V3_SW` load switch U4 | Selected. **Pin-1 orientation of V-DFN3030-12 is still ambiguous between the two figures in DS46371** — resolve from the package outline in Task 8, do not infer |
+| `NX5020UNBKS.pdf` | Nexperia **NX5020UNBKS** | RGB low-side FETs, 6 dual packages = 12 channels | Selected. Built as a 2-unit symbol. 50 V, characterised at Vgs 2.5 V |
+| `NX3020NAKW-Q.pdf` | Nexperia NX3020NAKW-Q | Considered for the same role | Not selected |
+| `ss5ph102.pdf` | Vishay **SS5PH102** | Boost rectifier D4 | Selected — VRRM 100 V, IF(AV) 5 A, VF 0.70 V at 5 A, SMPC (TO-277A) |
+| `xal7070.pdf` | Coilcraft **XAL7070** series | **Buck inductors L4/L5** | **Candidate found: XAL7070-223ME**, 22 µH, DCR 34.51 typ / 39.69 max mΩ, Isat 6.3 A, AEC-Q200 shielded. Comfortably clears the Isat ≥ 1.5 A requirement. Also holds a 2.2 µH part (11.2 mΩ, Isat 19.6 A) which **misses** L1's 8 mΩ budget |
+| `xal4000.pdf` | Coilcraft XAL40xx series | Smaller siblings | Tops out around 2.2 µH; too small for the 7 A input path |
+| `Panasonic_Inductor Hi Performance (ETQP_M__Y__ Series)  020626.pdf` | Panasonic **PCC-M / ETQP** automotive power chokes | **Input inductor L1** | **Candidate found: PCC-M1050M series**, low-value parts at **3.8–5.9 mΩ**, Isat ~18–21 A, 10.0 × 10.7 × 5.4 mm — inside the ≤ 8 mΩ budget at the ~2.2–2.5 µH the review recommends over 10 µH |
+| `xcl105.pdf` | Torex XCL104/XCL105 | Inductor-integrated step-up converter | Considered for the 24 V boost and **not selected** — 1.4 A class, far too small |
+| `xp202a0003mr.pdf` | Torex XP202A0003MR | P-channel 4 V MOSFET, SOT-23 | Considered and not selected for Q1 — nowhere near the 7 A / 60 V requirement |
+| `DIOD-S-A0006646639-1.pdf` | Diodes **DMHT3006LFJ** 30 V N-channel H-bridge | — | Not used by this design |
+
+> **The two inductor candidates are identified, not selected.** `pdftotext -layout` staggers the
+> column blocks in both files, so the part-number ↔ value alignment must be confirmed before
+> ordering. Task 8 pins them.
+
+**Still genuinely missing** — see `NEEDED.md`: the **input CM choke L2** (7 A), the **CAN CM choke
+L6**, the **CAN ESD D6/D7**, the **PCA9685**, the **Espressif hardware-design guidelines** (for the
+unverified EN reset RC) and the **ESP32-WROOM-32E-N8 module datasheet** (for the antenna keep-out).
 
 ## Considered and rejected — kept as evidence
 
@@ -40,10 +73,15 @@ valid PDF header without reading the contents.** On actually opening them:
   characteristics at all
 - `SMBJ_series_TVS.pdf` is a **Powerex SCR/diode module** datasheet, an unrelated part
 
-Row 6.2 is therefore still open, and nine fetch attempts across two sessions have failed (403 /
-timeout from Mouser, Bourns, ST and Littelfuse). **Closing it needs a human to download a genuine
-SMBJ24A datasheet in a browser** — a two-minute job for a person, and one that automated fetching has
-now repeatedly failed at.
+Row 6.2 was therefore left open, and nine fetch attempts across two sessions failed (403 / timeout
+from Mouser, Bourns, ST and Littelfuse), with the conclusion that "closing it needs a human to
+download a genuine SMBJ24A datasheet in a browser."
+
+> **That conclusion was wrong, and in a second way (2026-09-18).** A human *had* already supplied
+> one: **`smbj.pdf`** — a genuine Bourns SMBJ-series datasheet — was sitting in this directory the
+> whole time, absent from this index and uncited by row 6.2. The first correction was calling a file
+> a datasheet without reading it; **the second was calling a datasheet absent without listing the
+> directory.** Row 6.2 is now **CLOSED**.
 
 Distributor summary figures (standoff 24 V, VBR min 26.7 V, clamping max 38.9 V, 600 W) would pass the
 criteria on their face, but a distributor summary is not a primary source, which is this record own

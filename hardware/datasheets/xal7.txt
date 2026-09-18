@@ -1,0 +1,161 @@
+Web   Sample  Tools &          Support                                          Document 856-1
+page  & buy   software         & FAQ
+
+Shielded Power Inductors ­ XAL7070
+
+Halogen                                 · High current and very low DCR
+  Free                                  · AEC-Q200 qualified
+                                        · Soft saturation makes them ideal for VRM/VRD applications.
+AEC
+                                        Core material Composite
+Q200 +125°C                             Environmental RoHS compliant, halogen free
+                                        Terminations RoHS compliant tin-silver (96.5/3.5) over copper. Other
+       Typical L vs Frequency           terminations available at additional cost.
+                                        Weight 1.9 ­ 2.3 g
+                                        Operating voltage: 60 V7
+                                        Ambient temperature ­40°C to +125°C with (40°C rise) Irms current.
+                                        Maximum part temperature +165°C (ambient + temp rise). Derating.
+                                        Storage temperature Component: ­55°C to +165°C.
+                                        Tape and reel packaging: ­55°C to +80°C
+                                        Resistance to soldering heat Max three 40 second reflows at
+                                        +260°C, parts cooled to room temperature between cycles
+                                        Moisture Sensitivity Level (MSL) 1 (unlimited floor life at <30°C /
+                                        85% relative humidity)
+                                        Packaging 150/7 reel, 750/13 reel Plastic tape: 16 mm wide,
+                                        0.4 mm thick, 12 mm pocket spacing, 7.44 mm pocket depth
+                                        PCB washing Tested to MIL-STD-202 Method 215 plus an additional
+                                        aqueous wash. See Doc787_PCB_Washing.pdf.
+
+                               US +1-847-639-6400 sales@coilcraft.com           Document 856-1 Revised 02/25/26
+                               UK +44-1236-730595 sales@coilcraft-europe.com
+                               Taiwan +886-2-2264 3646 sales@coilcraft.com.tw                                        © Coilcraft Inc. 2026
+                               China +86-21-6218 8074 sales@coilcraft.com.cn    This product may not be used in medical or high
+                               Singapore + 65-6484 8412 sales@coilcraft.com.sg   risk applications without prior Coilcraft approval.
+
+                                                                                   Specification subject to change without notice.
+                                                                                      Please check web site for latest information.
+             HIGH TEMPERATURE                                                                                    Document 856-2
+
+             Shielded Power Inductors ­ XAL7070
+
+               Inductance2 DCR (mOhms)3               SRF typ4                         Isat5 Irms (A)6
+                                                        (MHz)                           (A) 20°C rise 40°C rise
+              Part number1 ±20% (µH)         typ max
+                                                          207
+             XAL7070-161ME_  0.16     0.75 0.83           135                          78    30.5  36.1
+                                      1.06 1.17
+             XAL7070-301ME_  0.30     1.42 1.56            89                          55.6  26.1  33.4
+                                      1.75 1.93            74
+Halogen      XAL7070-551ME_  0.55     2.08 2.29            67                          43.0  23.5  29.0
+  Free
+             XAL7070-651ME_  0.65                          64                          40.0  21.0  26.5
+AEC                                                        43
+             XAL7070-801ME_  0.8                           43                          37.8  20.8  25.8
+Q200 +125°C                                                35
+             XAL7070-102ME_  1.0      2.55 2.81            32                          34.8  20.0  25.0
+                                      3.10 3.41
+             XAL7070-122ME_  1.2      4.05 4.46            26                          31.2  16.2  21.6
+                                      5.73 6.33            21
+             XAL7070-182ME_  1.8      8.56 9.42            20                          25.0  15.8  21.0
+                                                           11.5
+             XAL7070-222ME_  2.2                           11.2                        19.6  13.2  17.8
+
+             XAL7070-332ME_  3.3                             9.7                       19.4  11.5  15.1
+                                                             8.9
+             XAL7070-472ME_  4.7      12.96  14.26           8.1                       15.2  10.5  13.6
+                                      13.67  15.03           6.7
+             XAL7070-562ME_  5.6      17.84  19.62           5.7                       13.0  8.5   11.4
+                                      17.54  20.17
+             XAL7070-682ME_  6.8      19.33  22.23                                     12.8  6.8   9.2
+
+             XAL7070-103ME_ 10                                                         7.5   7.0   9.3
+
+             XAL7070-123ME_ 12                                                         7.4   6.0   8.2
+
+             XAL7070-153ME_ 15        25.67  29.52                                     7.0   5.4   7.4
+             XAL7070-183ME_ 18        28.54  32.82
+             XAL7070-223ME_ 22        34.51  39.69                                     6.3   5.0   6.8
+             XAL7070-333ME_ 33        53.98  62.08
+             XAL7070-473ME_ 47        84.41  97.07                                     5.6   4.7   6.5
+
+                                                                                       4.4   3.6   4.9
+
+                                                                                       4.2   3.1   4.1
+
+             1. When ordering, please specify termination and packaging codes:         2. Inductance tested at 1 MHz, 0.1 Vrms, 0 Adc.
+
+                             XAL7070-473MEC                                            3. DCR measured on a micro-ohmmeter.
+
+             Termination: E = Halogen free component. RoHS compliant tin-silver        4. SRF measured using Agilent/HP 4395A or equivalent.
+                                      over copper terminations.
+                                      Special order: T = RoHS tin-silver-copper        5. DC current at 25°C that causes an inductance drop of 30% (typ) from
+                                      (95.5/4/0.5) or S = non-RoHS tin-lead (63/37).      its value without current.
+                                                                                          Click for temperature derating information.
+             Packaging:  C = 7 machine-ready reel. EIA-481 embossed plastic
+                              tape (150 parts per full reel). Quantities less than     6. Current that causes the specified temperature rise from 25°C ambient.
+                                                                                          This information is for reference only and does not represent absolute
+                              full reel available: in tape (not machine ready) or         maximum ratings. Temperature rise is highly dependent on many
+                                                                                          factors including pcb land pattern, trace size, air flow, and proximity
+                              with leader and trailer ($25 charge).                       to other components. Therefore temperature rise should be verified in
+                                                                                          application conditions. Click for temperature derating information.
+                         B = Less than full reel. In an effort to simplify our part
+                              numbering system, Coilcraft is eliminating the need      7. Voltage capability varies by part number and in many cases may be
+                              for multiple packaging codes. When ordering, simply         higher than the listed voltage.
+                              change the last letter of your part number from B to C.
+                                                                                       8. Electrical specifications at 25°C.
+                         D = 13 machine-ready reel. EIA-481 embossed plastic
+                              tape. Factory order only, not stocked (750 parts per     Refer to Doc 362 "Soldering Surface Mount Components" before soldering.
+
+                              full reel).
+
+                                             US +1-847-639-6400 sales@coilcraft.com                              Document 856-2 Revised 02/25/26
+                                             UK +44-1236-730595 sales@coilcraft-europe.com
+                                             Taiwan +886-2-2264 3646 sales@coilcraft.com.tw                                                           © Coilcraft Inc. 2026
+                                             China +86-21-6218 8074 sales@coilcraft.com.cn                       This product may not be used in medical or high
+                                             Singapore + 65-6484 8412 sales@coilcraft.com.sg                      risk applications without prior Coilcraft approval.
+
+                                                                                                                    Specification subject to change without notice.
+                                                                                                                       Please check web site for latest information.
+      HIGH TEMPERATURE                           Document 856-3
+
+     Shielded Power Inductors ­ XAL7070
+
+       L vs Current
+
+Halogen
+  Free
+
+AEC
+
+Q200 +125°C
+
+US +1-847-639-6400 sales@coilcraft.com           Document 856-3 Revised 02/25/26
+UK +44-1236-730595 sales@coilcraft-europe.com
+Taiwan +886-2-2264 3646 sales@coilcraft.com.tw                                        © Coilcraft Inc. 2026
+China +86-21-6218 8074 sales@coilcraft.com.cn    This product may not be used in medical or high
+Singapore + 65-6484 8412 sales@coilcraft.com.sg   risk applications without prior Coilcraft approval.
+
+                                                    Specification subject to change without notice.
+                                                       Please check web site for latest information.
+      HIGH TEMPERATURE                           Document 856-4
+
+     Shielded Power Inductors ­ XAL7070
+
+       L vs Current
+
+Halogen
+  Free
+
+AEC
+
+Q200 +125°C
+
+US +1-847-639-6400 sales@coilcraft.com           Document 856-4 Revised 02/25/26
+UK +44-1236-730595 sales@coilcraft-europe.com
+Taiwan +886-2-2264 3646 sales@coilcraft.com.tw                                        © Coilcraft Inc. 2026
+China +86-21-6218 8074 sales@coilcraft.com.cn    This product may not be used in medical or high
+Singapore + 65-6484 8412 sales@coilcraft.com.sg   risk applications without prior Coilcraft approval.
+
+                                                    Specification subject to change without notice.
+                                                       Please check web site for latest information.
+
