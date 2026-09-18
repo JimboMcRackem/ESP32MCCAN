@@ -70,11 +70,11 @@ it cannot have:
 - **TE Superseal 1.0** 4-way (J3–J6) and 2-way (J8); **TE Superseal 1.5** 3-way (J1, J7) — panel
   penetration positions and mating clearance (§9.1). TE publish STEP per part number
 - **Panel-mount ATO/ATC fuse holder** (F1) — one of the nine penetrations
-- **Würth WE-CMBNC 7448031002 (L2)** — **the part that drives the board outline and the enclosure
-  height, and the tallest thing on the board at ~17 mm.** It is **THROUGH-HOLE**: the datasheet gives
-  a hole pattern (⌀1.3 mm on **7.5 × 10.7 mm**, ⌀1.0 mm pins), not a land pattern, so Task 8 must
-  draw the footprint. **Read the body dimensions off the drawing** — the 25.0 × 24.0 × 17.0 mm figures
-  came from a scrambled extraction; only the hole pattern is dimensioned with a tolerance. Würth
-  publish a STEP model
+- **Würth WE-CMBNC 7448031002 (L2)** — **DONE.** The vendor SamacSys footprint and STEP model are
+  installed as `footprints/mccan.pretty/Wurth_WE-CMBNC_7448031002.kicad_mod` and
+  `3dmodels/Wurth_WE-CMBNC_7448031002.stp`. Pads verified against the datasheet: four through-hole
+  pads, **7.5 × 10.7 mm pattern, ⌀1.3 mm drills**. Body **23.0 × 17.0 mm** in the board plane
+  (courtyard 25.0 × 19.65), and it stands **~23–24 mm above the PCB** — **double either ferrite
+  alternative, and the constraint to check against the enclosure lid (§9)**
 - **TDK ACT45B** — no KiCad footprint exists for it; `L_CommonModeChoke_Coilank_ACM4532` is the right
   size class but **its land pattern must be checked against the ACT45B drawing before use**

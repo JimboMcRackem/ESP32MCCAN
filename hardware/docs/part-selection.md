@@ -1578,11 +1578,23 @@ rating.
 > THT pins are mechanically far more robust than SMD pads for a 15 g-class part on a motorcycle,
 > which is a genuine reliability argument rather than a consolation.
 
-> **It is the tallest candidate.** The drawing extracts as **25.0 max × 24.0 max × 17.0 max mm**.
-> The 17 mm is the figure to check against the enclosure lid: the Bourns is 11.5 mm and the Coilcraft
-> 12.7 mm. **These dimensions came out of a scrambled drawing extraction and should be read off the
-> drawing before the outline is committed** — the hole pattern (7.5 × 10.7 mm) is the number I am
-> confident in, because it is dimensioned with a tolerance.
+> **It is much the tallest candidate — CORRECTED 2026-09-19.** An earlier note here read the
+> scrambled drawing as "~17 mm tall". **That was wrong: 17.0 mm is a board-plane dimension, not the
+> height.** The vendor footprint and STEP model settle it:
+>
+> | Source | Figure |
+> |---|---|
+> | Footprint `F.Fab` (body outline) | **23.0 × 17.0 mm** in the board plane |
+> | Footprint `F.CrtYd` (courtyard) | **25.0 × 19.65 mm** |
+> | STEP bounding box, body only | 22.7 × 18.6 mm, **20.3 mm tall** |
+> | STEP, pins below body | 6.0 mm |
+> | Datasheet | "24,0 max." — consistent with 20.3 mm body on a 3.0 mm min standoff |
+>
+> **So the part stands roughly 23–24 mm above the PCB**, against **11.5 mm** for the Bourns and
+> **12.7 mm** for the Coilcraft — about **double**, not the marginal difference first reported. Its
+> board-plane area (23.0 × 17.0 = 391 mm²) is, by contrast, almost identical to the Bourns' 384 mm²
+> and much better than the Coilcraft's 806 mm². **The cost is height, not area.** This needs checking
+> against the enclosure lid clearance in §9 before the outline is committed.
 
 **Two items to confirm before ordering:**
 
