@@ -3911,7 +3911,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10uH"
+		(property "Value" "1.5uH"
 			(at 107.95 82.55 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4720,7 +4720,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "CM choke"
+		(property "Value" "7448031002"
 			(at 88.9 69.85 0)
 			(show_name no)
 			(do_not_autoplace no)

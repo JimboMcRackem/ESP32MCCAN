@@ -1519,7 +1519,12 @@ similar (12.7 vs 11.5 mm).
 trade-off, and it should be settled before Task 8 commits to an outline, because this is the part
 that sets it.
 
-#### The Würth WE-CMBNC 7448031002 — **this is the one, and it is the only automotive-qualified option**
+#### L2 IS THE WÜRTH WE-CMBNC 7448031002 — **owner's decision, 2026-09-19**
+
+It is the only automotive-qualified option of the three and the only one that leaves the thermal
+budget real margin. **Now carried in the schematic**: `layout_power_input.py` sets L2's value to
+`7448031002` and L1's to `1.5uH`, with the coupling between them written into the file so neither
+gets changed alone.
 
 `wurth_we-cmbnc_7448031002.pdf`, rev. 002.000, 2024-01-26. A **nanocrystalline** common-mode power
 line choke, size/type M. It beats both ferrite candidates on every electrical axis that matters, and

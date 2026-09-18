@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-18T23:14:50")
+		(date "2026-09-19T00:05:49")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -791,7 +791,7 @@
 		)
 		(comp
 			(ref "L1")
-			(value "10uH")
+			(value "1.5uH")
 			(fields
 				(field
 					(name "Footprint")
@@ -845,7 +845,7 @@
 		)
 		(comp
 			(ref "L2")
-			(value "CM choke")
+			(value "7448031002")
 			(fields
 				(field
 					(name "Footprint")
