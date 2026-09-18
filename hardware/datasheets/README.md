@@ -74,9 +74,26 @@ Full read-out in `../docs/part-selection.md`, "Parts selected 2026-09-18".
 **Every electrical part is now selected.** What remains is documentary: the **Espressif Hardware
 Design Guidelines** for the antenna keep-out dimensions (Task 9). See `NEEDED.md`.
 
-**One open choice, and it is a placement trade rather than an electrical one:** PM3700-10-RC or
-CG3885-AL for L2. Same DCR, same dissipation, same F4 result; the Coilcraft part trades 2.1x the
-board area for 43% current margin. Settle it before Task 8 fixes the outline.
+| `wurth_we-cmbnc_7448031002.pdf` | Wurth **WE-CMBNC 7448031002** | **Input CM choke L2 -- RECOMMENDED** | **The best of the three and the only AEC-Q200 part.** Nanocrystalline: **2 mH** (vs 0.2 mH ferrite), **rated 10 A**, **DCR 6.3 mOhm max**, insulation 2100 V AC, **AEC-Q200 Grade 1**, -55 to +125 C, rise < 55 K at rated current. Nanocrystalline permeability is ~10x ferrite, so far fewer turns give more inductance at less resistance -- a different technology, not a better ferrite. **F4 improves for the first time: 18.40 mOhm total against the 22 mOhm ceiling (16.4% margin, vs 0.9% for both ferrite parts), 0.90 W, night total ~2.70 W.** It also un-couples the L1 choice -- even the 2.2 uH IHLP passes with it. **Costs: it is THROUGH-HOLE** (hole pattern 7.5 x 10.7 mm, 1.3 mm holes) on an otherwise-SMD board, and the **tallest candidate at ~17 mm**. Two items to confirm before ordering: whether 6.3 mOhm is per winding (assumed, conservative) or total, and the derating curve at the 65 C internal ambient |
+
+**L2 candidates, side by side.** All three clear F4; only one clears it comfortably.
+
+| | Bourns PM3700-10-RC | Coilcraft CG3885-AL | **Wurth 7448031002** |
+|---|---|---|---|
+| DCR per winding | 8.0 mOhm | 8.0 mOhm | **6.3 mOhm** |
+| F4 total with L1 | 21.80 mOhm | 21.80 mOhm | **18.40 mOhm** |
+| Margin on 22 mOhm | 0.9% | 0.9% | **16.4%** |
+| Loss at 7.0 A | 1.07 W | 1.07 W | **0.90 W** |
+| Rated current | 7.0 A | 10.0 A | **10 A** |
+| Lcm | 0.2 mH | 0.30 mH | **2 mH** |
+| Isolation | 500 Vrms | 1000 Vrms | **2100 V AC** |
+| AEC-Q200 | no | no | **Grade 1** |
+| Mounting | SMD | SMD | **through-hole** |
+| Size (mm) | **21.6 x 17.8 x 11.5** | 31.0 x 26.0 x 12.7 | 25.0 x 24.0 x ~17.0 |
+
+**Recommendation: the Wurth.** It is the only automotive-qualified option, and the only one that
+gives the thermal budget real margin. The price is a through-hole part on an SMD board and ~4.3 mm
+of extra height -- both enclosure/assembly questions rather than electrical ones.
 
 ## Considered and rejected — kept as evidence
 

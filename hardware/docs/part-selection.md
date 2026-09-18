@@ -1518,3 +1518,75 @@ similar (12.7 vs 11.5 mm).
 **Neither choice changes F4, the schematic or the netlist.** It is a placement and reliability
 trade-off, and it should be settled before Task 8 commits to an outline, because this is the part
 that sets it.
+
+#### The Würth WE-CMBNC 7448031002 — **this is the one, and it is the only automotive-qualified option**
+
+`wurth_we-cmbnc_7448031002.pdf`, rev. 002.000, 2024-01-26. A **nanocrystalline** common-mode power
+line choke, size/type M. It beats both ferrite candidates on every electrical axis that matters, and
+it is the only one of the three that is **AEC-Q200 Grade 1**.
+
+| Property | Test condition | Value |
+|---|---|---|
+| Number of windings | | 2 |
+| Inductance | 10 kHz / 0.1 mA | **2 mH** ±50% |
+| Rated current | | **10 A max** |
+| DC resistance | R<sub>DC</sub> @ 20 °C | **6.3 mΩ max** |
+| Rated voltage | I<sub>R</sub> @ 70 °C | 300 V AC max |
+| Insulation test voltage | 50 Hz / 5 mA / 2 s | **2100 V AC** |
+| **Component qualification** | | **AEC-Q200 Grade 1** |
+| Operating temperature | | **−55 to +125 °C** |
+| Climatic category | | 55/125/21 |
+| Temperature rise | at rated current | < 55 K |
+| MSL | | 1 |
+| Approvals | | ENEC 10, VDE (40048238), RoHS, REACh |
+
+**Why nanocrystalline changes the arithmetic.** A nanocrystalline core has roughly an order of
+magnitude more permeability than ferrite, so the same inductance needs far fewer turns. That is why
+this part delivers **2 mH at 6.3 mΩ** where the ferrite parts give **0.2 mH at 8.0 mΩ** — ten times
+the common-mode inductance at three-quarters the resistance. It is not a marginal improvement in the
+same technology; it is a different technology.
+
+#### F4 gains real margin for the first time
+
+| L2 candidate | + L1 1.5 µH | Total | Loss at 7.0 A | Margin on 22 mΩ |
+|---|---|---|---|---|
+| Bourns PM3700-10-RC | 5.80 + 16.0 | 21.80 mΩ | 1.07 W | **0.9%** |
+| Coilcraft CG3885-AL | 5.80 + 16.0 | 21.80 mΩ | 1.07 W | **0.9%** |
+| **Würth 7448031002** | 5.80 + 12.6 | **18.40 mΩ** | **0.90 W** | **16.4%** |
+
+**Night total falls to ~2.70 W** against the ~2.9 W the 150 cm² plate was sized for — the first
+candidate that leaves the thermal design any room.
+
+It also **un-couples the L1 choice**: with the Würth, even the 2.2 µH IHLP lands at 21.60 mΩ and
+still passes. The 1.5 µH part remains the better choice, but it is no longer forced by L2.
+
+**Current margin as well.** 10 A rated against a 7.0 A night load is 30% headroom, and it covers the
+7.8 A flash-to-pass continuously rather than momentarily. Rise at our 7.0 A scales as I² from the
+< 55 K at 10 A, giving **≈ 27 K** — about 67 °C part temperature at 40 °C ambient, against a 125 °C
+rating.
+
+#### What it costs, and two things to confirm
+
+> **It is a THROUGH-HOLE part.** The datasheet gives a *Recommended Hole Pattern* — ⌀1.3 mm holes on
+> a **7.5 × 10.7 mm** pattern, ⌀1.0 mm pins — not a land pattern. Everything else on this board is
+> SMD, so this introduces a second assembly operation (selective or hand soldering). Against that,
+> THT pins are mechanically far more robust than SMD pads for a 15 g-class part on a motorcycle,
+> which is a genuine reliability argument rather than a consolation.
+
+> **It is the tallest candidate.** The drawing extracts as **25.0 max × 24.0 max × 17.0 max mm**.
+> The 17 mm is the figure to check against the enclosure lid: the Bourns is 11.5 mm and the Coilcraft
+> 12.7 mm. **These dimensions came out of a scrambled drawing extraction and should be read off the
+> drawing before the outline is committed** — the hole pattern (7.5 × 10.7 mm) is the number I am
+> confident in, because it is dimensioned with a tolerance.
+
+**Two items to confirm before ordering:**
+
+1. **Whether 6.3 mΩ is per winding or total.** The table lists "Number of windings: 2" as a separate
+   row and then a single DC-resistance figure. Bourns and Coilcraft both state *per winding*
+   explicitly; Würth does not. **The arithmetic above assumes per winding, which is the conservative
+   reading** — if it turns out to be the total, the sum improves further to 12.10 mΩ and 0.59 W.
+2. **The derating curve.** Rated current is specified at 20 °C and page 3 carries a derating curve
+   against ambient temperature. At the 65 °C internal target the 10 A figure will have derated
+   somewhat; it needs reading off the curve to confirm 7.0 A is still inside it. Given 10 A at 20 °C
+   and a 125 °C limit, 7.0 A at 65 °C is very likely fine, but it should be checked rather than
+   assumed.
