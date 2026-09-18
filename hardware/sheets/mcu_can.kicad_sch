@@ -4672,7 +4672,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "RF_Module:ESP32-WROOM-32E"
 			(at 149.86 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -4935,7 +4935,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 60.96 107.95 0)
 			(hide yes)
 			(show_name no)
@@ -5416,7 +5416,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 116.84 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -5577,7 +5577,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 55.88 224.79 0)
 			(hide yes)
 			(show_name no)
@@ -5658,7 +5658,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 71.12 224.79 0)
 			(hide yes)
 			(show_name no)
@@ -5819,7 +5819,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 40.64 224.79 0)
 			(hide yes)
 			(show_name no)
@@ -5900,7 +5900,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 78.74 115.57 0)
 			(hide yes)
 			(show_name no)
@@ -5981,7 +5981,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 283.21 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -6062,7 +6062,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Diode_SMD:D_SOD-123"
 			(at 83.82 107.95 0)
 			(hide yes)
 			(show_name no)
@@ -6143,7 +6143,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 240.03 90.17 0)
 			(hide yes)
 			(show_name no)
@@ -6224,7 +6224,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 132.08 224.79 0)
 			(hide yes)
 			(show_name no)
@@ -6385,7 +6385,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 109.22 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -6466,7 +6466,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 72.39 170.18 0)
 			(hide yes)
 			(show_name no)
@@ -6547,7 +6547,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 114.3 93.98 0)
 			(hide yes)
 			(show_name no)
@@ -6628,7 +6628,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 246.38 78.74 0)
 			(hide yes)
 			(show_name no)
@@ -6709,7 +6709,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 240.03 101.6 0)
 			(hide yes)
 			(show_name no)
@@ -7110,7 +7110,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 72.39 115.57 0)
 			(hide yes)
 			(show_name no)
@@ -7191,7 +7191,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA"
 			(at 110.49 158.75 0)
 			(hide yes)
 			(show_name no)
@@ -7272,7 +7272,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
 			(at 302.26 95.25 0)
 			(hide yes)
 			(show_name no)
@@ -7356,7 +7356,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
 			(at 85.09 170.18 0)
 			(hide yes)
 			(show_name no)
@@ -7520,7 +7520,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
 			(at 85.09 189.23 0)
 			(hide yes)
 			(show_name no)
@@ -7604,7 +7604,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA"
 			(at 110.49 204.47 0)
 			(hide yes)
 			(show_name no)
@@ -7685,7 +7685,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 124.46 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -8253,7 +8253,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 236.22 107.95 0)
 			(hide yes)
 			(show_name no)
@@ -8334,7 +8334,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 116.84 224.79 0)
 			(hide yes)
 			(show_name no)
@@ -8415,7 +8415,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 220.98 160.02 0)
 			(hide yes)
 			(show_name no)
@@ -8496,7 +8496,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 72.39 189.23 0)
 			(hide yes)
 			(show_name no)
@@ -8657,7 +8657,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "LED_SMD:LED_0603_1608Metric"
 			(at 209.55 160.02 0)
 			(hide yes)
 			(show_name no)
@@ -8738,7 +8738,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 101.6 224.79 0)
 			(hide yes)
 			(show_name no)
@@ -8819,7 +8819,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 60.96 115.57 0)
 			(hide yes)
 			(show_name no)
@@ -8980,7 +8980,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 86.36 224.79 0)
 			(hide yes)
 			(show_name no)
@@ -9061,7 +9061,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
 			(at 60.96 175.26 0)
 			(hide yes)
 			(show_name no)
@@ -9234,7 +9234,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 284.48 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -9315,7 +9315,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm"
 			(at 261.62 95.25 0)
 			(hide yes)
 			(show_name no)

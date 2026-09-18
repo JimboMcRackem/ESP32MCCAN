@@ -6,6 +6,7 @@ Task 6: PCA9685, 12 RGB switching channels with sense shunts, the 16:1 analog mu
 and its sense-path protection, the dual PROFET, four PTCs and the panel connectors.
 """
 import os, re, sys, uuid, textwrap
+import fpmap
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 HW = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -701,8 +702,9 @@ for s in SYMS:
     if "Value" not in have:
         props.insert(1, ("Value", s["val"], s["x"], s["y"] + 2.54, 0))
     for extra in ("Footprint", "Datasheet", "Description"):
-        props.append((extra, "" if extra != "Description" else s["desc"],
-                      s["x"], s["y"], 0, True))
+        _v = fpmap.fp(s["ref"]) if extra == "Footprint" else (
+            "" if extra != "Description" else s["desc"])
+        props.append((extra, _v, s["x"], s["y"], 0, True))
     for p in props:
         nm, val, px, py, pa = p[:5]
         hide = len(p) > 5 and p[5]

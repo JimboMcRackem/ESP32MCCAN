@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-19T00:15:21")
+		(date "2026-09-19T00:32:18")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -249,10 +249,10 @@
 		(comp
 			(ref "C1")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -303,10 +303,10 @@
 		(comp
 			(ref "C2")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -357,10 +357,10 @@
 		(comp
 			(ref "C3")
 			(value "220uF 63V")
+			(footprint "Capacitor_SMD:CP_Elec_10x10.5")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:CP_Elec_10x10.5")
 				(field
 					(name "Datasheet")
 				)
@@ -411,10 +411,10 @@
 		(comp
 			(ref "C4")
 			(value "1uF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -465,10 +465,10 @@
 		(comp
 			(ref "C5")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -519,10 +519,10 @@
 		(comp
 			(ref "D1")
 			(value "12V")
+			(footprint "Diode_SMD:D_SOD-123")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -573,10 +573,10 @@
 		(comp
 			(ref "D2")
 			(value "SMBJ24A")
+			(footprint "Diode_SMD:D_SMB")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SMB")
 				(field
 					(name "Datasheet")
 				)
@@ -627,10 +627,10 @@
 		(comp
 			(ref "D3")
 			(value "Schottky 40V")
+			(footprint "Diode_SMD:D_SMA")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SMA")
 				(field
 					(name "Datasheet")
 				)
@@ -792,10 +792,10 @@
 		(comp
 			(ref "L1")
 			(value "1.5uH")
+			(footprint "Inductor_SMD:L_Vishay_IHLP-4040")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Inductor_SMD:L_Vishay_IHLP-4040")
 				(field
 					(name "Datasheet")
 				)
@@ -846,10 +846,10 @@
 		(comp
 			(ref "L2")
 			(value "7448031002")
+			(footprint "mccan:Wurth_WE-CMBNC_7448031002")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "mccan:Wurth_WE-CMBNC_7448031002")
 				(field
 					(name "Datasheet")
 				)
@@ -906,10 +906,10 @@
 		(comp
 			(ref "Q1")
 			(value "SQJ461EP")
+			(footprint "Package_SO:PowerPAK_SO-8L_Single")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_SO:PowerPAK_SO-8L_Single")
 				(field
 					(name "Datasheet")
 				)
@@ -959,10 +959,10 @@
 		(comp
 			(ref "R1")
 			(value "1M")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1013,10 +1013,10 @@
 		(comp
 			(ref "R2")
 			(value "0R (link)")
+			(footprint "Resistor_SMD:R_2512_6332Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_2512_6332Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1070,10 +1070,10 @@
 		(comp
 			(ref "R3")
 			(value "0R (link)")
+			(footprint "Resistor_SMD:R_2512_6332Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_2512_6332Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1127,10 +1127,10 @@
 		(comp
 			(ref "C35")
 			(value "10uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1181,10 +1181,10 @@
 		(comp
 			(ref "C36")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1235,10 +1235,10 @@
 		(comp
 			(ref "C37")
 			(value "1uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1289,10 +1289,10 @@
 		(comp
 			(ref "C38")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1343,10 +1343,10 @@
 		(comp
 			(ref "C39")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1397,10 +1397,10 @@
 		(comp
 			(ref "C40")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1451,11 +1451,11 @@
 		(comp
 			(ref "D5")
 			(value "green")
+			(footprint "LED_SMD:LED_0603_1608Metric")
 			(description "Light emitting diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "LED_SMD:LED_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1505,11 +1505,11 @@
 		(comp
 			(ref "D6")
 			(value "PESD2CANFD24U-T")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
 			(description "Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
 				(field
 					(name "Datasheet")
 				)
@@ -1554,11 +1554,11 @@
 		(comp
 			(ref "D7")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -1608,11 +1608,11 @@
 		(comp
 			(ref "J2")
 			(value "Prog/UART")
+			(footprint "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical")
 			(description "Generic connector, single row, 01x06")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical")
 				(field
 					(name "Datasheet")
 				)
@@ -1734,11 +1734,11 @@
 		(comp
 			(ref "Q2")
 			(value "MMBT3904")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
 			(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
 				(field
 					(name "Datasheet")
 				)
@@ -1787,11 +1787,11 @@
 		(comp
 			(ref "Q3")
 			(value "MMBT3904")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
 			(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
 				(field
 					(name "Datasheet")
 				)
@@ -1840,10 +1840,10 @@
 		(comp
 			(ref "R22")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1894,10 +1894,10 @@
 		(comp
 			(ref "R23")
 			(value "0R")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -1951,10 +1951,10 @@
 		(comp
 			(ref "R24")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2005,10 +2005,10 @@
 		(comp
 			(ref "R25")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2059,10 +2059,10 @@
 		(comp
 			(ref "R26")
 			(value "120R")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2116,10 +2116,10 @@
 		(comp
 			(ref "R27")
 			(value "1k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2170,10 +2170,10 @@
 		(comp
 			(ref "R28")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2224,10 +2224,10 @@
 		(comp
 			(ref "R29")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2278,10 +2278,10 @@
 		(comp
 			(ref "R30")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2332,10 +2332,10 @@
 		(comp
 			(ref "R31")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2386,10 +2386,10 @@
 		(comp
 			(ref "R32")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2440,10 +2440,10 @@
 		(comp
 			(ref "R33")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2494,10 +2494,10 @@
 		(comp
 			(ref "R34")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2548,10 +2548,10 @@
 		(comp
 			(ref "R35")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2602,10 +2602,10 @@
 		(comp
 			(ref "R36")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2656,10 +2656,10 @@
 		(comp
 			(ref "R37")
 			(value "90.9k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2713,10 +2713,10 @@
 		(comp
 			(ref "R38")
 			(value "33k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2770,10 +2770,10 @@
 		(comp
 			(ref "R39")
 			(value "100k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -2824,11 +2824,11 @@
 		(comp
 			(ref "SW1")
 			(value "BOOT")
+			(footprint "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
 			(description "Push button switch, generic, two pins")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
 				(field
 					(name "Datasheet")
 				)
@@ -2874,11 +2874,11 @@
 		(comp
 			(ref "SW2")
 			(value "EN/RESET")
+			(footprint "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
 			(description "Push button switch, generic, two pins")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
 				(field
 					(name "Datasheet")
 				)
@@ -2924,11 +2924,11 @@
 		(comp
 			(ref "U5")
 			(value "ESP32-WROOM-32E-N8")
+			(footprint "RF_Module:ESP32-WROOM-32E")
 			(description "RF Module, ESP32-D0WD-V3 SoC, 8 MB SPI flash, Wi-Fi 802.11b/g/n, BT 4.2, PCB antenna, SMD")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "RF_Module:ESP32-WROOM-32E")
 				(field
 					(name "Datasheet")
 				)
@@ -3089,11 +3089,11 @@
 		(comp
 			(ref "U6")
 			(value "TJA1042T/3")
+			(footprint "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm")
 			(description "High-speed CAN transceiver with standby mode and separate VIO supply, SO-8")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm")
 				(field
 					(name "Datasheet")
 				)
@@ -3161,10 +3161,10 @@
 		(comp
 			(ref "C6")
 			(value "2.2uF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3215,10 +3215,10 @@
 		(comp
 			(ref "C7")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3269,10 +3269,10 @@
 		(comp
 			(ref "C8")
 			(value "2.2nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3323,10 +3323,10 @@
 		(comp
 			(ref "C9")
 			(value "68pF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3377,10 +3377,10 @@
 		(comp
 			(ref "C10")
 			(value "22uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3431,10 +3431,10 @@
 		(comp
 			(ref "C11")
 			(value "22uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3485,10 +3485,10 @@
 		(comp
 			(ref "C12")
 			(value "2.2uF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3539,10 +3539,10 @@
 		(comp
 			(ref "C13")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3593,10 +3593,10 @@
 		(comp
 			(ref "C14")
 			(value "2.2nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3647,10 +3647,10 @@
 		(comp
 			(ref "C15")
 			(value "39pF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3701,10 +3701,10 @@
 		(comp
 			(ref "C16")
 			(value "22uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3755,10 +3755,10 @@
 		(comp
 			(ref "C17")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3809,10 +3809,10 @@
 		(comp
 			(ref "C18")
 			(value "10uF")
+			(footprint "Capacitor_SMD:C_1210_3225Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1210_3225Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3863,10 +3863,10 @@
 		(comp
 			(ref "C19")
 			(value "10uF")
+			(footprint "Capacitor_SMD:C_1210_3225Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1210_3225Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3917,10 +3917,10 @@
 		(comp
 			(ref "C20")
 			(value "4.7uF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -3971,10 +3971,10 @@
 		(comp
 			(ref "C21")
 			(value "4.7uF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4025,10 +4025,10 @@
 		(comp
 			(ref "C22")
 			(value "4.7uF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4079,10 +4079,10 @@
 		(comp
 			(ref "C23")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4133,10 +4133,10 @@
 		(comp
 			(ref "C24")
 			(value "100pF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4187,10 +4187,10 @@
 		(comp
 			(ref "C25")
 			(value "22nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4241,10 +4241,10 @@
 		(comp
 			(ref "C26")
 			(value "1uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4295,10 +4295,10 @@
 		(comp
 			(ref "C27")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4349,10 +4349,10 @@
 		(comp
 			(ref "C28")
 			(value "2.2nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4403,10 +4403,10 @@
 		(comp
 			(ref "C29")
 			(value "2.2nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4457,10 +4457,10 @@
 		(comp
 			(ref "C30")
 			(value "1uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4511,10 +4511,10 @@
 		(comp
 			(ref "C31")
 			(value "1uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4565,10 +4565,10 @@
 		(comp
 			(ref "C32")
 			(value "1nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4619,10 +4619,10 @@
 		(comp
 			(ref "C33")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4673,10 +4673,10 @@
 		(comp
 			(ref "C34")
 			(value "10uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4727,10 +4727,10 @@
 		(comp
 			(ref "C61")
 			(value "10pF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -4784,11 +4784,11 @@
 		(comp
 			(ref "D4")
 			(value "SS5PH102")
+			(footprint "Package_TO_SOT_SMD:TO-277A")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:TO-277A")
 				(field
 					(name "Datasheet")
 				)
@@ -4838,10 +4838,10 @@
 		(comp
 			(ref "L3")
 			(value "6.8uH XAL4030-682ME")
+			(footprint "Inductor_SMD:L_Coilcraft_XAL4030-XXX")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Inductor_SMD:L_Coilcraft_XAL4030-XXX")
 				(field
 					(name "Datasheet")
 				)
@@ -4892,10 +4892,10 @@
 		(comp
 			(ref "L4")
 			(value "XAL7070-223ME")
+			(footprint "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
 				(field
 					(name "Datasheet")
 				)
@@ -4946,10 +4946,10 @@
 		(comp
 			(ref "L5")
 			(value "XAL7070-223ME")
+			(footprint "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
 				(field
 					(name "Datasheet")
 				)
@@ -5000,10 +5000,10 @@
 		(comp
 			(ref "R4")
 			(value "20.5k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5054,10 +5054,10 @@
 		(comp
 			(ref "R5")
 			(value "348k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5108,10 +5108,10 @@
 		(comp
 			(ref "R6")
 			(value "200k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5162,10 +5162,10 @@
 		(comp
 			(ref "R7")
 			(value "31.6k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5216,10 +5216,10 @@
 		(comp
 			(ref "R8")
 			(value "634k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5270,10 +5270,10 @@
 		(comp
 			(ref "R9")
 			(value "200k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5324,10 +5324,10 @@
 		(comp
 			(ref "R10")
 			(value "9.09k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5378,10 +5378,10 @@
 		(comp
 			(ref "R11")
 			(value "37.4k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5432,10 +5432,10 @@
 		(comp
 			(ref "R12")
 			(value "576k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5486,10 +5486,10 @@
 		(comp
 			(ref "R13")
 			(value "24.9k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5540,10 +5540,10 @@
 		(comp
 			(ref "R14")
 			(value "2.61k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5594,10 +5594,10 @@
 		(comp
 			(ref "R15")
 			(value "5.1R")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5648,10 +5648,10 @@
 		(comp
 			(ref "R16")
 			(value "0R")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5702,10 +5702,10 @@
 		(comp
 			(ref "R17")
 			(value "133k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5756,10 +5756,10 @@
 		(comp
 			(ref "R18")
 			(value "174k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5810,10 +5810,10 @@
 		(comp
 			(ref "R19")
 			(value "100k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5864,10 +5864,10 @@
 		(comp
 			(ref "R20")
 			(value "100k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5918,10 +5918,10 @@
 		(comp
 			(ref "R21")
 			(value "100R")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -5972,11 +5972,11 @@
 		(comp
 			(ref "U1")
 			(value "LM5164DDA")
+			(footprint "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm")
 			(description "1A synchronous buck converter with ultra-low IQ, 6V - 100V input, adjustable output voltage, HSOP-8")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm")
 				(field
 					(name "Datasheet")
 				)
@@ -6047,11 +6047,11 @@
 		(comp
 			(ref "U2")
 			(value "LM5164DDA")
+			(footprint "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm")
 			(description "1A synchronous buck converter with ultra-low IQ, 6V - 100V input, adjustable output voltage, HSOP-8")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm")
 				(field
 					(name "Datasheet")
 				)
@@ -6122,10 +6122,10 @@
 		(comp
 			(ref "U3")
 			(value "LM51571-Q1")
+			(footprint "Package_DFN_QFN:QFN-16-1EP_3x3mm_P0.5mm_EP1.675x1.675mm")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_DFN_QFN:QFN-16-1EP_3x3mm_P0.5mm_EP1.675x1.675mm")
 				(field
 					(name "Datasheet")
 				)
@@ -6300,10 +6300,10 @@
 		(comp
 			(ref "C41")
 			(value "10uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6354,10 +6354,10 @@
 		(comp
 			(ref "C42")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6408,10 +6408,10 @@
 		(comp
 			(ref "C43")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6462,10 +6462,10 @@
 		(comp
 			(ref "C44")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6516,10 +6516,10 @@
 		(comp
 			(ref "C45")
 			(value "10uF")
+			(footprint "Capacitor_SMD:C_1210_3225Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1210_3225Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6570,10 +6570,10 @@
 		(comp
 			(ref "C46")
 			(value "100nF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6624,10 +6624,10 @@
 		(comp
 			(ref "C47")
 			(value "220pF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6678,10 +6678,10 @@
 		(comp
 			(ref "C48")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6732,10 +6732,10 @@
 		(comp
 			(ref "C49")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6789,10 +6789,10 @@
 		(comp
 			(ref "C50")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6846,10 +6846,10 @@
 		(comp
 			(ref "C51")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6903,10 +6903,10 @@
 		(comp
 			(ref "C52")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -6960,10 +6960,10 @@
 		(comp
 			(ref "C53")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7017,10 +7017,10 @@
 		(comp
 			(ref "C54")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7074,10 +7074,10 @@
 		(comp
 			(ref "C55")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7131,10 +7131,10 @@
 		(comp
 			(ref "C56")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7188,10 +7188,10 @@
 		(comp
 			(ref "C57")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7245,10 +7245,10 @@
 		(comp
 			(ref "C58")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7302,10 +7302,10 @@
 		(comp
 			(ref "C59")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7359,10 +7359,10 @@
 		(comp
 			(ref "C60")
 			(value "10nF")
+			(footprint "Capacitor_SMD:C_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Capacitor_SMD:C_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -7416,11 +7416,11 @@
 		(comp
 			(ref "D8")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7470,11 +7470,11 @@
 		(comp
 			(ref "D9")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7524,11 +7524,11 @@
 		(comp
 			(ref "D10")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7578,11 +7578,11 @@
 		(comp
 			(ref "D11")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7632,11 +7632,11 @@
 		(comp
 			(ref "D12")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7686,11 +7686,11 @@
 		(comp
 			(ref "D13")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7740,11 +7740,11 @@
 		(comp
 			(ref "D14")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7794,11 +7794,11 @@
 		(comp
 			(ref "D15")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7848,11 +7848,11 @@
 		(comp
 			(ref "D16")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7902,11 +7902,11 @@
 		(comp
 			(ref "D17")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -7956,11 +7956,11 @@
 		(comp
 			(ref "D18")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -8010,11 +8010,11 @@
 		(comp
 			(ref "D19")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -8064,11 +8064,11 @@
 		(comp
 			(ref "D20")
 			(value "BAT54")
+			(footprint "Diode_SMD:D_SOD-123")
 			(description "Schottky diode")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
 					(name "Datasheet")
 				)
@@ -8118,11 +8118,11 @@
 		(comp
 			(ref "F2")
 			(value "1206L050/24")
+			(footprint "Fuse:Fuse_1206_3216Metric")
 			(description "Resettable fuse, polymeric positive temperature coefficient")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Fuse:Fuse_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -8172,11 +8172,11 @@
 		(comp
 			(ref "F3")
 			(value "1206L050/24")
+			(footprint "Fuse:Fuse_1206_3216Metric")
 			(description "Resettable fuse, polymeric positive temperature coefficient")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Fuse:Fuse_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -8226,11 +8226,11 @@
 		(comp
 			(ref "F4")
 			(value "1206L050/24")
+			(footprint "Fuse:Fuse_1206_3216Metric")
 			(description "Resettable fuse, polymeric positive temperature coefficient")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Fuse:Fuse_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -8280,11 +8280,11 @@
 		(comp
 			(ref "F5")
 			(value "1206L050/24")
+			(footprint "Fuse:Fuse_1206_3216Metric")
 			(description "Resettable fuse, polymeric positive temperature coefficient")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Fuse:Fuse_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -8685,11 +8685,11 @@
 		(comp
 			(ref "Q4")
 			(value "NX5020UNBKS")
+			(footprint "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 			(description "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 				(field
 					(name "Datasheet")
 				)
@@ -8748,11 +8748,11 @@
 		(comp
 			(ref "Q5")
 			(value "NX5020UNBKS")
+			(footprint "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 			(description "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 				(field
 					(name "Datasheet")
 				)
@@ -8811,11 +8811,11 @@
 		(comp
 			(ref "Q6")
 			(value "NX5020UNBKS")
+			(footprint "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 			(description "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 				(field
 					(name "Datasheet")
 				)
@@ -8874,11 +8874,11 @@
 		(comp
 			(ref "Q7")
 			(value "NX5020UNBKS")
+			(footprint "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 			(description "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 				(field
 					(name "Datasheet")
 				)
@@ -8937,11 +8937,11 @@
 		(comp
 			(ref "Q8")
 			(value "NX5020UNBKS")
+			(footprint "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 			(description "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 				(field
 					(name "Datasheet")
 				)
@@ -9000,11 +9000,11 @@
 		(comp
 			(ref "Q9")
 			(value "NX5020UNBKS")
+			(footprint "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 			(description "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-363_SC-70-6")
 				(field
 					(name "Datasheet")
 				)
@@ -9063,10 +9063,10 @@
 		(comp
 			(ref "R40")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9117,10 +9117,10 @@
 		(comp
 			(ref "R41")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9171,10 +9171,10 @@
 		(comp
 			(ref "R42")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9225,10 +9225,10 @@
 		(comp
 			(ref "R43")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9279,10 +9279,10 @@
 		(comp
 			(ref "R44")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9333,10 +9333,10 @@
 		(comp
 			(ref "R45")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9387,10 +9387,10 @@
 		(comp
 			(ref "R46")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9441,10 +9441,10 @@
 		(comp
 			(ref "R47")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9495,10 +9495,10 @@
 		(comp
 			(ref "R48")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9549,10 +9549,10 @@
 		(comp
 			(ref "R49")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9603,10 +9603,10 @@
 		(comp
 			(ref "R50")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9657,10 +9657,10 @@
 		(comp
 			(ref "R51")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9711,10 +9711,10 @@
 		(comp
 			(ref "R52")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9765,10 +9765,10 @@
 		(comp
 			(ref "R53")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9819,10 +9819,10 @@
 		(comp
 			(ref "R54")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9873,10 +9873,10 @@
 		(comp
 			(ref "R55")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9927,10 +9927,10 @@
 		(comp
 			(ref "R56")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -9981,10 +9981,10 @@
 		(comp
 			(ref "R57")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10035,10 +10035,10 @@
 		(comp
 			(ref "R58")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10089,10 +10089,10 @@
 		(comp
 			(ref "R59")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10143,10 +10143,10 @@
 		(comp
 			(ref "R60")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10197,10 +10197,10 @@
 		(comp
 			(ref "R61")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10251,10 +10251,10 @@
 		(comp
 			(ref "R62")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10305,10 +10305,10 @@
 		(comp
 			(ref "R63")
 			(value "10R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10359,10 +10359,10 @@
 		(comp
 			(ref "R64")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10413,10 +10413,10 @@
 		(comp
 			(ref "R65")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10467,10 +10467,10 @@
 		(comp
 			(ref "R66")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10521,10 +10521,10 @@
 		(comp
 			(ref "R67")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10575,10 +10575,10 @@
 		(comp
 			(ref "R68")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10629,10 +10629,10 @@
 		(comp
 			(ref "R69")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10683,10 +10683,10 @@
 		(comp
 			(ref "R70")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10737,10 +10737,10 @@
 		(comp
 			(ref "R71")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10791,10 +10791,10 @@
 		(comp
 			(ref "R72")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10845,10 +10845,10 @@
 		(comp
 			(ref "R73")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10899,10 +10899,10 @@
 		(comp
 			(ref "R74")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -10953,10 +10953,10 @@
 		(comp
 			(ref "R75")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11007,10 +11007,10 @@
 		(comp
 			(ref "R76")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11061,10 +11061,10 @@
 		(comp
 			(ref "R77")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11115,10 +11115,10 @@
 		(comp
 			(ref "R78")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11169,10 +11169,10 @@
 		(comp
 			(ref "R79")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11223,10 +11223,10 @@
 		(comp
 			(ref "R80")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11277,10 +11277,10 @@
 		(comp
 			(ref "R81")
 			(value "2.2k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11331,10 +11331,10 @@
 		(comp
 			(ref "R82")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11385,10 +11385,10 @@
 		(comp
 			(ref "R83")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11439,10 +11439,10 @@
 		(comp
 			(ref "R84")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11493,10 +11493,10 @@
 		(comp
 			(ref "R85")
 			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11547,10 +11547,10 @@
 		(comp
 			(ref "R86")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11601,10 +11601,10 @@
 		(comp
 			(ref "R87")
 			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11655,10 +11655,10 @@
 		(comp
 			(ref "R88")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11712,10 +11712,10 @@
 		(comp
 			(ref "R89")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11769,10 +11769,10 @@
 		(comp
 			(ref "R90")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11826,10 +11826,10 @@
 		(comp
 			(ref "R91")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11883,10 +11883,10 @@
 		(comp
 			(ref "R92")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11940,10 +11940,10 @@
 		(comp
 			(ref "R93")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -11997,10 +11997,10 @@
 		(comp
 			(ref "R94")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -12054,10 +12054,10 @@
 		(comp
 			(ref "R95")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -12111,10 +12111,10 @@
 		(comp
 			(ref "R96")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -12168,10 +12168,10 @@
 		(comp
 			(ref "R97")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -12225,10 +12225,10 @@
 		(comp
 			(ref "R98")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -12282,10 +12282,10 @@
 		(comp
 			(ref "R99")
 			(value "100R")
+			(footprint "Resistor_SMD:R_1206_3216Metric")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Resistor_SMD:R_1206_3216Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -12339,11 +12339,11 @@
 		(comp
 			(ref "U7")
 			(value "PCA9685PW/Q900")
+			(footprint "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm")
 			(description "16-channel, 12-bit PWM Fm+ I2C-bus LED controller, TSSOP-28")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm")
 				(field
 					(name "Datasheet")
 				)
@@ -12471,11 +12471,11 @@
 		(comp
 			(ref "U8")
 			(value "ADG706")
+			(footprint "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm")
 			(description "16-to-1 analog multiplexer, 1.8 V to 5.5 V single supply, TSSOP-28")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm")
 				(field
 					(name "Datasheet")
 				)
@@ -12595,11 +12595,11 @@
 		(comp
 			(ref "U9")
 			(value "BTS7008-2EPA")
+			(footprint "Package_SO:Infineon_PG-TSDSO-14-22")
 			(description "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_SO:Infineon_PG-TSDSO-14-22")
 				(field
 					(name "Datasheet")
 				)

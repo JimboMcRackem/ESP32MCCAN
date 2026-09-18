@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Generate hardware/sheets/rails.kicad_sch (KiCad 10.0.2, format 20260306)."""
 import os, re, uuid
+import fpmap
 
 HW = r"D:\Projects\ESP32MCCAN\hardware"
 STOCK = r"C:\Program Files\KiCad\10.0\share\kicad\symbols"
@@ -496,8 +497,9 @@ for s in SYMS:
     if "Value" not in have:
         props.insert(1, ("Value", s["val"], s["x"], s["y"] + 2.54, 0))
     for extra in ("Footprint", "Datasheet", "Description"):
-        props.append((extra, s.get(extra.lower(), "") or ("" if extra != "Description" else s["desc"]),
-                      s["x"], s["y"], 0, True))
+        _v = fpmap.fp(s["ref"]) if extra == "Footprint" else (
+            s.get(extra.lower(), "") or ("" if extra != "Description" else s["desc"]))
+        props.append((extra, _v, s["x"], s["y"], 0, True))
     for p in props:
         nm, val, px, py, pa = p[:5]
         hide = len(p) > 5 and p[5]

@@ -3194,7 +3194,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Diode_SMD:D_SOD-123"
 			(at 62.23 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -3275,7 +3275,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 93.98 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -3356,7 +3356,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Diode_SMD:D_SMA"
 			(at 140.97 76.2 0)
 			(hide yes)
 			(show_name no)
@@ -3437,7 +3437,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_2512_6332Metric"
 			(at 81.28 87.63 0)
 			(hide yes)
 			(show_name no)
@@ -3602,7 +3602,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
 			(at 151.13 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -3762,7 +3762,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 54.61 92.71 0)
 			(hide yes)
 			(show_name no)
@@ -3922,7 +3922,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Inductor_SMD:L_Vishay_IHLP-4040"
 			(at 104.14 76.2 0)
 			(hide yes)
 			(show_name no)
@@ -4003,7 +4003,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:CP_Elec_10x10.5"
 			(at 123.19 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -4084,7 +4084,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
 			(at 115.57 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -4165,7 +4165,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Package_SO:PowerPAK_SO-8L_Single"
 			(at 54.61 78.74 0)
 			(hide yes)
 			(show_name no)
@@ -4249,7 +4249,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Diode_SMD:D_SMB"
 			(at 66.04 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -4330,7 +4330,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_2512_6332Metric"
 			(at 81.28 69.85 0)
 			(hide yes)
 			(show_name no)
@@ -4650,7 +4650,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_1206_3216Metric"
 			(at 130.81 80.01 0)
 			(hide yes)
 			(show_name no)
@@ -4731,7 +4731,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "mccan:Wurth_WE-CMBNC_7448031002"
 			(at 81.28 78.74 0)
 			(hide yes)
 			(show_name no)

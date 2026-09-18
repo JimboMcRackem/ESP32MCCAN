@@ -9,6 +9,7 @@ the pre-J1 committed sheet BYTE FOR BYTE, which is what proves it faithful.
 See kicanon.py for the ordering rules.
 """
 import os, sys, uuid, math
+import fpmap
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -232,7 +233,7 @@ def emit_symbol(ref, lib_id, x, y, rot, value, footprint, desc, hide_ref=False,
     vx, vy = val_at if val_at else (x, y)
     prop("Reference", ref, rx, ry, fld_ang, hide=hide_ref, justify=True)
     prop("Value", value, vx, vy, fld_ang, justify=True)
-    prop("Footprint", footprint, x, y, 0, hide=True)
+    prop("Footprint", footprint or fpmap.fp(ref), x, y, 0, hide=True)
     prop("Datasheet", "", x, y, 0, hide=True)
     prop("Description", desc, x, y, 0, hide=True)
     for num in sorted(PINS[lib_id].keys()):
