@@ -63,8 +63,20 @@ Full read-out in `../docs/part-selection.md`, "Parts selected 2026-09-18".
 | `esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf` | Espressif **ESP32-WROOM-32E-N8** | MCU module U5 | **CLOSES TWO OPEN ITEMS.** (1) **The EN reset RC is VERIFIED** — Figure 8's notes recommend "R = 10 kOhm and C = 1 uF", exactly the fitted R22/C37, which had been UNVERIFIED since Task 5. (2) **The pin table cross-checks completely** — all 19 assignments match Figure 3. Variant confirmed: 8 MB Quad SPI, no PSRAM, **18.0 x 25.5 x 3.1 mm**, -40 to +85 C (the 105 C parts are the H suffixes). KiCad ships `RF_Module:ESP32-WROOM-32E`. **The antenna keep-out DIMENSIONS are not in this document** — it defers to the Hardware Design Guidelines, still needed for Task 9 |
 | `Accu-L-Automotive.pdf` | Vishay **Accu-L** thin-film RF inductors, L0402/L0805 | **none — not usable** | **NOT APPLICABLE TO THIS BOARD.** A high-Q RF/microwave matching inductor series for GPS, radar and telematics: values in **nanohenries** (from 0.56 nH), current ratings in **milliamps** (500-750 mA). AEC-Q200 and genuinely an inductor, which is presumably why it was picked up, but three orders of magnitude away from the 7 A power choke L2 needs |
 
-**L2 — the 7 A input common-mode choke — is now the only electrical part still blocking.** See
-`NEEDED.md`.
+## Supplied 2026-09-18 (later the same day) — the last blocking part
+
+| File | Part | Role | Verification |
+|---|---|---|---|
+| `bourns_pm3700_cm_choke.pdf` | Bourns **PM3700-10-RC** | **Input common-mode choke L2** | **SELECTED — this closes review finding F4 and the blocking list.** 0.2 mH min, **DCR 0.008 Ohm (8 mOhm) max per winding**, **Irms 7.0 A**, leakage 1.6 uH typ, 20 dB over 5-55 MHz. **The only part in the series rated for the 7.0 A night load** — the next one down is 6.0 A. With L1 at 1.5 uH the pair is **21.80 mOhm against F4's 22 mOhm ceiling** and ~1.07 W, giving a ~2.87 W night total against the plate's ~2.9 W. **0.9% margin.** -55 to +125 C, 500 Vrms between windings, **no AEC-Q200 statement**. **21.6 x 17.78 x 11.5 mm — the part that drives the board outline and enclosure height; NO KiCad footprint exists.** Read with care: `pdftotext -layout` interleaves the dimension drawing with the parametric table and staggers the columns by two rows; the alignment was pinned from the **EIA part-marking code, which matches the inductance column 8 for 8** (201 = 200 uH ... 203 = 20 mH), and corroborated by the Features line "Current rating up to 7 A" |
+
+| `sm_pl_filter.pdf` | Coilcraft **CG3885-AL** (Document 1194P) | **Alternative for L2** | **Supplied as a headroom check, and it answers that question NO.** Fifteen power-line CM chokes; **only CG3885-AL meets 7.0 A** and it is also the lowest-DCR part in the book: 0.47 mH nom / **0.30 mH min per winding**, **Irms 10.0 A**, **DCR 8.0 mOhm max per winding** (footnote 4 is explicit), isolation 1000 Vrms, -40 to +85 C at Irms. **Its DCR is IDENTICAL to the PM3700's**, so the F4 sum stays 21.80 mOhm and the loss stays 1.07 W -- **the tight margin does not improve.** What it buys is current margin (10 A vs 7 A, so the night load sits at 70% of rating instead of 100%, ~15 K cooler), 50% more CM inductance and 2x isolation. What it costs is **2.1x the board area** -- 31.0 x 26.0 x 12.7 mm against 21.6 x 17.78 x 11.5 mm -- plus 15.3 g of mass. Dimensions tied to the part via the **page-number ordinal** (its detail page is 1194P-16), since the summary table's columns are staggered |
+
+**Every electrical part is now selected.** What remains is documentary: the **Espressif Hardware
+Design Guidelines** for the antenna keep-out dimensions (Task 9). See `NEEDED.md`.
+
+**One open choice, and it is a placement trade rather than an electrical one:** PM3700-10-RC or
+CG3885-AL for L2. Same DCR, same dissipation, same F4 result; the Coilcraft part trades 2.1x the
+board area for 43% current margin. Settle it before Task 8 fixes the outline.
 
 ## Considered and rejected — kept as evidence
 

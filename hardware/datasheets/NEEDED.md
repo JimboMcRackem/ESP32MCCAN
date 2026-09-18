@@ -9,14 +9,14 @@ Full read-out of what each one settled is in `../docs/part-selection.md`, "Parts
 
 ---
 
-## Blocking — one electrical part left
+## Blocking — nothing
 
-| Ref | What | What it must satisfy | Candidates to look at |
-|---|---|---|---|
-| **L2** | **Input common-mode choke** | Carries the **full 7.0 A**. **DCR ≤ 7 mΩ per winding** (review F4). Automotive rated. **This is the last part gating the F4 thermal budget**, and it is large enough that it may drive the board outline | Würth WE-CMBNC, TDK ACM series (the power ACM range, not the signal ACT range), Bourns SRF/PM series |
+**Every electrical part on the blocking list is now chosen.** L2, the last one, was closed on
+2026-09-18 by the Bourns **PM3700-10-RC** (`bourns_pm3700_cm_choke.pdf`) — 8.0 mΩ max per winding,
+Irms 7.0 A. With L1 = IHLP-4040DZ-01 at 1.5 µH the pair is **21.80 mΩ against F4's 22 mΩ ceiling**.
 
-> `Accu-L-Automotive.pdf` **does not cover this** — it is a thin-film RF chip inductor series
-> (nanohenries, 500–750 mA), three orders of magnitude away from a 7 A power choke.
+> **That is a 0.9% margin.** The two choices are coupled — the 2.2 µH L1 would break the ceiling —
+> so **any substitution anywhere in the feed path must be re-checked against the 22 mΩ sum.**
 
 ## Blocking Task 9 — a document, not a part
 
@@ -32,6 +32,7 @@ Full read-out of what each one settled is in `../docs/part-selection.md`, "Parts
 | **D1** 12 V Zener, **D3** 40 V Schottky, **C3** 220 µF, **F1** blade fuse holder | No part numbers; needed for the BOM and footprints. **C3 must be 63 V, not 50 V** — `smbj.pdf` gives the SMBJ24A an **8/20 µs clamp of 50.6 V**, which leaves a 50 V part no margin (see part-selection.md, "Correction 2") |
 | **MMBT3904** (Q2, Q3) | Generic jellybean; any vendor's datasheet will do |
 | **Automotive-grade IHLP** for L1 | `ihlp-4040dz-01.pdf` is the **Commercial** series — no AEC-Q200. Electrically it is the right part; for a vehicle, order the automotive variant of the same package |
+| **Automotive-grade equivalent for L2** | Same situation: the PM3700 datasheet carries no AEC-Q200 statement, and Bourns' legal text says automotive-grade parts are listed in a separate guide. −55 to +125 °C, which is fine; the qualification is what is missing |
 
 ---
 
@@ -39,7 +40,8 @@ Full read-out of what each one settled is in `../docs/part-selection.md`, "Parts
 
 | Ref | Part chosen | Closed by |
 |---|---|---|
-| **L1** input inductor | **Vishay IHLP-4040DZ-01**, 1.5 µH recommended (5.80 mΩ max, Isat 27.5 A) | `ihlp-4040dz-01.pdf` |
+| **L1** input inductor | **Vishay IHLP-4040DZ-01**, **1.5 µH — required, not merely preferred** (5.80 mΩ max, Isat 27.5 A) | `ihlp-4040dz-01.pdf` |
+| **L2** input CM choke | **Bourns PM3700-10-RC**, 8.0 mΩ max/winding, Irms 7.0 A, 0.2 mH. **The only part in the series rated for the night load** | `bourns_pm3700_cm_choke.pdf` |
 | **L4 / L5** buck inductors | **Coilcraft XAL7070-223ME**, 22 µH, 39.69 mΩ max, Isat 6.3 A | `xal7070.pdf` |
 | **L6** CAN choke | **TDK ACT45B-510-2P-TL003**, 51 µH, AEC-Q200 | `cmf_automotive_signal_act45b_en.pdf` |
 | **D6 / D7** CAN ESD | **Nexperia PESD2CANFD24U-T** — one SOT23 part replaces both | `PESD2CANFD24U-T.pdf` |
@@ -60,6 +62,8 @@ it cannot have:
 - **TE Superseal 1.0** 4-way (J3–J6) and 2-way (J8); **TE Superseal 1.5** 3-way (J1, J7) — panel
   penetration positions and mating clearance (§9.1). TE publish STEP per part number
 - **Panel-mount ATO/ATC fuse holder** (F1) — one of the nine penetrations
-- **L2** once chosen — **the one most likely to drive the board outline**
+- **Bourns PM3700-10-RC (L2)** — **21.6 × 17.78 × 11.5 mm; this is the part that drives the board
+  outline and the enclosure height.** No KiCad footprint exists — the land pattern must be drawn from
+  the datasheet's Recommended Pad Layout
 - **TDK ACT45B** — no KiCad footprint exists for it; `L_CommonModeChoke_Coilank_ACM4532` is the right
   size class but **its land pattern must be checked against the ACT45B drawing before use**

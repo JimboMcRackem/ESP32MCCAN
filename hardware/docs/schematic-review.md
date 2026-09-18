@@ -9,8 +9,9 @@ Source of truth for the traces below: `hardware/output/netlist.net`, 166 nets, e
 
 **Result: 29 of 31 rows PASS. Three defects were found and fixed. One row was a spec-versus-design
 divergence (F5 — resolved 2026-09-18 by amending the spec; the schematic was already right), and
-one row passes on presence but carries an unbudgeted thermal term (F4 — still open, the constraint
-is now specified but the parts are not chosen).**
+one row passed on presence while carrying an unbudgeted thermal term (F4 — **also closed
+2026-09-18**, once the owner supplied the two inductor datasheets; the 22 mΩ ceiling is met by
+0.9%).**
 
 ---
 
@@ -176,7 +177,7 @@ stuff option and a respin.
 
 ---
 
-## F4 — the input filter's series elements have no thermal budget and no DCR ceiling *(OPEN — constraint now specified)*
+## F4 — the input filter's series elements have no thermal budget and no DCR ceiling *(CLOSED 2026-09-18 — parts chosen, ceiling met by 0.9%)*
 
 Row 4.3 passes on presence: the π filter and CM choke are both there. But **L1 and L2 sit in the
 main feed path and carry the entire load current**, and neither §9.4's thermal table nor
@@ -201,6 +202,34 @@ the review can fix is that the constraint was nowhere stated. It now is:
 > 22 mΩ.** That holds the pair to ~1.1 W at 7.0 A, which keeps the night total near 2.9 W — the most
 > a 150 cm² flat plate absorbs while still meeting the 65 °C internal target at 40 °C ambient.
 > Budget it as **L1 ≤ 8 mΩ** and **L2 ≤ 7 mΩ per winding**.
+
+### Resolution — 2026-09-18: both parts chosen, and the ceiling is met with almost nothing to spare
+
+The owner supplied the two datasheets. **L1 = Vishay IHLP-4040DZ-01 at 1.5 µH** (5.80 mΩ max,
+Isat 27.5 A) and **L2 = Bourns PM3700-10-RC** (8.0 mΩ max per winding, Irms 7.0 A) — the only part
+in its series rated for the night load.
+
+| | DCR | Loss at 7.0 A |
+|---|---|---|
+| L1, IHLP-4040DZ-01 1.5 µH | 5.80 mΩ | 0.28 W |
+| L2, PM3700-10-RC, both windings | 16.0 mΩ | 0.78 W |
+| **Total** | **21.80 mΩ** vs the **22 mΩ** ceiling | **1.07 W** |
+
+**Night total ~2.87 W against the ~2.9 W this section named as the plate's limit.** The requirement
+is met — with **0.9% margin**, which is a pass, not comfort.
+
+**The recommendation to drop L1 from 10 µH is now a requirement.** The two choices turned out to be
+coupled: with the 2.2 µH IHLP (9.00 mΩ) the pair reaches **25.00 mΩ → 1.23 W and breaks the
+ceiling**. Only the 1.5 µH part fits, and any later substitution anywhere in the feed path must be
+re-checked against this sum.
+
+**Three consequences for Tasks 8–9.** The PM3700 is **21.6 × 17.78 × 11.5 mm** — it is the part that
+drives the board outline and, at 11.5 mm, the tallest thing on the board after the connectors, so it
+should be placed first and its lid clearance checked against §9. Its **Irms 7.0 A is exactly the
+night load** with a **35 °C rise at Irms**, so it wants to sit against the heat-spreader plate rather
+than in still air; flash-to-pass at 7.8 A briefly exceeds the rating, which is acceptable for a
+thermal spec but should be stated. And **neither part is AEC-Q200** — both datasheets are commercial
+grade — so automotive variants should be sourced before ordering.
 
 **Recommendation: reconsider L1 = 10 µH.** 10 µH at 8 A is a physically large, lossy part. The
 filter's job is to attenuate the 400 kHz bucks and the 2.2 MHz boost, and with C3 = 220 µF the LC
@@ -371,7 +400,13 @@ All six generators re-run and idempotent.
 **F5 is resolved** — the spec and plan were amended to match the built design, so the board area
 `power_input` needs is settled and **Task 8 may start on the outline.**
 
-**F4 remains open.** Task 8 must not freeze the BOM until L1 and L2 are chosen against the 22 mΩ
-ceiling, and should treat the board outline as provisional until L1/L2's real bodies are known —
-at 7.0 A they may be large enough to drive it. The owner is supplying the four blocking datasheets
-(CAN CM choke L6, CAN ESD D6/D7, input L1/L2, buck inductors L4/L5) into `hardware/datasheets/`.
+**F4 is also resolved.** L1 = **IHLP-4040DZ-01 at 1.5 µH** and L2 = **Bourns PM3700-10-RC** give
+**21.80 mΩ against the 22 mΩ ceiling** and a ~2.87 W night total against the plate's ~2.9 W — a pass
+with 0.9% margin, so **any later substitution in the feed path must be re-checked against this sum.**
+The two choices are coupled: the 2.2 µH L1 would break the ceiling.
+
+**Every row of this review is now closed, and Task 8 is unblocked.** Two things follow it rather
+than gate it: the **PM3700 is 21.6 × 17.78 × 11.5 mm and has no KiCad footprint**, so it must be
+drawn and placed first — it drives the outline and the enclosure height; and **Task 9 still needs the
+Espressif Hardware Design Guidelines** for the antenna keep-out dimensions, which the module
+datasheet marks but does not dimension.

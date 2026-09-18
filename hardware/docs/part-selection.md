@@ -1295,16 +1295,15 @@ both have Isat ≥ 25 A against a 7.8 A worst case.
 > package, and for a vehicle that variant should be ordered instead. (2) Operating range is
 > **−55 to +125 °C**, comfortable against the 65 °C internal target.
 
-### L2 — input common-mode choke: **STILL NOT COVERED**
+### L2 — input common-mode choke — **CLOSED 2026-09-18**
 
 **`Accu-L-Automotive.pdf` cannot be used for anything on this board.** It is a **thin-film
-RF/microwave chip inductor** series (L0402/L0805, high-Q, for GPS, radar and matching networks). Its
-values are in **nanohenries** (0.56 nH upward) and its current ratings are in **milliamps**
-(500–750 mA). It is AEC-Q200 and it is an inductor, which is presumably why it was picked up, but it
-is three orders of magnitude away from a 7 A power choke.
+RF/microwave chip inductor** series (L0402/L0805, high-Q, for GPS, radar and matching networks):
+values in **nanohenries** (0.56 nH upward), current ratings in **milliamps** (500–750 mA). It is
+AEC-Q200 and it is an inductor, which is presumably why it was picked up, but it is three orders
+of magnitude away from a 7 A power choke.
 
-**L2 remains the single blocking item**: a common-mode choke carrying the **full 7.0 A** with
-**DCR ≤ 7 mΩ per winding**. It is also the part most likely to drive the board outline.
+**L2 was then closed the same day by the Bourns PM3700-10-RC — see the section below.**
 
 ### L6 — CAN common-mode choke: **TDK ACT45B-510-2P-TL003** — SELECTED
 
@@ -1392,3 +1391,130 @@ AEC-Q100-compliant variant** in the ordering table. The schematic's Value field 
    Board*. **That document is still needed for Task 9.** The land-pattern figure does give the
    outline (18 x 25.5 mm, 1.27 mm pad pitch, thermal pad with vias), and Espressif publish a STEP
    model.
+
+### L2 — input common-mode choke: **Bourns PM3700-10-RC** — SELECTED, and F4 closes
+
+`bourns_pm3700_cm_choke.pdf`. The last electrical part on the blocking list.
+
+**Reading the table needed the same care as the SMBJ one** — `pdftotext -layout` interleaves the
+dimension drawing with the parametric table, so part numbers and data columns are staggered by two
+rows. The ordinal alignment was pinned from an **invariant inside the document**: the part-marking
+column is the EIA 3-digit inductance code, and it matches the inductance column **8 for 8**
+(201 = 200 µH = 0.2 mH, 501 = 0.5 mH, … 203 = 20 mH). The Features line — *"Current rating up to
+7 A"* — independently confirms that the 7.0 A entry belongs to the first, lowest-inductance part.
+
+| Part | L min | Marking | **DCR max** | **Irms** | Leakage L typ | 20 dB range |
+|---|---|---|---|---|---|---|
+| **PM3700-10-RC** | **0.2 mH** | 201 | **0.008 Ω** | **7.0 A** | 1.6 µH | 5–55 MHz |
+| PM3700-20-RC | 0.5 mH | 501 | 0.010 Ω | 6.0 A | 2.2 µH | 4–40 MHz |
+| PM3700-30-RC | 0.75 mH | 751 | 0.012 Ω | 5.5 A | 2.9 µH | 1–20 MHz |
+| PM3700-40-RC | 1.0 mH | 102 | 0.020 Ω | 4.0 A | 3.9 µH | — |
+| PM3700-50-RC | 2.0 mH | 202 | 0.030 Ω | 3.5 A | — | 100 kHz–10 MHz |
+| PM3700-60-RC | 5.0 mH | 502 | 0.070 Ω | 2.0 A | — | 50 kHz–5 MHz |
+| PM3700-70-RC | 10 mH | 103 | 0.150 Ω | 1.5 A | — | 25 kHz–4 MHz |
+| PM3700-80-RC | 20 mH | 203 | 0.250 Ω | 1.0 A | — | — |
+
+**Only the -10 is usable.** Every other part in the series is rated below the 7.0 A night load.
+
+#### F4's ceiling is met — by 0.9%
+
+F4 required **L1 plus both windings of L2 ≤ 22 mΩ**:
+
+| | DCR | Loss at 7.0 A |
+|---|---|---|
+| L1 — IHLP-4040DZ-01, **1.5 µH** | 5.80 mΩ max | 0.28 W |
+| L2 — PM3700-10-RC, **both windings** | 2 × 8.0 = 16.0 mΩ | 0.78 W |
+| **Total** | **21.80 mΩ** | **1.07 W** |
+
+> **This retroactively makes the 1.5 µH L1 mandatory, not merely preferred.** With the 2.2 µH IHLP
+> (9.00 mΩ max) the pair reaches **25.00 mΩ → 1.23 W**, which **breaks the 22 mΩ ceiling**. The two
+> choices are coupled; they cannot be made independently.
+
+**Night total becomes ~2.87 W**, against the **~2.9 W** F4 named as the most a 150 cm² flat plate
+absorbs while still meeting the 65 °C internal target at 40 °C ambient. **F4 is closed — and it is
+closed with essentially no margin.** Any later part substitution in the feed path has to be
+re-checked against this sum.
+
+#### Four things to carry forward
+
+1. **Irms 7.0 A is exactly the night load — zero current margin**, and the datasheet notes a
+   **35 °C typical temperature rise at Irms**. The choke is both at its rating and a ~0.78 W heat
+   source inside the enclosure. It should sit against the heat-spreader plate, not in still air.
+2. **Flash-to-pass draws 7.8 A, above the 7.0 A rating.** Irms is a thermal rating and flash-to-pass
+   is momentary, so this is acceptable — but it should be stated rather than discovered.
+3. **It is a large part: 21.6 × 17.78 × 11.5 mm max.** This is the component that drives the board
+   outline, and its **11.5 mm height** is the tallest thing on the board after the connectors — it
+   constrains the enclosure lid clearance (§9). Task 8 should place it before anything else.
+4. **Not AEC-Q200.** As with the IHLP, the datasheet carries no automotive qualification — Bourns'
+   legal text explicitly says automotive-grade parts are identified in a separate guide. Operating
+   range is −55 to +125 °C, dielectric strength 500 Vrms between windings.
+
+**A small bonus:** the leakage inductance of 1.6 µH typ is differential-mode, in series with the
+feed. It adds to L1's 1.5 µH, so the π filter sees roughly **3.1 µH** of differential inductance
+rather than 1.5 µH — the corner lands nearer 6 kHz than 8.8 kHz, slightly better than the L1-only
+estimate.
+
+> **No KiCad footprint exists.** The library has `L_CommonModeChoke_Bourns_SRF1260`, which is a
+> different and much smaller part. **Task 8 must draw the PM3700 land pattern** from the datasheet's
+> Recommended Pad Layout (4 pads, 3.18 mm, on a 21.59 × 17.78 mm body).
+
+#### The alternative: Coilcraft CG3885-AL — more current, **no extra DCR headroom**
+
+`sm_pl_filter.pdf` (Coilcraft Document 1194P, "SMT Common Mode Chokes for power line applications")
+was supplied specifically in case the PM3700 left no headroom. It is worth having, but **it does not
+relieve the constraint that was tight.**
+
+Fifteen parts; **only one meets the 7.0 A night load**, and it is also the lowest-DCR part in the
+catalogue. Read from its own detail page (p.16), not the staggered summary table:
+
+> **CG3885-AL** — L 0.47 mH nom / **0.30 mH min per winding**, **Irms 10.0 A**, **DCR 8.0 mΩ max**,
+> isolation **1000 Vrms**. Footnote 4: *"DCR is specified per winding."* Footnote 3: Irms is
+> *"current per winding that causes a 40 °C rise from 25 °C ambient … for reference only and does
+> not represent absolute maximum ratings."*
+
+The next-best parts are CF2805-AL (6.8 A, 14 mΩ) and CE1759-AL (6.0 A, 14 mΩ) — both under the night
+load and both with nearly twice the DCR.
+
+| | **Bourns PM3700-10-RC** | **Coilcraft CG3885-AL** |
+|---|---|---|
+| DCR max **per winding** | **8.0 mΩ** | **8.0 mΩ — identical** |
+| Total with L1 (1.5 µH IHLP) | **21.80 mΩ** | **21.80 mΩ — identical** |
+| Loss at 7.0 A | **1.07 W** | **1.07 W — identical** |
+| Margin on F4's 22 mΩ ceiling | **0.9%** | **0.9% — unchanged** |
+| I<sub>rms</sub> | 7.0 A (35 K rise) | **10.0 A** (40 K rise) |
+| Margin over the 7.0 A night load | **none** | **43%** |
+| Covers 7.8 A flash-to-pass? | momentary only | **yes, continuously** |
+| Part rise at our 7.0 A | ~35 K | **~20 K** (rise scales with I²) |
+| L min per winding | 0.2 mH | **0.30 mH** |
+| Isolation | 500 Vrms | **1000 Vrms** |
+| Size | **21.6 × 17.78 × 11.5 mm** | 31.0 × 26.0 × 12.7 mm |
+| Board area | **384 mm²** | **806 mm² — 2.1×** |
+| Mass | not stated | 15.3 g |
+| Ambient at I<sub>rms</sub> | −55 to +125 °C | −40 to +85 °C |
+| AEC-Q200 | no | no |
+
+**The headroom that was thin does not improve.** F4's binding constraint is the **22 mΩ DCR sum**,
+and both parts are 8.0 mΩ per winding, so the total stays **21.80 mΩ** and the night total stays
+**~2.87 W** either way. **Dissipation is identical** — the larger part sheds the same 0.78 W more
+easily, but it puts the same heat into the enclosure.
+
+What the CG3885-AL actually buys is **current margin**: the PM3700 runs at **exactly 100% of its
+I<sub>rms</sub> continuously during night riding**, which is the governing case, not a transient.
+I<sub>rms</sub> is a temperature-rise figure rather than an absolute maximum, so this is legal — but
+it is a magnetic at its full rating, sealed in an enclosure, on a vehicle. The Coilcraft part runs
+the same current at ~70% of rating and ~15 K cooler, with 50% more common-mode inductance and twice
+the isolation.
+
+What it costs is **2.1× the board area** — +422 mm², roughly 3% of the ≥ 150 cm² plate — on the board
+whose outline this part already drives, plus 15.3 g of mass in a vibration environment. Height is
+similar (12.7 vs 11.5 mm).
+
+> **Dimensions cross-check.** The summary table's dimension columns are staggered like every other
+> table in these documents. The 31.0 × 26.0 × 12.7 mm figure was tied to CG3885-AL through the
+> **page-number column**, which is an ordinal that cannot slip: the part's own detail page is
+> Document **1194P-16**, and the dimension row carrying page 16 is the one quoted. The tape
+> specification corroborates it — 44 mm wide tape, 32 mm pocket spacing, 12.4 mm pocket depth.
+
+**Neither choice changes F4, the schematic or the netlist.** It is a placement and reliability
+trade-off, and it should be settled before Task 8 commits to an outline, because this is the part
+that sets it.
