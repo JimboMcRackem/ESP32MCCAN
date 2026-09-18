@@ -50,6 +50,22 @@ a document is unobtainable.*
 L6**, the **CAN ESD D6/D7**, the **PCA9685**, the **Espressif hardware-design guidelines** (for the
 unverified EN reset RC) and the **ESP32-WROOM-32E-N8 module datasheet** (for the antenna keep-out).
 
+## Supplied 2026-09-18 — six files, five usable
+
+Full read-out in `../docs/part-selection.md`, "Parts selected 2026-09-18".
+
+| File | Part | Role | Verification |
+|---|---|---|---|
+| `ihlp-4040dz-01.pdf` | Vishay **IHLP-4040DZ-01** | **Input pi-filter inductor L1** | **SELECTED — 1.5 uH recommended**: DCR 5.30 typ / **5.80 max mOhm**, Isat 27.5 A, 0.28 W at 7.0 A, inside F4's 8 mOhm budget. The 2.2 uH part is 9.00 mOhm max and **misses it by 12.5%**. 10.16 x 10.16 x 4.0 mm; KiCad ships `Inductor_SMD:L_Vishay_IHLP-4040`. **Caveat: this is the COMMERCIAL series — AEC-Q200 appears nowhere in it.** Order the automotive IHLP variant for a vehicle |
+| `cmf_automotive_signal_act45b_en.pdf` | TDK **ACT45B-510-2P-TL003** | **CAN common-mode choke L6** | **SELECTED.** 51 uH — matches L6's placeholder exactly. AEC-Q200, -40 to +150 C, CAN-BUS named as the application. DCR 1.0 Ohm max, rated 0.2 A (the node is listen-only, so it never transmits). Body 4.5 x 3.2 x 2.8 mm. **Note the value code: -510 is 51 uH; -101 is 100 uH.** **No KiCad footprint exists** — `L_CommonModeChoke_Coilank_ACM4532` is the right size class but its land pattern must be checked against the drawing |
+| `PESD2CANFD24U-T.pdf` | Nexperia **PESD2CANFD24U-T** | **CAN ESD D6/D7** | **SELECTED — and it replaces BOTH placeholders with one part.** Single dual-line protector, SOT23, pins K1/K2/CC. VRWM 24 V, VCL 33 V typ / 43 V max at 1 A (8/20 us), 15 kV IEC 61000-4-2, Cd 3.5 pF, **AEC-Q101**, Tj 175 C. KiCad ships `Package_TO_SOT_SMD:SOT-23`. **This is a schematic change for `gen_mcu_can.py`, not just a BOM entry** |
+| `PCA9685.pdf` | NXP **PCA9685** (order **PCA9685PW/Q900**) | RGB PWM controller U7 | **ALL FOUR OPEN QUESTIONS ANSWERED, NO DEFECT FOUND.** EXTCLK to GND is correct — pin-table footnote [2] says it "must be grounded when this feature is not used". `~OE` LOW is correct — 7.4 says LOW enables the outputs, so the Task 6 deviation was right. A0-A5 to GND gives 0x40. Outputs are **totem-pole by default** with LEDn **LOW at power-on reset**. **New firmware contract (Table 12 fn [3], Fig 13): for an external N-type driver the optimum is INVRT = 0, OUTDRV = 1 — both reset defaults, so leave MODE2 alone; INVRT = 1 would invert all twelve channels.** `/Q900` is **the only AEC-Q100 variant**. TSSOP28 SOT361-1 -> `Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm` |
+| `esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf` | Espressif **ESP32-WROOM-32E-N8** | MCU module U5 | **CLOSES TWO OPEN ITEMS.** (1) **The EN reset RC is VERIFIED** — Figure 8's notes recommend "R = 10 kOhm and C = 1 uF", exactly the fitted R22/C37, which had been UNVERIFIED since Task 5. (2) **The pin table cross-checks completely** — all 19 assignments match Figure 3. Variant confirmed: 8 MB Quad SPI, no PSRAM, **18.0 x 25.5 x 3.1 mm**, -40 to +85 C (the 105 C parts are the H suffixes). KiCad ships `RF_Module:ESP32-WROOM-32E`. **The antenna keep-out DIMENSIONS are not in this document** — it defers to the Hardware Design Guidelines, still needed for Task 9 |
+| `Accu-L-Automotive.pdf` | Vishay **Accu-L** thin-film RF inductors, L0402/L0805 | **none — not usable** | **NOT APPLICABLE TO THIS BOARD.** A high-Q RF/microwave matching inductor series for GPS, radar and telematics: values in **nanohenries** (from 0.56 nH), current ratings in **milliamps** (500-750 mA). AEC-Q200 and genuinely an inductor, which is presumably why it was picked up, but three orders of magnitude away from the 7 A power choke L2 needs |
+
+**L2 — the 7 A input common-mode choke — is now the only electrical part still blocking.** See
+`NEEDED.md`.
+
 ## Considered and rejected — kept as evidence
 
 These justify the single largest design decision in the project: that the RGB output stage could not

@@ -723,7 +723,7 @@ per net; a second in parallel would only halve the value.
 | Ref | Value | Basis |
 |---|---|---|
 | C35 / C36 | 10 µF / 100 nF | Module bulk + HF decoupling at VDD |
-| R22 / C37 | 10 kΩ / 1 µF | EN power-on reset delay, ~10 ms. **UNVERIFIED** — no Espressif hardware-design guide held locally; confirm before ordering |
+| R22 / C37 | 10 kΩ / 1 µF | EN power-on reset delay, ~10 ms. **VERIFIED 2026-09-18** against the module datasheet, Figure 8 peripheral-schematic notes: *“it is advised to add an RC delay circuit at the EN pin. The recommended setting for the RC delay circuit is usually R = 10 kΩ and C = 1 µF.”* Exactly the fitted values. Espressif add that they *“should be adjusted based on the power-up timing of the module”*, so confirm at bring-up if the rail is slow |
 | R23 | 0 Ω **DNP** | Listen-only link |
 | R24 / R25 | 10 kΩ | TXD and STB pull-ups to VIO |
 | R26 | 120 Ω **DNP** | The vehicle bus is already terminated at both ends |
@@ -1263,3 +1263,132 @@ BOM freezes, and none of them were visible while only the 38.9 V figure was know
 output**, not on `VBAT`, so they do not see the TVS clamp. Row 1a.1's conditional wording — "the TVS
 clamp voltage (row 6.2) must settle below 40 V for this to hold" — **states a dependency that does
 not exist** and should be read as referring to the boost's own output, not the input clamp.
+
+---
+
+## Parts selected 2026-09-18 from the six datasheets the owner supplied
+
+Six files arrived (`ihlp-4040dz-01`, `Accu-L-Automotive`, `cmf_automotive_signal_act45b_en`,
+`PESD2CANFD24U-T`, `PCA9685`, `esp32-wroom-32e_esp32-wroom-32ue_datasheet_en`). **Five are usable
+and they close most of the F4/Task-8 blocking list. One is not usable.** Every figure below was read
+from the PDF in `hardware/datasheets/`, not from a distributor page.
+
+### L1 — input pi-filter inductor: **Vishay IHLP-4040DZ-01** — SELECTED
+
+`ihlp-4040dz-01.pdf`, standard electrical specifications table. Package **10.16 x 10.16 mm,
+4.0 mm max height**; KiCad ships the footprint as **`Inductor_SMD:L_Vishay_IHLP-4040`**.
+
+| L0 | DCR typ | **DCR max** | Heat-rating current | **Isat** | Loss at 7.0 A (DCR max) |
+|---|---|---|---|---|---|
+| 1.5 µH | 5.30 mΩ | **5.80 mΩ** | 15.0 A | 27.5 A | **0.28 W** |
+| 2.2 µH | 8.20 mΩ | **9.00 mΩ** | 12.0 A | 25.6 A | **0.44 W** |
+
+**Recommendation: the 1.5 µH part.** F4 budgeted **L1 ≤ 8 mΩ**; 2.2 µH at 9.00 mΩ max **misses it by
+12.5%**, 1.5 µH clears it with room. The filtering cost is negligible — with C3 = 220 µF the LC
+corner moves from 7.2 kHz to **8.8 kHz**, still giving **≈ 66 dB at 400 kHz** against the 2.2 µH
+part's ≈ 70 dB. Either is a vast improvement on the unselected 10 µH the sheet still carries, and
+both have Isat ≥ 25 A against a 7.8 A worst case.
+
+> **Two caveats.** (1) This is the **Commercial** series — the datasheet title is "IHLP Commercial
+> Inductors, High Saturation Series" and **AEC-Q200 appears nowhere in it**. Every other magnetic
+> chosen for this board is automotive-qualified; Vishay produce automotive-grade IHLP in the same
+> package, and for a vehicle that variant should be ordered instead. (2) Operating range is
+> **−55 to +125 °C**, comfortable against the 65 °C internal target.
+
+### L2 — input common-mode choke: **STILL NOT COVERED**
+
+**`Accu-L-Automotive.pdf` cannot be used for anything on this board.** It is a **thin-film
+RF/microwave chip inductor** series (L0402/L0805, high-Q, for GPS, radar and matching networks). Its
+values are in **nanohenries** (0.56 nH upward) and its current ratings are in **milliamps**
+(500–750 mA). It is AEC-Q200 and it is an inductor, which is presumably why it was picked up, but it
+is three orders of magnitude away from a 7 A power choke.
+
+**L2 remains the single blocking item**: a common-mode choke carrying the **full 7.0 A** with
+**DCR ≤ 7 mΩ per winding**. It is also the part most likely to drive the board outline.
+
+### L6 — CAN common-mode choke: **TDK ACT45B-510-2P-TL003** — SELECTED
+
+`cmf_automotive_signal_act45b_en.pdf`. **AEC-Q200, −40 to +150 °C, application listed as CAN-BUS.**
+Body **4.5 x 3.2 x 2.8 mm**, 4 pins.
+
+| Part | Lcm @ 100 kHz | Stray L | DCR max | Rated current |
+|---|---|---|---|---|
+| ACT45B-110-2P | 11 µH | 0.05 µH | 0.6 Ω | 0.25 A |
+| ACT45B-220-2P | 22 µH | 0.08 µH | 1.0 Ω | 0.2 A |
+| **ACT45B-510-2P** | **51 µH** | 0.15 µH | **1.0 Ω** | **0.2 A** |
+| ACT45B-101-2P | 100 µH | 0.20 µH | 2.0 Ω | 0.15 A |
+
+**The 51 µH part matches L6's placeholder value exactly.** Note that `NEEDED.md` had suggested
+*ACT45B-101-2P* — **that is the 100 µH part**; the suffix is the value code, and **-510 is 51 µH**.
+
+**Rated current is ample.** A CAN node drives ~33 mA into the 60 Ω differential load, ~70 mA worst
+case — and **this node is listen-only by construction** (R23 is a DNP 0 Ω link), so it never
+transmits at all. 1 Ω per winding in series with a 60 Ω bus is ~3%, normal for a CAN choke.
+
+> **Footprint is NOT settled.** `Inductor_SMD:L_CommonModeChoke_Coilank_ACM4532` is the right size
+> class (4.5 x 3.2 mm) and is the obvious candidate, but its pads sit at **±1.825 / ±1.125 mm,
+> 1.15 x 1.55 mm**, while the ACT45B's recommended land pattern extracts as the ambiguous figures
+> **1.6 / 3.4 / 3.2**. Those do not map onto each other without guessing. **Task 8 must compare the
+> two drawings directly** — a mismatched land pattern on a 4-pin choke is a part that will not solder.
+
+### D6 / D7 — CAN ESD: **Nexperia PESD2CANFD24U-T** — SELECTED, and the two parts become one
+
+`PESD2CANFD24U-T.pdf`, 8 September 2020. **This is the single dual-line protector `NEEDED.md` asked
+for**, so the schematic's **two placeholder discretes collapse into one 3-pin device.**
+
+| Parameter | Value |
+|---|---|
+| Package | **SOT23 (TO-236AB)**, 3 terminals, 2.9 x 1.3 x 1 mm — KiCad ships `Package_TO_SOT_SMD:SOT-23` |
+| Pinning | **1 = K1, 2 = K2, 3 = CC (common)** → CANH, CANL, GND |
+| VRWM | **24 V** — matches the placeholder |
+| VCL | **33 V typ / 43 V max at IPP = 1 A**, 8/20 µs |
+| IPPM | 1.9 A (8/20 µs) |
+| ESD | **15 kV** IEC 61000-4-2 and ISO 10605 |
+| Cd | **3.5 pF** — low enough not to distort CAN edges |
+| Qualification | **AEC-Q101**, Tj 175 °C |
+
+> **This is a schematic change, not just a BOM entry.** `gen_mcu_can.py` currently places D6 and D7
+> as two separate 2-pin parts. Replacing them with one 3-pin symbol changes the netlist and frees a
+> designator. Do it before Task 8 assigns footprints, and re-run the ERC gate.
+
+### U7 — PCA9685: all four open questions answered, **no defect found**
+
+`PCA9685.pdf`, Rev. 4, 16 April 2015. Every one of the review's open questions resolves in the
+schematic's favour:
+
+| Question | Datasheet | Verdict |
+|---|---|---|
+| EXTCLK tied to GND when unused? | Pin-table **footnote [2]: "This pin must be grounded when this feature is not used."** | **Correct as built** (U7.25 → GND) |
+| `~OE` pulled LOW? | §7.4: *"When a LOW level is applied to OE pin, all the LED outputs are enabled."* | **Correct as built** — R78 10 kΩ to GND. The Task 6 deviation was right; the plan's literal wording would have left the board dark |
+| A0–A5 strapping | Six address pins, 64 addresses | All six to GND → **0x40**, the address the firmware already uses |
+| Output ratings | **Totem-pole by default** (MODE2 OUTDRV reset value = 1), sink 25 mA / source 10 mA at 5 V, package limit 400 mA. **"Power on reset default state of LEDn output pins is LOW."** | Push-pull gate drive, outputs off at reset — as the design assumes |
+
+**One new firmware-visible contract, from Table 12 and Figure 13.** For an **external N-type driver**
+the datasheet's *optimum* configuration is **INVRT = 0, OUTDRV = 1** (footnote [3]), and in that
+configuration **no external pull-up is required**. Both are the power-on defaults, so the correct
+firmware action is *to leave MODE2 alone*. **Setting INVRT = 1 would invert all twelve RGB
+channels — full brightness at 0% duty.** This belongs in the §12 firmware plan beside the ADC
+attenuation contract (review O3).
+
+**Part number should be `PCA9685PW/Q900`** — TSSOP28, SOT361-1, body width 4.4 mm, and **the only
+AEC-Q100-compliant variant** in the ordering table. The schematic's Value field currently says just
+"PCA9685". KiCad footprint: **`Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm`**. Tamb −40 to +85 °C.
+
+### U5 — ESP32-WROOM-32E-N8: two open items closed
+
+`esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf`, v1.8.
+
+1. **The EN reset RC is now VERIFIED** — see the R22/C37 row above. Espressif's own recommendation is
+   **R = 10 kΩ, C = 1 µF**, exactly what is fitted. This had been carried as UNVERIFIED since Task 5.
+2. **The pin-table cross-check passes completely.** All 19 assignments in the Task 7 review table
+   were re-checked against Figure 3 (Pin Layout) — pin 3 EN, 4 SENSOR_VP, 5 SENSOR_VN, 6 IO34,
+   7 IO35, 8 IO32, 9 IO33, 10 IO25, 11 IO26, 12 IO27, 13 IO14, 16 IO13, 26 IO4, 27 IO16, 28 IO17,
+   29 IO5, 30 IO18, 31 IO19, 33 IO21, 36 IO22, 37 IO23. **Every one matches.**
+3. **The variant is orderable as specified**: ESP32-WROOM-32E-N8, **8 MB Quad SPI flash, no PSRAM**,
+   **18.0 x 25.5 x 3.1 mm**, −40 to +85 °C. (The −40 ~ +105 °C parts are the **H** suffixes, not N8.)
+   KiCad ships **`RF_Module:ESP32-WROOM-32E`**.
+4. **The antenna keep-out dimensions are NOT in this datasheet.** It states only that the dotted zone
+   is the keepout and defers to *ESP32 Hardware Design Guidelines > Positioning a Module on a Base
+   Board*. **That document is still needed for Task 9.** The land-pattern figure does give the
+   outline (18 x 25.5 mm, 1.27 mm pad pitch, thermal pad with vias), and Espressif publish a STEP
+   model.
