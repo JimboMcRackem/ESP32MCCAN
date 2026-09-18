@@ -201,8 +201,11 @@ def hlab(name, shape, x, y, rot=0):
 CH = [(c, k) for c in ("FL", "FR", "RL", "RR") for k in ("R", "G", "B")]
 
 # ================================================================ BLOCK A: PCA9685
-U7 = place("U7", "Driver_LED:PCA9685PW", "PCA9685PW", 60.96, 63.5, 0, PCA,
-           [("Reference", "U7", 60.96, 33.02, 0), ("Value", "PCA9685PW", 60.96, 96.52, 0)],
+# Value is the /Q900 ordering variant -- the ONLY AEC-Q100-compliant PCA9685 in the
+# ordering table (datasheet Table 3 footnote 1).  The lib_id stays Driver_LED:PCA9685PW
+# because that is the stock symbol's name; the package is the same TSSOP28 (SOT361-1).
+U7 = place("U7", "Driver_LED:PCA9685PW", "PCA9685PW/Q900", 60.96, 63.5, 0, PCA,
+           [("Reference", "U7", 60.96, 33.02, 0), ("Value", "PCA9685PW/Q900", 60.96, 96.52, 0)],
            desc="16-channel, 12-bit PWM Fm+ I2C-bus LED controller, TSSOP-28")
 # VDD from the SWITCHED rail: the driver is unpowered in sleep, which is half of why
 # the outputs cannot come on by accident.  See the ~OE note.
@@ -285,8 +288,8 @@ for i, (corner, colour) in enumerate(CH):
     w(b, (259.08, y))
     lab("MUXIN_%s_%s" % (corner, colour), 259.08, y)
     j((254.0, y))
-    place("D%d" % (9 + i), "Device:D_Schottky", "BAT54", 254.0, round(y - 3.81, 4), 270, DIODE,
-          [("Reference", "D%d" % (9 + i), 256.54, round(y - 5.08, 4), 0),
+    place("D%d" % (8 + i), "Device:D_Schottky", "BAT54", 254.0, round(y - 3.81, 4), 270, DIODE,
+          [("Reference", "D%d" % (8 + i), 256.54, round(y - 5.08, 4), 0),
            ("Value", "BAT54", 256.54, round(y - 2.54, 4), 0)],
           desc="Schottky diode")
     w((254.0, round(y - 7.62, 4)), (254.0, round(y - 12.7, 4)))
@@ -391,8 +394,8 @@ w(b4, (431.8, p[1]))
 j((421.64, p[1])); w((421.64, p[1]), (421.64, 208.28))
 _, b5 = vpart("C48", "Device:C", "10nF", 421.64, 208.28); gnd(*b5)
 j((426.72, p[1]))
-place("D21", "Device:D_Schottky", "BAT54", 426.72, round(p[1] - 3.81, 4), 270, DIODE,
-      [("Reference", "D21", 429.26, round(p[1] - 5.08, 4), 0),
+place("D20", "Device:D_Schottky", "BAT54", 426.72, round(p[1] - 3.81, 4), 270, DIODE,
+      [("Reference", "D20", 429.26, round(p[1] - 5.08, 4), 0),
        ("Value", "BAT54", 429.26, round(p[1] - 2.54, 4), 0)],
       desc="Schottky diode")
 w((426.72, round(p[1] - 7.62, 4)), (426.72, round(p[1] - 12.7, 4)))

@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-19T00:05:49")
+		(date "2026-09-19T00:15:21")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -356,7 +356,7 @@
 		)
 		(comp
 			(ref "C3")
-			(value "220uF")
+			(value "220uF 63V")
 			(fields
 				(field
 					(name "Footprint")
@@ -1504,8 +1504,8 @@
 		)
 		(comp
 			(ref "D6")
-			(value "24V bidir")
-			(description "Bidirectional transient-voltage-suppression diode")
+			(value "PESD2CANFD24U-T")
+			(description "Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
 			(fields
 				(field
 					(name "Footprint")
@@ -1514,12 +1514,12 @@
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Bidirectional transient-voltage-suppression diode")
+					(name "Description") "Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
 			)
 			(libsource
-				(lib "Device")
-				(part "D_TVS")
-				(description "Bidirectional transient-voltage-suppression diode")
+				(lib "mccan_parts")
+				(part "PESD2CANFD24U")
+				(description "Dual bidirectional ESD protection for CAN / CAN-FD, VRWM 24 V, Cd 3.5 pF, 15 kV IEC 61000-4-2, SOT23, AEC-Q101")
 			)
 			(property
 				(name "Sheetname")
@@ -1528,14 +1528,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/mcu_can.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "diode TVS thyrector")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "TO-???* *_Diode_* *SingleDiode* D_*")
 			)
 			(sheetpath
 				(names "/mcu_can/")
@@ -1552,66 +1544,15 @@
 						(pin
 							(num "2")
 						)
+						(pin
+							(num "3")
+						)
 					)
 				)
 			)
 		)
 		(comp
 			(ref "D7")
-			(value "24V bidir")
-			(description "Bidirectional transient-voltage-suppression diode")
-			(fields
-				(field
-					(name "Footprint")
-				)
-				(field
-					(name "Datasheet")
-				)
-				(field
-					(name "Description") "Bidirectional transient-voltage-suppression diode")
-			)
-			(libsource
-				(lib "Device")
-				(part "D_TVS")
-				(description "Bidirectional transient-voltage-suppression diode")
-			)
-			(property
-				(name "Sheetname")
-				(value "mcu_can")
-			)
-			(property
-				(name "Sheetfile")
-				(value "sheets/mcu_can.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "diode TVS thyrector")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "TO-???* *_Diode_* *SingleDiode* D_*")
-			)
-			(sheetpath
-				(names "/mcu_can/")
-				(tstamps "/5a511665-9b85-4ced-b6e3-f23e247294e2/")
-			)
-			(tstamps "5b468e4b-61af-5c40-b069-4abd0d4aea29")
-			(units
-				(unit
-					(name "A")
-					(pins
-						(pin
-							(num "1")
-						)
-						(pin
-							(num "2")
-						)
-					)
-				)
-			)
-		)
-		(comp
-			(ref "D8")
 			(value "BAT54")
 			(description "Schottky diode")
 			(fields
@@ -1649,7 +1590,7 @@
 				(names "/mcu_can/")
 				(tstamps "/5a511665-9b85-4ced-b6e3-f23e247294e2/")
 			)
-			(tstamps "4570f921-cc6d-528a-a4c5-49c03317bb12")
+			(tstamps "5b468e4b-61af-5c40-b069-4abd0d4aea29")
 			(units
 				(unit
 					(name "A")
@@ -1732,7 +1673,7 @@
 		)
 		(comp
 			(ref "L6")
-			(value "51uH CM choke")
+			(value "ACT45B-510-2P-TL003")
 			(description "Coupled inductor, common-mode choke")
 			(fields
 				(field
@@ -4950,7 +4891,7 @@
 		)
 		(comp
 			(ref "L4")
-			(value "22uH")
+			(value "XAL7070-223ME")
 			(fields
 				(field
 					(name "Footprint")
@@ -5004,7 +4945,7 @@
 		)
 		(comp
 			(ref "L5")
-			(value "22uH")
+			(value "XAL7070-223ME")
 			(fields
 				(field
 					(name "Footprint")
@@ -7473,6 +7414,60 @@
 			)
 		)
 		(comp
+			(ref "D8")
+			(value "BAT54")
+			(description "Schottky diode")
+			(fields
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Schottky diode")
+			)
+			(libsource
+				(lib "Device")
+				(part "D_Schottky")
+				(description "Schottky diode")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "diode Schottky")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "TO-???* *_Diode_* *SingleDiode* D_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "df44427e-df15-51e8-9894-cfcdf9dc5c6a")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
 			(ref "D9")
 			(value "BAT54")
 			(description "Schottky diode")
@@ -8106,60 +8101,6 @@
 				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
 			)
 			(tstamps "e9dfbe4d-9e18-5912-8fa3-a6320f09b1ea")
-			(units
-				(unit
-					(name "A")
-					(pins
-						(pin
-							(num "1")
-						)
-						(pin
-							(num "2")
-						)
-					)
-				)
-			)
-		)
-		(comp
-			(ref "D21")
-			(value "BAT54")
-			(description "Schottky diode")
-			(fields
-				(field
-					(name "Footprint")
-				)
-				(field
-					(name "Datasheet")
-				)
-				(field
-					(name "Description") "Schottky diode")
-			)
-			(libsource
-				(lib "Device")
-				(part "D_Schottky")
-				(description "Schottky diode")
-			)
-			(property
-				(name "Sheetname")
-				(value "outputs")
-			)
-			(property
-				(name "Sheetfile")
-				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "diode Schottky")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "TO-???* *_Diode_* *SingleDiode* D_*")
-			)
-			(sheetpath
-				(names "/outputs/")
-				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
-			)
-			(tstamps "e5040cbd-5412-544b-91b0-101fa80faab3")
 			(units
 				(unit
 					(name "A")
@@ -12397,7 +12338,7 @@
 		)
 		(comp
 			(ref "U7")
-			(value "PCA9685PW")
+			(value "PCA9685PW/Q900")
 			(description "16-channel, 12-bit PWM Fm+ I2C-bus LED controller, TSSOP-28")
 			(fields
 				(field
@@ -14436,6 +14377,42 @@
 				)
 			)
 		)
+		(libpart
+			(lib "mccan_parts")
+			(part "PESD2CANFD24U")
+			(description "Dual bidirectional ESD protection for CAN / CAN-FD, VRWM 24 V, Cd 3.5 pF, 15 kV IEC 61000-4-2, SOT23, AEC-Q101")
+			(docs "https://assets.nexperia.com/documents/data-sheet/PESD2CANFD24U-T.pdf")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "PESD2CANFD24U-T")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet") "https://assets.nexperia.com/documents/data-sheet/PESD2CANFD24U-T.pdf")
+				(field
+					(name "Description") "Dual bidirectional ESD protection for CAN / CAN-FD, VRWM 24 V, Cd 3.5 pF, 15 kV IEC 61000-4-2, SOT23, AEC-Q101")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "K1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "K2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "CC")
+					(type "passive")
+				)
+			)
+		)
 	)
 	(libraries
 		(library
@@ -14529,13 +14506,13 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "D21")
+				(ref "D20")
 				(pin "1")
 				(pinfunction "K_1")
 				(pintype "passive")
 			)
 			(node
-				(ref "D8")
+				(ref "D7")
 				(pin "1")
 				(pinfunction "K_1")
 				(pintype "passive")
@@ -14693,7 +14670,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "D20")
+				(ref "D8")
 				(pin "1")
 				(pinfunction "K_1")
 				(pintype "passive")
@@ -14873,7 +14850,7 @@
 			(node
 				(ref "D6")
 				(pin "1")
-				(pinfunction "A1_1")
+				(pinfunction "K1_1")
 				(pintype "passive")
 			)
 			(node
@@ -14899,9 +14876,9 @@
 			(name "/CANL")
 			(class "Default")
 			(node
-				(ref "D7")
-				(pin "1")
-				(pinfunction "A1_1")
+				(ref "D6")
+				(pin "2")
+				(pinfunction "K2_2")
 				(pintype "passive")
 			)
 			(node
@@ -15084,7 +15061,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "D21")
+				(ref "D20")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15519,7 +15496,7 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "D8")
+				(ref "D7")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15761,7 +15738,7 @@
 			(name "/outputs/MUXIN_FL_B")
 			(class "Default")
 			(node
-				(ref "D11")
+				(ref "D10")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15783,7 +15760,7 @@
 			(name "/outputs/MUXIN_FL_G")
 			(class "Default")
 			(node
-				(ref "D10")
+				(ref "D9")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15805,7 +15782,7 @@
 			(name "/outputs/MUXIN_FL_R")
 			(class "Default")
 			(node
-				(ref "D9")
+				(ref "D8")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15827,7 +15804,7 @@
 			(name "/outputs/MUXIN_FR_B")
 			(class "Default")
 			(node
-				(ref "D14")
+				(ref "D13")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15849,7 +15826,7 @@
 			(name "/outputs/MUXIN_FR_G")
 			(class "Default")
 			(node
-				(ref "D13")
+				(ref "D12")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15871,7 +15848,7 @@
 			(name "/outputs/MUXIN_FR_R")
 			(class "Default")
 			(node
-				(ref "D12")
+				(ref "D11")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15893,7 +15870,7 @@
 			(name "/outputs/MUXIN_RL_B")
 			(class "Default")
 			(node
-				(ref "D17")
+				(ref "D16")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15915,7 +15892,7 @@
 			(name "/outputs/MUXIN_RL_G")
 			(class "Default")
 			(node
-				(ref "D16")
+				(ref "D15")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15937,7 +15914,7 @@
 			(name "/outputs/MUXIN_RL_R")
 			(class "Default")
 			(node
-				(ref "D15")
+				(ref "D14")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15959,7 +15936,7 @@
 			(name "/outputs/MUXIN_RR_B")
 			(class "Default")
 			(node
-				(ref "D20")
+				(ref "D19")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -15981,7 +15958,7 @@
 			(name "/outputs/MUXIN_RR_G")
 			(class "Default")
 			(node
-				(ref "D19")
+				(ref "D18")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -16003,7 +15980,7 @@
 			(name "/outputs/MUXIN_RR_R")
 			(class "Default")
 			(node
-				(ref "D18")
+				(ref "D17")
 				(pin "2")
 				(pinfunction "A_2")
 				(pintype "passive")
@@ -17397,14 +17374,8 @@
 			)
 			(node
 				(ref "D6")
-				(pin "2")
-				(pinfunction "A2_2")
-				(pintype "passive")
-			)
-			(node
-				(ref "D7")
-				(pin "2")
-				(pinfunction "A2_2")
+				(pin "3")
+				(pinfunction "CC_3")
 				(pintype "passive")
 			)
 			(node

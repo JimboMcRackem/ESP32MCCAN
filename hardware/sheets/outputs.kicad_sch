@@ -8579,7 +8579,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 64.77 270)
+		(at 254 83.82 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -8589,7 +8589,7 @@
 		(dnp no)
 		(uuid "07bf00f0-82e4-5a12-aec3-7b9069642972")
 		(property "Reference" "D11"
-			(at 256.54 63.5 0)
+			(at 256.54 82.55 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8600,7 +8600,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 66.04 0)
+			(at 256.54 85.09 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8611,7 +8611,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 64.77 0)
+			(at 254 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8622,7 +8622,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 64.77 0)
+			(at 254 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8633,7 +8633,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 64.77 0)
+			(at 254 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10357,7 +10357,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 198.12 270)
+		(at 254 217.17 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -10367,7 +10367,7 @@
 		(dnp no)
 		(uuid "25e332cc-7c0b-58b2-8345-d7c311a848d2")
 		(property "Reference" "D18"
-			(at 256.54 196.85 0)
+			(at 256.54 215.9 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10378,7 +10378,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 199.39 0)
+			(at 256.54 218.44 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10389,7 +10389,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 198.12 0)
+			(at 254 217.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10400,7 +10400,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 198.12 0)
+			(at 254 217.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10411,7 +10411,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 198.12 0)
+			(at 254 217.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10542,7 +10542,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "PCA9685PW"
+		(property "Value" "PCA9685PW/Q900"
 			(at 60.96 96.52 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12133,7 +12133,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 26.67 270)
+		(at 254 45.72 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -12143,7 +12143,7 @@
 		(dnp no)
 		(uuid "42ffdf84-46a5-5c24-bf17-07f09a66127b")
 		(property "Reference" "D9"
-			(at 256.54 25.4 0)
+			(at 256.54 44.45 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12154,7 +12154,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 27.94 0)
+			(at 256.54 46.99 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12165,7 +12165,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 26.67 0)
+			(at 254 45.72 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12176,7 +12176,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 26.67 0)
+			(at 254 45.72 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12187,7 +12187,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 26.67 0)
+			(at 254 45.72 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12456,7 +12456,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 217.17 270)
+		(at 254 236.22 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -12466,7 +12466,7 @@
 		(dnp no)
 		(uuid "46aaf99d-ca77-5595-95b0-c1df0f0c5ed9")
 		(property "Reference" "D19"
-			(at 256.54 215.9 0)
+			(at 256.54 234.95 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12477,7 +12477,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 218.44 0)
+			(at 256.54 237.49 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12488,7 +12488,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 217.17 0)
+			(at 254 236.22 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12499,7 +12499,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 217.17 0)
+			(at 254 236.22 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12510,7 +12510,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 217.17 0)
+			(at 254 236.22 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13511,7 +13511,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 83.82 270)
+		(at 254 102.87 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -13521,7 +13521,7 @@
 		(dnp no)
 		(uuid "5a430839-0eb3-57fd-a7fc-7ee272f55934")
 		(property "Reference" "D12"
-			(at 256.54 82.55 0)
+			(at 256.54 101.6 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -13532,7 +13532,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 85.09 0)
+			(at 256.54 104.14 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -13543,7 +13543,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 83.82 0)
+			(at 254 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13554,7 +13554,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 83.82 0)
+			(at 254 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13565,7 +13565,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 83.82 0)
+			(at 254 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14170,7 +14170,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 45.72 270)
+		(at 254 64.77 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -14180,7 +14180,7 @@
 		(dnp no)
 		(uuid "68ab161b-9693-5e62-8f0f-812dbc436705")
 		(property "Reference" "D10"
-			(at 256.54 44.45 0)
+			(at 256.54 63.5 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14191,7 +14191,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 46.99 0)
+			(at 256.54 66.04 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14202,7 +14202,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 45.72 0)
+			(at 254 64.77 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14213,7 +14213,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 45.72 0)
+			(at 254 64.77 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14224,7 +14224,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 45.72 0)
+			(at 254 64.77 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14251,7 +14251,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 160.02 270)
+		(at 254 179.07 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -14261,7 +14261,7 @@
 		(dnp no)
 		(uuid "69fc1900-97ac-5d07-9fc8-6221d0abd46e")
 		(property "Reference" "D16"
-			(at 256.54 158.75 0)
+			(at 256.54 177.8 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14272,7 +14272,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 161.29 0)
+			(at 256.54 180.34 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14283,7 +14283,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 160.02 0)
+			(at 254 179.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14294,7 +14294,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 160.02 0)
+			(at 254 179.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14305,7 +14305,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 160.02 0)
+			(at 254 179.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15551,7 +15551,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 102.87 270)
+		(at 254 121.92 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -15561,7 +15561,7 @@
 		(dnp no)
 		(uuid "860dcb1e-8dbe-56bf-a65b-ff1b61348358")
 		(property "Reference" "D13"
-			(at 256.54 101.6 0)
+			(at 256.54 120.65 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -15572,7 +15572,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 104.14 0)
+			(at 256.54 123.19 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -15583,7 +15583,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 102.87 0)
+			(at 254 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15594,7 +15594,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 102.87 0)
+			(at 254 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15605,7 +15605,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 102.87 0)
+			(at 254 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16562,7 +16562,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 140.97 270)
+		(at 254 160.02 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -16572,7 +16572,7 @@
 		(dnp no)
 		(uuid "95586082-9938-585f-a29b-7dd966d4fc8a")
 		(property "Reference" "D15"
-			(at 256.54 139.7 0)
+			(at 256.54 158.75 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16583,7 +16583,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 142.24 0)
+			(at 256.54 161.29 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16594,7 +16594,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 140.97 0)
+			(at 254 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16605,7 +16605,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 140.97 0)
+			(at 254 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16616,7 +16616,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 140.97 0)
+			(at 254 160.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18507,7 +18507,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 121.92 270)
+		(at 254 140.97 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -18517,7 +18517,7 @@
 		(dnp no)
 		(uuid "b4c1452d-bbd8-5acb-b433-36196af3ff00")
 		(property "Reference" "D14"
-			(at 256.54 120.65 0)
+			(at 256.54 139.7 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18528,7 +18528,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 123.19 0)
+			(at 256.54 142.24 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18539,7 +18539,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 121.92 0)
+			(at 254 140.97 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18550,7 +18550,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 121.92 0)
+			(at 254 140.97 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18561,7 +18561,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 121.92 0)
+			(at 254 140.97 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20437,6 +20437,87 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:D_Schottky")
+		(at 254 26.67 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "df44427e-df15-51e8-9894-cfcdf9dc5c6a")
+		(property "Reference" "D8"
+			(at 256.54 25.4 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "BAT54"
+			(at 256.54 27.94 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 254 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 254 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Schottky diode"
+			(at 254 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "36ae0d7c-8125-5ced-be96-31850e70510a")
+		)
+		(pin "2"
+			(uuid "13a2917d-d7dc-5d51-87b9-36513c4a025e")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "D8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 341.63 180.34 90)
 		(unit 1)
@@ -20841,87 +20922,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:D_Schottky")
-		(at 426.72 199.39 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "e5040cbd-5412-544b-91b0-101fa80faab3")
-		(property "Reference" "D21"
-			(at 429.26 198.12 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "BAT54"
-			(at 429.26 200.66 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 426.72 199.39 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 426.72 199.39 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Schottky diode"
-			(at 426.72 199.39 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "6e09dada-39df-5b31-84a7-118a69ef3f7d")
-		)
-		(pin "2"
-			(uuid "3d679699-d7eb-5ff0-96bc-b0f39182c6d6")
-		)
-		(instances
-			(project "mccan"
-				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
-					(reference "D21")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
 		(at 245.11 144.78 90)
 		(unit 1)
@@ -21004,7 +21004,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 236.22 270)
+		(at 426.72 199.39 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -21014,7 +21014,7 @@
 		(dnp no)
 		(uuid "e9dfbe4d-9e18-5912-8fa3-a6320f09b1ea")
 		(property "Reference" "D20"
-			(at 256.54 234.95 0)
+			(at 429.26 198.12 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21025,7 +21025,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 237.49 0)
+			(at 429.26 200.66 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21036,7 +21036,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 236.22 0)
+			(at 426.72 199.39 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21047,7 +21047,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 236.22 0)
+			(at 426.72 199.39 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21058,7 +21058,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 236.22 0)
+			(at 426.72 199.39 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21246,7 +21246,7 @@
 	)
 	(symbol
 		(lib_id "Device:D_Schottky")
-		(at 254 179.07 270)
+		(at 254 198.12 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -21256,7 +21256,7 @@
 		(dnp no)
 		(uuid "ec2be7d2-0513-5fb8-af5a-f1208fc8722d")
 		(property "Reference" "D17"
-			(at 256.54 177.8 0)
+			(at 256.54 196.85 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21267,7 +21267,7 @@
 			)
 		)
 		(property "Value" "BAT54"
-			(at 256.54 180.34 0)
+			(at 256.54 199.39 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21278,7 +21278,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 254 179.07 0)
+			(at 254 198.12 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21289,7 +21289,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 254 179.07 0)
+			(at 254 198.12 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21300,7 +21300,7 @@
 			)
 		)
 		(property "Description" "Schottky diode"
-			(at 254 179.07 0)
+			(at 254 198.12 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

@@ -7260,7 +7260,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "22uH"
+		(property "Value" "XAL7070-223ME"
 			(at 111.76 80.01 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9970,7 +9970,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "22uH"
+		(property "Value" "XAL7070-223ME"
 			(at 111.76 34.29 90)
 			(show_name no)
 			(do_not_autoplace no)

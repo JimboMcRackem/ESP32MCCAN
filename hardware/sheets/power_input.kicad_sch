@@ -3992,7 +3992,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "220uF"
+		(property "Value" "220uF 63V"
 			(at 124.46 90.17 0)
 			(show_name no)
 			(do_not_autoplace no)

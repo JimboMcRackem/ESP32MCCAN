@@ -410,5 +410,24 @@ blk = emit("BTS7008_2EPA", "BTS7008-2EPA",
 LIBTXT, how = install(LIBTXT, "BTS7008_2EPA", blk)
 print("BTS7008_2EPA", how, "(Rev. 1.21 Table 2 - VERIFIED)")
 
+# ---------------------------------------------------------------- PESD2CANFD24U-T
+# PESD2CANFD24U-T.pdf (Nexperia, 8 September 2020), Table 2 "Pinning information":
+#   1 K1 cathode (diode 1)   2 K2 cathode (diode 2)   3 CC common cathode
+# SOT23 (TO-236AB), 3 terminals, 2.9 x 1.3 x 1 mm.  ONE package protects BOTH bus
+# lines, which is why it replaces the two placeholder discretes D6 and D7.
+# VRWM 24 V, VCL 33 V typ / 43 V max at IPP 1 A (8/20 us), Cd 3.5 pF, AEC-Q101.
+_pesd = [
+    ("1", "K1", "passive", -7.62,  2.54,   0),
+    ("2", "K2", "passive", -7.62, -2.54,   0),
+    ("3", "CC", "passive",  0.0,  -10.16, 90),
+]
+blk = emit("PESD2CANFD24U", "PESD2CANFD24U-T",
+           "Dual bidirectional ESD protection for CAN / CAN-FD, VRWM 24 V, "
+           "Cd 3.5 pF, 15 kV IEC 61000-4-2, SOT23, AEC-Q101",
+           "https://assets.nexperia.com/documents/data-sheet/PESD2CANFD24U-T.pdf",
+           {1: _pesd}, rect=(-5.08, 5.08, 5.08, -7.62))
+LIBTXT, how = install(LIBTXT, "PESD2CANFD24U", blk)
+print("PESD2CANFD24U", how, "(Table 2 - VERIFIED)")
+
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
 print("written")

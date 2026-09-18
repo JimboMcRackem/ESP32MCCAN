@@ -87,7 +87,9 @@ def from_library(path, name, libid):
     return reindent(blk, 2, 1)
 
 LIBS = []
-for lid in ("Device:C", "Device:D_Schottky", "Device:D_TVS", "Device:L_Coupled",
+# Device:D_TVS dropped 2026-09-19 -- the placeholder D6/D7 pair were its only users on
+# this sheet, and they are now one mccan_parts:PESD2CANFD24U.
+for lid in ("Device:C", "Device:D_Schottky", "Device:L_Coupled",
             "Device:R", "power:GND"):
     LIBS.append(from_schematic(lid))
 LIBS.append(from_library(os.path.join(STOCK, "Device.kicad_sym"), "LED", "Device:LED"))
@@ -100,6 +102,8 @@ LIBS.append(from_library(os.path.join(STOCK, "Transistor_BJT.kicad_sym"),
 LIBS.append(from_library(os.path.join(STOCK, "Switch.kicad_sym"), "SW_Push", "Switch:SW_Push"))
 LIBS.append(from_library(os.path.join(STOCK, "Connector_Generic.kicad_sym"),
                          "Conn_01x06", "Connector_Generic:Conn_01x06"))
+LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
+                         "PESD2CANFD24U", "mccan_parts:PESD2CANFD24U"))
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
 
 # ---------------------------------------------------------------- geometry
@@ -308,24 +312,31 @@ w(c, (246.38, 69.85)); lab("+3V3_ALW", 246.38, 69.85, 90)
 w(U6["4"], (224.79, RXD_Y)); lab("CAN_RXD", 224.79, RXD_Y, 180)
 
 # --- common-mode choke, then ESD clamps, then out to the connector on `outputs`
-L6 = place("L6", "Device:L_Coupled", "51uH CM choke", 284.48, 95.25, 0, COUPLED,
-           [("Reference", "L6", 284.48, 88.9, 0), ("Value", "51uH CM choke", 284.48, 101.6, 0)],
+L6 = place("L6", "Device:L_Coupled", "ACT45B-510-2P-TL003", 284.48, 95.25, 0, COUPLED,
+           [("Reference", "L6", 284.48, 88.9, 0), ("Value", "ACT45B-510-2P-TL003", 284.48, 101.6, 0)],
            desc="Coupled inductor, common-mode choke")
 w(U6["7"], L6["1"])
 w(U6["6"], L6["3"])
-w(L6["2"], (299.72, CANH_Y)); hlab("CANH", "bidirectional", 299.72, CANH_Y, 0)
-w(L6["4"], (299.72, CANL_Y)); hlab("CANL", "bidirectional", 299.72, CANL_Y, 0)
-
-# D6 clamps CANH upward and D7 clamps CANL downward, so neither part sits across
-# the other line.
-place("D6", "Device:D_TVS", "24V bidir", 294.64, 88.9, 90, DIODE,
-      [("Reference", "D6", 297.18, 87.63, 0), ("Value", "24V bidir", 297.18, 90.17, 0)],
-      desc="Bidirectional transient-voltage-suppression diode")
-j((294.64, CANH_Y)); w((294.64, 85.09), (294.64, 80.01)); gnd(294.64, 80.01)
-place("D7", "Device:D_TVS", "24V bidir", 294.64, 101.6, 270, DIODE,
-      [("Reference", "D7", 297.18, 100.33, 0), ("Value", "24V bidir", 297.18, 102.87, 0)],
-      desc="Bidirectional transient-voltage-suppression diode")
-j((294.64, CANL_Y)); w((294.64, 105.41), (294.64, 111.76)); gnd(294.64, 111.76)
+# ONE dual-line protector, not two discretes.  The Nexperia PESD2CANFD24U-T is a single
+# SOT23 holding both bidirectional elements: pin 1 (K1) on CANH, pin 2 (K2) on CANL,
+# pin 3 (CC) the common node to GND.  Replaced the placeholder D6/D7 pair on 2026-09-19;
+# `part-selection.md` records why a single dual-line part is preferred over two discretes.
+# VRWM 24 V, VCL 33 V typ at 1 A (8/20 us), Cd 3.5 pF, AEC-Q101.
+#
+# The two protected pins land exactly on the CANH and CANL runs, so each run is drawn as
+# TWO segments meeting AT the pin rather than one segment the pin happens to touch.  A
+# pin sitting mid-wire does connect, but this sheet has already produced one silent
+# connectivity defect of that shape, so the pin is made a wire endpoint and junctioned.
+PESD = {"1": (-7.62, 2.54), "2": (-7.62, -2.54), "3": (0.0, -10.16)}
+D6 = place("D6", "mccan_parts:PESD2CANFD24U", "PESD2CANFD24U-T", 302.26, 95.25, 0, PESD,
+           [("Reference", "D6", 306.07, 90.17, 0),
+            ("Value", "PESD2CANFD24U-T", 306.07, 92.71, 0)],
+           desc="Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
+w(L6["2"], D6["1"]); w(D6["1"], (299.72, CANH_Y)); j(D6["1"])
+hlab("CANH", "bidirectional", 299.72, CANH_Y, 0)
+w(L6["4"], D6["2"]); w(D6["2"], (299.72, CANL_Y)); j(D6["2"])
+hlab("CANL", "bidirectional", 299.72, CANL_Y, 0)
+w(D6["3"], (302.26, 111.76)); gnd(302.26, 111.76)
 
 # --- 120 ohm terminator, DNP: the vehicle bus is already terminated at both ends.
 w((284.48, 109.22), (284.48, 114.3)); lab("CANH", 284.48, 109.22, 90)
@@ -402,8 +413,8 @@ a2, b2 = vpart("C40", "Device:C", "100nF", 78.74, IGN_Y); gnd(*b2)
 j((78.74, IGN_Y))
 w((72.39, IGN_Y), (78.74, IGN_Y))
 w((78.74, IGN_Y), (83.82, IGN_Y))
-place("D8", "Device:D_Schottky", "BAT54", 83.82, 107.95, 270, DIODE,
-      [("Reference", "D8", 86.36, 106.68, 0), ("Value", "BAT54", 86.36, 109.22, 0)],
+place("D7", "Device:D_Schottky", "BAT54", 83.82, 107.95, 270, DIODE,
+      [("Reference", "D7", 86.36, 106.68, 0), ("Value", "BAT54", 86.36, 109.22, 0)],
       desc="Schottky diode")
 w((83.82, 104.14), (83.82, 99.06)); lab("+3V3_ALW", 83.82, 99.06, 90)
 
