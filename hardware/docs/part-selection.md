@@ -1263,6 +1263,29 @@ F.7 is satisfied by inspection rather than by a call to the vendor.
 (−1/−2 rate DRN/SNS/OUT to 53 V, ample against our 38.9 V TVS clamp, so the adjustable −3/−4 buys
 nothing), DFN-10, H-grade −40…125 °C. **SEL grounded** selects the 31.5 V clamp → ~27 V output.
 
+#### No footprint needs downloading — KiCad already ships it
+
+**Verified 2026-09-19.** The MS (MSOP) package is a plain **JEDEC MSOP-10 with no exposed pad**:
+body **3.00 ± 0.102 × 3.00 ± 0.102 mm**, lead span **4.90 ± 0.152 mm**, pitch **0.50 BSC**,
+height 1.10 max (LTC DWG 05-08-1661 Rev F). Only the **DD (DFN)** package has an exposed pad —
+"EXPOSED PAD (PIN 11) IS GND, PCB CONNECTION OPTIONAL".
+
+**Use stock `Package_SO:MSOP-10_3x3mm_P0.5mm`.** Checked against the drawing: two columns of five
+pads at ±2.1 mm, 1.5 × 0.35 mm, 0.5 mm pitch, pad 1 top-left and pad 10 top-right — which matches
+the datasheet's TOP VIEW (1–5 down the left: DRN, VCC, GATE, SNS, OUT; 6–10 up the right: SEL,
+FLT, GND, ON, TMR).
+
+KiCad's land is **more generous than ADI's minimum** (5.70 mm outer pad span and 1.5 mm pads
+against ADI's 5.10 mm min and 0.889 mm) because it follows IPC-7351 nominal density rather than
+the vendor floor. **That is the normal and preferred choice**, and it helps hand assembly and
+fillet inspection — no reason to build a custom footprint here.
+
+> **Package choice, revised.** The **MSOP is the better pick for this board, not a compromise.**
+> The LTC4380 is a *controller*, not a pass element — it dissipates on the order of **0.1 mW**
+> (8–12 µA at 12 V), so the MSOP's θ<sub>JA</sub> of 160 °C/W against the DFN's 43 °C/W is
+> irrelevant here. The MSOP is easier to solder and to inspect. Earlier notes in this file
+> indicate the DFN (`HDD`); **read that as `HMS` — the MSOP — unless something else forces DFN.**
+
 #### Where it is genuinely worse than the TPS1686
 
 **Setpoint accuracy, and the window is nearly full.** ΔV<sub>SNS</sub> is **45–55 mV** (±10%)
@@ -1740,8 +1763,9 @@ Body **4.5 x 3.2 x 2.8 mm**, 4 pins.
 > *SHAPE & DIMENSIONS* (**4.5 ± 0.2 × 3.2 ± 0.2 mm**) and a single *RECOMMENDED LAND PATTERN*
 > covering -110, -220, -510 and -101 together. **So a 3D model or library file downloaded under a
 > different suffix is geometrically the -510** and is safe to use — only the filename and the BOM
-> line need to say . This is also why  is
-> named for the series rather than the variant, which is correct and should stay that way.
+> line need to say `ACT45B-510-2P-TL003`. This is also why
+> `hardware/footprints/mccan.pretty/TDK_ACT45B.kicad_mod` is named for the series rather than
+> the variant, which is correct and should stay that way.
 
 **Rated current is ample.** A CAN node drives ~33 mA into the 60 Ω differential load, ~70 mA worst
 case — and **this node is listen-only by construction** (R23 is a DNP 0 Ω link), so it never
