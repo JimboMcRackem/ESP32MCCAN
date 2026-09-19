@@ -287,8 +287,8 @@ path.** The reasoning, the routes rejected and the thermal arithmetic are in
 | Ref | Part | Role |
 |---|---|---|
 | **U10** | **ADI LTC4380HMS-2#TRPBF** | Surge stopper + overcurrent controller. Auto-retry (`-2`), MSOP-10, H-grade −40…125 °C |
-| **Q10** | **Infineon IPT008N06NM5LF** | Pass FET, **input side** — drain to the feed |
-| **Q11** | **Infineon IPT008N06NM5LF** | Pass FET, **output side** — drain to the load |
+| **Q10** | **Infineon IPT008N06NM5LF** | Pass FET, **input side** — **source** to the feed, drain to MID |
+| **Q11** | **Infineon IPT008N06NM5LF** | Pass FET, **output side** — drain to MID, **source** to R88 |
 | **R88** | **5.6 mΩ, 1%, ≥ 1 W** | Current-limit sense. 4-terminal (Kelvin) part preferred |
 | **R89** | **30 kΩ** | R<sub>DRN</sub> — drain sense for the SOA multiplier |
 | **R90** | **10 Ω** | Gate series damping (Fig. 7 R3) |
@@ -328,10 +328,10 @@ present design, while gaining protection it does not currently have.**
 > 530 µΩ/square. Small resistances can cause large errors in high current applications." **R88 is
 > not on the heat-spreader plate** and must be thermally provisioned separately.
 
-#### Topology — COMMON SOURCE, drains outward. This is the error ERC cannot catch.
+#### Topology — COMMON DRAIN, sources outward. This is the error ERC cannot catch.
 
 ```
-  FEED_P ─┬────────┬── D:Q10:S ──┬── S:Q11:D ──┬─ R88 ─┬── VBAT_PROT
+  FEED_P ─┬────────┬── S:Q10:D ──┬── D:Q11:S ──┬─ R88 ─┬── VBAT_PROT
           │        │             │  5.6mΩ      │       │
         R92 10k  R93 240k      (MID)           │       │
           │        │             │           SNS│    OUT│
@@ -353,25 +353,68 @@ present design, while gaining protection it does not currently have.**
 
 *Drawn from the datasheet's **Figure 7**, which is this circuit at 2 A. Q12/D23/D24/R93–R95 are
 the second FET's gate-steering network — see the correction below for why they are not optional.*
-**Sources tied together in the middle, drains facing outward.** Both body diodes then point
-*inward* to the mid-node, so:
+**COMMON DRAIN. Drains tied together in the middle, SOURCES facing outward.**
 
-- **Forward:** Q10's body diode (anode MID, cathode FEED) blocks FEED→MID, so forward current
-  requires Q10's channel to be on — which it is in normal operation.
-- **Reverse:** Q11's body diode (anode MID, cathode VBAT_PROT) blocks VBAT_PROT→MID. **That is
-  the reverse-polarity block**, and it holds with the part off and unpowered.
+> ### CORRECTED 2026-09-20. An earlier revision of this section said the opposite.
+>
+> It specified **common source**, told the reader that common-drain "puts the two sources at
+> different potentials, so one gate pin cannot drive both", and instructed them **not to
+> "simplify" it that way.** **That was wrong, and it was wrong in the most dangerous available
+> direction** — a confident instruction to build the arrangement that does not block reverse
+> current. Nothing in ERC, DRC or the pad count would have caught it. It is corrected here, and
+> the reasoning that produced the error is left visible below so it is not repeated.
 
-**Common source is not a preference, it is forced by the single GATE pin.** The LTC4380 specifies
-ΔV<sub>GATE</sub> as **GATE − OUT**, one driver for both devices. With the sources common and
-both FETs on, MID ≈ OUT, so GATE − OUT is the true V<sub>GS</sub> for both. A **common-drain**
-arrangement (sources outward) also blocks reverse, but puts the two sources at different
-potentials, so one gate pin cannot drive both. **Do not "simplify" it that way.**
+- **Q10** (input side): **source to `FEED_P`**, drain to MID.
+- **Q11** (output side): drain to MID, **source toward `R88`/`OUT`**.
 
-> **This is precisely the class of defect that got through twice already on this board** — the
-> CM-choke pin numbering (Task 7) and the RGB-FET clamp path (F6). **ERC passes a back-to-back
-> pair wired the wrong way round, DRC passes it, and the pad count matches either way.** The
-> netlist must be read by hand after generation, specifically checking which terminal of Q10 and
-> Q11 carries the shared MID node.
+**Body diodes then oppose each other**, which is the whole point:
+
+| | Anode | Cathode | Conducts |
+|---|---|---|---|
+| Q10 | `FEED_P` | MID | FEED → MID |
+| Q11 | OUT side | MID | OUT → MID |
+
+- **Forward:** `FEED_P` → MID through Q10's diode (and its channel), then MID → OUT needs **Q11's
+  channel**, which is on in normal operation.
+- **Reverse:** current would run OUT → MID through Q11's diode, then MID → `FEED_P`. **Q10's diode
+  faces the wrong way for that and blocks it.** That is the reverse-polarity block, and it holds
+  with the part unpowered.
+
+#### Why the earlier reasoning was wrong, and what actually gives it away
+
+The mistake was to argue from the LTC4380's single GATE pin: ΔV<sub>GATE</sub> is specified
+**GATE − OUT**, so it looked as though both sources had to sit at OUT potential for one driver to
+work. **The datasheet's answer is not to tie the sources together — it is to steer the second
+gate**, which is exactly what Q12/D23/D24/R93–R95 are for, and exactly why that network appears
+only in the back-to-back figures.
+
+**The tell is that the two gates are driven differently.** Under common source both gates would
+sit on the same node and one drive would serve both; the network would have nothing to do. In
+Figure 7 they are emphatically not the same node:
+
+| | Drive | Referenced to |
+|---|---|---|
+| **Q11** (Fig. 7 M1) | `GATE` → R90 10 Ω → gate | OUT — the pin's own reference |
+| **Q10** (Fig. 7 M2) | `GATE` → R95 240 kΩ → D23 → gate, with Q12 clamping it | **`FEED_P`** — its source |
+
+Q10's source is at `FEED_P`, so its gate needs ≈ `FEED_P` + 10 V. `GATE` sits at OUT + 11.5 V ≈
+`FEED_P` + 11.5 V, so feeding it through R95 and D23 lands ≈ `FEED_P` + 10.8 V — **enough to
+enhance a FET whose source is at the input.** R93 (240 kΩ from `FEED_P`) biases Q12, whose
+collector clamps Q10's gate through R94/D24, limiting V<sub>GS</sub> as the input swings.
+**None of that structure makes sense for a common-source pair.**
+
+> **The datasheet's own wording agrees, and it was quoted in the earlier draft without its
+> meaning being followed through:** *"Back-to-back MOSFETs can be used to block the reverse
+> current path **through M1's body diode**."* A lone high-side N-FET has drain at the input and
+> source at the output, so its body diode conducts **OUT → IN** and is the leak under reverse
+> polarity. The second FET is added to oppose *that* diode — which requires its anode at the
+> input, i.e. **its source at the input and its drain at MID.** Common drain.
+
+**This remains the error class that gets through every automated check on this board** — the
+CM-choke pin numbering (Task 7) and the RGB-FET clamp path (F6) were both of it, and so was this
+paragraph. **The generated netlist must be read by hand**, specifically confirming that the MID
+node lands on **pin 3 (D) of both Q10 and Q11**, and that `FEED_P` and the `R88` side land on
+**pin 2 (S)** of Q10 and Q11 respectively.
 
 #### Component values, and what is not yet settled
 
