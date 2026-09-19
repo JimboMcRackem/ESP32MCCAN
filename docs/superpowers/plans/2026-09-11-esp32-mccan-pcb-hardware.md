@@ -1116,14 +1116,37 @@ v1.8, Figure 12 *Recommended PCB Land Pattern*, cross-checked against Figure 9 *
 **Lay the keep-out out as that 18.0 × 6.19 mm rectangle, on all four layers**, and prefer cutting
 the board away under it entirely so the antenna overhangs.
 
-> **WHAT THE DATASHEET DOES NOT SAY, and do not invent it.** Figure 3 Note A defers the base-board
-> rule verbatim: *"To learn more about the keepout zone for module's antenna on the base board,
-> please refer to **ESP32 Hardware Design Guidelines > Section Positioning a Module on a Base
-> Board**."* **That document is not held.** So the 18.0 × 6.19 mm figure above is the antenna's own
-> extent — solid, and enough to place against — but **the clearance Espressif requires *around* it
-> (extra margin, ground-plane setback, how much overhang is mandatory vs preferred) is UNVERIFIED.**
-> Board-edge overhang is the conservative reading and costs nothing here. Obtain the guidelines
-> before the fabrication gate (Task 9 Step 7).
+**The Espressif rule, obtained 2026-09-19** from *ESP32 Hardware Design Guidelines → PCB Layout
+Design* (owner-supplied URL, see `hardware/docs/part-selection.md`). Four rules, in priority order:
+
+1. **Overhang is the preferred answer, and it is what we are already doing.** *"It is suggested to
+   place the module's on-board PCB antenna outside the base board, and the feed point of the
+   antenna close to the edge of the base board."*
+2. **If it cannot overhang**, the feed point still goes as close to the edge as possible, and
+   *"cut off the base board on both sides of the antenna and below it."*
+3. **EXPLICITLY FORBIDDEN:** *"the module should not be placed in the center of the board with
+   clearance created by hollowing out on all four sides."* A mid-board island is not an option.
+4. Where the board *is* near the antenna, *"sufficient ground copper and dense ground vias should
+   be placed on the base board near the antenna."*
+
+> ### The binding constraint is the ENCLOSURE, not the PCB
+>
+> **"A clearance of at least 15 mm is recommended in all directions"** within the end-product
+> housing, around the PCB antenna.
+>
+> **This is a much larger number than anything the PCB side of this step deals with, and it lands
+> on `hardware/docs/enclosure.md`, not here.** The module is 18 mm wide; 15 mm of clear space on
+> every side of the antenna is a keep-clear volume roughly **48 mm across**. It has to be checked
+> against §9.1's gland field, §9.3's heat-spreader plate and §2.3's "plate opposite the antenna"
+> constraint **at the same time** — and it is the first figure that makes those three genuinely
+> hard to satisfy at once rather than merely awkward.
+>
+> **Also note it says "in all directions", which includes the aluminium plate.** Spec §9.1 already
+> puts the plate on the opposite wall, so the intent is met — but "opposite wall" now has a
+> **minimum distance** attached to it, which it did not before.
+
+*Espressif also requires the finished product be tested for throughput and range — a bring-up item
+(Task 11), not a layout one.*
 
 - [ ] **Step 5: Place connectors to match the panel**
 

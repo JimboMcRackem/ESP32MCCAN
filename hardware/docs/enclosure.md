@@ -119,6 +119,30 @@ Selection criteria, in priority order:
    antenna edge away from the plate).
 4. **Plastic elsewhere, not metal** — the ESP32-WROOM-32E uses its onboard antenna, so the remaining walls
    must be RF-transparent (spec §9.3). This is why a diecast aluminium box was rejected.
+5a. **ANTENNA CLEARANCE — 15 mm in all directions. ADDED 2026-09-19, and it may be the
+   binding constraint on this enclosure.** Espressif's *ESP32 Hardware Design Guidelines → PCB
+   Layout Design* states: **"A clearance of at least 15 mm is recommended in all directions"**
+   around the PCB antenna inside the end-product housing.
+
+   The module is 18 mm wide and its antenna area is **18.0 × 6.19 mm** (module datasheet Figure
+   12). Fifteen millimetres clear on every side makes a keep-clear volume roughly **48 mm across
+   and 15 mm deep** that must contain **no PCB, no metal, no cable, no gland body and no plate**.
+
+   **Three constraints now have to be satisfied together, and this is the one that makes it
+   genuinely hard:**
+   - §9.1 of the spec puts the heat-spreader plate on the wall *opposite the panel*
+   - §2.3 here wants the plate *opposite the antenna*
+   - §4 forbids penetrations in the antenna wall
+   - **and now: 15 mm of clear space on all sides of the antenna, the plate included**
+
+   "Opposite wall" previously satisfied the plate/antenna relationship qualitatively. **It now
+   carries a minimum distance.** Check all four before fixing the internal dimensions — do not
+   assume the earlier "opposite wall" answer still closes it.
+
+   Espressif also **explicitly forbids** the mid-board island option: *"the module should not be
+   placed in the center of the board with clearance created by hollowing out on all four sides."*
+   Board-edge overhang, which spec §9.1 already assumes, is their preferred arrangement.
+
 5. **Panel area** for **eight** penetrations (§4). **REVISED 2026-09-19** — two changes, both
    of which shrink this:
    - The seven "Superseal panel cutouts" **never existed**: Superseal is a wire-to-wire series

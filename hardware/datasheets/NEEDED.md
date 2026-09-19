@@ -9,85 +9,28 @@ Full read-out of what each one settled is in `../docs/part-selection.md`, "Parts
 
 ---
 
-## Blocking — TWO, both created by the 2026-09-19 move to an eFuse
+## Blocking — nothing
 
-> **This heading read "Blocking — nothing" until 2026-09-19.** That was true when written; the
-> owner's decision to make F1 board-mounted and resettable (spec §4.1) reopened the list, and the
-> route chosen for it (LTC4380 + back-to-back N-FETs, see `../docs/part-selection.md`) needs a
-> pass FET that is not yet selected.
+**Closed 2026-09-19, both items, within hours of being opened.** The owner supplied the two
+documents that settled them:
 
-### 1. TWO 60 V N-channel MOSFETs — the one thing blocking route C
+| Item | Settled by | Outcome |
+|---|---|---|
+| **Pass FET for route C** | `infineon_ipt008n06nm5lf_datasheet_en.pdf` | **Infineon IPT008N06NM5LF SELECTED** — OptiMOS 5 **LinearFET**, 60 V, **0.8 mΩ max**, SOA Diagram 3 gives **~50 A at 12 V / 10 ms** against a 7 A need. Route C now lands the board at **~60 °C**, 3 K *better* than today, with protection it does not currently have |
+| **eFuse / controller** | `LTC4380.pdf` | **LTC4380 route chosen**, indicated orderable `LTC4380HMS-2#TRPBF`. Stock `Package_SO:MSOP-10_3x3mm_P0.5mm` verified correct — **no footprint download needed** |
 
-**What to type into a parametric search** (Digi-Key: *Discrete Semiconductor Products → Transistors
-→ FETs, MOSFETs → Single FETs*; Mouser and LCSC have the same fields):
+> **Two judgement calls recorded against the FET, neither blocking** (detail in
+> `../docs/part-selection.md`): it is **JEDEC Industrial-qualified, not AEC-Q101** — every other
+> active part in this feed path is automotive-grade, so this is the owner's call and worth one
+> check for an automotive OptiMOS LinearFET before ordering; and **PG-HSOF-8 (TOLL) is large**,
+> ~9.9 × 10.5 mm each, ~180 mm² net added over the Q1 it replaces.
 
-| Field | Value |
-|---|---|
-| FET Type | **N-Channel** |
-| Drain–Source Voltage (V<sub>DSS</sub>) | **60 V** (accept 60–80 V; 60 V is the sweet spot) |
-| **R<sub>DS(on)</sub> (Max) @ V<sub>GS</sub>** | **≤ 5 mΩ @ 10 V** — *this is the filter that matters* |
-| V<sub>GS</sub> (Max) | **±20 V** |
-| Current – Continuous Drain (I<sub>D</sub>) @ 25 °C | ≥ 25 A (see the warning below — this number is near-meaningless, it is just a proxy for die size) |
-| Package | **PowerPAK SO-8 / SO-8FL / DFN 5×6**, or TO-263/D²PAK |
-| Automotive | **AEC-Q101 qualified** |
-
-**Search terms that work better than raw parametrics:** `"linear mode MOSFET"`, `"hot swap MOSFET"`,
-`"enhanced SOA MOSFET"`, `"SOA optimized"`. Vendors who make parts for *this* job say so, and it is
-the fastest way to filter out the ones that will fail the check below. Manufacturers to look at:
-**Infineon (OptiMOS, including their Linear FET line), onsemi, Vishay (Siliconix), Nexperia,
-Toshiba, Diodes Inc.**
-
-#### The one check that actually decides it — and parametric search cannot do it for you
-
-**A 60 V part at ≤ 5 mΩ is a commodity; dozens exist. The binding constraint is the linear-mode
-SOA**, because the trench technology that gets R<sub>DS(on)</sub> low is exactly the technology
-that makes linear-mode SOA *bad* (thermal-instability / "Spirito" effect). So:
-
-1. Filter on voltage and resistance.
-2. **Open the datasheet and find the figure titled "Forward Biased Safe Operating Area" (FBSOA)** —
-   or "Safe Operating Area" with V<sub>DS</sub> on the x-axis and I<sub>D</sub> on the y.
-3. **Read the 10 ms line at V<sub>DS</sub> = 12 V. It must allow ≥ 7 A** (that is the ≈ 83 W clamp
-   condition: the LTC4380 holds the FET linear at ~27 V out while the input is higher).
-4. **Reject any part whose SOA figure shows only pulsed lines** (100 µs / 1 ms and shorter) or that
-   has no SOA figure at all. `NVMFD5877NL-D.PDF` **Figure 11 is exactly the right format** — dc,
-   10 ms, 1 ms, 100 µs, 10 µs, with R<sub>DS(on)</sub>, thermal and package limits marked. Use it
-   as the reference for what a usable figure looks like.
-
-*If a candidate gives 7 A at 12 V for only ~1 ms, it is not automatically out — C<sub>TMR</sub> is
-programmable and the ride-through can be shortened — but it must still outlast normal turn-on
-inrush, so shorter is not free.*
-
-#### Three specs that will mislead you
-
-| Spec | Why it misleads |
-|---|---|
-| **I<sub>D</sub> continuous at T<sub>C</sub> = 25 °C** | A package-limited fiction. The NVMFD5877NL claims 17 A that way and **5–6 A** on the θ<sub>JA</sub>-referenced line — below our 7.0 A load. Always read the **θ<sub>JA</sub>** row, or P<sub>D</sub> at T<sub>A</sub> = 100 °C. |
-| **R<sub>DS(on)</sub> "typ" at 25 °C** | It rises **~1.4–1.6× by 125 °C**. That is why the spec says **5 mΩ cold** when the real ceiling is 7.5 mΩ hot. Check the normalised-R vs temperature curve. |
-| **"Logic level"** | **Not required, and filtering on it costs you options.** The LTC4380 drives GATE **10–14 V** above OUT (ΔV<sub>GATE</sub> 10 V min / 11.5 typ / 14 max), so read the **V<sub>GS</sub> = 10 V** column. The part only needs to *survive* 14 V, hence V<sub>GS</sub> ≥ 20 V. |
-
-#### Why two, and why the resistance target is what it is
-
-They go **back-to-back** (sources common, drains outward) so the body diodes oppose and the pair
-blocks reverse polarity — that is how one element does reverse protection *and* overcurrent, and
-why Q1 is deleted. **Two R<sub>DS(on)</sub> in series**, so the pair's budget is 15 mΩ hot against
-§9.4's 65 °C target, i.e. **7.5 mΩ each hot ≈ 5 mΩ at 25 °C.** Thermal dissipation per FET is
-trivial (~0.12 W at 2.5 mΩ) — **the package size is driven by the die area needed for the
-resistance, not by cooling.**
-
-> **A shortcut worth knowing.** The SOA requirement exists only because the LTC4380 clamps
-> overvoltage by holding the FET linear. **The Experia's 12 V rail is DC-DC fed** — spec §6 notes
-> there is no crank dip on an EV, and a DC-DC fed rail has no alternator load dump either. **If
-> that is confirmed on the vehicle, the clamp never operates, and the FET can be chosen on
-> R<sub>DS(on)</sub> alone.** Confirming it would make this search much easier.
-
-### 2. An eFuse/controller decision is contingent on the above
-
-`LTC4380.pdf` and `lm5069.pdf` are held and assessed; **LTC4380 is the chosen route**, indicated
-orderable **`LTC4380HMS-2#TRPBF`** (auto-retry, MSOP-10, H-grade −40…125 °C). **No footprint
-download is needed** — stock `Package_SO:MSOP-10_3x3mm_P0.5mm` is verified correct. Nothing further
-is required here *except* the FET above.
+> **What is still needed is a decision, not a document:** whether the Experia's DC-DC fed 12 V rail
+> can produce a load dump at all. If it cannot, the LTC4380's overvoltage clamp never operates and
+> the SOA question is moot. **Confirm on the vehicle** (spec §6, and the Task 11 bring-up list).
 
 ---
+
 
 ## Previously blocking — now closed
 
@@ -106,11 +49,23 @@ WE-CMBNC 7448031002** (`wurth_we-cmbnc_7448031002.pdf`) — nanocrystalline, 2 m
 > both do — or the total; and the **derating curve** at the 65 °C internal ambient, since the 10 A
 > is specified at 20 °C.
 
-## Blocking Task 9 — a document, not a part
+## Blocking Task 9 — nothing; the antenna document is obtained
 
-| What | Why it is needed |
+**CLOSED 2026-09-19.** The owner supplied the URL for *ESP32 Hardware Design Guidelines → PCB
+Layout Design*. Both halves of the keep-out question are now answered:
+
+| | |
 |---|---|
-| **Espressif ESP32 Hardware Design Guidelines** | **PARTLY RESOLVED 2026-09-19 — still wanted, no longer blocking placement.** The datasheet's *pin diagram* gives no dimensions, but **Figure 12 (Recommended PCB Land Pattern) does**: the **Antenna Area is 18.0 mm wide × 6.19 mm deep** from the module end face, module outline 25.5 × 18.0 × 3.1 mm. That is enough to lay out the keep-out and place the module. What the datasheet still will not give is the clearance required **around** the antenna — extra margin, ground-plane setback, whether board-edge overhang is mandatory or merely preferred — which Figure 3 Note A defers to *Hardware Design Guidelines > Positioning a Module on a Base Board*. **Overhanging the board edge is the conservative reading and costs nothing here**, so Task 8 proceeds; obtain the document before the Task 9 fabrication gate. *(Not needed for the EN reset RC: the module datasheet confirmed R = 10 kΩ / C = 1 µF.)* |
+| **Antenna area** (module datasheet, Fig. 12) | **18.0 mm wide × 6.19 mm deep** from the module end face |
+| **Preferred placement** | *"place the module's on-board PCB antenna outside the base board, and the feed point … close to the edge"* — board-edge overhang, which spec §9.1 already assumes |
+| **Explicitly forbidden** | *"the module should not be placed in the center of the board with clearance created by hollowing out on all four sides"* |
+| **Housing clearance** | **"A clearance of at least 15 mm is recommended in all directions"** |
+
+> **The 15 mm figure is an ENCLOSURE constraint and is the significant one** — a keep-clear volume
+> ~48 mm across that must contain no PCB, metal, cable, gland or heat-spreader plate. It is
+> recorded in `../docs/enclosure.md` §5a, where it now has to be reconciled with the gland field,
+> the plate wall and the no-penetrations-in-the-antenna-wall rule **simultaneously**. *"Opposite
+> wall"* used to settle the plate/antenna relationship; it now carries a minimum distance.
 
 ## Medium / low — for the BOM, not blocking
 

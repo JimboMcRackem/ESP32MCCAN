@@ -1477,7 +1477,89 @@ chosen on thermals: **the LTC4380 caps the +24 V rail at ~26.5 V**, taking the R
 2. **Row 1a.1 should be re-opened** against the NX5020UNBKS rather than left closed against a
    PMV60ENEA that is no longer fitted.
 
+### Pass FET SELECTED 2026-09-19: **Infineon IPT008N06NM5LF** — OptiMOS 5 **LinearFET**, 60 V
+
+`infineon_ipt008n06nm5lf_datasheet_en.pdf`, Rev. 2.1, 2022-09-19. **This is a part built for
+exactly this job** — its feature list opens with *"Ideal for hot-swap and e-fuse applications"* and
+*"Wide safe operating area SOA"*, and it is branded **LinearFET**, Infineon's line for devices that
+must operate in the linear region. The gating check that rejected the NVMFD5877NL is the thing this
+part is designed around.
+
+| # | Requirement | IPT008N06NM5LF | |
+|---|---|---|---|
+| V<sub>DSS</sub> | 60 V | **60 V** | **PASS** |
+| **R<sub>DS(on)</sub> @ V<sub>GS</sub> = 10 V** | **≤ 5 mΩ** | **0.67 mΩ typ / 0.8 mΩ max** (I<sub>D</sub> = 150 A) | **PASS — by 6×** |
+| V<sub>GS</sub> rating | ≥ 20 V | **±20 V** | **PASS** (6 V over the LTC4380's 14 V max drive) |
+| Threshold | standard fine | *"N-channel, normal level"* | **PASS** — and confirms the logic-level constraint was wrong to impose |
+| I<sub>D</sub>, θ<sub>JA</sub>-referenced | ≥ 10 A hot | **48 A** at T<sub>A</sub> = 25 °C, R<sub>thJA</sub> = 40 °C/W | **PASS** (the NVMFD5877NL gave 5–6 A here and failed) |
+| **FBSOA with dc and 10 ms lines** | required | **Diagram 3** — 1 µs, 10 µs, 100 µs, 1 ms, **10 ms** and **DC** | **PASS** |
+| **SOA at V<sub>DS</sub> 12 V, 10 ms** | **≥ 7 A** | **~50 A** read off Diagram 3 | **PASS — ~7× margin** |
+| R<sub>thJC</sub> | — | **0.45 °C/W** | excellent |
+| **AEC-Q101** | preferred | **"Fully qualified according to JEDEC for Industrial Applications"** | **MISS — see below** |
+| Package | 5×6 preferred | **PG-HSOF-8 (TOLL), ~9.9 × 10.5 mm** | larger, see below |
+
+#### What it does to §9.4 — route C now *reduces* the board's dissipation
+
+Two in series at the **0.8 mΩ max**, derated ~1.5× to 125 °C (≈ 1.2 mΩ each):
+
+| | R | Loss at 7.0 A |
+|---|---|---|
+| Pass pair, both FETs, hot | 2.4 mΩ | **0.12 W** |
+| R<sub>SNS</sub> (5.6 mΩ, for a 9 A limit) | 5.6 mΩ | **0.27 W** |
+| **Route C total** | **8.0 mΩ** | **0.39 W** |
+| *What it replaces — Q1, SQJ461EP* | *16 mΩ* | *0.78 W* |
+
+| | Night total | Rise at 150 cm² | Internal at 40 °C | |
+|---|---|---|---|---|
+| Board today, **no** overcurrent protection | 2.70 W | 23 K | 63 °C | |
+| TPS1686 bolted in front of Q1 | 3.47 W | 30 K | 70 °C | misses |
+| **Route C as now specified** | **2.31 W** | **19.7 K** | **~60 °C** | **meets, and beats today by 3 K** |
+
+**The board ends up cooler than it is now while gaining protection it does not currently have.**
+
+> **The sense resistor is now the dominant term** — 0.27 W of the 0.39 W, **69%**. The FETs have
+> become negligible. Task 8 must give R<sub>SNS</sub> its own copper area and a Kelvin connection;
+> it is no longer a detail that can ride along with the pass devices, and it is **not** on the
+> heat-spreader plate.
+
+#### Two things to weigh, neither of them a blocker
+
+**1. It is not AEC-Q101.** The datasheet says *"Fully qualified according to JEDEC for Industrial
+Applications"* — no automotive qualification claimed. Every other active part chosen for this feed
+path is automotive-grade (Q1 was, U3 is `-Q1`, U9 is a PROFET). **This is the owner's call**: it is
+a personal vehicle rather than a production build, the part is otherwise ideal, and the LinearFET
+line exists precisely for e-fuse duty. **Worth one check before ordering** — Infineon does publish
+automotive OptiMOS LinearFETs, and if one exists near 60 V / ≤ 5 mΩ it removes the question at
+probably no cost in performance. **Recorded, not decided.**
+
+**2. The package is large.** PG-HSOF-8 (TOLL) is **~9.9 × 10.5 mm ≈ 104 mm² each**, so the pair is
+**~210 mm²** against the ~30 mm² PowerPAK SO-8 that Q1 vacates — a net **~180 mm²** of board. On a
+100 × 80 mm board that is ~2.3%, and after L2 these become the largest parts on the board. **Flag
+for Task 8 placement, not an objection** — the thermal group has just got much smaller in watts, so
+there is room in the budget even if not in area.
+
+#### One refinement that makes the SOA margin better still
+
+The two FETs sit **back-to-back with common source and both gates on the LTC4380's single GATE
+pin**, so they see the same V<sub>GS</sub> and carry the same current. Two matched devices under
+those conditions should **share the clamp voltage roughly equally — about 6 V each rather than
+11.9 V across one**, which would halve the per-device linear-mode stress.
+
+**The verdict above does not rely on that**, and should not: the ~50 A at the full 12 V is read as
+if a single device took all of it, and it still passes with ~7× margin. Treat the sharing as
+headroom, not as part of the calculation.
+
+> **One caveat on how Diagram 3 is specified.** It is drawn at **T<sub>C</sub> = 25 °C**. At a
+> realistic ~65 °C case the curves derate by roughly (150−65)/(150−25) = **0.68**, so the 10 ms
+> line at 12 V falls to **~34 A** — still ~5× what is needed. **The DC line, however, lands near
+> 5.8 A derated, below the 7 A clamp condition** — so *continuous* clamping is not supported and
+> must not be relied on. That is exactly what the LTC4380's TMR stress multiplier exists to
+> prevent, and §4.1's accepted behaviour is already "ride through briefly, then shut off and
+> auto-retry."
+
 ### Still needed
+
+*(Superseded — the FET is selected. The original requirement follows for traceability.)*
 
 **Two 60 V N-channel MOSFETs**, to this spec — the requirement corrected per the gate-drive
 finding above:
