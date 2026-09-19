@@ -21,13 +21,13 @@
 # part.  If L1 is ever raised to 2.2 uH (9.00 mOhm) the pair still passes at 21.60 mOhm,
 # but ONLY with the Wurth -- with either ferrite alternative it breaks the ceiling.
 COMPS = [
-    ("J1", "Connector:Conn_01x03_Pin",  26.67, 76.20,   0, "PWR (SS1.5 3-way)", ""),
+    ("J1", "Connector:Conn_01x03_Pin",  26.67, 76.20,   0, "PWR pigtail -> SS1.5 3w", ""),
     ("F1", "Device:Fuse",               40.64, 76.20,  90, "10A", ""),
     ("Q1", "Transistor_FET:Q_PMOS_GSD", 54.61, 78.74,  90, "SQJ461EP", ""),
     ("D1", "Device:D_Zener",            62.23, 85.09, 270, "12V", ""),
     ("R1", "Device:R",                  54.61, 92.71,   0, "1M", ""),
     ("D2", "Device:D_TVS",              66.04, 80.01, 270, "SMBJ24A", ""),
-    ("L2", "Device:L_Coupled",          81.28, 78.74,   0, "7448031002", ""),
+    ("L2", "mccan_parts:CM_CHOKE_4T",   81.28, 78.74,   0, "7448031002", ""),
     ("R2", "Device:R",                  81.28, 69.85,  90, "0R (link)", ""),
     ("R3", "Device:R",                  81.28, 87.63,  90, "0R (link)", ""),
     ("C1", "Device:C",                  93.98, 80.01,   0, "100nF", ""),

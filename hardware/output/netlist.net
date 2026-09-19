@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-19T00:32:18")
+		(date "2026-09-19T22:00:41")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -734,11 +734,11 @@
 		)
 		(comp
 			(ref "J1")
-			(value "PWR (SS1.5 3-way)")
+			(value "PWR pigtail -> SS1.5 3w")
+			(footprint "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief")
 				(field
 					(name "Datasheet")
 				)
@@ -858,9 +858,9 @@
 				)
 			)
 			(libsource
-				(lib "Device")
-				(part "L_Coupled")
-				(description "Coupled inductor")
+				(lib "mccan_parts")
+				(part "CM_CHOKE_4T")
+				(description "Four-terminal common-mode choke. Winding A = pins 1-4, winding B = pins 2-3, per the Wurth 7448031002 and TDK ACT45B datasheets. NOT the same numbering as KiCad's Device:L_Coupled.")
 			)
 			(property
 				(name "Sheetname")
@@ -869,14 +869,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/power_input.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "inductor choke coil reactor magnetic coupled")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "Choke_* *Coil* Inductor_* L_*")
 			)
 			(sheetpath
 				(names "/power_input/")
@@ -891,13 +883,13 @@
 							(num "1")
 						)
 						(pin
-							(num "3")
-						)
-						(pin
 							(num "2")
 						)
 						(pin
 							(num "4")
+						)
+						(pin
+							(num "3")
 						)
 					)
 				)
@@ -1674,11 +1666,11 @@
 		(comp
 			(ref "L6")
 			(value "ACT45B-510-2P-TL003")
+			(footprint "mccan:TDK_ACT45B")
 			(description "Coupled inductor, common-mode choke")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "mccan:TDK_ACT45B")
 				(field
 					(name "Datasheet")
 				)
@@ -1686,9 +1678,9 @@
 					(name "Description") "Coupled inductor, common-mode choke")
 			)
 			(libsource
-				(lib "Device")
-				(part "L_Coupled")
-				(description "Coupled inductor")
+				(lib "mccan_parts")
+				(part "CM_CHOKE_4T")
+				(description "Four-terminal common-mode choke. Winding A = pins 1-4, winding B = pins 2-3, per the Wurth 7448031002 and TDK ACT45B datasheets. NOT the same numbering as KiCad's Device:L_Coupled.")
 			)
 			(property
 				(name "Sheetname")
@@ -1697,14 +1689,6 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/mcu_can.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "inductor choke coil reactor magnetic coupled")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "Choke_* *Coil* Inductor_* L_*")
 			)
 			(sheetpath
 				(names "/mcu_can/")
@@ -1719,13 +1703,13 @@
 							(num "1")
 						)
 						(pin
-							(num "3")
-						)
-						(pin
 							(num "2")
 						)
 						(pin
 							(num "4")
+						)
+						(pin
+							(num "3")
 						)
 					)
 				)
@@ -8333,17 +8317,17 @@
 		)
 		(comp
 			(ref "J3")
-			(value "FL  SS1.0 4w  key A / black")
-			(description "Generic connector, single row, 01x04")
+			(value "FL pigtail -> SS1.0 key A / black")
+			(footprint "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
+			(description "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Generic connector, single row, 01x04")
+					(name "Description") "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			)
 			(libsource
 				(lib "Connector")
@@ -8393,17 +8377,17 @@
 		)
 		(comp
 			(ref "J4")
-			(value "FR  SS1.0 4w  key B / grey")
-			(description "Generic connector, single row, 01x04")
+			(value "FR pigtail -> SS1.0 key B / grey")
+			(footprint "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
+			(description "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Generic connector, single row, 01x04")
+					(name "Description") "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			)
 			(libsource
 				(lib "Connector")
@@ -8453,17 +8437,17 @@
 		)
 		(comp
 			(ref "J5")
-			(value "RL  SS1.0 4w  key C / brown")
-			(description "Generic connector, single row, 01x04")
+			(value "RL pigtail -> SS1.0 key C / brown")
+			(footprint "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
+			(description "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Generic connector, single row, 01x04")
+					(name "Description") "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			)
 			(libsource
 				(lib "Connector")
@@ -8513,17 +8497,17 @@
 		)
 		(comp
 			(ref "J6")
-			(value "RR  SS1.0 4w  key D / natural")
-			(description "Generic connector, single row, 01x04")
+			(value "RR pigtail -> SS1.0 key D / natural")
+			(footprint "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
+			(description "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Generic connector, single row, 01x04")
+					(name "Description") "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
 			)
 			(libsource
 				(lib "Connector")
@@ -8573,17 +8557,17 @@
 		)
 		(comp
 			(ref "J7")
-			(value "DENALI  SS1.5 3w")
-			(description "Generic connector, single row, 01x03")
+			(value "DENALI pigtail -> SS1.5 3w")
+			(footprint "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief")
+			(description "Soldered wire tail: 2 x 18 AWG switched, 1 x 16 AWG shared return (6.6 A)")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Generic connector, single row, 01x03")
+					(name "Description") "Soldered wire tail: 2 x 18 AWG switched, 1 x 16 AWG shared return (6.6 A)")
 			)
 			(libsource
 				(lib "Connector")
@@ -8630,17 +8614,17 @@
 		)
 		(comp
 			(ref "J8")
-			(value "CAN  SS1.0 2w")
-			(description "Generic connector, single row, 01x02")
+			(value "CAN pigtail -> SS1.0 2w")
+			(footprint "Connector_Wire:SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief")
+			(description "Soldered wire tail, 22 AWG twisted pair -- keep the twist to the pads")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Connector_Wire:SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Generic connector, single row, 01x02")
+					(name "Description") "Soldered wire tail, 22 AWG twisted pair -- keep the twist to the pads")
 			)
 			(libsource
 				(lib "Connector")
@@ -13142,53 +13126,6 @@
 		)
 		(libpart
 			(lib "Device")
-			(part "L_Coupled")
-			(description "Coupled inductor")
-			(footprints
-				(fp "Choke_*")
-				(fp "*Coil*")
-				(fp "Inductor_*")
-				(fp "L_*")
-			)
-			(fields
-				(field
-					(name "Reference") "L")
-				(field
-					(name "Value") "L_Coupled")
-				(field
-					(name "Footprint")
-				)
-				(field
-					(name "Datasheet")
-				)
-				(field
-					(name "Description") "Coupled inductor")
-			)
-			(pins
-				(pin
-					(num "1")
-					(name "1")
-					(type "passive")
-				)
-				(pin
-					(num "2")
-					(name "2")
-					(type "passive")
-				)
-				(pin
-					(num "3")
-					(name "3")
-					(type "passive")
-				)
-				(pin
-					(num "4")
-					(name "4")
-					(type "passive")
-				)
-			)
-		)
-		(libpart
-			(lib "Device")
 			(part "Polyfuse")
 			(description "Resettable fuse, polymeric positive temperature coefficient")
 			(footprints
@@ -14134,6 +14071,47 @@
 		)
 		(libpart
 			(lib "mccan_parts")
+			(part "CM_CHOKE_4T")
+			(description "Four-terminal common-mode choke. Winding A = pins 1-4, winding B = pins 2-3, per the Wurth 7448031002 and TDK ACT45B datasheets. NOT the same numbering as KiCad's Device:L_Coupled.")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "CM_CHOKE_4T")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Four-terminal common-mode choke. Winding A = pins 1-4, winding B = pins 2-3, per the Wurth 7448031002 and TDK ACT45B datasheets. NOT the same numbering as KiCad's Device:L_Coupled.")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "~")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "~")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "~")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "~")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "mccan_parts")
 			(part "DML3017LDC")
 			(description "Single-channel smart load switch, 0.5-20 V in, active-high EN with internal pulldown, soft-start, short-circuit and thermal protection, power-good, V-DFN3030-12")
 			(docs "https://www.diodes.com/assets/Datasheets/DML3017LDC.pdf")
@@ -14861,8 +14839,8 @@
 			)
 			(node
 				(ref "L6")
-				(pin "2")
-				(pinfunction "2_2")
+				(pin "4")
+				(pinfunction "~_4")
 				(pintype "passive")
 			)
 			(node
@@ -14889,8 +14867,8 @@
 			)
 			(node
 				(ref "L6")
-				(pin "4")
-				(pinfunction "4_4")
+				(pin "3")
+				(pinfunction "~_3")
 				(pintype "passive")
 			)
 			(node
@@ -16827,8 +16805,8 @@
 			)
 			(node
 				(ref "L2")
-				(pin "3")
-				(pinfunction "3_3")
+				(pin "2")
+				(pinfunction "~_2")
 				(pintype "passive")
 			)
 			(node
@@ -16881,8 +16859,8 @@
 			)
 			(node
 				(ref "L2")
-				(pin "2")
-				(pinfunction "2_2")
+				(pin "4")
+				(pinfunction "~_4")
 				(pintype "passive")
 			)
 			(node
@@ -16910,7 +16888,7 @@
 			(node
 				(ref "L2")
 				(pin "1")
-				(pinfunction "1_1")
+				(pinfunction "~_1")
 				(pintype "passive")
 			)
 			(node
@@ -17392,8 +17370,8 @@
 			)
 			(node
 				(ref "L2")
-				(pin "4")
-				(pinfunction "4_4")
+				(pin "3")
+				(pinfunction "~_3")
 				(pintype "passive")
 			)
 			(node
@@ -18356,7 +18334,7 @@
 			(node
 				(ref "L6")
 				(pin "1")
-				(pinfunction "1_1")
+				(pinfunction "~_1")
 				(pintype "passive")
 			)
 			(node
@@ -18372,8 +18350,8 @@
 			(class "Default")
 			(node
 				(ref "L6")
-				(pin "3")
-				(pinfunction "3_3")
+				(pin "2")
+				(pinfunction "~_2")
 				(pintype "passive")
 			)
 			(node

@@ -212,6 +212,7 @@ io.open(LIB, "w", encoding="utf-8", newline="\n").write(s)
 print("written")
 
 STOCKFET = r"C:\Program Files\KiCad\10.0\share\kicad\symbols\Transistor_FET.kicad_sym"
+STOCKDEV = r"C:\Program Files\KiCad\10.0\share\kicad\symbols\Device.kicad_sym"
 
 
 def extract_graphics(path, symname):
@@ -365,6 +366,42 @@ blk = emit("NX5020UNBKS", "NX5020UNBKS",
            {1: _u1, 2: _u2}, graphics_from=_g)
 LIBTXT, how = install(LIBTXT, "NX5020UNBKS", blk)
 print("NX5020UNBKS", how)
+
+# ---------------------------------------------------------------- CM_CHOKE_4T
+# A four-terminal common-mode choke, and it exists for exactly one reason:
+#
+#   KiCad Device:L_Coupled   winding A = pins 1-2,  winding B = pins 3-4
+#   Every real CM choke      winding A = pins 1-4,  winding B = pins 2-3
+#
+# VERIFIED 2026-09-19 from the VECTOR GEOMETRY of both datasheets held in this repo, not
+# from a text dump -- a flat text extraction gives you four bare numerals and no way to
+# tell which coil each belongs to:
+#
+#   Wurth WE-CMBNC 7448031002 (L2), "Schematic" figure: the upper coil's two lead lines
+#     end under the labels "1" (left, x=347.0) and "4" (right, x=488.6); the lower coil's
+#     under "2" and "3" at the same x.  Four arcs per coil, core lines between.
+#   TDK ACT45B-510-2P-TL003 (L6), "CIRCUIT DIAGRAM": identical -- "1"/"4" share the upper
+#     coil's y, "2"/"3" the lower.
+#
+# Built from L_Coupled's own graphics, so the symbol LOOKS identical and no wire moves.
+# Only the pin numbers change, which is the entire fix.  Left-upper 1, right-upper 4,
+# left-lower 2, right-lower 3 -- so a signal entering on the left at 1 leaves on the right
+# at 4, through one winding, which is what a common-mode choke actually does.
+#
+# DO NOT "simplify" this back to Device:L_Coupled.  ERC passes either way, DRC passes
+# either way, and the footprint pad count matches either way.  Nothing catches it.
+_gcm = extract_graphics(STOCKDEV, "L_Coupled")
+_cm = [("1", "~", "passive", -5.08,  2.54, 0),
+       ("4", "~", "passive",  5.08,  2.54, 180),
+       ("2", "~", "passive", -5.08, -2.54, 0),
+       ("3", "~", "passive",  5.08, -2.54, 180)]
+blk = emit("CM_CHOKE_4T", "CM_CHOKE_4T",
+           "Four-terminal common-mode choke. Winding A = pins 1-4, winding B = pins 2-3, "
+           "per the Wurth 7448031002 and TDK ACT45B datasheets. NOT the same numbering as "
+           "KiCad's Device:L_Coupled.",
+           "", {1: _cm}, graphics_from=_gcm)
+LIBTXT, how = install(LIBTXT, "CM_CHOKE_4T", blk)
+print("CM_CHOKE_4T", how, "(winding A = 1-4, winding B = 2-3 - VERIFIED)")
 
 # ---------------------------------------------------------------- BTS7008-2EPA
 # VERIFIED 2026-09-15 against Infineon BTS7008-2EPA Data Sheet Rev. 1.21, 2024-07-29

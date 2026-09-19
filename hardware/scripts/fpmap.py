@@ -125,6 +125,38 @@ EXPLICIT = {
     "F5":  "Fuse:Fuse_1206_3216Metric",
     # --- connectors and switches
     "J2":  "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical",  # internal prog
+
+    # ---- Wire entries.  RESOLVED 2026-09-19: TE Superseal is a WIRE-TO-WIRE series and
+    # has no panel-mount board-side housing, so the seven "panel connectors" these used to
+    # be could never have been built.  The board side is now soldered wire tails; the
+    # Superseal joints live out on the harness and the cables enter through cable glands.
+    # That is also why these sat in BLOCKED for the whole of Task 8 step 0 -- the footprint
+    # was unassignable because the part class was wrong, not because a datasheet was missing.
+    #
+    # _Relief variants: the footprint carries a second, unplated hole per conductor so the
+    # wire can be threaded back through it.  That is the board-level strain relief, and it
+    # is what keeps a pulled cable from lifting a pad.  It is not optional here -- nothing
+    # else mechanically restrains these wires.
+    #
+    # Hole sizes are chosen by the LARGEST conductor in each cable, so mixed-gauge tails
+    # (J1 and J7 both mix 16 and 18/22 AWG) still seat.
+    "J1":  "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief",     # PWR, 16 AWG
+    "J3":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # FL, 22 AWG
+    "J4":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # FR
+    "J5":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # RL
+    "J6":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # RR
+    "J7":  "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief",     # Denali, 16 AWG gnd
+    "J8":  "Connector_Wire:SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief", # CAN twisted pair
+
+    # L6: drawn 2026-09-19 from the RECOMMENDED LAND PATTERN figure of
+    # cmf_automotive_signal_act45b_en.pdf, read as vector geometry rather than as a text
+    # dump.  The four bare numerals in the text (1.6 / 3.4 / 3.2 / 5.9) carry no axis, so
+    # they were tied back to the drawn pad rectangles: all four pads 21.77 x 14.51 pdf
+    # units, and the scale comes out at 16.125-16.129 u/mm on all four dimensions
+    # independently, which is what makes the reading safe rather than plausible.
+    #   pads 1.35 x 0.90 mm, centres (+-2.275, +-1.25); column gap 3.2 / overall 5.9;
+    #   row gap 1.6 / overall 3.4.  Pin 1 top-left, 4 top-right, 2 bottom-left, 3 bottom-right.
+    "L6":  "mccan:TDK_ACT45B",
     "SW1": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # BOOT
     "SW2": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # EN/RESET
 }
@@ -140,14 +172,6 @@ for _i in range(7, 21):
 # project holds.  `fp()` returns "" for them so the gap is visible in the netlist rather
 # than papered over with a plausible-looking wrong package.  See datasheets/NEEDED.md.
 BLOCKED = {
-    # No TE Superseal datasheets are held.  Seven panel connectors, four distinct shells.
-    "J1": "TE Superseal 1.5, 3-way, PCB mount -- no datasheet held",
-    "J3": "TE Superseal 1.0, 4-way, PCB mount -- no datasheet held",
-    "J4": "TE Superseal 1.0, 4-way, PCB mount -- no datasheet held",
-    "J5": "TE Superseal 1.0, 4-way, PCB mount -- no datasheet held",
-    "J6": "TE Superseal 1.0, 4-way, PCB mount -- no datasheet held",
-    "J7": "TE Superseal 1.5, 3-way, PCB mount -- no datasheet held",
-    "J8": "TE Superseal 1.0, 2-way, PCB mount -- no datasheet held",
     # No part selected at all, and it is a panel penetration so the body matters.
     "F1": "panel-mount ATO/ATC blade fuse holder, 10 A -- no part selected",
     # Datasheet IS held, but the land pattern must be drawn:
@@ -157,7 +181,6 @@ BLOCKED = {
     #   U4  -- DML3017LDC, V-DFN3030-12.  The pin-1 orientation is AMBIGUOUS between the
     #          two figures in DS46371 and must be resolved from the package outline, not
     #          inferred.  Drawing it with pin 1 wrong mirrors the whole part.
-    "L6": "TDK ACT45B-510-2P-TL003 -- draw from the datasheet land pattern",
     "U4": "DML3017LDC V-DFN3030-12 -- pin-1 orientation ambiguous in DS46371",
 }
 

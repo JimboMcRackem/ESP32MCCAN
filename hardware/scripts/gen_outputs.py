@@ -423,27 +423,30 @@ KEYCODE = {"FL": "key A / black", "FR": "key B / grey",
            "RL": "key C / brown", "RR": "key D / natural"}
 for i, corner in enumerate(("FL", "FR", "RL", "RR")):
     x, y = 60.96, round(179.07 + i * 33.02, 4)
-    Jn = place("J%d" % (3 + i), "Connector:Conn_01x04_Pin", "%s  SS1.0 4w  %s" % (corner, KEYCODE[corner]),
+    _v = "%s pigtail -> SS1.0 %s" % (corner, KEYCODE[corner])
+    Jn = place("J%d" % (3 + i), "Connector:Conn_01x04_Pin", _v,
                x, y, 0, CONN[4],
                [("Reference", "J%d" % (3 + i), x - 5.08, round(y - 11.43, 4), 0),
-                ("Value", "%s  SS1.0 4w  %s" % (corner, KEYCODE[corner]), x - 5.08, round(y - 8.89, 4), 0)],
-               desc="Generic connector, single row, 01x04")
+                ("Value", _v, x - 5.08, round(y - 8.89, 4), 0)],
+               desc="Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
     for k, net in enumerate(("+24V_%s" % corner, "RET_%s_R" % corner,
                              "RET_%s_G" % corner, "RET_%s_B" % corner)):
         p = Jn[str(k + 1)]
         w(p, (81.28, p[1])); lab(net, 81.28, p[1])
 # Denali: two switched positives and a shared ground
-J7 = place("J7", "Connector:Conn_01x03_Pin", "DENALI  SS1.5 3w", 60.96, 320.04, 0, CONN[3],
-           [("Reference", "J7", 55.88, 308.61, 0), ("Value", "DENALI  SS1.5 3w", 55.88, 311.15, 0)],
-           desc="Generic connector, single row, 01x03")
+J7 = place("J7", "Connector:Conn_01x03_Pin", "DENALI pigtail -> SS1.5 3w", 60.96, 320.04, 0, CONN[3],
+           [("Reference", "J7", 55.88, 308.61, 0),
+            ("Value", "DENALI pigtail -> SS1.5 3w", 55.88, 311.15, 0)],
+           desc="Soldered wire tail: 2 x 18 AWG switched, 1 x 16 AWG shared return (6.6 A)")
 for k, net in enumerate(("DEN_A_OUT", "DEN_B_OUT")):
     p = J7[str(k + 1)]
     w(p, (81.28, p[1])); lab(net, 81.28, p[1])
 gnd(*J7["3"])
 # CAN
-J8 = place("J8", "Connector:Conn_01x02_Pin", "CAN  SS1.0 2w", 60.96, 347.98, 0, CONN[2],
-           [("Reference", "J8", 55.88, 337.82, 0), ("Value", "CAN  SS1.0 2w", 55.88, 340.36, 0)],
-           desc="Generic connector, single row, 01x02")
+J8 = place("J8", "Connector:Conn_01x02_Pin", "CAN pigtail -> SS1.0 2w", 60.96, 347.98, 0, CONN[2],
+           [("Reference", "J8", 55.88, 337.82, 0),
+            ("Value", "CAN pigtail -> SS1.0 2w", 55.88, 340.36, 0)],
+           desc="Soldered wire tail, 22 AWG twisted pair -- keep the twist to the pads")
 for k, net in enumerate(("CANH", "CANL")):
     p = J8[str(k + 1)]
     w(p, (81.28, p[1])); hlab(net, "bidirectional", 81.28, p[1], 0)
@@ -570,11 +573,19 @@ No RPD (47 kOhm output pulldown), ROL or T1.  Those exist only for OFF-state ope
 diagnosis, which spec 5.3 does not ask for; ON-state sense through IS covers what this design
 needs.  RPD would also draw ~290 uA per channel whenever the output is on.""")
 
-note("""|CORNER CONNECTORS CAN BE MIS-MATED -- THIS IS A SAFETY ITEM (spec 9.2)
-All four are identical Superseal 1.0 4-way parts.  Swapping front for rear reverses the
-indicators, and the firmware cannot detect it.  Each connector carries a distinct keying or
-colour code in its Value field: FL key A / black, FR key B / grey, RL key C / brown,
-RR key D / natural.  Carry these into the harness build and the install instructions.""")
+note("""|CORNER MIS-MATING -- STILL A SAFETY ITEM, BUT ONE MATING POINT FEWER (spec 9.2)
+J3-J6 are NOT connectors.  They are soldered 4-wire tails that leave the box through cable
+glands; the Superseal 1.0 4-way joints sit out on the harness.  TE Superseal is a wire-to-wire
+series with no panel-mount board-side housing, so the panel connectors this sheet used to
+show could not have been built.""",
+"""What that buys: the corner-to-board mapping is now fixed at ASSEMBLY and cannot be swapped
+at the box.  Of the two places a front/rear swap could happen, the easy one -- four identical
+shells side by side on a panel -- is gone.  Swapping at the far end is still possible, so the
+keying stays: FL key A / black, FR key B / grey, RL key C / brown, RR key D / natural, applied
+to the harness-side joint and the sleeve label.  Spec 9.2's install self-test still applies.""",
+"""Wire tails need the _Relief footprint variant and they need it fitted properly: the second,
+unplated hole per conductor is what takes a pull instead of the pad.  Nothing else mechanically
+restrains these wires.""")
 
 note("""|PTCs (F2-F5), one per string
 Isolates a shorted string so one crushed cable cannot extinguish all four corners (spec 5.2).

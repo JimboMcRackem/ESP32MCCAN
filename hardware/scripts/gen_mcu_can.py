@@ -90,7 +90,7 @@ def from_library(path, name, libid):
 LIBS = []
 # Device:D_TVS dropped 2026-09-19 -- the placeholder D6/D7 pair were its only users on
 # this sheet, and they are now one mccan_parts:PESD2CANFD24U.
-for lid in ("Device:C", "Device:D_Schottky", "Device:L_Coupled",
+for lid in ("Device:C", "Device:D_Schottky",
             "Device:R", "power:GND"):
     LIBS.append(from_schematic(lid))
 LIBS.append(from_library(os.path.join(STOCK, "Device.kicad_sym"), "LED", "Device:LED"))
@@ -103,8 +103,9 @@ LIBS.append(from_library(os.path.join(STOCK, "Transistor_BJT.kicad_sym"),
 LIBS.append(from_library(os.path.join(STOCK, "Switch.kicad_sym"), "SW_Push", "Switch:SW_Push"))
 LIBS.append(from_library(os.path.join(STOCK, "Connector_Generic.kicad_sym"),
                          "Conn_01x06", "Connector_Generic:Conn_01x06"))
-LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
-                         "PESD2CANFD24U", "mccan_parts:PESD2CANFD24U"))
+for _nm in ("PESD2CANFD24U", "CM_CHOKE_4T"):
+    LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
+                             _nm, "mccan_parts:" + _nm))
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
 
 # ---------------------------------------------------------------- geometry
@@ -129,7 +130,9 @@ ESP32 = {"[1,15,38,39]": (0, -35.56), "2": (0, 35.56), "3": (-15.24, 30.48),
          "35": (15.24, 27.94), "36": (15.24, -7.62), "37": (15.24, -10.16)}
 TJA = {"1": (-12.7, 5.08), "2": (0, -10.16), "3": (0, 10.16), "4": (-12.7, 2.54),
        "5": (-12.7, -2.54), "6": (12.7, -2.54), "7": (12.7, 2.54), "8": (-12.7, -5.08)}
-COUPLED = {"1": (-5.08, 2.54), "2": (5.08, 2.54), "3": (-5.08, -2.54), "4": (5.08, -2.54)}
+# Winding A = 1(left)-4(right), winding B = 2(left)-3(right) -- the ACT45B's real
+# numbering.  Device:L_Coupled's 1-2/3-4 transposed CANH and CANL.  See symlib.py.
+COUPLED = {"1": (-5.08, 2.54), "4": (5.08, 2.54), "2": (-5.08, -2.54), "3": (5.08, -2.54)}
 TWOPIN = {"1": (0, 3.81), "2": (0, -3.81)}
 DIODE = {"1": (-3.81, 0), "2": (3.81, 0)}          # 1 = K/A1, 2 = A/A2
 NPN = {"1": (-5.08, 0), "2": (2.54, -5.08), "3": (2.54, 5.08)}
@@ -313,11 +316,13 @@ w(c, (246.38, 69.85)); lab("+3V3_ALW", 246.38, 69.85, 90)
 w(U6["4"], (224.79, RXD_Y)); lab("CAN_RXD", 224.79, RXD_Y, 180)
 
 # --- common-mode choke, then ESD clamps, then out to the connector on `outputs`
-L6 = place("L6", "Device:L_Coupled", "ACT45B-510-2P-TL003", 284.48, 95.25, 0, COUPLED,
+L6 = place("L6", "mccan_parts:CM_CHOKE_4T", "ACT45B-510-2P-TL003", 284.48, 95.25, 0, COUPLED,
            [("Reference", "L6", 284.48, 88.9, 0), ("Value", "ACT45B-510-2P-TL003", 284.48, 101.6, 0)],
            desc="Coupled inductor, common-mode choke")
+# CANH enters winding A at pin 1 and leaves at pin 4; CANL enters winding B at pin 2 and
+# leaves at pin 3.  Geometrically identical to before -- only the pin numbers changed.
 w(U6["7"], L6["1"])
-w(U6["6"], L6["3"])
+w(U6["6"], L6["2"])
 # ONE dual-line protector, not two discretes.  The Nexperia PESD2CANFD24U-T is a single
 # SOT23 holding both bidirectional elements: pin 1 (K1) on CANH, pin 2 (K2) on CANL,
 # pin 3 (CC) the common node to GND.  Replaced the placeholder D6/D7 pair on 2026-09-19;
@@ -333,9 +338,9 @@ D6 = place("D6", "mccan_parts:PESD2CANFD24U", "PESD2CANFD24U-T", 302.26, 95.25, 
            [("Reference", "D6", 306.07, 90.17, 0),
             ("Value", "PESD2CANFD24U-T", 306.07, 92.71, 0)],
            desc="Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
-w(L6["2"], D6["1"]); w(D6["1"], (299.72, CANH_Y)); j(D6["1"])
+w(L6["4"], D6["1"]); w(D6["1"], (299.72, CANH_Y)); j(D6["1"])
 hlab("CANH", "bidirectional", 299.72, CANH_Y, 0)
-w(L6["4"], D6["2"]); w(D6["2"], (299.72, CANL_Y)); j(D6["2"])
+w(L6["3"], D6["2"]); w(D6["2"], (299.72, CANL_Y)); j(D6["2"])
 hlab("CANL", "bidirectional", 299.72, CANL_Y, 0)
 w(D6["3"], (302.26, 111.76)); gnd(302.26, 111.76)
 

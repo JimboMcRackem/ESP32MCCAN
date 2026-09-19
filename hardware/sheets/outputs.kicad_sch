@@ -3481,6 +3481,26 @@
 		)
 		(uuid "06448ca0-599e-56e8-bd13-7764b2e553c2")
 	)
+	(text_box "PTCs (F2-F5), one per string\nIsolates a shorted string so one crushed cable cannot extinguish all four corners (spec 5.2).\nLittelfuse 1206L050/24: Ihold 0.50 A at 23 C, 0.31 A at 65 C, against an 80 mA per-string load.\nThat is a 3.9x margin at the hot internal temperature, which is the case that matters."
+		(exclude_from_sim no)
+		(at 460.0 182.68 0)
+		(size 103.19 7.92)
+		(margins 0.9525 0.9525 0.9525 0.9525)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill
+			(type none)
+		)
+		(effects
+			(font
+				(size 0.8 0.8)
+			)
+			(justify left top)
+		)
+		(uuid "0ad89554-2882-5a3b-ae7f-1df68a6b3b4d")
+	)
 	(text_box "PROFET SENSE CHAIN -- HOW R81 WAS SIZED\nkILIS = 5400 (Table 22, at IL14 = 2.8 A, +/-5.8%; 5450 at 5.5 A).  At the Denali's 3.3 A per\nchannel (spec 2.2) the IS pin therefore sources IL / kILIS = 611 uA.\nR81 = 2.2 kOhm puts that at 1.34 V, comfortably mid-scale for ADC1 at 11 dB attenuation (useful range ~0.15 to 2.45 V on GPIO 34).\nFull scale then corresponds to 6.0 A -- above the 3.3 A working point, below the 7.5 A nominal rating, so a genuine overcurrent still\nreads on scale instead of pinning.  The 0.15 V ADC floor corresponds to 368 mA, so an open channel (IL(OL) is ~21 mA, Table 22) reads\nas a hard zero and is unambiguous.\nR82 (RIS_PROT) and R83 (RADC) are NOT optional.  Under a fault the IS pin saturates: Table 20 gives IIS(SAT) = 4.1 to 15 mA and VSIS_F\n= VS - VIS of only 0.5 V typ / 1 V max, so the sense node sits within a volt of battery -- about 12.5 V.  R83 is what keeps that off\nGPIO 34, with D21 clamping the remainder to +3V3_ALW at under 2 mA.\nC47 (220 pF) with R83 gives the ~1 us time constant the datasheet asks for.  C48 (10 nF) at the ADC end supplies the SAR sample-and-\nhold charge locally, which is what makes a 4.7 kOhm series resistor harmless; tau = 47 us, so firmware must settle >= 250 us after\nselecting a channel with DSEL before reading."
 		(exclude_from_sim no)
 		(at 460.0 112.44 0)
@@ -3501,10 +3521,10 @@
 		)
 		(uuid "210396ac-f9ed-5b39-baf3-db3189a79378")
 	)
-	(text_box "CORNER CONNECTORS CAN BE MIS-MATED -- THIS IS A SAFETY ITEM (spec 9.2)\nAll four are identical Superseal 1.0 4-way parts.  Swapping front for rear reverses the\nindicators, and the firmware cannot detect it.  Each connector carries a distinct keying or\ncolour code in its Value field: FL key A / black, FR key B / grey, RL key C / brown,\nRR key D / natural.  Carry these into the harness build and the install instructions."
+	(text_box "CORNER MIS-MATING -- STILL A SAFETY ITEM, BUT ONE MATING POINT FEWER (spec 9.2)\nJ3-J6 are NOT connectors.  They are soldered 4-wire tails that leave the box through cable\nglands; the Superseal 1.0 4-way joints sit out on the harness.  TE Superseal is a wire-to-wire\nseries with no panel-mount board-side housing, so the panel connectors this sheet used to\nshow could not have been built.\nWhat that buys: the corner-to-board mapping is now fixed at ASSEMBLY and cannot be swapped at the box.  Of the two places a front/rear\nswap could happen, the easy one -- four identical shells side by side on a panel -- is gone.  Swapping at the far end is still\npossible, so the keying stays: FL key A / black, FR key B / grey, RL key C / brown, RR key D / natural, applied to the harness-side\njoint and the sleeve label.  Spec 9.2's install self-test still applies.\nWire tails need the _Relief footprint variant and they need it fitted properly: the second, unplated hole per conductor is what takes a\npull instead of the pad.  Nothing else mechanically restrains these wires."
 		(exclude_from_sim no)
 		(at 460.0 162.9 0)
-		(size 103.19 9.4)
+		(size 103.19 18.28)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
 			(width 0)
@@ -3540,26 +3560,6 @@
 			(justify left top)
 		)
 		(uuid "770dfe59-ff42-5f07-9de4-db69f52ade64")
-	)
-	(text_box "PTCs (F2-F5), one per string\nIsolates a shorted string so one crushed cable cannot extinguish all four corners (spec 5.2).\nLittelfuse 1206L050/24: Ihold 0.50 A at 23 C, 0.31 A at 65 C, against an 80 mA per-string load.\nThat is a 3.9x margin at the hot internal temperature, which is the case that matters."
-		(exclude_from_sim no)
-		(at 460.0 173.8 0)
-		(size 103.19 7.92)
-		(margins 0.9525 0.9525 0.9525 0.9525)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(fill
-			(type none)
-		)
-		(effects
-			(font
-				(size 0.8 0.8)
-			)
-			(justify left top)
-		)
-		(uuid "84cfe987-a8ad-5385-bf6a-3eecf63e7e5f")
 	)
 	(text_box "ACCEPTANCE (spec 5, 9.1, 9.2)\n- PCA9685 on +3V3_SW, I2C, LED0-11 -> the 12 RGB switch inputs IN ChannelIndex ORDER:\n  LED0,1,2 = FL R,G,B;  LED3,4,5 = FR R,G,B;  LED6,7,8 = RL R,G,B;  LED9,10,11 = RR R,G,B.\n  LED12-15 UNUSED.\n- 12x discrete logic-level N-MOSFET, gate direct from PCA9685, sense shunt in each source leg\n- 12 SENSE_* nodes -> 16:1 analog mux (MUX_S0-S3) -> RGB_ISNS -> GPIO 32 (ADC1_CH4)\n- NO SPI anywhere on this board\n- Dual PROFET from VBAT, inputs PWM_DEN_A/B from ESP32 LEDC on GPIO 18/19, NOT the PCA9685\n- PROFET: ONE sense output -> ISNS_DEN (GPIO 34) with scaling resistor; DEN_DSEL selects\n  which channel IS reports\n- 4x PTC, one per string, on the +24V feeds\n- All 14 PWM_* nets have a pulldown to GND\n- 4 corner connectors, keyed/colour-coded differently from each other\n- Denali connector: 2 switched positives + 1 shared ground\n- Output snubber footprints present but DNP"
 		(exclude_from_sim no)
@@ -8185,7 +8185,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "FL  SS1.0 4w  key A / black"
+		(property "Value" "FL pigtail -> SS1.0 key A / black"
 			(at 55.88 170.18 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8196,7 +8196,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief"
 			(at 60.96 179.07 0)
 			(hide yes)
 			(show_name no)
@@ -8218,7 +8218,7 @@
 				)
 			)
 		)
-		(property "Description" "Generic connector, single row, 01x04"
+		(property "Description" "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS"
 			(at 60.96 179.07 0)
 			(hide yes)
 			(show_name no)
@@ -8272,7 +8272,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "CAN  SS1.0 2w"
+		(property "Value" "CAN pigtail -> SS1.0 2w"
 			(at 55.88 340.36 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8283,7 +8283,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_Wire:SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief"
 			(at 60.96 347.98 0)
 			(hide yes)
 			(show_name no)
@@ -8305,7 +8305,7 @@
 				)
 			)
 		)
-		(property "Description" "Generic connector, single row, 01x02"
+		(property "Description" "Soldered wire tail, 22 AWG twisted pair -- keep the twist to the pads"
 			(at 60.96 347.98 0)
 			(hide yes)
 			(show_name no)
@@ -13612,7 +13612,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "RL  SS1.0 4w  key C / brown"
+		(property "Value" "RL pigtail -> SS1.0 key C / brown"
 			(at 55.88 236.22 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13623,7 +13623,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief"
 			(at 60.96 245.11 0)
 			(hide yes)
 			(show_name no)
@@ -13645,7 +13645,7 @@
 				)
 			)
 		)
-		(property "Description" "Generic connector, single row, 01x04"
+		(property "Description" "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS"
 			(at 60.96 245.11 0)
 			(hide yes)
 			(show_name no)
@@ -13861,7 +13861,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "RR  SS1.0 4w  key D / natural"
+		(property "Value" "RR pigtail -> SS1.0 key D / natural"
 			(at 55.88 269.24 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13872,7 +13872,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief"
 			(at 60.96 278.13 0)
 			(hide yes)
 			(show_name no)
@@ -13894,7 +13894,7 @@
 				)
 			)
 		)
-		(property "Description" "Generic connector, single row, 01x04"
+		(property "Description" "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS"
 			(at 60.96 278.13 0)
 			(hide yes)
 			(show_name no)
@@ -15652,7 +15652,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "FR  SS1.0 4w  key B / grey"
+		(property "Value" "FR pigtail -> SS1.0 key B / grey"
 			(at 55.88 203.2 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15663,7 +15663,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief"
 			(at 60.96 212.09 0)
 			(hide yes)
 			(show_name no)
@@ -15685,7 +15685,7 @@
 				)
 			)
 		)
-		(property "Description" "Generic connector, single row, 01x04"
+		(property "Description" "Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS"
 			(at 60.96 212.09 0)
 			(hide yes)
 			(show_name no)
@@ -21994,7 +21994,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "DENALI  SS1.5 3w"
+		(property "Value" "DENALI pigtail -> SS1.5 3w"
 			(at 55.88 311.15 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22005,7 +22005,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief"
 			(at 60.96 320.04 0)
 			(hide yes)
 			(show_name no)
@@ -22027,7 +22027,7 @@
 				)
 			)
 		)
-		(property "Description" "Generic connector, single row, 01x03"
+		(property "Description" "Soldered wire tail: 2 x 18 AWG switched, 1 x 16 AWG shared return (6.6 A)"
 			(at 60.96 320.04 0)
 			(hide yes)
 			(show_name no)

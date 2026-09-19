@@ -44,9 +44,11 @@ PINS = {
     "Device:D_Zener":           {"1": (-3.81, 0.0), "2": (3.81, 0.0)},
     "Device:D_TVS":             {"1": (-3.81, 0.0), "2": (3.81, 0.0)},
     "Device:D_Schottky":        {"1": (-3.81, 0.0), "2": (3.81, 0.0)},
-    # Device:L_Coupled -- 1/2 = winding A (left/right), 3/4 = winding B (left/right)
-    "Device:L_Coupled":         {"1": (-5.08, 2.54), "2": (5.08, 2.54),
-                                 "3": (-5.08, -2.54), "4": (5.08, -2.54)},
+    # mccan_parts:CM_CHOKE_4T -- winding A = 1(left)-4(right), winding B = 2(left)-3(right),
+    # matching the Wurth 7448031002 datasheet.  Device:L_Coupled numbers these 1-2/3-4 and
+    # using it here shorted VBAT_PROT to GND through a winding.  See symlib.py.
+    "mccan_parts:CM_CHOKE_4T":  {"1": (-5.08, 2.54), "4": (5.08, 2.54),
+                                 "2": (-5.08, -2.54), "3": (5.08, -2.54)},
     "power:GND":                {"1": (0.0, 0.0)},
 }
 
@@ -273,12 +275,12 @@ nets = {
     "FEED_P": [("J1", "2"), ("F1", "1")],
     "FEED_FUSED": [("F1", "2"), ("Q1", "3")],
     "VBAT_PROT": [("Q1", "2"), ("D1", "1"), ("D2", "1"), ("L2", "1"), ("R2", "1")],
-    "VBAT_F": [("L2", "2"), ("R2", "2"), ("C1", "1"), ("L1", "1")],
+    "VBAT_F": [("L2", "4"), ("R2", "2"), ("C1", "1"), ("L1", "1")],
     "VBAT": [("L1", "2"), ("C2", "1"), ("C3", "1"), ("C4", "1"), ("D3", "2")],
     "VLOGIC_IN": [("D3", "1"), ("C5", "1")],
     "Q1_G": [("Q1", "1"), ("R1", "1"), ("D1", "2")],
-    "GND_IN": [("J1", "3"), ("D2", "2"), ("R1", "2"), ("L2", "3"), ("R3", "1")],
-    "GND(board)": [("L2", "4"), ("R3", "2"), ("C1", "2"), ("C2", "2"), ("C3", "2"),
+    "GND_IN": [("J1", "3"), ("D2", "2"), ("R1", "2"), ("L2", "2"), ("R3", "1")],
+    "GND(board)": [("L2", "3"), ("R3", "2"), ("C1", "2"), ("C2", "2"), ("C3", "2"),
                    ("C4", "2"), ("C5", "2")],
 }
 lookup = {r: (lid, x, y, rot) for (r, lid, x, y, rot, v, fp) in COMPS}
