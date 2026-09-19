@@ -290,11 +290,17 @@ path.** The reasoning, the routes rejected and the thermal arithmetic are in
 | **Q10** | **Infineon IPT008N06NM5LF** | Pass FET, **input side** — drain to the feed |
 | **Q11** | **Infineon IPT008N06NM5LF** | Pass FET, **output side** — drain to the load |
 | **R88** | **5.6 mΩ, 1%, ≥ 1 W** | Current-limit sense. 4-terminal (Kelvin) part preferred |
-| **R89** | **30 kΩ** | Drain-sense for the SOA multiplier |
-| **R90** | **10 Ω** | Gate series damping |
-| **C49** | **220 nF** | Fault timer |
-| **C50** | **100 nF** | V<sub>CC</sub> decoupling |
-| **R91, C51** | **DNP** — footprints only | Optional gate-network compensation, see below |
+| **R89** | **30 kΩ** | R<sub>DRN</sub> — drain sense for the SOA multiplier |
+| **R90** | **10 Ω** | Gate series damping (Fig. 7 R3) |
+| **R91 / C51** | **33 Ω / 47 nF** | Gate-node compensation to GND (Fig. 7 R2/C2). **Populated — see below** |
+| **C49** | **680 nF** | C<sub>TMR</sub> fault timer |
+| **R92 / C50 / D22** | **10 kΩ / 220 nF / 22 V Zener** | V<sub>CC</sub> feed, hold-up and clamp (Fig. 7 R1/C1/D1) |
+| **Q12** | NPN, 40 V, SOT-23 (**MMBT3904 class**) | Q11-gate steering network (Fig. 7 Q3) |
+| **D23 / D24** | 75 V switching diode (**1N4148 class**) | same network (Fig. 7 D3/D2) |
+| **R93 / R94 / R95** | **240 kΩ / 10 kΩ / 240 kΩ** | same network (Fig. 7 R6/R5/R4) |
+
+> **Q12, D23, D24, R93–R95 are jellybean parts and no orderable is named here.** They need
+> picking against the usual criteria (AEC-Q101, SOT-23/SOD-323) before the BOM freezes.
 
 #### Why one element does both, and why that is cheaper than it sounds
 
@@ -325,21 +331,28 @@ present design, while gaining protection it does not currently have.**
 #### Topology — COMMON SOURCE, drains outward. This is the error ERC cannot catch.
 
 ```
-   FEED_P ──┬── D:Q10 :S ──┬── S: Q11 :D ──┬── R88 ──┬── VBAT_PROT
-            │              │               │  5.6mΩ  │
-            │            (MID)             │         │
-            │              │             SNS│      OUT│
-          R89              │                │         │
-        (R_DRN)            │                │         │
-            │        R90 ──┴── both gates   │         │
-            │        10Ω        tied        │         │
-          DRN        GATE ──────┘         SNS       OUT
-                         U10 LTC4380
-          VCC ── C50 100nF        SEL ── GND    TMR ── C49 ── GND
-          ON  ── open (internal pull-up)        GND ── GND
-          FLT ── open drain, see below
+  FEED_P ─┬────────┬── D:Q10:S ──┬── S:Q11:D ──┬─ R88 ─┬── VBAT_PROT
+          │        │             │  5.6mΩ      │       │
+        R92 10k  R93 240k      (MID)           │       │
+          │        │             │           SNS│    OUT│
+          ├─ C50 ──┤          Q10 gate ◄─ D23 ◄─┴─ R95 ─┤
+          ├─ D22 ──┤             ▲              240k    │
+          │  22V   │           Q12 c            │       │
+         VCC      Q12 b ──┘      │      Q11 gate ─ R90 ─┤
+                  Q12 e ─ R94 ─ D24 ─ GND       10Ω     │
+                          10k                           │
+                                          R91 33Ω ─ C51 47nF ─ GND
+        ┌──────────────── U10 LTC4380-2 ─────────────────┐
+        │ DRN ─ R89 30k ─ to FEED_P     GATE ── as above │
+        │ SNS, OUT ─ across R88         SEL ── GND       │
+        │ VCC ─ from R92/C50/D22        TMR ── C49 680nF │
+        │ ON  ─ open (internal pull-up) GND ── GND_IN    │
+        │ FLT ─ open drain, optional to MCU              │
+        └────────────────────────────────────────────────┘
 ```
 
+*Drawn from the datasheet's **Figure 7**, which is this circuit at 2 A. Q12/D23/D24/R93–R95 are
+the second FET's gate-steering network — see the correction below for why they are not optional.*
 **Sources tied together in the middle, drains facing outward.** Both body diodes then point
 *inward* to the mid-node, so:
 
@@ -368,7 +381,7 @@ flash-to-pass transient, at or below the connector's 10 A. **Both ends pass and 
 to spare**, so R88 must be 1% or better. Dissipation at the 9.9 A worst-case limit is **0.55 W**,
 hence the ≥ 1 W rating.
 
-**R89 = 30 kΩ and C49 = 220 nF. CALCULATED 2026-09-19** by the datasheet's own Design Example
+**R89 = 30 kΩ and C49 = 680 nF. CALCULATED 2026-09-19** by the datasheet's own Design Example
 procedure (Applications Information, pp. 17–18). Working shown because these two fail in opposite
 directions — too short nuisance-trips on inrush, too long violates the FETs' SOA.
 
@@ -401,9 +414,14 @@ the current limit.
 > C<sub>TMR</sub> = I<sub>TMR(UP)</sub> × t<sub>INRUSH</sub> / ΔV<sub>TMR</sub>
 
 With ΔV<sub>SNS</sub> ≈ 0.9 mV during soft start the multiplier sits in its **light-load** row,
-I<sub>TMR(UP)</sub> ≈ **1.6 µA typ / 2.4 µA max**. At **220 nF**, the worst case (2.4 µA over
-38.6 ms) lifts TMR to **0.48 V — 2.5× clear of the 1.215 V threshold.** 220 nF is also the
-datasheet's own choice, but it is used here because the arithmetic lands there, not by carry-over.
+I<sub>TMR(UP)</sub> ≈ **1.6 µA typ / 2.4 µA max**, and the datasheet's own guideline is to hold the
+TMR rise to **0.4 V**. With C51 fitted the ramp is **95 ms** worst case, giving
+2.4 µA × 95 ms / 0.4 V = **570 nF → 680 nF**.
+
+> **The table above is the no-C51 case and is superseded.** Without C51 the ramp is 38.6 ms and
+> the answer is 330 nF; an earlier draft said 220 nF, which met the 1.215 V threshold but not the
+> 0.4 V guideline. **680 nF is the value, and the reason it moved is the correction two sections
+> below** — C51 is populated, not DNP, and it adds to the gate capacitance that sets the ramp.
 
 **Checked in the other direction — both fault cases time out well inside SOA:**
 
@@ -428,21 +446,65 @@ the tighter of the two.*
 > R-C (R91, C51) and leave them DNP**, so the loop can be compensated at bring-up without a
 > respin. This is the same pattern as R2/R3 on the choke, and it costs two unstuffed footprints.
 
-#### What is deliberately omitted from the datasheet's Figure 5
+#### CORRECTED 2026-09-19 — the auxiliary gate network is NOT optional, and I had it wrong
 
-Figure 5 is an **overvoltage protector for a 250 V surge** and carries an auxiliary gate network
-(Q3 2N3904, D3/D4 1N4148, R5 10 k, R6 240 k) plus a **68 V Zener on V<sub>CC</sub>**. **None of
-that is carried over**, because our input cannot reach those voltages: §4.3's SMBJ24A clamps at
-**38.9 V (10/1000 µs) / 50.6 V (8/20 µs)**, and the LTC4380's V<sub>CC</sub> is rated
-**−60 to +80 V**. The Zener exists to keep V<sub>CC</sub> under 80 V during a 150–250 V event we
-do not have.
+**An earlier draft of this section omitted Figure 5's Q3/D3/D4/R4/R5/R6 network, reasoning that
+it was there to survive a 250 V surge we do not have.** Re-reading the Applications Information
+shows that reasoning was **wrong**, and the evidence is in which application circuits carry it:
 
-> **CONFIRM BEFORE FREEZING.** This is a deliberate simplification of a vendor reference design,
-> made from the voltage ratings. It has **not** been confirmed that the Q3/D4 network plays no
-> role at more ordinary voltages — Figure 5 also routes M2's gate through it while M1's goes
-> through R3, with a 1 MΩ bridging the two, which is more structure than a plain shared gate.
-> **Re-read the Applications Information around Figure 5 before committing the schematic**, and
-> if in doubt keep R90 and add the 1 MΩ bridge rather than dropping to a bare common gate.
+| Datasheet figure | Input rating | FETs | Auxiliary network? |
+|---|---|---|---|
+| **Figure 5** — Overvoltage Protector w/ Reverse Input Protection | 250 V transient | **back-to-back** | **yes** |
+| **Figure 7** — 12 V Overcurrent Protected High Side Switch | **80 VDC max** | **back-to-back** | **yes** |
+| Figure 8 — 12 V Hot Swap Controller w/ Input UV | 20 VDC max | **single** | **no** |
+
+**Figure 7 carries the network at only 80 V, so it cannot be surge-specific.** What separates the
+figures that have it from the one that does not is **back-to-back versus a single FET** — the
+second FET's gate needs steering that the LTC4380's one GATE pin does not provide directly.
+**We are back-to-back. The network is carried.**
+
+> **Figure 7 is our reference design, not Figure 5.** 12 V in, back-to-back pass FETs,
+> **LTC4380-2** — our exact variant — overcurrent protected high-side switch, output clamped near
+> 29.5 V, 80 VDC max against our 50.6 V worst case. It matches this application almost line for
+> line. **Only R<sub>SNS</sub>, R<sub>DRN</sub> and C<sub>TMR</sub> are rescaled** (Figure 7 is a
+> 2 A design); everything else is taken as drawn. **Do not re-derive it from Figure 5.**
+
+**The V<sub>CC</sub> network comes with it.** R92 10 kΩ / C50 220 nF / D22 22 V appear in *all
+three* application circuits, Figure 8's 20 V design included — so the Zener is not a 250 V
+artefact either, and the earlier draft was wrong to propose dropping it.
+
+#### The gate network changes the inrush sum — C49 is 680 nF, not 220 nF
+
+**R91/C51 were going to be DNP footprints "in case the loop needs compensating". They are
+populated, and that feeds back into C<sub>TMR</sub>**, because C51 adds to the gate capacitance
+that sets the output ramp:
+
+| Gate C | t<sub>INRUSH</sub> (worst case) | Inrush | **C<sub>TMR</sub> needed** | Short timeout | Clamp timeout |
+|---|---|---|---|---|---|
+| FETs only, 32 nF | 38.6 ms | 0.078 A | 330 nF | 4.5 ms | 4.2 ms |
+| **+ C51 47 nF → 79 nF** | **95 ms** | **0.032 A** | **680 nF** | **9.2 ms** | **8.6 ms** |
+| + 100 nF → 132 nF | 159 ms | 0.019 A | 1.0 µF | 13.5 ms | 12.6 ms |
+
+**Row two is the design.** Checked against Diagram 3, derated from its 25 °C case to 65 °C:
+
+| Case | Condition | Timeout | Allowed | |
+|---|---|---|---|---|
+| Severe short | 12 V at 9 A | 9.2 ms | ~34 A | **3.8×** |
+| Overvoltage clamp | 23.6 V at 7 A | 8.6 ms | ~14 A | **2×** |
+
+**The clamp case is now 2× rather than the 4× quoted before C51 was added.** Still a pass, and
+still read as if one FET took the whole voltage — but the margin is real and it is the reason the
+third row (100 nF) is rejected: it pushes the timeout past 10 ms, off the end of the SOA curve
+that was checked.
+
+> **If bring-up shows the current-limit loop is stable without C51**, depopulating it takes the
+> clamp timeout back to 4.2 ms and the margin back to ~2.6×. **C49 may stay at 680 nF in that
+> case** — it only makes the timer more conservative. Do not go the other way and fit a *larger*
+> C51 without re-checking SOA.
+
+> **An earlier draft of this section said C49 = 220 nF.** That was computed with no C51 in the
+> circuit and against the threshold rather than the datasheet's own 0.4 V design guideline; even
+> for the no-C51 case the correct value is 330 nF. **680 nF supersedes it.**
 
 #### Two things this buys that were not asked for
 
