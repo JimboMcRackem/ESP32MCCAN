@@ -1037,12 +1037,30 @@ P-FET's conduction loss at the Denali pair's 7.0 A is now the largest single ter
 | RGB sense resistors, 12 × 10 Ω | 0.13 W | ~0.03 W |
 | RGB discrete FETs, all 12 | ~0 W | ~0 W |
 | Buck and logic | 0.40 W | 0.40 W |
-| **Total** | ~1.4 W | **~1.8 W — governs** |
+| **Input π-filter inductor L1** (1.5 µH) | 0.01 W | **0.28 W** |
+| **Input CM choke L2**, both windings (Würth 7448031002) | 0.02 W | **0.78 W — equal-largest** |
+| **Total** | ~1.4 W | **~2.70 W — governs** |
 
-*Flash-to-pass transient adds the boost and Denali terms together briefly — still under 2.5 W, and
+> **L1 and L2 ADDED 2026-09-19.** They were missing from this table entirely — the gap raised
+> as finding **F4** in the Task 7 schematic review. Both sit in the main feed path and carry the
+> **full 7.0 A**, so at the selected parts' DCR they contribute **0.90 W between them**, which
+> is a third of the night budget and includes a term equal to the P-FET's. The plan's Task 8
+> Step 3 was corrected for this (commit `9fa0fea`); this table had not been. The old
+> **~1.8 W** figure is simply this one minus L1 and L2 — **1.8 + 0.90 = 2.70** — so anything
+> still quoting 1.8 W is quoting a budget with the input filter left out.
+
+*Flash-to-pass transient adds the boost and Denali terms together briefly — still under 3.4 W, and
 seconds at a time.*
 
-**The plate no longer needs fins.** At 1.9 W:
+**Plate sizing — revisit at 2.70 W, not 1.9 W.** The table below was computed at **1.9 W**,
+i.e. before L1 and L2 were counted. Scaling it to the corrected **2.70 W** night figure:
+**150 cm² gives ~23 K → 63 °C** at 40 °C ambient, which still meets the 65 °C target but has
+lost most of its margin; **200 cm² gives ~17 K → 57 °C**. **A flat plate still works — but
+≥ 150 cm² is now the floor rather than the comfortable choice, and any part added to the
+thermal group from here has to be paid for out of ~2 K.** That is the budget the F1 eFuse
+selection is competing for (§4.1).
+
+Original table, at 1.9 W:
 
 | Effective area | Rise | Internal at 40 °C ambient |
 |---|---|---|

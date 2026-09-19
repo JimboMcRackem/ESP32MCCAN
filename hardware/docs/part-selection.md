@@ -1161,20 +1161,22 @@ At the **7.0 A** night load:
 
 0.77 W alone **equals the P-FET's 0.78 W**, currently the largest single term on the board.
 
-> **A discrepancy that has to be settled before this can be judged.** Spec §9.4's table totals
-> night at **~1.8 W**; the plan's Task 8 Step 3 was corrected on 2026-09-19 to **~2.70 W**.
-> Those cannot both be right, and the answer decides this row:
->
-> | Night base | + TPS1686 typ | Rise at 150 cm² | Internal at 40 °C |
-> |---|---|---|---|
-> | 1.8 W (spec §9.4) | 2.6 W | ~22 K | **62 °C — meets the 65 °C target** |
-> | 1.8 W + max R | 3.1 W | ~26 K | 66 °C — marginal |
-> | 2.70 W (plan) | 3.5 W | ~29 K | **69 °C — misses** |
-> | 2.70 W + max R | 4.0 W | ~34 K | **74 °C — misses badly** |
->
-> **Resolve §9.4 vs the plan first.** If night is really 2.70 W, this part needs a larger plate
-> (200 cm²+) or fins — which §9.3 already allows as an option — or a lower-R<sub>DS(on)</sub>
-> eFuse.
+> **RESOLVED 2026-09-19 — the two figures were the same budget.** Spec §9.4 totalled night at
+> ~1.8 W and the plan at ~2.70 W; the difference is **exactly L1 + L2 (0.90 W)**, which §9.4's
+> table had omitted (Task 7 finding **F4**). **1.8 + 0.90 = 2.70.** §9.4 now carries both rows,
+> so **2.70 W is the base** and the verdict is not in doubt:
+
+| Night base | + TPS1686 | Rise at 150 cm² | Internal at 40 °C | |
+|---|---|---|---|---|
+| 2.70 W, no eFuse | — | ~23 K | 63 °C | meets the 65 °C target, little margin |
+| 2.70 W | + 0.77 W typ | ~29 K | **69 °C** | **misses** |
+| 2.70 W | + 1.30 W max | ~34 K | **74 °C** | **misses badly** |
+
+**So the TPS1686 does not fit the current plate.** It needs ~200 cm² or fins (§9.3 permits
+fins as an option), or a lower-R<sub>DS(on)</sub> route. **16 mΩ is the price of an 80 V FET**,
+and this design only needs to clear the 38.9 V clamp — so the first thing to try is a
+**40–60 V-class** eFuse rather than a 9–80 V one, where the same architecture buys far lower
+R<sub>DS(on)</sub> at the same current.
 
 #### F.7 — the datasheet disagrees with itself, so do not guess
 
