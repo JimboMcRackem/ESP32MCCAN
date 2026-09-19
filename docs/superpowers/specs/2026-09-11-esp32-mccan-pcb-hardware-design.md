@@ -290,10 +290,11 @@ path.** The reasoning, the routes rejected and the thermal arithmetic are in
 | **Q10** | **Infineon IPT008N06NM5LF** | Pass FET, **input side** — drain to the feed |
 | **Q11** | **Infineon IPT008N06NM5LF** | Pass FET, **output side** — drain to the load |
 | **R88** | **5.6 mΩ, 1%, ≥ 1 W** | Current-limit sense. 4-terminal (Kelvin) part preferred |
-| **R89** | R<sub>DRN</sub> — **[TO CALCULATE]** | Drain-sense for the SOA multiplier |
+| **R89** | **30 kΩ** | Drain-sense for the SOA multiplier |
 | **R90** | **10 Ω** | Gate series damping |
-| **C49** | C<sub>TMR</sub> — **[TO CALCULATE]** | Fault timer |
+| **C49** | **220 nF** | Fault timer |
 | **C50** | **100 nF** | V<sub>CC</sub> decoupling |
+| **R91, C51** | **DNP** — footprints only | Optional gate-network compensation, see below |
 
 #### Why one element does both, and why that is cheaper than it sounds
 
@@ -367,21 +368,65 @@ flash-to-pass transient, at or below the connector's 10 A. **Both ends pass and 
 to spare**, so R88 must be 1% or better. Dissipation at the 9.9 A worst-case limit is **0.55 W**,
 hence the ≥ 1 W rating.
 
-> **R89 (R<sub>DRN</sub>) and C49 (C<sub>TMR</sub>) are [TO CALCULATE] and must be computed
-> together.** They set how long the part rides through a fault before shutting off, scaled by
-> actual FET stress: the DRN current and ΔV<sub>SNS</sub> are multiplied internally to produce
-> the TMR current. **Getting them wrong fails in both directions** — too short nuisance-trips on
-> inrush, too long violates the FETs' SOA. Constraints already known:
-> - **R<sub>DRN</sub> must limit I<sub>DRN</sub> to ≤ 1 mA at peak input** (datasheet, DRN pin).
->   At the SMBJ24A's 50.6 V worst case against a ~27 V clamped output that is **≥ 23.6 kΩ**.
-> - **The timer must outlast inrush.** C3's 220 µF charging at the 9 A limit is
->   220 µF × 12 V / 9 A ≈ **0.29 ms**, plus downstream bulk.
-> - **It must expire well inside the SOA.** At 12 V the 10 ms line allows ~50 A (~34 A derated to
->   a 65 °C case) against the 7 A clamp current, so 10 ms is comfortable — the FET is not the
->   binding side here.
->
-> Work these from the datasheet's TMR section before the schematic is frozen. **Do not carry
-> Figure 5's 220 nF across unexamined** — it belongs to a 5 A, 250 V design, not this one.
+**R89 = 30 kΩ and C49 = 220 nF. CALCULATED 2026-09-19** by the datasheet's own Design Example
+procedure (Applications Information, pp. 17–18). Working shown because these two fail in opposite
+directions — too short nuisance-trips on inrush, too long violates the FETs' SOA.
+
+**R89, from the DRN pin's 1 mA limit at peak input:**
+
+> R<sub>DRN</sub> = (V<sub>IN(peak)</sub> − V<sub>OUT(clamp)</sub>) / 1 mA = (50.6 − 27) / 1 mA = **23.6 kΩ**
+
+Taking §4.3's **50.6 V** 8/20 µs worst case, not the 38.9 V 10/1000 µs figure. **30 kΩ** chosen —
+the next standard value up, the same direction of margin the datasheet takes (it rounds 123 kΩ to
+150 kΩ). Gives **0.787 mA** at 50.6 V and 0.397 mA at 38.9 V, both inside the 1 mA target and far
+inside the 2.5 mA absolute maximum.
+
+**Inrush is gate-slew limited, and the FETs' own gate charge already soft-starts it:**
+
+| | |
+|---|---|
+| Gate charge, Q10 + Q11 in parallel | 2 × 185 nC = **370 nC** (≈ 32 nF at 11.5 V) |
+| I<sub>GATE(UP)</sub> | **20 µA typ, 10 µA min** |
+| Output slew | **622 V/s** typ, 311 V/s worst case |
+| **t<sub>INRUSH</sub>** | **19.3 ms** typ, **38.6 ms** worst case |
+| **Inrush current** into ~250 µF | **0.16 A** typ, 0.08 A worst case |
+
+**So no external gate capacitor is needed.** The datasheet's Figure 6 adds C2 = 47 nF to *create*
+a controlled ramp; these FETs' own 370 nC already dominates and gives a gentler one. Inrush peaks
+around **0.16 A against an 8.0 A worst-case limit** — a factor of 50 clear, so startup cannot trip
+the current limit.
+
+**C49, sized so TMR does not reach its 1.215 V threshold during that ramp:**
+
+> C<sub>TMR</sub> = I<sub>TMR(UP)</sub> × t<sub>INRUSH</sub> / ΔV<sub>TMR</sub>
+
+With ΔV<sub>SNS</sub> ≈ 0.9 mV during soft start the multiplier sits in its **light-load** row,
+I<sub>TMR(UP)</sub> ≈ **1.6 µA typ / 2.4 µA max**. At **220 nF**, the worst case (2.4 µA over
+38.6 ms) lifts TMR to **0.48 V — 2.5× clear of the 1.215 V threshold.** 220 nF is also the
+datasheet's own choice, but it is used here because the arithmetic lands there, not by carry-over.
+
+**Checked in the other direction — both fault cases time out well inside SOA:**
+
+| Case | V across the pair | I<sub>DRN</sub> | I<sub>TMR</sub> | **Timeout** | Diagram 3 allows | |
+|---|---|---|---|---|---|---|
+| **Severe short**, OUT = 0 V | 12 V at 9 A (108 W) | 0.40 mA | ~90 µA | **2.97 ms** | ~75 A at 12 V / 3 ms | **~8× margin** |
+| **Overvoltage clamp**, OUT = 27 V | 23.6 V at 7 A (165 W) | 0.79 mA | ~96 µA | **2.78 ms** | ~30 A at 23.6 V / 3 ms | **~4× margin** |
+
+*Both allowances are read as if a single FET took the whole voltage; sharing across the pair makes
+them better. Derating Diagram 3 from its 25 °C case to a 65 °C case (×0.68) still leaves ~3× on
+the tighter of the two.*
+
+> **Consequence worth knowing: it retries roughly every 1.5–3 s.** The `-2` variant's cool-down is
+> 0.1–0.2% duty cycle, so a ~3 ms timeout gives a retry period of about **1.5–3 seconds**. Under a
+> persistent short the lights pulse briefly at that rate rather than staying dark — which is the
+> intended behaviour, and is also a useful diagnostic signature at bring-up (Task 11).
+
+> **One thing left open deliberately.** The datasheet's Figure 6 puts **R2 33 Ω + C2 47 nF** from
+> the gate node to ground. We do not need C2 to set the ramp, but it is not established whether
+> that network is also **compensating the current-limit loop** — a linear regulator around a
+> 0.8 mΩ FET is not obviously unconditionally stable. **Provide footprints for an optional gate
+> R-C (R91, C51) and leave them DNP**, so the loop can be compensated at bring-up without a
+> respin. This is the same pattern as R2/R3 on the choke, and it costs two unstuffed footprints.
 
 #### What is deliberately omitted from the datasheet's Figure 5
 
