@@ -1209,13 +1209,114 @@ PCB, not to the heat-spreader plate that Q1, U3 and U9 couple to through a gap p
 must give it a via field and a plan for getting that heat to the plate — otherwise the figures
 above are optimistic.
 
+### Candidates assessed 2026-09-19: ADI LTC4380 and TI LM5069
+
+Both supplied as "external-FET" alternatives. **They are not the same kind of answer, and the
+difference decides the row:**
+
+| | LTC4380 | LM5069 |
+|---|---|---|
+| Class | Surge stopper + overcurrent | Hot-swap / in-rush controller |
+| **Reverse-polarity blocking** | **Yes — drives back-to-back FETs, −60 V** | **No** |
+| Operating range | 4–72 V | 9–80 V |
+| Current limit | R<sub>SNS</sub>, **ΔV<sub>SNS</sub> = 50 mV** (45–55 mV) | R<sub>S</sub>, **55 mV** |
+| Fault behaviour | Latch (−1/−3) / **auto-retry (−2/−4)** | Latched / auto-restart versions |
+| Fault timer | Timer scaled by **actual FET stress** (V<sub>DS</sub> × I<sub>D</sub> multiplier) | Programmable, plus power limiting |
+| I<sub>Q</sub> | **8 µA typ, 12 µA max**; 6 µA shutdown | mA-class |
+| Automotive | **AEC-Q100 qualified**, H-grade to 125 °C | Not qualified |
+| Package | DFN-10 3×3 (θ<sub>JA</sub> 43 °C/W) or MSOP-10 | VSSOP-10 |
+
+#### The decisive number: only the LTC4380 route can meet §9.4's thermal target
+
+The reason is not FET quality. **It is that the LM5069 route leaves Q1 in the path and the
+LTC4380 route replaces it.** Q1 (SQJ461EP, 16 mΩ) is **0.78 W** of the 2.70 W night budget.
+
+At 7.0 A, and with §9.4's 8.52 K/W for a 150 cm² plate:
+
+| Route | Series elements | R total | Loss | Night total | Internal at 40 °C | |
+|---|---|---|---|---|---|---|
+| Today, **no** overcurrent protection | Q1 | 16 mΩ | 0.78 W | 2.70 W | 63 °C | baseline, no margin |
+| **TPS1686** in front of Q1 | Q1 + eFuse | 31.7 mΩ | 1.55 W | 3.47 W | **70 °C** | **misses** |
+| **LM5069** + FET, Q1 stays | Q1 + FET + R<sub>S</sub> | 16 + 3 + 6.1 | 1.23 W | 3.15 W | **67 °C** | **misses** |
+| *LM5069 with a **perfect, zero-Ω** FET* | Q1 + R<sub>S</sub> | 22.1 mΩ | 1.08 W | 3.00 W | **66 °C** | ***still misses*** |
+| **LTC4380**, Q1 **removed** | 2× FET + R<sub>SNS</sub> | 6 + 5.6 = 11.6 mΩ | **0.57 W** | **2.49 W** | **61 °C** | **meets, with margin** |
+
+**The fourth row is the point.** Give the LM5069 a FET with literally zero resistance and the
+route *still* lands at 66 °C, because Q1's 0.78 W stays and the sense resistor adds 0.30 W on
+top. **No FET selection can rescue route B on the present plate.** The LTC4380 wins by
+*deleting* the largest single term on the board rather than adding to it — it does reverse
+polarity and overcurrent through one conduction path, and comes out **0.21 W better than the
+board is today while adding protection that does not currently exist.**
+
+#### It also settles F.7, which the TPS1686 could not
+
+| Where | Says |
+|---|---|
+| Table 1 "LTC4380 Options" | −1/−3 Latchoff, **−2/−4 Auto Retry** |
+| Fault-timer prose | "the LTC4380-1 and LTC4380-3 latch off… For the LTC4380-2 and LTC4380-4, the TMR pin enters a cool down phase… automatically restarting" |
+| `FLT` prose | "…or in the case of the LTC4380-2 and LTC4380-4, when the TMR pin discharges to 100 mV" |
+
+**Three statements, no contradiction.** Contrast the TPS1686, where five statements split 3–2.
+F.7 is satisfied by inspection rather than by a call to the vendor.
+
+**Indicated orderable: `LTC4380HDD-2#TRPBF`** — auto-retry, internal 31.5 V/50 V gate clamp
+(−1/−2 rate DRN/SNS/OUT to 53 V, ample against our 38.9 V TVS clamp, so the adjustable −3/−4 buys
+nothing), DFN-10, H-grade −40…125 °C. **SEL grounded** selects the 31.5 V clamp → ~27 V output.
+
+#### Where it is genuinely worse than the TPS1686
+
+**Setpoint accuracy, and the window is nearly full.** ΔV<sub>SNS</sub> is **45–55 mV** (±10%)
+against the TPS1686's ±3%. With R<sub>SNS</sub> = 5.6 mΩ (9.0 A nominal) and a 1% resistor:
+
+| | Limit | Constraint | |
+|---|---|---|---|
+| Worst-case low | **8.0 A** | must exceed the 7.8 A flash-to-pass transient (F.3) | **PASS by 2.6%** |
+| Worst-case high | **10.0 A** | must not exceed the connector's 10 A (§4.1) | **PASS, at the limit** |
+
+**Both ends are satisfied and neither has room to spare.** Partly mitigated by behaviour: the
+LTC4380 *current-limits into a stress-scaled timer* rather than breaking instantly, so a brief
+excursion past the threshold is regulated, not chopped — the failure mode F.3 exists to prevent
+is softer here than it would be with a true eFuse. **But R<sub>SNS</sub> must be 1% or better and
+Kelvin-connected** (the datasheet's layout note: 1 oz copper is ~530 µΩ/square, "small
+resistances can cause large errors in high current applications").
+
+**R<sub>SNS</sub> is also 0.27 W in its own right** and is *not* on the heat-spreader plate. It
+needs its own copper area in Task 8; it is included in the 2.49 W above but not in the plate's
+coupled group.
+
+#### The gating check before this can be selected — linear-mode SOA
+
+**This is a surge stopper, and that is a different FET requirement from R<sub>DS(on)</sub>.**
+During an overvoltage it holds the FET in **linear** operation to clamp the output at ~27 V. With
+the input driven to the SMBJ24A's 38.9 V clamp and the night load flowing, the pass FET sees
+roughly **(38.9 − 27) × 7 A ≈ 83 W** until the TMR multiplier shuts it off. A FET chosen only
+for 3 mΩ will not necessarily survive that.
+
+**So the FET must be selected against its SOA curve, not its R<sub>DS(on)</sub> table** — and
+this project does not hold a datasheet for any candidate. Requirements: **60 V, ≤ 3 mΩ,
+logic-level, automotive-qualified, with a published linear-mode SOA at ≥ 100 ms.**
+
+#### Three things to confirm before committing
+
+1. **FET SOA**, above. This is the one that can kill the route.
+2. **Does ~27 V at the input break anything downstream?** The LM5164 buck is rated to 100 V and
+   is fine. **The LM51571-Q1 boost has not been checked against a 27 V input.**
+3. **What happens to the SMBJ24A.** With a surge stopper clamping at 27 V the TVS may be
+   redundant, may need re-rating, or may now be the part that defines the FET's worst-case
+   V<sub>DS</sub>. §4.3 has to be re-read as a whole, not patched.
+
+#### What it costs in work
+
+**§4.2 is rewritten, not amended.** Q1 and its gate network are deleted and replaced by the
+controller, two N-FETs, R<sub>SNS</sub>, C<sub>TMR</sub> and the DRN sense resistor. `gen_power_input.py`
+and `layout_power_input.py` both change materially, and the input sheet's netlist must be
+re-read by hand afterwards — ERC will not catch a back-to-back pair wired the wrong way round,
+which is the same class of error as the CM-choke pin numbering found in Task 7.
+
 ### Still needed
 
-**A decision on F.6/§9.4 above, and confirmation of F.7 with TI.** No eFuse part is selected and
-none will be invented here. The search is for a
-12 V automotive high-side eFuse, ≥ 8 A continuous at temperature, ≥ 40 V abs max, adjustable
-limit in the **9–10 A** band, programmable fault timer, auto-retry. Candidate families to check:
-TI TPS1663 / TPS259x-Q1, Infineon PROFET +2 as an eFuse, onsemi NIS / NCV8x.
+**A 60 V N-channel MOSFET with a published linear-mode SOA curve**, plus items 2 and 3 above.
+No part is selected and none will be invented here.
 
 **Until then F1 stays in `fpmap.BLOCKED`.**
 
