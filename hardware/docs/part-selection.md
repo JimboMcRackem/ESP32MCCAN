@@ -1313,10 +1313,96 @@ and `layout_power_input.py` both change materially, and the input sheet's netlis
 re-read by hand afterwards — ERC will not catch a back-to-back pair wired the wrong way round,
 which is the same class of error as the CM-choke pin numbering found in Task 7.
 
+### Pass-FET candidate assessed 2026-09-19: onsemi NVMFD5877NL — **FAILS on R<sub>DS(on)</sub>**
+
+`NVMFD5877NL-D.PDF`, Rev. 11, May 2025. **Everything about the selection is right except the
+resistance grade, and that one number is fatal.**
+
+| | Requirement | NVMFD5877NL | |
+|---|---|---|---|
+| V<sub>DSS</sub> | 60 V | **60 V** | **PASS** |
+| Package shape | back-to-back pair | **Dual N-ch in one Dual SO8FL 5×6** — exactly the right topology | **PASS** |
+| Qualification | automotive | **AEC-Q101 qualified and PPAP capable** | **PASS** |
+| **Linear-mode SOA** | published curve | **Figure 11, Maximum Rated Forward Biased SOA** — dc / 10 ms / 1 ms / 100 µs / 10 µs, with R<sub>DS(on)</sub>, thermal and package limits marked | **PASS — this is the curve the route needs** |
+| V<sub>GS</sub> rating | ≥ 14 V (see below) | **20 V** | **PASS** |
+| **R<sub>DS(on)</sub>** | **≤ 7.5 mΩ each** | **31 mΩ typ / 39 mΩ max** at V<sub>GS</sub> = 10 V | **FAIL — 4–5× over** |
+| Continuous I<sub>D</sub> | ≥ 7.0 A | **6 A at T<sub>A</sub> = 25 °C, 5 A at 100 °C** (θ<sub>JA</sub> referenced) | **FAIL — below the night load** |
+
+#### What the resistance does to §9.4
+
+Back-to-back means **two** R<sub>DS(on)</sub> in series. At 7.0 A, against the 1.92 W base
+(2.70 W with Q1's 0.78 W removed) and §9.4's 8.52 K/W:
+
+| R each | R total | FET loss | + R<sub>SNS</sub> | Night | Internal at 40 °C | |
+|---|---|---|---|---|---|---|
+| 3 mΩ | 6 mΩ | 0.29 W | 0.27 W | 2.48 W | **61 °C** | target, with margin |
+| 5 mΩ | 10 mΩ | 0.49 W | 0.27 W | 2.68 W | **63 °C** | acceptable |
+| **7.5 mΩ** | 15 mΩ | 0.74 W | 0.27 W | 2.93 W | **65 °C** | **the hard ceiling** |
+| **31 mΩ — this part, typ** | **62 mΩ** | **3.04 W** | 0.27 W | **5.23 W** | **85 °C** | **fails by 20 K** |
+
+It also fails at package level twice over: each FET would dissipate ~1.5 W against a **1.6 W**
+θ<sub>JA</sub> rating at T<sub>A</sub> = 100 °C, and the part's own continuous I<sub>D</sub> in free
+air (**5–6 A**) is **below the 7.0 A night load** — so one of these cannot carry the feed even
+before the back-to-back pairing doubles the loss.
+
+#### One requirement I over-constrained, and it widens the search
+
+I previously specified a **logic-level** FET. **That was wrong and it was costing options.**
+The LTC4380's ΔV<sub>GATE</sub> (GATE − OUT) is specified **10 V min / 11.5 V typ / 14 V max**
+for 8 V ≤ V<sub>CC</sub> ≤ 30 V. So the controller delivers a full **10–14 V** of gate drive and
+**the pass FETs do not need to be logic-level at all** — they need a V<sub>GS</sub> rating of
+**≥ 20 V** to survive it, and their R<sub>DS(on)</sub> is read from the **V<sub>GS</sub> = 10 V**
+column. Dropping the logic-level constraint opens up standard-threshold 60 V parts, which reach
+far lower R<sub>DS(on)</sub> for the same die area.
+
+*(For this part the distinction is academic — 31 mΩ at 10 V, 42 mΩ at 4.5 V, both far over —
+but for the next candidate it matters.)*
+
+#### A dual in one package is probably not obtainable at this resistance
+
+The dual SO8FL is the *right shape* and is why this part was picked. But a 5×6 dual gives each
+die roughly **half** the package, so a dual at 3–5 mΩ per side is unlikely to exist. **Expect to
+use two separate single FETs**, each in its own 5×6 (SO8FL / PowerPAK) — which also lets each
+one have its own thermal path to the plate, worth having given what the next section says.
+
+#### What Figure 11 establishes about the route itself — and it is not part-specific
+
+The clamp condition needs **7 A at V<sub>DS</sub> ≈ 11.9 V = 83 W**. This part's **entire dc
+package rating is 23 W** at T<sub>mb</sub> = 25 °C — and 23 W is a generous figure for a 5×6.
+**So sustained linear clamping is impossible for any FET of this class, by a factor of ~3.6.**
+
+That is not a defect in this candidate; it is a property of route C. **The LTC4380's overvoltage
+clamp can only ever be a brief ride-through followed by shut-off**, which is exactly what the
+TMR stress multiplier is built to do. The behavioural consequence has to be accepted explicitly:
+**during a sustained input overvoltage the lights go out and the part auto-retries**, rather than
+riding through dimmed.
+
+**Worth asking before accepting that:** the Experia's 12 V rail is **DC-DC fed** (§6 notes
+"there is no crank dip to ride out on an EV"). A DC-DC fed rail has **no alternator load dump
+either** — so the overvoltage half of the surge stopper may be guarding a threat this vehicle
+does not have, and §4.3's TVS may be sized for the same phantom. **That does not change the
+choice** — the LTC4380 is being selected for its reverse-blocking and overcurrent, which are
+real requirements — but it means the clamp behaviour is unlikely ever to be exercised, which
+makes the shut-off consequence much easier to accept.
+
 ### Still needed
 
-**A 60 V N-channel MOSFET with a published linear-mode SOA curve**, plus items 2 and 3 above.
-No part is selected and none will be invented here.
+**Two 60 V N-channel MOSFETs**, to this spec — the requirement corrected per the gate-drive
+finding above:
+
+| | Requirement | Why |
+|---|---|---|
+| V<sub>DSS</sub> | **60 V** | 38.9 V TVS clamp plus margin |
+| **R<sub>DS(on)</sub>** | **≤ 5 mΩ at V<sub>GS</sub> = 10 V, 25 °C** | R rises ~40% at 125 °C; 5 mΩ cold lands ~7 mΩ hot, inside the 7.5 mΩ ceiling |
+| V<sub>GS</sub> rating | **≥ 20 V** | LTC4380 drives GATE 10–14 V above OUT |
+| Threshold | **standard-level is fine** | — not logic-level; that constraint is withdrawn |
+| I<sub>D</sub> continuous | **≥ 10 A at T<sub>A</sub> = 85 °C**, θ<sub>JA</sub>-referenced | must carry 7.0 A inside a 65 °C box, not at T<sub>mb</sub> = 25 °C |
+| **FBSOA curve** | **published, with dc and 10 ms lines** | the gating check; Figure 11 of `NVMFD5877NL-D.PDF` is the right format |
+| Qualification | AEC-Q101 | |
+| Package | 5×6 SO8FL / PowerPAK, single | a dual at this resistance is unlikely to exist |
+
+Plus items 2 and 3 above (boost at 27 V; the SMBJ24A's role). **No FET is selected and none will
+be invented here.**
 
 **Until then F1 stays in `fpmap.BLOCKED`.**
 
