@@ -1385,6 +1385,75 @@ choice** — the LTC4380 is being selected for its reverse-blocking and overcurr
 real requirements — but it means the clamp behaviour is unlikely ever to be exercised, which
 makes the shut-off consequence much easier to accept.
 
+### Route C open items 2 and 3 — CLOSED 2026-09-19, both from datasheets already held
+
+**Item 2 — does a ~27 V clamped input break anything downstream? NO, with large margin.**
+
+| Part | Rating | At 27 V | |
+|---|---|---|---|
+| **LM51571-Q1** boost | V<sub>SUPPLY</sub> **1.5–45 V** recommended; BIAS and SW **50 V** abs max | 60% of recommended max | **PASS** |
+| **LM5164** buck | V<sub>IN</sub> **6–100 V**, 100 V abs max | 27% | **PASS** |
+
+**Item 3 — the SMBJ24A's role. It gets easier, not harder, and that matters more than expected.**
+
+Recall Correction 2: the clamp is **38.9 V at 10/1000 µs** but **50.6 V at the full 77.5 A
+8/20 µs pulse**. With the LTC4380 clamping the input at ~27 V, **the surge stopper becomes the
+primary limiter and the TVS becomes the backstop** — every downstream part's worst case improves.
+
+### F6 — Correction 2's "Unaffected" paragraph is wrong, and the reason matters
+
+**Found 2026-09-19 while closing item 3.** Correction 2 ends:
+
+> *"**Unaffected:** the RGB MOSFETs' 40 V V<sub>DS</sub> (row 1a.1). They sit on the **+24 V boost
+> output**, not on `VBAT`, so they do not see the TVS clamp. Row 1a.1's conditional wording …
+> **states a dependency that does not exist**."*
+
+**The dependency does exist.** Spec §6 documents it in terms, three sections earlier:
+
+> *"a boost converter has a conduction path from input to output …, so the 24 V rail sits near
+> 12 V when the boost is disabled."*
+
+That path runs **`VBAT` → L3 → D4 → `+24V`** and is unconditional: whenever `VBAT` exceeds the
+rail by a diode drop, **the +24 V rail follows `VBAT`.** During a TVS clamp event the rail is
+therefore pulled to roughly the clamp voltage, less D4's V<sub>f</sub>.
+
+**And the RGB FETs are low-side**, confirmed in `gen_outputs.py` Block B: drain → `RET_xx_c` →
+the corner connector → the LED string → `+24V_xx`; source → 10 Ω shunt → GND. **With the FET off
+there is no drop across the string, so V<sub>DS</sub> equals the rail voltage.** The doc's own
+counter-argument — *"with the low-side switches off there is no return path, so no current
+flows"* — is about **current**, and says nothing about the **voltage** the off-state FET stands
+off. Those are different questions and only the second one is being asked here.
+
+#### What it actually costs, with the part that is actually fitted
+
+Correction 2 names the **PMV60ENEA (40 V)**. **That is no longer the selected part** — Q4–Q9 are
+**NX5020UNBKS, 50 V dual N-channel SOT363** (`fpmap.py` line 163, `gen_outputs.py` Block B,
+`NX5020UNBKS.pdf` Table 1). The 50 V part changes the verdict from fatal to marginal:
+
+| Clamp case | Rail reaches | vs **NX5020UNBKS, 50 V** | vs the **PMV60ENEA, 40 V** named in the doc |
+|---|---|---|---|
+| 10/1000 µs, 38.9 V | ~38.4 V | **77%** — fine | 96% — no margin |
+| **8/20 µs at full I<sub>PP</sub>, 50.6 V** | ~50.1 V | **~100% — zero margin** | **125% — destroyed** |
+| **With the LTC4380 clamping at 27 V** | **~26.5 V** | **53% — comfortable** | 66% |
+
+**So the part substitution to the NX5020UNBKS accidentally rescued this**, and the write-up that
+declared it a non-issue did so for a reason that was never true. Same mitigation as Correction 2's
+other three items applies — a real transient reaches this board through a fuse and the π filter,
+so 77.5 A and therefore 50.6 V is a pessimistic worst case.
+
+**This is a third independent argument for route C**, and it was not visible when the route was
+chosen on thermals: **the LTC4380 caps the +24 V rail at ~26.5 V**, taking the RGB FETs from
+~100% of V<sub>DS</sub> to 53% in the one case that currently has no margin at all.
+
+#### Two smaller things found alongside
+
+1. **Spec §6's mechanism is stale prose.** It attributes the pass-through to *"the high-side
+   FET's body diode"*, but the LM51571-Q1 is **non-synchronous** — the plan's own corrections
+   table records this — so the path is through **D4**, the external boost diode. **The effect is
+   identical and nothing downstream changes**; only the explanation is wrong.
+2. **Row 1a.1 should be re-opened** against the NX5020UNBKS rather than left closed against a
+   PMV60ENEA that is no longer fitted.
+
 ### Still needed
 
 **Two 60 V N-channel MOSFETs**, to this spec — the requirement corrected per the gate-drive
@@ -1392,7 +1461,7 @@ finding above:
 
 | | Requirement | Why |
 |---|---|---|
-| V<sub>DSS</sub> | **60 V** | 38.9 V TVS clamp plus margin |
+| V<sub>DSS</sub> | **60 V** | Against Correction 2's **50.6 V** worst-case 8/20 µs clamp, not the 38.9 V 10/1000 µs figure — 60 V leaves 9.4 V, the same margin Q1 has |
 | **R<sub>DS(on)</sub>** | **≤ 5 mΩ at V<sub>GS</sub> = 10 V, 25 °C** | R rises ~40% at 125 °C; 5 mΩ cold lands ~7 mΩ hot, inside the 7.5 mΩ ceiling |
 | V<sub>GS</sub> rating | **≥ 20 V** | LTC4380 drives GATE 10–14 V above OUT |
 | Threshold | **standard-level is fine** | — not logic-level; that constraint is withdrawn |
