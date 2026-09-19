@@ -32,21 +32,59 @@ the current for the same power and drop four times the power in the wire.
 
 ---
 
-## 2. Connectors
+## 2. Connectors, cables and glands
 
-**[TO CONFIRM]** — housings, terminals, seals and cavity plugs all need catalogue part numbers for
-both halves. Series are fixed by the spec; the specific orderable numbers are a lookup.
+> **CORRECTED 2026-09-19. The previous version of this section could not be ordered.** It told
+> you to buy a "panel-mount (board side) housing" for each connector. **TE Superseal is a
+> wire-to-wire series and has no such part.** That error is also why all seven connectors sat
+> unassigned in `fpmap.BLOCKED` through the whole of Task 8 step 0 — the footprint was
+> unassignable because the part class was wrong, not because a datasheet was missing.
 
-| Connector | Series | Ways | Pinout |
-|---|---|---|---|
-| FL, FR, RL, RR | TE Superseal 1.0 | 4 | `+24V_xx`, `RET_xx_R`, `RET_xx_G`, `RET_xx_B` |
-| DENALI | TE Superseal 1.5 | 3 | `DEN_A_OUT`, `DEN_B_OUT`, shared `GND` |
-| **PWR** | TE Superseal 1.5 | **3** | **cavity 1 `IGN_IN`**, cavity 2 +12 V feed, cavity 3 return |
-| CAN | TE Superseal 1.0 | 2 | `CANH`, `CANL` |
+**Every circuit now leaves the box as a soldered wire tail through a cable gland**, and the
+Superseal joints are **wire-to-wire, out on the harness** — so each can be positioned where
+the bike has room rather than all seven crowding one wall of the enclosure.
 
-Order for each: panel-mount (board side) housing, mating (harness side) housing, terminals in the
-correct wire-gauge range, wire seals, and **cavity plugs for any unused cavity** — an unplugged cavity
-is an IP67 leak.
+| Run | Gland | Cable | Harness joint | Pinout |
+|---|---|---|---|---|
+| FL, FR, RL, RR | **M12** (3–6.5 mm) | 4-core 22 AWG, ~5.2 mm OD | TE Superseal 1.0, 4-way | `+24V_xx`, `RET_xx_R`, `RET_xx_G`, `RET_xx_B` |
+| DENALI | **M16** (5–10 mm) | 2 × 18 AWG + 1 × 16 AWG, ~6.2 mm | TE Superseal 1.5, 3-way | `DEN_A_OUT`, `DEN_B_OUT`, shared `GND` |
+| **PWR** | **M16** (5–10 mm) | 2 × 16 AWG + 1 × 22 AWG, ~6.6 mm | TE Superseal 1.5, **3-way** | **cavity 1 `IGN_IN`**, cavity 2 +12 V feed, cavity 3 return |
+| CAN | **M12** (3–6.5 mm) | 22 AWG twisted pair, ~4.5 mm | TE Superseal 1.0, 2-way | `CANH`, `CANL` |
+
+Order for each: **one cable gland** of the right clamp range, **sheathed multi-core cable**,
+*both* mating Superseal housings, terminals in the correct wire-gauge range, wire seals, and
+**cavity plugs for any unused cavity** — an unplugged cavity is an IP67 leak.
+
+### The cable must be sheathed, and this is not a detail
+
+**A gland seals on a single round jacket.** Four loose wires pushed through one gland does not
+seal — the gland closes on the bundle's outline and leaves gaps between the conductors. Every
+run above is therefore specified as a **sheathed multi-core cable**, not a bundle of singles.
+Automotive-grade sheathed cable is stiffer than loose TXL, so allow bend radius at the gland.
+
+Seal the **cut ends** of multi-core cable too (heatshrink or a sealing boot): a sheath will wick
+water along the space between cores if both ends are left open.
+
+### Board side: soldered tails with strain relief
+
+J1 and J3–J8 are **not connectors**. They are `Connector_Wire:SolderWire` *_Relief* footprints:
+each conductor gets a plated hole plus a second, unplated hole to thread the wire back through.
+**That second hole is the strain relief and it is not optional** — nothing else mechanically
+restrains these wires, and without it a pull on the cable lifts a pad off the board.
+
+Hole sizes are set by the **largest conductor in each cable**, so mixed-gauge runs still seat:
+PWR and Denali use the 1.5 mm² footprint (1.7 mm holes) because each carries 16 AWG.
+
+**Leave a service loop inside the box.** With everything soldered, the board can only be lifted
+clear if there is enough slack to pull it out with the glands slackened. Without a loop, a board
+swap means re-terminating 24 conductors in situ.
+
+### Corner identity moves to the harness
+
+The box end is now fixed at assembly, which removes the easy mis-mating failure (spec §9.2). The
+keying and colour scheme therefore applies to the **harness-side joint and the sleeve label**,
+not to a panel connector: **FL key A / black, FR key B / grey, RL key C / brown, RR key D /
+natural**. Label both ends of every corner cable.
 
 ### PWR connector — three cavities, two wiring topologies
 

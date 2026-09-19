@@ -173,7 +173,14 @@ for _i in range(7, 21):
 # than papered over with a plausible-looking wrong package.  See datasheets/NEEDED.md.
 BLOCKED = {
     # No part selected at all, and it is a panel penetration so the body matters.
-    "F1": "panel-mount ATO/ATC blade fuse holder, 10 A -- no part selected",
+    # F1 changed 2026-09-19 from a panel-mount blade holder to a BOARD-MOUNTED eFUSE.
+    # Requirements are in docs/part-selection.md "F1 -- eFuse requirements"; the two that
+    # constrain the search hardest are a limit setpoint of 9-10 A (BELOW 7.8 A and the
+    # flash-to-pass transient is chopped, because an eFuse has none of the thermal inertia
+    # the blade fuse relied on; ABOVE 10 A and it exceeds the connector rating) and
+    # AUTO-RETRY rather than latch-off (the MCU is powered downstream of F1, so it cannot
+    # clear a latch).
+    "F1": "board-mount eFuse, >=8 A at 65 C, limit 9-10 A, auto-retry -- no part selected",
     # Datasheet IS held, but the land pattern must be drawn:
     #   L6  -- ACT45B, 4.5 x 3.2 mm 4-pin.  KiCad's Coilank ACM4532 is the right size
     #          class but its pads (+-1.825/+-1.125, 1.15x1.55) do not map onto the

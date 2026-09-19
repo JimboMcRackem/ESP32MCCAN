@@ -228,34 +228,51 @@ on `+3V3_SW`; TJA1042 VIO on `+3V3_ALW` and its VCC on `+5V`; ESP32 on `+3V3_ALW
 
 ### 4.1 Fusing
 
-**ONE panel-mount sealed ATO/ATC blade fuse holder, 10 A**, IP67 when capped (single feed, decided
-2026-09-12).
+**REVISED 2026-09-19: a BOARD-MOUNTED eFUSE, not a panel-mount blade holder.** Board-mount,
+resettable, no consumable, and it removes a panel penetration. Requirements — and the reason a
+polyfuse cannot do this job — are in `hardware/docs/part-selection.md`, "F1 — eFuse
+requirements". **No part is selected yet.**
 
-**Why 10 A:** the fuse must clear the night load of 7.8 A with margin, pass the 10.5 A flash-to-pass
-transient without opening, and **not exceed the peripheral connector's own 10 A rating** — a fuse
-above the connector rating protects nothing the connector does not already limit. 10 A is the only
-value satisfying all three.
+> **STALE FIGURES CORRECTED 2026-09-19.** This section carried **7.8 A night / 10.5 A
+> flash-to-pass** and reasoned from a "105% overload". Those are pre-correction numbers.
+> §2.2 and §2.4 have read **7.0 A / 7.8 A** since 2026-09-13, and §2.2 states plainly that
+> "the flash-to-pass transient no longer exceeds the feed at all (7.8 A, 78%), so the 105%
+> overload case is gone." The figures below are §2.2's. This matters: the stale pair would
+> have forced the eFuse limit above the connector's 10 A rating, and the real pair does not.
 
-| | Current | % of fuse |
-|---|---|---|
-| Daytime | 3.9 A | 39% |
-| **Night — the governing case** | **7.8 A** | **78%** |
-| Flash-to-pass, seconds | 10.5 A | 105% |
+| | Current | % of a 10 A feed | Note |
+|---|---|---|---|
+| Daytime | **1.2 A** | 12% | |
+| **Night — the governing case** | **7.0 A** | **70%** | Sets the continuous rating |
+| Flash-to-pass, seconds | **7.8 A** | 78% | Sets the current-limit setpoint |
 
-**78% sustained is at the upper end of good practice** for an automotive blade fuse. It is acceptable
-here because the holder is **panel-mounted in open air** rather than buried in a hot loom, but it is
-the figure to watch at bring-up and on the first hot-weather night ride. The 105% transient will not
-open the fuse — blade fuses need roughly 135% sustained for minutes.
+**The limit sits at 9–10 A**: above the 7.8 A flash-to-pass transient with ~15% margin, and
+**at or below the peripheral connector's 10 A rating** — so §4.1's original constraint, that
+a fuse must not exceed the connector rating, still holds. Nothing has to be traded.
 
-**Documented residual risk (accepted by the author):** a fuse protects the *cable* upstream of
-itself. Mounting it at the box leaves the battery-to-box run without overcurrent protection, so
-a chafe-through anywhere along that run is not interrupted. Partially offset by: a short run,
-abrasion-resistant loom, routing clear of chafe points, and a booted ring terminal. A
+**But the setpoint cannot simply be 7.8 A or lower**, and the reason is worth keeping. The
+blade fuse tolerated a transient *above* its own rating purely because it is **slow** —
+"blade fuses need roughly 135% sustained for minutes". An eFuse current-limits in
+microseconds and has no such inertia, so a setpoint at or under the transient would **chop
+flash-to-pass**: a functional regression that no ERC, DRC or netlist check would reveal, and
+which would present as "the high beam flickers when I flash." Discrimination between the
+transient and a genuine fault belongs to the eFuse's **programmable fault timer**, not to its
+current limit.
+
+**Auto-retry, not latch-off, and this is not a preference.** F1 is the first device after the
+connector, so the MCU is powered *downstream of it*. If the eFuse latched, the MCU would be
+unpowered and could not command a reset. Under topology A the latch would clear on the next
+ignition cycle; under topology B (permanent battery) it would be permanent until someone
+disconnected the battery.
+
+**Documented residual risk (unchanged, accepted by the author):** a fuse protects the *cable
+upstream of itself*. F1 on the board leaves the battery-to-box run unprotected, so a
+chafe-through along that run is not interrupted. Partially offset by a short run,
+abrasion-resistant loom, routing clear of chafe points and a booted ring terminal. A
 battery-end inline fuse can be added later with **no board change**.
 
-**Open item:** if the Experia's peripheral connectors prove to be individually fused by the
-bike, this holder is redundant and may be omitted — freeing panel space and removing a
-consumable. Verify on the vehicle.
+**Open item (unchanged):** if the Experia's peripheral outlet proves to be individually fused
+by the bike, ask whether F1 is redundant. Verify on the vehicle.
 
 ### 4.2 Reverse polarity — P-FET, not an ideal-diode controller
 
@@ -901,44 +918,67 @@ contributor to be verified against its datasheet.
 
 ### 9.1 Panel
 
-**Nine penetrations** (single feed, §4.4).
+**REVISED 2026-09-19. TE Superseal is a wire-to-wire series — it has no panel-mount
+board-side housing, so the "panel connectors" this section used to describe could not have
+been built.** Every circuit now leaves the box as a **soldered wire tail through a cable
+gland**, and the Superseal joints live **out on the harness**, where each one can be placed
+wherever the bike has room instead of all seven crowding one wall.
+
+**Eight penetrations** (was nine: F1 moved onto the board as an eFuse, §4.1).
 
 ```
         ┌──────────────── PANEL ─────────────────┐
-        │  [FL]   [FR]   [RL]   [RR]             │  4× Superseal 1.0, 4-way
-        │  4-way  4-way  4-way  4-way            │  (+24 V, R, G, B) — 0.42 A
+        │  (FL)   (FR)   (RL)   (RR)             │  4× M12 gland, 4-core 22 AWG
         │                                        │
-        │  [DENALI]    [PWR]    [CAN]   (VENT)   │  Denali: SS1.5 3-way
-        │   3-way      3-way    2-way            │  Power:  1× SS1.5 3-way
-        │            (FUSE 10 A)                 │  CAN:    SS1.0 2-way
-        └────────────────────────────────────────┘  Fuse:   1× sealed ATO, 10 A
-        opposite wall: finned aluminium heat-spreader plate
+        │  (DENALI)   (PWR)    (CAN)    (VENT)   │  Denali, PWR: M16   CAN: M12
+        └────────────────────────────────────────┘
+        opposite wall: aluminium heat-spreader plate
 ```
 
-| # | Penetration | Type |
-|---|---|---|
-| 1–4 | Corners FL, FR, RL, RR | Superseal 1.0, 4-way |
-| 5 | Denali | Superseal 1.5, 3-way |
-| 6 | Power (single feed) | Superseal 1.5, **3-way** — cavity 1 `IGN_IN` (§8.1a), plugged under topology A |
-| 7 | CAN | Superseal 1.0, 2-way |
-| 8 | Pressure-equalisation vent | §9.3 |
-| 9 | Blade fuse holder, **10 A** | Sealed screw-cap |
+| # | Penetration | Gland | Cable |
+|---|---|---|---|
+| 1–4 | Corners FL, FR, RL, RR | M12 (3–6.5 mm) | 4-core 22 AWG, ~5.2 mm OD → SS1.0 4-way on the harness |
+| 5 | Denali | M16 (5–10 mm) | 2 × 18 AWG + 1 × 16 AWG, ~6.2 mm → SS1.5 3-way |
+| 6 | Power | M16 (5–10 mm) | 2 × 16 AWG + 1 × 22 AWG, ~6.6 mm → SS1.5 3-way |
+| 7 | CAN | M12 (3–6.5 mm) | 22 AWG twisted pair, ~4.5 mm → SS1.0 2-way |
+| 8 | Pressure-equalisation vent | — | §9.3 |
 
-Dropping the second feed (§4.4) removed its connector and its fuse holder, taking the count from
-eleven to nine. **Enclosure size is driven by this count more than by the board** — see
-`hardware/docs/enclosure.md` §2 for the wall dimension it implies.
+**A gland seals on one round jacket.** Loose wires through a gland is not IP67, so every run
+must be a **sheathed multi-core cable**, not a bundle. That is a harness requirement, not a
+detail — see `hardware/docs/harness.md`.
 
-**Power and CAN on separate connectors** — a switched high-current path and a differential bus
-sharing one shell invites coupling, and the bus tap should be separable from the power feed.
+**Board side is soldered, with strain relief.** J1 and J3–J8 are `SolderWire` *_Relief*
+footprints: each conductor gets a plated hole and a second unplated one to thread the wire
+back through. That second hole is the mechanical restraint — nothing else holds these wires,
+and without it a pulled cable lifts a pad.
 
-**Denali connector carries a shared ground** (two switched positives, one ground sized for the
-pair, 6.6 A) rather than relying on chassis return.
+**What this costs.** The box can no longer be unplugged and set aside; it comes off with
+seven tails, unplugged at their far ends, and a board swap means re-terminating 24
+conductors. Leave a service loop inside so the board can be lifted clear with the glands
+slackened.
+
+**Power and CAN stay on separate cables and separate glands** — a switched high-current path
+and a differential bus sharing a run invites coupling, and the bus tap should be separable
+from the power feed.
+
+**Denali cable carries a shared ground** (two switched positives, one return sized for the
+pair at 6.6 A) rather than relying on chassis return.
+
+**Enclosure size is now driven by the gland field plus the plate**, not by connector mating
+depth — see `hardware/docs/enclosure.md` §2.
 
 ### 9.2 Corner connector mis-mating — a safety issue
 
-The four corner connectors are identical 4-way parts and **can be mis-mated**. Swapping
-front-left with front-right makes the indicators signal the wrong way, which is unsafe, and the
-firmware cannot detect it. Two mitigations, both required:
+The four corner runs end in identical Superseal 1.0 4-way joints and **can be mis-mated**.
+Swapping front-left with front-right makes the indicators signal the wrong way, which is
+unsafe, and the firmware cannot detect it.
+
+**Improved 2026-09-19 by the move to glands (§9.1).** There used to be *two* places the swap
+could happen — at the box and at the strip. The box end is now **soldered at assembly**, so
+the easy one is gone: four identical shells side by side on a panel no longer exists. What
+remains is a swap out on the bike, which cable length and routing make much harder.
+
+Two mitigations, both still required:
 
 1. **Colour-coded or mechanically keyed** connector variants, one per corner
 2. **Installation self-test in the web app** — light one corner at a time so the installer

@@ -106,10 +106,11 @@ have shut themselves down.
 
 Selection criteria, in priority order:
 
-1. **Internal dimensions** must clear the board plus connector mating depth — **[PROVISIONAL]**
-   pending Task 8. Estimate the board at 100 × 80 mm; panel connectors add 25–40 mm of mating depth
-   in front of the connector face, so the internal length must exceed the board length plus that
-   depth plus wire bend radius.
+1. **Internal dimensions** must clear the board plus the internal cable service loop —
+   **[PROVISIONAL]** pending Task 8. Estimate the board at 100 × 80 mm. **The 25–40 mm of
+   connector mating depth is gone** (glands, §5 below), and is replaced by a smaller but real
+   allowance: enough slack on seven soldered tails to lift the board clear with the glands
+   slackened, since nothing unplugs any more.
 2. **One wall large enough** for the finned plate's **footprint** (≥ 80 cm², ≈ 100 × 80 mm — §1).
    Note this is the footprint, not the ≥300 cm² *effective* area, which the fins provide outside
    the box. The wall opening is sized by footprint alone.
@@ -118,10 +119,26 @@ Selection criteria, in priority order:
    antenna edge away from the plate).
 4. **Plastic elsewhere, not metal** — the ESP32-WROOM-32E uses its onboard antenna, so the remaining walls
    must be RF-transparent (spec §9.3). This is why a diecast aluminium box was rejected.
-5. **Panel area** for **nine** penetrations (§4). **[TO CONFIRM]** the wall dimension this implies:
-   seven Superseal 1.0/1.5 cutouts plus one blade-fuse holder plus the vent plus gasket lands need
-   roughly **130 × 55 mm** of wall in two rows — which is larger than the 100 × 80 mm board estimate and is
-   therefore the real size driver for the enclosure, not the board.
+5. **Panel area** for **eight** penetrations (§4). **REVISED 2026-09-19** — two changes, both
+   of which shrink this:
+   - The seven "Superseal panel cutouts" **never existed**: Superseal is a wire-to-wire series
+     with no panel-mount housing. Those seven become **cable glands** — 5 × M12 and 2 × M16.
+   - The blade-fuse holder is gone; F1 is now a **board-mounted eFuse** (spec §4.1).
+
+   Gland field, allowing spanner access: **4 × M12 corners in one row ≈ 96 mm**, then
+   **M12 CAN + M16 Denali + M16 PWR ≈ 78 mm** in a second, plus the vent — roughly
+   **100 × 70 mm** of wall.
+
+   **The bigger gain is not area, it is that there is no mating envelope.** A panel connector
+   needs 25–40 mm of clear space in front of its face for the plug and its cable bend; a gland
+   needs only the cable's bend radius. That envelope was what made the old estimate the binding
+   constraint on enclosure length.
+
+   **Also confirm jointly satisfiable:** spec §9.1 puts the plate on the wall *opposite the
+   panel*, §2.3 here wants it *opposite the antenna*, and §4 forbids penetrations in the antenna
+   wall. Three constraints on a six-face box. **Freeing the mating envelope makes this easier —
+   glands can be split across two walls where connectors could not — but it has still not been
+   checked that all three hold at once.**
    **Also confirm jointly satisfiable:** spec §9.1 puts the plate on the wall *opposite the panel*,
    §2.3 here wants it *opposite the antenna*, and §4 forbids penetrations in the antenna wall. Three
    constraints on a six-face box — nobody has yet checked they can all hold at once.

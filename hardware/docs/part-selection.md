@@ -1059,6 +1059,164 @@ unconnected-(U9-n.c.-Pad7), -Pad11                         <- no-connect flagged
 ChannelIndex order re-checked and unchanged: LED0 → `PWM_FL_R` → Q4 unit A … LED11 →
 `PWM_RR_B` → Q9 unit B.
 
+## F1 — eFuse requirements, 2026-09-19
+
+**Decision: F1 becomes a board-mounted electronic fuse**, replacing the panel-mount ATO/ATC
+blade holder. Board-mount, resettable, no consumable, and it removes a panel penetration.
+**No part is selected — this section is the requirement, not an answer.**
+
+### Why not a polyfuse, which is the obvious "resettable" answer
+
+PTC hold current derates hard with temperature, and this project already has the data: the
+1206L family drops to **0.62×** its 23 °C rating by 65 °C. To hold the **7.0 A night load**
+(§2.4) inside a box running ~65 °C internally needs a PTC rated **~11.3 A at 23 °C**. PTCs
+trip at roughly twice hold, so that part passes **~22 A** before doing anything — **over
+twice the peripheral connector's 10 A rating**, which §4.1 says explicitly is the thing a
+fuse must not exceed. It would also add 5–10 mΩ, i.e. **0.25–0.5 W** into a ~2.7 W budget.
+
+A polyfuse cannot be both non-nuisance-tripping and protective at this current. That is why
+the answer is an eFuse and not a bigger polyfuse.
+
+### The constraint the blade fuse was handling silently
+
+> **Note on figures.** Spec §4.1 carried **7.8 A night / 10.5 A flash-to-pass** until
+> 2026-09-19. Those were pre-correction numbers; §2.2 and §2.4 have read **7.0 A / 7.8 A**
+> since 2026-09-13. The corrected pair is used throughout this section, and it is what makes
+> a 9–10 A setpoint possible instead of the 11–12 A the stale pair would have forced.
+
+A blade fuse tolerates a transient near its own rating purely because it is **slow** — "blade
+fuses need roughly 135% sustained for minutes". The flash-to-pass case draws **7.8 A for
+seconds**, comfortably inside a 10 A blade fuse on inertia alone.
+
+**An eFuse has no inertia.** It current-limits in microseconds, so a setpoint at or below the
+**7.8 A** transient would **chop flash-to-pass** — a functional regression that no ERC, DRC or
+netlist check would show, and which would present as "the high beam flickers when I flash."
+
+The setpoint must therefore sit **above 7.8 A**, with the eFuse's *fault timer* — not its
+current limit — doing the discriminating. **9–10 A** satisfies that and still stays at or
+below the connector's 10 A rating, so unlike the polyfuse route nothing has to be traded.
+
+### Requirements
+
+| # | Parameter | Requirement | Why |
+|---|---|---|---|
+| F.1 | Topology | High-side switch, integrated FET, **externally programmable current limit** | A fixed-limit part is unlikely to land in the 9–10 A window |
+| F.2 | Continuous current | **≥ 8 A at 65 °C** ambient *inside the enclosure* | 7.0 A night (§2.4), ~14% margin. Datasheet ratings at 25 °C are not the operating point |
+| F.3 | Current-limit setpoint | **9–10 A**, programmable | Must pass the **7.8 A** flash-to-pass transient without entering limit, and stay **at or below the connector's 10 A**. Both are satisfiable |
+| F.4 | Fault timer | **programmable, ~1–10 s**, or thermal-emulation profile | This is what separates flash-to-pass from a fault, now that inertia is gone |
+| F.5 | Input rating | **abs max ≥ 40 V** | The SMBJ24A clamps at **38.9 V** and this part sits behind it. Same bar as every other front-end part (§4.3) |
+| F.6 | R<sub>DS(on)</sub> | **≤ 8 mΩ** | 7.0² × 0.008 = **0.39 W**. More than that competes with the P-FET's 0.78 W, currently the largest single term |
+| F.7 | Fault behaviour | **Auto-retry, NOT latch-off** | See below — this one is not a preference |
+| F.8 | Fault flag | Open-drain FLT/PG to a GPIO | **GPIO 39** is free and input-only (§7.3), which suits a flag exactly |
+| F.9 | Package | Thermally capable, gap-pad-able to the plate (§9.3) | It joins Q1, U3 and U9 on the thermal group |
+| F.10 | Qualification | AEC-Q100 preferred | Consistent with the rest of the BOM |
+
+### F.7 is not a preference — latch-off cannot work here
+
+F1 is the **first** device after the connector: `FEED_P → F1 → Q1 → everything`. The MCU is
+powered *downstream of it*. **If the eFuse latches off, the MCU loses power and cannot command
+a reset** — the part that would clear the latch is dead. So:
+
+- **Topology A (the Experia)**: the feed is ignition-switched, so a latch would clear on the
+  next ignition cycle. Survivable.
+- **Topology B (permanent battery)**: a latch is **permanent** until someone disconnects the
+  battery. Not acceptable.
+
+**Auto-retry is therefore required**, and it is the mode that works under both topologies.
+
+This also trims a claim worth correcting: an eFuse's "it can tell the MCU it tripped" benefit
+is **weaker than it first appears**, because on a hard fault the MCU is unpowered and sees
+nothing. What F.8 actually buys is visibility of *current-limit events the board survives* —
+retry cycling, or a marginal load — which is still worth a GPIO, but is not fault logging.
+
+### Still needed
+
+### Candidate assessed: TI TPS1686x — `tps1686.pdf`, SLVSHR6A, Nov 2025
+
+Supplied 2026-09-19. **Functionally it is close to a purpose-built answer for this row, but it
+fails F.6 on R<sub>DS(on)</sub> by 2–3×, and that is a thermal decision, not a detail.**
+
+| # | Requirement | TPS1686x | |
+|---|---|---|---|
+| F.1 | Adjustable current limit | Adjustable **1–10 A**, accuracy **±3%** | **PASS** |
+| F.2 | ≥ 8 A at 65 °C | 10 A device; derating at 65 °C **[TO CONFIRM]** from the SOA/thermal curves | **LIKELY** |
+| F.3 | Setpoint 9–10 A | In range. At a 9.5 A setting, ±3% gives 9.2–9.8 A — above the 7.8 A transient, below the connector's 10 A | **PASS** |
+| F.4 | Programmable fault timer | **"Adjustable transient overcurrent timer (ITIMER) to support peak currents"** — this is exactly the flash-to-pass discriminator F.4 asks for | **PASS** |
+| F.5 | Abs max ≥ 40 V | **92 V abs max**, 9–80 V operating. Clears the 38.9 V TVS clamp with enormous margin | **PASS** |
+| F.6 | **≤ 8 mΩ** | **15.7 mΩ typ** (3 A, 25 °C), **26.5 mΩ max** (−40…125 °C) | **FAIL — see below** |
+| F.7 | Auto-retry, not latch-off | Both variants exist — **but the datasheet contradicts itself on which is which. See below.** | **AMBIGUOUS** |
+| F.8 | Fault flag | `FLT` pin, **plus a ±3% / 1 MHz analog load-current monitor** | **PASS, and better than asked** |
+| F.9 | Thermally capable package | VQFN-23, 6.0 × 5.0 mm | **PASS, with a layout caveat** |
+| F.10 | AEC-Q100 preferred | Orderables are `TPS16860NLMR` / `TPS16861NLMR` — **no -Q1 variant listed** | **MISS (soft)** |
+
+#### F.6 is the real question — it roughly doubles the board's dissipation
+
+At the **7.0 A** night load:
+
+| | R<sub>DS(on)</sub> | Loss |
+|---|---|---|
+| F.6 budget | 8 mΩ | 0.39 W |
+| TPS1686 typ, 25 °C | 15.7 mΩ | **0.77 W** |
+| TPS1686 max, to 125 °C | 26.5 mΩ | **1.30 W** |
+
+0.77 W alone **equals the P-FET's 0.78 W**, currently the largest single term on the board.
+
+> **A discrepancy that has to be settled before this can be judged.** Spec §9.4's table totals
+> night at **~1.8 W**; the plan's Task 8 Step 3 was corrected on 2026-09-19 to **~2.70 W**.
+> Those cannot both be right, and the answer decides this row:
+>
+> | Night base | + TPS1686 typ | Rise at 150 cm² | Internal at 40 °C |
+> |---|---|---|---|
+> | 1.8 W (spec §9.4) | 2.6 W | ~22 K | **62 °C — meets the 65 °C target** |
+> | 1.8 W + max R | 3.1 W | ~26 K | 66 °C — marginal |
+> | 2.70 W (plan) | 3.5 W | ~29 K | **69 °C — misses** |
+> | 2.70 W + max R | 4.0 W | ~34 K | **74 °C — misses badly** |
+>
+> **Resolve §9.4 vs the plan first.** If night is really 2.70 W, this part needs a larger plate
+> (200 cm²+) or fins — which §9.3 already allows as an option — or a lower-R<sub>DS(on)</sub>
+> eFuse.
+
+#### F.7 — the datasheet disagrees with itself, so do not guess
+
+Which suffix auto-retries is stated **five times, inconsistently**:
+
+| Where | Says |
+|---|---|
+| Block-diagram note: "Only for TPS16860 (auto-retry variant)" | 860 = retry |
+| Overtemperature prose: "latched off (TPS16861) or restarts automatically (TPS16860)" | 860 = retry |
+| Response table: "TPS16861 (Latch-Off) / TPS16860 (Auto-Retry)" | 860 = retry |
+| Circuit-breaker prose: "stays latched off (TPS16860) or restarts (TPS16861)" | **860 = latch** |
+| Thermal prose: "When the TPS16860 detects thermal overload… remains latched-off" | **860 = latch** |
+
+Three against two favours **TPS16860 = auto-retry**, and the response table is the most
+authoritative of the five. **That is not good enough to order on.** Getting F.7 backwards gives a
+board that latches off permanently under topology B with no way to clear it — the MCU is powered
+downstream of F1 and cannot command a reset. **Confirm with TI or from the orderable addendum
+before ordering.** This is the same class of item as U4's pin-1 ambiguity and gets the same
+treatment: recorded, not resolved by inference.
+
+#### Two things worth taking even though nothing asked for them
+
+**The analog current monitor (`IMON`) is a genuine upgrade.** ±3% above half-scale, 1 MHz
+bandwidth. **GPIO 39 is free and is ADC1** (§7.3), so total board current could be reported live
+in the web app rather than just a fault bit — and F.8's weakness (a hard fault kills the MCU
+before it can log anything) is exactly what a continuous current reading covers.
+
+**The QFN's heat goes down, not up.** The thermal pad is on the underside, so its path is into the
+PCB, not to the heat-spreader plate that Q1, U3 and U9 couple to through a gap pad (§9.3). Task 8
+must give it a via field and a plan for getting that heat to the plate — otherwise the figures
+above are optimistic.
+
+### Still needed
+
+**A decision on F.6/§9.4 above, and confirmation of F.7 with TI.** No eFuse part is selected and
+none will be invented here. The search is for a
+12 V automotive high-side eFuse, ≥ 8 A continuous at temperature, ≥ 40 V abs max, adjustable
+limit in the **9–10 A** band, programmable fault timer, auto-retry. Candidate families to check:
+TI TPS1663 / TPS259x-Q1, Infineon PROFET +2 as an eFuse, onsemi NIS / NCV8x.
+
+**Until then F1 stays in `fpmap.BLOCKED`.**
+
 ## Sleep budget roll-up (spec 8.2: target < 200 uA, ceiling 500 uA)
 
 | Contributor | Datasheet value | Source |
