@@ -1736,6 +1736,13 @@ Body **4.5 x 3.2 x 2.8 mm**, 4 pins.
 **The 51 µH part matches L6's placeholder value exactly.** Note that `NEEDED.md` had suggested
 *ACT45B-101-2P* — **that is the 100 µH part**; the suffix is the value code, and **-510 is 51 µH**.
 
+> **The whole series shares ONE package, confirmed 2026-09-19.** The datasheet carries a single
+> *SHAPE & DIMENSIONS* (**4.5 ± 0.2 × 3.2 ± 0.2 mm**) and a single *RECOMMENDED LAND PATTERN*
+> covering -110, -220, -510 and -101 together. **So a 3D model or library file downloaded under a
+> different suffix is geometrically the -510** and is safe to use — only the filename and the BOM
+> line need to say . This is also why  is
+> named for the series rather than the variant, which is correct and should stay that way.
+
 **Rated current is ample.** A CAN node drives ~33 mA into the 60 Ω differential load, ~70 mA worst
 case — and **this node is listen-only by construction** (R23 is a DNP 0 Ω link), so it never
 transmits at all. 1 Ω per winding in series with a 60 Ω bus is ~3%, normal for a CAN choke.
