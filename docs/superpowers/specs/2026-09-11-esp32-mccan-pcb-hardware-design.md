@@ -152,10 +152,11 @@ irrelevant — but it **breaks the sense-chain sizing** and is why §5.1's shunt
 
 ```
  SINGLE FEED ──[10 A panel fuse]──┐      (2nd feed: footprints only, DNP — §4.4)
- 12 V: 3.9 A day / 7.8 A night     ▼
+ 12 V: 1.2 A day / 7.0 A night     ▼
                    ┌──────────────────┐
                    │ INPUT PROTECTION │
-                   │ P-FET rev. pol.  │
+                   │ LTC4380 + 2 FETs │
+                   │ rev.pol + o/c    │
                    │ 24 V TVS, pi+CM  │
                    └────────┬─────────┘
                          VBAT (~12 V)
@@ -274,19 +275,147 @@ battery-end inline fuse can be added later with **no board change**.
 **Open item (unchanged):** if the Experia's peripheral outlet proves to be individually fused
 by the bike, ask whether F1 is redundant. Verify on the vehicle.
 
-### 4.2 Reverse polarity — P-FET, not an ideal-diode controller
+### 4.2 Reverse polarity AND overcurrent — one pass element, LTC4380 + back-to-back N-FETs
 
-A P-channel MOSFET in the supply path with gate resistor and Zener clamp. Chosen over the
-textbook ideal-diode controller (LM74700-class) because those draw tens of microamps
-*continuously* — a significant share of the entire sleep budget, spent permanently to save a
-fraction of a watt that only matters while the lights are on. The P-FET has essentially zero
-quiescent draw. **One stage carries the whole load** (single feed, §4.4): at the specified **20 mΩ
-ceiling** that is **0.30 W in daytime (3.9 A) and 1.22 W at night (7.8 A)** — see §9.4, where daytime
-governs the thermal design despite night's higher current.
+**REWRITTEN 2026-09-19. This section previously specified a lone P-FET doing reverse polarity,
+with §4.1's fuse as a separate part. Those two functions are now merged into one conduction
+path.** The reasoning, the routes rejected and the thermal arithmetic are in
+`hardware/docs/part-selection.md` ("F1 — eFuse requirements" onward).
 
-> **CORRECTED 2026-09-12 (I4).** An earlier revision of this paragraph said "~0.08 W / ~0.22 W,
-> ~0.30 W combined", which implies 5 mΩ — a part that was never selected — and contradicted §9.4.
-> Anyone sizing copper or a gap pad from the old figure would have under-provisioned by ~4×.
+**Q1 (SQJ461EP P-FET) and the blade fuse are both deleted.** In their place:
+
+| Ref | Part | Role |
+|---|---|---|
+| **U10** | **ADI LTC4380HMS-2#TRPBF** | Surge stopper + overcurrent controller. Auto-retry (`-2`), MSOP-10, H-grade −40…125 °C |
+| **Q10** | **Infineon IPT008N06NM5LF** | Pass FET, **input side** — drain to the feed |
+| **Q11** | **Infineon IPT008N06NM5LF** | Pass FET, **output side** — drain to the load |
+| **R88** | **5.6 mΩ, 1%, ≥ 1 W** | Current-limit sense. 4-terminal (Kelvin) part preferred |
+| **R89** | R<sub>DRN</sub> — **[TO CALCULATE]** | Drain-sense for the SOA multiplier |
+| **R90** | **10 Ω** | Gate series damping |
+| **C49** | C<sub>TMR</sub> — **[TO CALCULATE]** | Fault timer |
+| **C50** | **100 nF** | V<sub>CC</sub> decoupling |
+
+#### Why one element does both, and why that is cheaper than it sounds
+
+A blade fuse plus a P-FET meant **two** conduction losses. The P-FET alone was **0.78 W at 7.0 A**,
+the largest single term on the board (§9.4), and bolting any eFuse in front of it only added more —
+the assessed TPS1686 would have taken the board to **70 °C** against a 65 °C target.
+
+The LTC4380 drives **back-to-back** FETs, so the same silicon blocks reverse current *and*
+limits forward current. With the IPT008N06NM5LF at **0.8 mΩ max** the pair contributes
+**0.12 W hot**:
+
+| | R | Loss at 7.0 A |
+|---|---|---|
+| Q10 + Q11, hot (0.8 mΩ max, ×1.5 at 125 °C) | 2.4 mΩ | 0.12 W |
+| R88 sense | 5.6 mΩ | **0.27 W** |
+| **Total** | **8.0 mΩ** | **0.39 W** |
+| *Replaced: Q1 P-FET* | *16 mΩ* | *0.78 W* |
+
+**Night falls from 2.70 W to 2.31 W and the board lands at ~60 °C — three degrees cooler than the
+present design, while gaining protection it does not currently have.**
+
+> **R88 is now 69% of the pass-element loss.** The FETs have become negligible and the sense
+> resistor is the dominant term. It needs its own copper area and a **Kelvin connection**; the
+> datasheet's layout note is explicit that "1 oz copper exhibits a sheet resistance of about
+> 530 µΩ/square. Small resistances can cause large errors in high current applications." **R88 is
+> not on the heat-spreader plate** and must be thermally provisioned separately.
+
+#### Topology — COMMON SOURCE, drains outward. This is the error ERC cannot catch.
+
+```
+   FEED_P ──┬── D:Q10 :S ──┬── S: Q11 :D ──┬── R88 ──┬── VBAT_PROT
+            │              │               │  5.6mΩ  │
+            │            (MID)             │         │
+            │              │             SNS│      OUT│
+          R89              │                │         │
+        (R_DRN)            │                │         │
+            │        R90 ──┴── both gates   │         │
+            │        10Ω        tied        │         │
+          DRN        GATE ──────┘         SNS       OUT
+                         U10 LTC4380
+          VCC ── C50 100nF        SEL ── GND    TMR ── C49 ── GND
+          ON  ── open (internal pull-up)        GND ── GND
+          FLT ── open drain, see below
+```
+
+**Sources tied together in the middle, drains facing outward.** Both body diodes then point
+*inward* to the mid-node, so:
+
+- **Forward:** Q10's body diode (anode MID, cathode FEED) blocks FEED→MID, so forward current
+  requires Q10's channel to be on — which it is in normal operation.
+- **Reverse:** Q11's body diode (anode MID, cathode VBAT_PROT) blocks VBAT_PROT→MID. **That is
+  the reverse-polarity block**, and it holds with the part off and unpowered.
+
+**Common source is not a preference, it is forced by the single GATE pin.** The LTC4380 specifies
+ΔV<sub>GATE</sub> as **GATE − OUT**, one driver for both devices. With the sources common and
+both FETs on, MID ≈ OUT, so GATE − OUT is the true V<sub>GS</sub> for both. A **common-drain**
+arrangement (sources outward) also blocks reverse, but puts the two sources at different
+potentials, so one gate pin cannot drive both. **Do not "simplify" it that way.**
+
+> **This is precisely the class of defect that got through twice already on this board** — the
+> CM-choke pin numbering (Task 7) and the RGB-FET clamp path (F6). **ERC passes a back-to-back
+> pair wired the wrong way round, DRC passes it, and the pad count matches either way.** The
+> netlist must be read by hand after generation, specifically checking which terminal of Q10 and
+> Q11 carries the shared MID node.
+
+#### Component values, and what is not yet settled
+
+**R88 = 5.6 mΩ** gives a **9.0 A nominal** limit (ΔV<sub>SNS</sub> = 50 mV typ). With the IC's
+45–55 mV spread and a 1% resistor the real window is **8.0–10.0 A** — above §4.1's 7.8 A
+flash-to-pass transient, at or below the connector's 10 A. **Both ends pass and neither has room
+to spare**, so R88 must be 1% or better. Dissipation at the 9.9 A worst-case limit is **0.55 W**,
+hence the ≥ 1 W rating.
+
+> **R89 (R<sub>DRN</sub>) and C49 (C<sub>TMR</sub>) are [TO CALCULATE] and must be computed
+> together.** They set how long the part rides through a fault before shutting off, scaled by
+> actual FET stress: the DRN current and ΔV<sub>SNS</sub> are multiplied internally to produce
+> the TMR current. **Getting them wrong fails in both directions** — too short nuisance-trips on
+> inrush, too long violates the FETs' SOA. Constraints already known:
+> - **R<sub>DRN</sub> must limit I<sub>DRN</sub> to ≤ 1 mA at peak input** (datasheet, DRN pin).
+>   At the SMBJ24A's 50.6 V worst case against a ~27 V clamped output that is **≥ 23.6 kΩ**.
+> - **The timer must outlast inrush.** C3's 220 µF charging at the 9 A limit is
+>   220 µF × 12 V / 9 A ≈ **0.29 ms**, plus downstream bulk.
+> - **It must expire well inside the SOA.** At 12 V the 10 ms line allows ~50 A (~34 A derated to
+>   a 65 °C case) against the 7 A clamp current, so 10 ms is comfortable — the FET is not the
+>   binding side here.
+>
+> Work these from the datasheet's TMR section before the schematic is frozen. **Do not carry
+> Figure 5's 220 nF across unexamined** — it belongs to a 5 A, 250 V design, not this one.
+
+#### What is deliberately omitted from the datasheet's Figure 5
+
+Figure 5 is an **overvoltage protector for a 250 V surge** and carries an auxiliary gate network
+(Q3 2N3904, D3/D4 1N4148, R5 10 k, R6 240 k) plus a **68 V Zener on V<sub>CC</sub>**. **None of
+that is carried over**, because our input cannot reach those voltages: §4.3's SMBJ24A clamps at
+**38.9 V (10/1000 µs) / 50.6 V (8/20 µs)**, and the LTC4380's V<sub>CC</sub> is rated
+**−60 to +80 V**. The Zener exists to keep V<sub>CC</sub> under 80 V during a 150–250 V event we
+do not have.
+
+> **CONFIRM BEFORE FREEZING.** This is a deliberate simplification of a vendor reference design,
+> made from the voltage ratings. It has **not** been confirmed that the Q3/D4 network plays no
+> role at more ordinary voltages — Figure 5 also routes M2's gate through it while M1's goes
+> through R3, with a 1 MΩ bridging the two, which is more structure than a plain shared gate.
+> **Re-read the Applications Information around Figure 5 before committing the schematic**, and
+> if in doubt keep R90 and add the 1 MΩ bridge rather than dropping to a bare common gate.
+
+#### Two things this buys that were not asked for
+
+**`FLT` can reach the MCU.** It is an open-drain fault output. With a pull-up to `+3V3_SW` and a
+spare GPIO, the board could report an overcurrent event rather than merely surviving it —
+addressing §4.1's weakness that a hard fault kills the MCU before it can log anything. **Needs a
+free GPIO confirmed against §7.3 before it is drawn.**
+
+**Quiescent current is negligible.** 8 µA typ / 12 µA max operating, 6 µA in shutdown, against
+§8.2's ~100 µA sleep budget. The P-FET it replaces was ~0 µA, so this costs ~12 µA of a budget
+with room — and unlike the ideal-diode controllers rejected in the original §4.2 for drawing
+"tens of microamps continuously", this one earns its keep by removing 0.39 W.
+
+#### What is unchanged
+
+**The residual risk in §4.1 still stands**: a fuse protects the cable *upstream* of itself, and
+U10 sits on the board, so the battery-to-box run remains unprotected. Mitigations and the option
+of a battery-end inline fuse are unchanged.
 
 ### 4.3 Transient protection — sized for an EV
 
@@ -331,9 +460,16 @@ board ground (`GND`) are **separate nets joined only through choke winding B**.
 > path straight around the choke. The circuit then works perfectly and filters nothing — and **no ERC
 > or DRC check will flag it.**
 
-Consequently: the **TVS anode and the P-FET gate resistor reference `GND_IN`** (the protection group
-must reference the ground the surge actually arrives on, and the gate must reference the return the
-battery is connected to), while **everything from the π filter onward references `GND`**.
+Consequently: the **TVS anode and U10's `GND` pin reference `GND_IN`** (the protection group must
+reference the ground the surge actually arrives on, and **the controller must reference the return
+the battery is connected to — it is what holds the pass FETs off under reverse polarity**), while
+**everything from the π filter onward references `GND`**.
+
+> **UPDATED 2026-09-19 with §4.2's rewrite.** This used to read "the P-FET gate resistor
+> references `GND_IN`". R1 and the P-FET are deleted; **U10's ground pin inherits that
+> requirement, and inherits it more strongly** — a gate resistor referencing the wrong return
+> merely biased a FET badly, whereas a controller referencing the wrong return misjudges both the
+> reverse-polarity decision and the sense voltage.
 
 **Build option:** fit **either** the choke **or** two 0 Ω links that short its windings. Links give
 the simple tied-ground case for the first prototype, while the footprint is present either way — so
@@ -1027,19 +1163,33 @@ ceramic and polymer capacitors preferred where they will serve.
 
 **Rewritten 2026-09-13** after the RGB load turned out to be ~4× smaller than assumed (§2.2). The
 governing case has **changed from daytime to night**: with the boost no longer dominating, the
-P-FET's conduction loss at the Denali pair's 7.0 A is now the largest single term on the board.
+conduction loss in the input feed path at the Denali pair's 7.0 A now dominates the board.
+**Since §4.2's rewrite on 2026-09-19 the largest single term is L2**, the input common-mode
+choke, not the pass element — the P-FET that used to hold that place has been replaced by a pair
+of 0.8 mΩ FETs and is no longer significant.
 
 | Source | **Daytime** (corners white, Denali off) | **Night** (Denali on, front DRLs off) |
 |---|---|---|
 | Synchronous boost losses (92%, conservative) | 0.83 W (9.6 W of RGB) | ~0.20 W |
-| P-FET reverse protection (**SQJ461EP, 16 mΩ**) | 0.02 W (1.0 A) | **0.78 W (7.0 A) — largest term** |
+| **Pass element** (§4.2, rewritten 2026-09-19): Q10 + Q11 **IPT008N06NM5LF** at 2.4 mΩ hot, plus **R88 sense 5.6 mΩ** | ~0.01 W (1.0 A) | **0.39 W (7.0 A)** — *was 0.78 W as a lone SQJ461EP P-FET* |
 | Denali PROFET, 150 °C max | 0 W — Denali off | 0.35 W |
 | RGB sense resistors, 12 × 10 Ω | 0.13 W | ~0.03 W |
 | RGB discrete FETs, all 12 | ~0 W | ~0 W |
 | Buck and logic | 0.40 W | 0.40 W |
 | **Input π-filter inductor L1** (1.5 µH) | 0.01 W | **0.28 W** |
-| **Input CM choke L2**, both windings (Würth 7448031002) | 0.02 W | **0.78 W — equal-largest** |
-| **Total** | ~1.4 W | **~2.70 W — governs** |
+| **Input CM choke L2**, both windings (Würth 7448031002) | 0.02 W | **0.78 W — now the largest single term** |
+| **Total** | ~1.4 W | **~2.31 W — governs** |
+
+> **PASS ELEMENT REPLACED 2026-09-19, and the night total FALLS.** §4.2 was rewritten to merge
+> reverse polarity and overcurrent into one conduction path (LTC4380 + back-to-back
+> IPT008N06NM5LF). The lone P-FET's **0.78 W** — the largest single term on this table — becomes
+> **0.39 W** for the pair *plus the sense resistor*, so **night goes 2.70 → 2.31 W** even though
+> the board has gained overcurrent protection it did not have. At 150 cm² that is **~19.7 K →
+> ~60 °C**, about 3 K better than the previous design and the first real margin this table has
+> had. **L2 is now the largest single term at 0.78 W.**
+>
+> *Note R88, the 5.6 mΩ sense resistor, is **0.27 W of that 0.39 W** and is **not** coupled to the
+> heat-spreader plate — it needs its own copper (§4.2).*
 
 > **L1 and L2 ADDED 2026-09-19.** They were missing from this table entirely — the gap raised
 > as finding **F4** in the Task 7 schematic review. Both sit in the main feed path and carry the
@@ -1052,13 +1202,19 @@ P-FET's conduction loss at the Denali pair's 7.0 A is now the largest single ter
 *Flash-to-pass transient adds the boost and Denali terms together briefly — still under 3.4 W, and
 seconds at a time.*
 
-**Plate sizing — revisit at 2.70 W, not 1.9 W.** The table below was computed at **1.9 W**,
-i.e. before L1 and L2 were counted. Scaling it to the corrected **2.70 W** night figure:
-**150 cm² gives ~23 K → 63 °C** at 40 °C ambient, which still meets the 65 °C target but has
-lost most of its margin; **200 cm² gives ~17 K → 57 °C**. **A flat plate still works — but
-≥ 150 cm² is now the floor rather than the comfortable choice, and any part added to the
-thermal group from here has to be paid for out of ~2 K.** That is the budget the F1 eFuse
-selection is competing for (§4.1).
+**Plate sizing — now at 2.31 W.** The table below was computed at **1.9 W**, i.e. before L1 and
+L2 were counted. The night figure went to 2.70 W when they were added, then back to **2.31 W**
+when §4.2's rewrite replaced the P-FET. Scaling the table: **150 cm² gives ~19.7 K → ~60 °C** at
+40 °C ambient, against a 65 °C target; **200 cm² gives ~14 K → 54 °C**.
+
+**A flat plate works with real margin again — about 5 K.** That margin was ~2 K at 2.70 W and is
+the direct return on merging the fuse and the reverse-polarity FET into one pass element.
+**≥ 150 cm² remains the floor.**
+
+> **One term in the 2.31 W is NOT on the plate**: R88, the 5.6 mΩ sense resistor, contributes
+> 0.27 W and couples to the board rather than to the heat-spreader (§4.2). The plate figures above
+> are therefore slightly conservative for the plate itself and slightly optimistic for the board
+> around R88 — Task 8 must give it its own copper.
 
 Original table, at 1.9 W:
 
