@@ -40,6 +40,26 @@ Recorded at the Task 7 schematic review (2026-09-18), observation **O6** plus th
 **Task 3 Steps 3–5** (lay out the second feed as DNP, draw the Schottky OR, verify the DNP feed is
 isolated) are **withdrawn by F5** and must not be executed. Task 3 is complete without them.
 
+**Feed currents swept 2026-09-19.** The plan quoted **7.8 A night / 3.9 A day / 10.5 A transient**
+in **eleven** places. Spec §2.2 has read **1.2 A day / 7.0 A night / 7.8 A flash-to-pass** since
+2026-09-13 and says in terms that 10.5 A was *"the arithmetic sum … an envelope that no steady
+state occupies."* All eleven are corrected. Two were load-bearing rather than cosmetic:
+
+- **Task 8 Step 1 writes its figure onto the board as a text layer**, so the stale pair would have
+  been fabricated into the artwork.
+- **The closing consistency statement certified the plan as "consistent throughout"** while it was
+  not — the most misleading kind of stale line, because it invites the reader not to check.
+
+*(Sizing was conservative rather than unsafe in every case — the stale figures were all higher than
+the real ones — but the P-FET parenthetical at "Also relaxed in this pass" additionally had night
+and daytime dissipation the wrong way round, and that one did mislead: **night governs.**)*
+
+**One conflict the sweep exposed, now reconciled.** The constraints list (Prerequisites) called
+the power polygon **>= 4-5 mm**, derived from a 10 C rise at 2 oz and 7.0 A; Task 8 Step 1 called it
+**>= 5-6 mm** with no stated basis -- a figure that came from the superseded 7.8 A / 10.5 A pair.
+**Two different widths for the same net, in the document that writes one of them onto the board.**
+Step 1 now carries the derived figure with 5-6 mm kept as optional margin.
+
 **Task 8 Step 3's thermal figures are STALE and its part list is wrong.** The step reads *"These are
 ~3.8 W of the board's dissipation in daytime — 3.50 W boost + 0.30 W P-FET"*, and names *"Boost
 high-side and low-side FETs, the boost inductor, the single P-FET and the PROFET"*. All of that
@@ -120,7 +140,7 @@ Copy these values verbatim; every task's requirements implicitly include this se
 
 **Electrical — exact values from the spec**
 - **SINGLE 12 V feed**, one **10 A** fuse. Loads never coincide (spec §2.4):
-  **daytime 1.0 A (10%)**, **night 7.0 A (70% — the governing case)**, flash-to-pass transient 7.8 A
+  **daytime 1.2 A (12%)**, **night 7.0 A (70% — the governing case)**, flash-to-pass transient 7.8 A
   (78%). **Revised 2026-09-13** when the RGB load fell ~4×; the old 105% overload case is gone
 - Second feed: **board footprints retained, unpopulated**; no second panel connector or fuse holder
 - RGB rail: **24 V**, boost **LM51571-Q1**, design point **12 W / 0.5 A**, actual load **7.7 W**
@@ -445,8 +465,9 @@ Two criteria I should have stated from the start are now explicit:
   typically ~1 uA, so the right package fixes the budget as a side effect.
 
 Also relaxed in this pass, both arbitrary on my part: **6.1** P-FET Rds(on) from <=10 to <=20 mOhm
-(at the single feed's 7.8 A, 14 mOhm gives 0.85 W and the 20 mOhm ceiling 1.22 W — both acceptable,
-and night's total dissipation is only ~2.9 W against daytime's ~4.5 W), with its Vgs rating to be judged
+(at the single feed's **7.0 A**, 14 mOhm gives **0.69 W** and the 20 mOhm ceiling **0.98 W** — both
+acceptable; note the comparison in the original text was backwards and is corrected here: **night
+governs at ~2.70 W against daytime's ~1.4 W**, not the other way round), with its Vgs rating to be judged
 **with the Zener gate clamp in circuit**, since the clamp is already in the design and the gate
 therefore never sees the full rail; and **3.4** spread-spectrum, which is an EMC nicety that an
 external SYNC input or a documented mitigation plan satisfies equally well.
@@ -602,7 +623,7 @@ Place a KiCad text box on the sheet stating what must be true when it is done:
 ```
 ACCEPTANCE (spec 4.1-4.4) -- SINGLE FEED, decided 2026-09-12:
 - ONE populated feed: 10 A panel fuse, P-FET reverse polarity, 24 V TVS, pi + CM filter -> VBAT
-- Sized for the night case: 7.8 A continuous (78% of the 10 A feed), 10.5 A transient
+- Sized for the night case: **7.0 A continuous (70% of the 10 A feed), 7.8 A transient**
 - Second feed laid out but DNP: connector position, P-FET stage, Schottky OR -- all footprints
   only, so the domain split can be restored by populating parts rather than respinning
 - NO second panel connector and NO second fuse holder (the panel is 9 penetrations, not 11)
@@ -616,8 +637,9 @@ Panel fuse holder footprint (**10 A**) → P-FET reverse-polarity stage (source 
 gate to GND via resistor, Zener clamping Vgs) → TVS to GND → π filter (C–L–C) and common-mode choke →
 bulk electrolytic + ceramic → net label `VBAT`.
 
-**Size the P-FET for the night case, 7.8 A**, not the daytime 3.9 A: at the 20 mΩ ceiling that is
-**1.22 W** in one device (spec §9.4). Also place the **PWR connector** here (controller Ruling 2).
+**Size the P-FET for the night case, 7.0 A**, not the daytime 1.2 A: at the 20 mΩ ceiling that is
+**0.98 W** in one device — the part actually selected, the SQJ461EP at 16 mΩ, gives **0.78 W**
+(spec §9.4). Also place the **PWR connector** here (controller Ruling 2).
 
 **Keep the gate/Zener network ≥ 1 MΩ.** This is a sleep-budget requirement, not a style preference —
 see spec §8.2 (C3); a low-value divider here silently blows the parked-current budget.
@@ -979,8 +1001,8 @@ schematic; fill in the sheet and reference designator that satisfies it.
 | Spec | Requirement | Sheet / refdes | Verdict |
 |---|---|---|---|
 | 2.2 | Single populated feed, 3-way connector. **No second-feed provision** (F5, 2026-09-18) | | |
-| 4.1 | ONE panel fuse holder, 10 A, sized for the 7.8 A night case | | |
-| 4.2 | P-FET reverse polarity, sized for **7.8 A** (1.22 W at the 20 mOhm ceiling), Vgs clamped, **gate network >= 1 MOhm** (sleep budget) | | |
+| 4.1 | ~~ONE panel fuse holder, 10 A~~ **— SUPERSEDED: F1 is a board-mounted eFuse (spec §4.1, 2026-09-19).** Sized for the **7.0 A** night case, limit **9–10 A** | | |
+| 4.2 | P-FET reverse polarity, sized for **7.0 A** (0.98 W at the 20 mOhm ceiling; 0.78 W as built, SQJ461EP 16 mOhm), Vgs clamped, **gate network >= 1 MOhm** (sleep budget). **Under review — route C would delete Q1 entirely, see part-selection.md** | | |
 | 4.3 | 24 V TVS; all front-end parts >= 40 V | | |
 | 4.3 | pi filter + CM choke on each feed | | |
 | 4.4 | Buck input from `VLOGIC_IN` via **D3, a single Schottky**. No second feed, no OR pair (F5) | | |
@@ -1049,7 +1071,10 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
 - 4 layers: L1 signal, L2 GND (solid, unbroken), L3 power, L4 signal
 - 2 oz outer copper
-- Power polygon >= 5-6 mm effective width for the single feed's 7.8 A continuous / 10.5 A transient
+- Power polygon: **>= 4-5 mm** effective width, the figure the constraints list derives from a
+  10 C rise at 2 oz for the single feed's 7.0 A continuous / 7.8 A transient. **Use 5-6 mm where
+  space allows** -- that was this note's original figure, but it was sized for the superseded
+  7.8 A / 10.5 A pair, so it is margin now rather than a requirement
 - Boost switch-node loop area MINIMISED; gate loops short and tight
 - Boost FETs, inductor, **the single P-FET** and the PROFET grouped on the heat-spreader edge (~3.8 W)
 - ESP32 antenna keep-out: NO copper/plating/parts any layer under the antenna
@@ -1078,6 +1103,27 @@ does not dominate. Note the intended gap-pad contact area on the board.
 Module at the board edge **furthest from the aluminium plate**, antenna overhanging the board edge
 with a keep-out on all four layers. Plastic enclosure walls are the RF window (spec §9.3) — an
 antenna pointed into the metal plate defeats the onboard-antenna decision entirely.
+
+**The number, read from the datasheet 2026-09-19** (`esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf`
+v1.8, Figure 12 *Recommended PCB Land Pattern*, cross-checked against Figure 9 *Physical Dimensions*):
+
+| | |
+|---|---|
+| Module outline | **25.5 × 18.0 × 3.1 mm** (±0.15) |
+| **Antenna Area** | **18.0 mm wide × 6.19 mm deep**, measured from the module's end face — the full module width, spanning the end beyond pins 1 and 38 |
+| Pad rows | 38 × 0.9 mm pads on **1.27 mm** pitch; 7.49 mm from the module end to the far edge of the pin-1/38 pads |
+
+**Lay the keep-out out as that 18.0 × 6.19 mm rectangle, on all four layers**, and prefer cutting
+the board away under it entirely so the antenna overhangs.
+
+> **WHAT THE DATASHEET DOES NOT SAY, and do not invent it.** Figure 3 Note A defers the base-board
+> rule verbatim: *"To learn more about the keepout zone for module's antenna on the base board,
+> please refer to **ESP32 Hardware Design Guidelines > Section Positioning a Module on a Base
+> Board**."* **That document is not held.** So the 18.0 × 6.19 mm figure above is the antenna's own
+> extent — solid, and enough to place against — but **the clearance Espressif requires *around* it
+> (extra margin, ground-plane setback, how much overhang is mandatory vs preferred) is UNVERIFIED.**
+> Board-edge overhang is the conservative reading and costs nothing here. Obtain the guidelines
+> before the fabrication gate (Task 9 Step 7).
 
 - [ ] **Step 5: Place connectors to match the panel**
 
@@ -1129,7 +1175,7 @@ their return, current-sense traces as a differential pair routed away from the s
 - [ ] **Step 2: Route the remaining power nets**
 
 `VBAT`, `+24V`, `DEN_*_OUT` as polygons or wide tracks per the net class. Verify the feed path width
-against the **7.8 A** requirement.
+against the **7.0 A continuous / 7.8 A transient** requirement.
 
 - [ ] **Step 3: Route CAN as a differential pair**
 
@@ -1223,14 +1269,14 @@ Must specify, with actual values rather than descriptions:
 
 Must specify:
 
-- Wire gauge per circuit, derived from the spec currents: single feed **7.8 A night / 3.9 A day**, Denali
+- Wire gauge per circuit, derived from the spec currents: single feed **7.0 A night / 1.2 A day**, Denali
   3.3 A per channel, RGB 0.14 A per channel and 0.42 A per string feed
 - Connector part numbers for both halves of all seven connectors, plus terminals and seals
 - **Corner colour/keying assignment table** — which colour or key code is FL, FR, RL, RR — and a
   prominent warning that mis-mating reverses the indicators and is undetectable in firmware
 - Denali connector pinout showing the shared ground
 - CAN tap method: where on the vehicle, and a reminder that no terminator is populated
-- The power feed: which Experia peripheral outlet, and confirmation it can sustain **7.8 A** (78% of
+- The power feed: which Experia peripheral outlet, and confirmation it can sustain **7.0 A** (70% of
   its 10 A rating) on a warm night
 - Loom, routing and strain-relief requirements, explicitly covering the **accepted risk** that
   the runs from the outlets to the box are not fused at their source (spec §4.1)
@@ -1337,7 +1383,7 @@ pods' native DataDim input (spec 5.3).
 ## Stage 9: Vehicle install
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| The Experia outlet sustains the night load | **7.8 A continuous (78% of its 10 A rating)** without sag or a warm connector | | |
+| The Experia outlet sustains the night load | **7.0 A continuous (70% of its 10 A rating)**, with a 7.8 A flash-to-pass transient, without sag or a warm connector | | |
 | Internal temperature after a sustained ride | < 65 C at 40 C ambient | | |
 | Parked quiescent drain over 7 days | Consistent with < 200 uA | | |
 | Does the CAN bus actually idle when parked? | Bus goes quiet -> board sleeps | | |
@@ -1401,7 +1447,7 @@ expected value beside it, which is the opposite of a placeholder.
 
 **Consistency check:** net names are identical across Tasks 3–9 and match the Global Constraints
 contract. GPIO assignments match the spec pin table including the newly added `CAN_STB` on GPIO 14.
-Currents are consistent throughout: single feed 7.8 A night / 3.9 A day, 0.14 A per RGB channel, 3.3 A per
+Currents are consistent throughout **as of the 2026-09-19 sweep**: single feed **7.0 A night / 1.2 A day / 7.8 A flash-to-pass**, 0.14 A per RGB channel, 3.3 A per
 Denali channel. `kicad-cli` is invoked by full path everywhere.
 
 ---
