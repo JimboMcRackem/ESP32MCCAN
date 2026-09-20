@@ -19,12 +19,15 @@ its region at the first free slot that fits its courtyard.  That guarantees no c
 overlap, which is the one placement error DRC will otherwise report 200 times.
 """
 
+import array as _array
 import copy
+import heapq as _heapq
 import io
 import math
 import os
 import re
 import sys
+import time as _time
 import uuid as _uuid
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -1008,7 +1011,14 @@ DROP_MAX_R = 3.0        # mm from pad centre; beyond this the stub is no longer 
 DROP_STUB_MAX = 0.5     # stub width ceiling; narrower if the pad is narrower
 
 
+# Every track segment emitted, as (x0, y0, x1, y1, width, layer, net).  The autorouter needs
+# to know where the ground drops and the hand routes went, and seg() is the single constructor
+# they all pass through, so logging here catches every one of them without anybody remembering to.
+TRACK_LOG = []
+
+
 def seg(x0, y0, x1, y1, w, layer, net, tag):
+    TRACK_LOG.append((x0, y0, x1, y1, w, layer, net))
     return ('\t(segment\n\t\t(start %s %s)\n\t\t(end %s %s)\n\t\t(width %s)\n'
             '\t\t(layer %s)\n\t\t(net %d)\n\t\t(uuid %s)\n\t)'
             % (num(x0), num(y0), num(x1), num(y1), num(w), q(layer), net, U(tag)))
@@ -1023,10 +1033,17 @@ def pads_board(comps, pos, padnet):
     the clearance test at once.  Six ground drops landed inside a neighbouring 39 before this
     had an index to tell them apart.
 
-    Pad positions are footprint-local and pad rotation is stored absolute, so the size is
-    oriented by the pad's own angle while the position is rotated by the footprint's.  Taking
-    the axis-aligned bounding box of the rotated pad is exact for the rectangular pads this
-    matters for and pessimistic -- safe -- for ovals and circles.
+    Both the position and the SIZE are rotated by the footprint's rotation.  The pad angle in
+    a library footprint is footprint-RELATIVE -- build_footprint() absolute-ises it through
+    addrot() on the way out -- so reading it here without adding `rot` orients every non-square
+    pad of every rotated part along the wrong axis.  That is what this function did until now,
+    and it is why U5's 0.90 x 1.50 castellated pads came back as 1.50 x 0.90 boxes overlapping
+    each other on a 1.27 mm pitch.  Nothing caught it, because a too-wide box is pessimistic --
+    it only refuses ground drops that would have been legal -- while the too-SHORT other axis
+    is optimistic, and an optimistic clearance test fails silently by definition.
+
+    Taking the axis-aligned bounding box of the rotated pad is exact for the rectangular pads
+    this matters for and pessimistic -- safe -- for ovals and circles.
     """
     out = []
     for c in comps:
@@ -1046,7 +1063,7 @@ def pads_board(comps, pos, padnet):
             names = [unq(a) for a in lay[1:] if isinstance(a, str)]
             if not any(n in ("F.Cu", "*.Cu") for n in names):
                 continue
-            pa = float(at[3]) if len(at) > 3 else 0.0
+            pa = (float(at[3]) if len(at) > 3 else 0.0) + rot
             w, h = float(sz[1]), float(sz[2])
             th = math.radians(pa)
             cth, sth = abs(math.cos(th)), abs(math.sin(th))
@@ -1474,6 +1491,603 @@ def routes(comps, pos, padnet, netidx, placed):
     return out
 
 
+# --------------------------------------------------------------------------- autorouter
+#
+# A grid maze router for the signal nets.
+#
+# Why this exists.  After the ground drops there are still ~330 unconnected pads, and I tried
+# to hand-author the boost's control nets into ROUTES first.  Four nets have to escape U3's
+# right edge -- SW, MODE, SS and FB on 0.5 mm pitch -- and they have to nest in the order their
+# pins come in, past a 100 pF cap that sits in the only channel.  Every arrangement I worked out
+# by hand broke one of the four, and each attempt cost a full pass of measuring pad boxes.  That
+# is a search problem, and this is the thing that does searches.
+#
+# ROUTES still comes first and still wins: anything in that table is already copper before the
+# router starts, so the switch node, the commutation loop and anything else whose geometry is a
+# design decision stays hand-authored.  The router is for the connections where any legal path
+# will do, which is most of them.
+#
+# What it does NOT do:
+#
+#   * GND.  It is a plane on In1.Cu and B.Cu and every SMD pad already has a drop.
+#   * the FEED and POWER classes.  Those are 2.0 and 3.5 mm wide and the clearance map here is
+#     built for a 0.25 mm track; they are plan Task 9 Step 2 and they are hand work, because
+#     their width is a thermal decision and their shape is a loop-area decision.
+#   * differential pairs.  CAN is Step 3 and wants matched, coupled geometry, not two
+#     independently searched paths.
+#
+# How the map works.  Two arrays per routable layer over a 0.1 mm grid:
+#
+#   core[layer]  the net code of the copper actually at that cell, or 0.
+#   halo[layer]  the net code of the copper whose CLEARANCE covers that cell; -1 if two
+#                different nets both claim it, 0 if nobody does.
+#
+# A cell is passable for net N if halo is 0 or N -- or if core is N, which lets a route sit
+# inside its own pad, the one place where copper of its own net is already committed.  The halo
+# radius is the obstacle's own extent grown by (0.125 + the obstacle net's clearance): a
+# centreline outside that leaves a 0.25 mm track's EDGE at least that clearance away, which is
+# what the rule actually asks.  Growing by the obstacle's class rather than by the widest class
+# on the board is what makes a 0.5 mm pitch QFN escapable at all: straight out from a 0.25 mm
+# pad, the neighbouring pad's edge is 0.375 mm away and the halo is 0.325 mm, so the cell on the
+# pad's own centreline is free -- by 0.05 mm.  At the board-wide 0.30 mm it would not be.
+#
+# Rounded rectangles are stamped as square ones, and diagonal runs as true capsules.  Square is
+# pessimistic at the corners, which is the safe direction for a clearance map.
+#
+# None of this replaces DRC.  It is a model of the rules, and the board is judged by the tool
+# that owns them.
+
+AR_GRID = 0.1                  # mm per cell
+AR_W = 0.25                    # what the router emits; narrow, because escape geometry governs
+AR_CLEAR = 0.20                # Default class; wider classes are read per obstacle net
+AR_VIA, AR_VIA_DRILL = 0.6, 0.3
+AR_LAYERS = ("F.Cu", "B.Cu")
+AR_EDGE = 0.5                  # mm of copper-free border inside the board outline
+AR_VIA_COST = 45               # in tenth-mm steps: a layer change is worth 4.5 mm of detour
+AR_DIAG_OK = True
+AR_MARGIN = (6.0, 14.0, 30.0)  # mm the search box grows by, tried in order
+AR_MAX_POP = 600000            # give up on one attempt rather than hang the generator
+
+# The nets the router is not allowed to touch, by class name.  GND is named directly.
+AR_SKIP_CLASSES = ("FEED", "POWER", "CAN")
+
+
+def _ar_class(code):
+    name = NETNAME.get(code) or ""
+    short = name.rsplit("/", 1)[-1]
+    for cname, tw, cl, vd, vdr, nets in L.NETCLASSES:
+        if name in nets or short in nets:
+            return cname, cl
+    return "Default", DROP_DEFAULT_CLEAR
+
+
+class ARMap(object):
+    """The occupancy and clearance model, on a 0.1 mm grid over the board."""
+
+    def __init__(self):
+        self.w = int(round((L.X1 - L.X0) / AR_GRID)) + 1
+        self.h = int(round((L.Y1 - L.Y0) / AR_GRID)) + 1
+        n = self.w * self.h
+        z = _array.array('h', [0])
+        self.core = [z * n, z * n]
+        self.halo = [z * n, z * n]
+        self.vhalo = z * n          # too close for a VIA; one map, since a via crosses both
+        self.cells = {}             # net -> [set of cells on F, set of cells on B]
+        self.pads = {}              # net -> [(x0, y0, x1, y1, cx, cy, layers)]
+
+    # -- coordinates
+    def ij(self, x, y):
+        return (int(round((x - L.X0) / AR_GRID)), int(round((y - L.Y0) / AR_GRID)))
+
+    def xy(self, c):
+        return (L.X0 + (c % self.w) * AR_GRID, L.Y0 + (c // self.w) * AR_GRID)
+
+    # -- stamping.  `mark` writes one cell of one map with the net-or-contested rule.
+    def _mark(self, m, c, net):
+        v = m[c]
+        if v == 0:
+            m[c] = net
+        elif v != net:
+            m[c] = -1
+
+    def _box(self, x0, y0, x1, y1, grow):
+        i0, j0 = self.ij(x0 - grow, y0 - grow)
+        i1, j1 = self.ij(x1 + grow, y1 + grow)
+        return (max(0, i0), max(0, j0), min(self.w - 1, i1), min(self.h - 1, j1))
+
+    def rect(self, m, x0, y0, x1, y1, grow, net, index=None):
+        i0, j0, i1, j1 = self._box(x0, y0, x1, y1, grow)
+        for j in range(j0, j1 + 1):
+            base = j * self.w
+            for i in range(i0, i1 + 1):
+                self._mark(m, base + i, net)
+                if index is not None:
+                    index.add(base + i)
+
+    def capsule(self, m, x0, y0, x1, y1, r, net, index=None):
+        """Everything within r of the segment.  Exact, because the ground-drop stubs run at
+        every angle and their bounding boxes would block a great deal of innocent copper."""
+        i0, j0, i1, j1 = self._box(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1), r)
+        dx, dy = x1 - x0, y1 - y0
+        dd = dx * dx + dy * dy
+        rr = r * r
+        for j in range(j0, j1 + 1):
+            py = L.Y0 + j * AR_GRID
+            base = j * self.w
+            for i in range(i0, i1 + 1):
+                px = L.X0 + i * AR_GRID
+                if dd <= 1e-12:
+                    t = 0.0
+                else:
+                    t = ((px - x0) * dx + (py - y0) * dy) / dd
+                    t = 0.0 if t < 0.0 else (1.0 if t > 1.0 else t)
+                ex, ey = px - (x0 + t * dx), py - (y0 + t * dy)
+                if ex * ex + ey * ey <= rr:
+                    self._mark(m, base + i, net)
+                    if index is not None:
+                        index.add(base + i)
+
+    def net_cells(self, net):
+        if net not in self.cells:
+            self.cells[net] = [set(), set()]
+        return self.cells[net]
+
+
+def _ar_build(comps, pos, padnet, netidx, placed, keepouts):
+    """The map, from the pads, the vias and every track already emitted."""
+    g = ARMap()
+    hw = AR_W / 2.0
+
+    # -- board edge: a border of hard-blocked cells, as a net nobody owns.  The outline is a
+    #    rounded rectangle, so the corner radius is taken off the corners too.
+    bw = AR_EDGE + hw
+    nb = int(bw / AR_GRID) + 1
+    for j in range(g.h):
+        base = j * g.w
+        edge = j < nb or j >= g.h - nb
+        span = range(g.w) if edge else list(range(0, nb)) + list(range(g.w - nb, g.w))
+        for i in span:
+            g.halo[0][base + i] = -1
+            g.halo[1][base + i] = -1
+            g.vhalo[base + i] = -1
+    r = L.EDGE_R
+    for cx, cy, sx, sy in ((L.X0 + r, L.Y0 + r, -1, -1), (L.X1 - r, L.Y0 + r, 1, -1),
+                           (L.X0 + r, L.Y1 - r, -1, 1), (L.X1 - r, L.Y1 - r, 1, 1)):
+        i0, j0, i1, j1 = g._box(min(cx, cx + sx * r), min(cy, cy + sy * r),
+                                max(cx, cx + sx * r), max(cy, cy + sy * r), 0.0)
+        for j in range(j0, j1 + 1):
+            y = L.Y0 + j * AR_GRID
+            base = j * g.w
+            for i in range(i0, i1 + 1):
+                x = L.X0 + i * AR_GRID
+                if (x - cx) * sx > 0 and (y - cy) * sy > 0 \
+                        and math.hypot(x - cx, y - cy) > r - AR_EDGE - hw:
+                    g.halo[0][base + i] = -1
+                    g.halo[1][base + i] = -1
+                    g.vhalo[base + i] = -1
+
+    # -- pads.  A through-hole pad is copper on both layers; an SMD pad only on F.Cu, which is
+    #    the layer every SMD part on this board is on.
+    for ref, pn, net, px, py, pw, ph, smd, _pid in pads_board(comps, pos, padnet):
+        net = net or -1
+        _cn, cl = _ar_class(net)
+        grow = hw + max(AR_CLEAR, cl)
+        x0, y0, x1, y1 = px - pw / 2, py - ph / 2, px + pw / 2, py + ph / 2
+        lays = (0,) if smd else (0, 1)
+        idx = g.net_cells(net) if net > 0 else None
+        for ly in lays:
+            g.rect(g.core[ly], x0, y0, x1, y1, 0.0, net, idx[ly] if idx else None)
+            g.rect(g.halo[ly], x0, y0, x1, y1, grow, net)
+        g.rect(g.vhalo, x0, y0, x1, y1, AR_VIA / 2.0 + max(AR_CLEAR, cl), net)
+        # A via that half-overlaps a pad -- its OWN pad; a foreign one is already excluded by
+        # the line above -- joins it through a crescent of copper narrower than either, which
+        # is a connection-width violation even though nothing is shorted.  Keep the annulus
+        # off the pad entirely and let a track make the join at full width.
+        g.rect(g.vhalo, x0, y0, x1, y1, AR_VIA / 2.0, -1)
+        if net > 0:
+            g.pads.setdefault(net, []).append((x0, y0, x1, y1, px, py, lays))
+
+    # -- tracks already emitted: the hand routes and the ground-drop stubs.
+    for x0, y0, x1, y1, w, layer, net in TRACK_LOG:
+        ly = AR_LAYERS.index(layer) if layer in AR_LAYERS else None
+        if ly is None:
+            continue
+        net = net or -1
+        _cn, cl = _ar_class(net)
+        idx = g.net_cells(net) if net > 0 else None
+        g.capsule(g.core[ly], x0, y0, x1, y1, w / 2.0, net, idx[ly] if idx else None)
+        g.capsule(g.halo[ly], x0, y0, x1, y1, w / 2.0 + hw + max(AR_CLEAR, cl), net)
+        g.capsule(g.vhalo, x0, y0, x1, y1, w / 2.0 + AR_VIA / 2.0 + max(AR_CLEAR, cl), net)
+
+    # -- vias already placed: thermal arrays, stitching, ground drops.  These cross both layers.
+    for vx, vy, vs, vd, vnet in placed:
+        vnet = vnet or -1
+        _cn, cl = _ar_class(vnet)
+        idx = g.net_cells(vnet) if vnet > 0 else None
+        for ly in (0, 1):
+            g.capsule(g.core[ly], vx, vy, vx, vy, vs / 2.0, vnet, idx[ly] if idx else None)
+            g.capsule(g.halo[ly], vx, vy, vx, vy, vs / 2.0 + hw + max(AR_CLEAR, cl), vnet)
+        g.capsule(g.vhalo, vx, vy, vx, vy, vs / 2.0 + AR_VIA / 2.0 + max(AR_CLEAR, cl), vnet)
+
+    # -- places nothing may go at all: the antenna keep-out, the mounting holes, and (for vias
+    #    only) the GND_IN island, for the reason stitch_vias() gives -- a hole punched through
+    #    the input island is copper taken out of the one net carrying the whole load current.
+    for kx0, ky0, kx1, ky1 in keepouts:
+        g.rect(g.halo[0], kx0, ky0, kx1, ky1, hw, -1)
+        g.rect(g.halo[1], kx0, ky0, kx1, ky1, hw, -1)
+        g.rect(g.vhalo, kx0, ky0, kx1, ky1, AR_VIA / 2.0, -1)
+    for mx, my in mount_holes():
+        rr = L.MOUNT_PAD / 2.0 + AR_CLEAR
+        for ly in (0, 1):
+            g.capsule(g.halo[ly], mx, my, mx, my, rr + hw, -1)
+        g.capsule(g.vhalo, mx, my, mx, my, rr + AR_VIA / 2.0, -1)
+    # The island is an axis-aligned staircase, so it is rasterised by scanline rather than by
+    # asking in_gnd_in_island() about all 1.4 million cells -- which is a 10-edge polygon test
+    # per cell and takes minutes.  Three scanlines per row, at y - halo, y and y + halo, with
+    # the x spans grown by the halo, reproduce that function's five-point test as a superset.
+    ih = AR_VIA / 2.0 + AR_CLEAR
+    poly = L.GND_IN_ISLAND
+    nvp = len(poly)
+    for j in range(g.h):
+        y = L.Y0 + j * AR_GRID
+        base = j * g.w
+        spans = []
+        for dy in (-ih, 0.0, ih):
+            py = y + dy
+            xs = []
+            for k in range(nvp):
+                x0, y0 = poly[k]
+                x1, y1 = poly[(k + 1) % nvp]
+                if (y0 > py) != (y1 > py):
+                    xs.append(x0 + (py - y0) * (x1 - x0) / (y1 - y0))
+            xs.sort()
+            grow = 0.0 if dy == 0.0 else ih
+            for k in range(0, len(xs) - 1, 2):
+                spans.append((xs[k] - grow, xs[k + 1] + grow))
+        for xa, xb in spans:
+            i0 = max(0, int(math.ceil((xa - L.X0) / AR_GRID)))
+            i1 = min(g.w - 1, int((xb - L.X0) / AR_GRID))
+            for i in range(i0, i1 + 1):
+                g.vhalo[base + i] = -1
+    return g
+
+
+def _ar_components(g, net):
+    """The connected pieces of `net`'s existing copper, as lists of (cell, layer).
+
+    Flood fill over the net's own core cells, 4-connected within a layer and joined between
+    layers wherever the net has a via.  Two pads that DRC calls unconnected are two components
+    here; when this returns one component the net is done.
+    """
+    idx = g.cells.get(net)
+    if not idx:
+        return []
+    seen = set()
+    comps = []
+    for ly0 in (0, 1):
+        for start in idx[ly0]:
+            # A cell recorded at stamp time may since have been overwritten by another net's
+            # copper, which makes it contested rather than ours.  Starting a flood there would
+            # report one bogus single-cell component per such cell.
+            if (start, ly0) in seen or g.core[ly0][start] != net:
+                continue
+            stack = [(start, ly0)]
+            seen.add((start, ly0))
+            comp = []
+            while stack:
+                c, ly = stack.pop()
+                comp.append((c, ly))
+                i = c % g.w
+                nb = []
+                if i > 0:
+                    nb.append((c - 1, ly))
+                if i < g.w - 1:
+                    nb.append((c + 1, ly))
+                if c >= g.w:
+                    nb.append((c - g.w, ly))
+                if c < g.w * (g.h - 1):
+                    nb.append((c + g.w, ly))
+                # a cell that is this net's copper on BOTH layers is a via of this net
+                other = 1 - ly
+                if g.core[other][c] == net:
+                    nb.append((c, other))
+                for cc, ll in nb:
+                    if (cc, ll) not in seen and g.core[ll][cc] == net:
+                        seen.add((cc, ll))
+                        stack.append((cc, ll))
+            comps.append(comp)
+    return comps
+
+
+def _ar_search(g, net, srcs, dsts, dst_pts, box):
+    """A* from a set of (cell, layer) to a set of (cell, layer).  Returns the path, or None.
+
+    Costs are in tenths of a millimetre so they stay integers: 10 for an orthogonal step, 14
+    for a diagonal one, AR_VIA_COST for a layer change.  The heuristic is the octile distance
+    to the nearest destination pad centre, which is admissible because no step is cheaper per
+    millimetre than a straight orthogonal run.
+    """
+    i0, j0, i1, j1 = box
+    core, halo, vhalo, w = g.core, g.halo, g.vhalo, g.w
+
+    def inbox(c):
+        i = c % w
+        return i0 <= i <= i1 and j0 <= (c // w) <= j1
+
+    def pass_(c, ly):
+        v = halo[ly][c]
+        return v == 0 or v == net or core[ly][c] == net
+
+    def hh(c):
+        i, j = c % w, c // w
+        best = 1 << 30
+        for pi, pj in dst_pts:
+            dx, dy = abs(i - pi), abs(j - pj)
+            v = 10 * (dx + dy) - 6 * min(dx, dy) if AR_DIAG_OK else 10 * (dx + dy)
+            if v < best:
+                best = v
+        return best
+
+    goal = set(dsts)
+    dist = {}
+    prev = {}
+    heap = []
+    for c, ly in srcs:
+        if not inbox(c):
+            continue
+        k = (c, ly)
+        if k not in dist:
+            dist[k] = 0
+            _heapq.heappush(heap, (hh(c), 0, c, ly))
+    pops = 0
+    steps = ((1, 0, 10), (-1, 0, 10), (0, 1, 10), (0, -1, 10))
+    diags = ((1, 1, 14), (1, -1, 14), (-1, 1, 14), (-1, -1, 14))
+    while heap:
+        f, d, c, ly = _heapq.heappop(heap)
+        if d > dist.get((c, ly), 1 << 30):
+            continue
+        if (c, ly) in goal:
+            path = [(c, ly)]
+            while (c, ly) in prev:
+                c, ly = prev[(c, ly)]
+                path.append((c, ly))
+            path.reverse()
+            return path
+        pops += 1
+        if pops > AR_MAX_POP:
+            return None
+        i, j = c % w, c // w
+        for dx, dy, cost in steps:
+            ni, nj = i + dx, j + dy
+            if not (i0 <= ni <= i1 and j0 <= nj <= j1):
+                continue
+            nc = nj * w + ni
+            if not pass_(nc, ly):
+                continue
+            nd = d + cost
+            if nd < dist.get((nc, ly), 1 << 30):
+                dist[(nc, ly)] = nd
+                prev[(nc, ly)] = (c, ly)
+                _heapq.heappush(heap, (nd + hh(nc), nd, nc, ly))
+        if AR_DIAG_OK:
+            for dx, dy, cost in diags:
+                ni, nj = i + dx, j + dy
+                if not (i0 <= ni <= i1 and j0 <= nj <= j1):
+                    continue
+                nc = nj * w + ni
+                # no squeezing between two blocked cells on the diagonal
+                if not (pass_(nc, ly) and pass_(j * w + ni, ly) and pass_(nj * w + i, ly)):
+                    continue
+                nd = d + cost
+                if nd < dist.get((nc, ly), 1 << 30):
+                    dist[(nc, ly)] = nd
+                    prev[(nc, ly)] = (c, ly)
+                    _heapq.heappush(heap, (nd + hh(nc), nd, nc, ly))
+        # layer change
+        oly = 1 - ly
+        if vhalo[c] in (0, net) and pass_(c, oly):
+            nd = d + AR_VIA_COST
+            if nd < dist.get((c, oly), 1 << 30):
+                dist[(c, oly)] = nd
+                prev[(c, oly)] = (c, ly)
+                _heapq.heappush(heap, (nd + hh(c), nd, c, oly))
+    return None
+
+
+def _ar_pad_at(g, net, cell, ly):
+    """The pad of `net` whose box contains this cell on this layer, or None.
+
+    The box is widened by half a grid cell because ARMap.rect() rounds to the nearest cell
+    when it stamps, so the pad's copper in the map reaches half a cell beyond the real edge
+    and A* is entitled to finish there.  Testing against the un-widened box misses exactly
+    those ends -- which are the ones furthest off centre, so the very ones that need a lead.
+    """
+    x, y = g.xy(cell)
+    h = AR_GRID / 2.0 + 1e-9
+    for x0, y0, x1, y1, cx, cy, lays in g.pads.get(net, ()):
+        if ly in lays and x0 - h <= x <= x1 + h and y0 - h <= y <= y1 + h:
+            return (x0 - h, y0 - h, x1 + h, y1 + h, cx, cy)
+    return None
+
+
+def _ar_trim(g, net, seq):
+    """Replace the run of in-pad cells at the head of `seq` with one lead from the pad centre.
+
+    A* finishes on whatever cell of the target pad it reached first and then wanders about
+    inside it, so the segment that actually crosses the pad boundary usually leaves through a
+    corner.  The overlap is then a sliver: KiCad measures the connection across the sliver
+    rather than across the track, which is a connection-width violation, and on a rounded-rect
+    pad -- where the box this router works from is bigger than the copper -- the corner may not
+    be pad copper at all, which is a dangling track.  Running one straight lead from the pad
+    centre out to the first cell beyond the box crosses the boundary at full track width, at
+    whatever angle it leaves.  The lead stays inside the box, which is copper of this net
+    already, so it needs no clearance check of its own.
+
+    Returns (cells to drop from the head, the lead, or None if the head is not in a pad).
+    """
+    c0, ly0 = seq[0]
+    pad = _ar_pad_at(g, net, c0, ly0)
+    if pad is None:
+        return 0, None
+    x0, y0, x1, y1, cx, cy = pad
+    k = 0
+    while k + 1 < len(seq) and seq[k + 1][1] == ly0:
+        px, py = g.xy(seq[k + 1][0])
+        if not (x0 <= px <= x1 and y0 <= py <= y1):
+            k += 1              # the first cell outside the box: the lead ends here
+            break
+        k += 1
+    tx, ty = g.xy(seq[k][0])
+    if abs(tx - cx) < 1e-9 and abs(ty - cy) < 1e-9:
+        return k, None
+    return k, (cx, cy, tx, ty, ly0)
+
+
+def _ar_emit(g, net, path, out, placed):
+    """Turn a cell path into segments and vias, and stamp it back into the map."""
+    hw = AR_W / 2.0
+    _cn, cl = _ar_class(net)
+    grow = hw + hw + max(AR_CLEAR, cl)
+    idx = g.net_cells(net)
+
+    kh, lead_h = _ar_trim(g, net, path)
+    kt, lead_t = _ar_trim(g, net, path[::-1])
+    if kh + kt < len(path):
+        path = path[kh:len(path) - kt]
+
+    runs = []
+    if lead_h:
+        runs.append(("lead",) + lead_h)
+    i = 0
+    while i < len(path) - 1:
+        c, ly = path[i]
+        c2, ly2 = path[i + 1]
+        if ly2 != ly:
+            runs.append(("via", c, ly))
+            i += 1
+            continue
+        d = (c2 % g.w - c % g.w, c2 // g.w - c // g.w)
+        j = i + 1
+        while j < len(path) - 1:
+            c3, ly3 = path[j + 1]
+            cj, lyj = path[j]
+            if ly3 != lyj:
+                break
+            if (c3 % g.w - cj % g.w, c3 // g.w - cj // g.w) != d:
+                break
+            j += 1
+        runs.append(("seg", c, path[j][0], ly))
+        i = j
+    if lead_t:
+        runs.append(("lead",) + lead_t)
+
+    n = 0
+    for r in runs:
+        if r[0] == "lead":
+            _t, x0, y0, x1, y1, ly = r
+            out.append(seg(x0, y0, x1, y1, AR_W, AR_LAYERS[ly], net, "ar%d.%d" % (net, n)))
+            g.capsule(g.core[ly], x0, y0, x1, y1, hw, net, idx[ly])
+            g.capsule(g.halo[ly], x0, y0, x1, y1, grow, net)
+            g.capsule(g.vhalo, x0, y0, x1, y1, hw + AR_VIA / 2.0 + max(AR_CLEAR, cl), net)
+        elif r[0] == "via":
+            _c, ly = r[1], r[2]
+            vx, vy = g.xy(_c)
+            out.append(via(vx, vy, net, AR_VIA, AR_VIA_DRILL, "ar%d.%d" % (net, n)))
+            placed.append((vx, vy, AR_VIA, AR_VIA_DRILL, net))
+            for l2 in (0, 1):
+                g.capsule(g.core[l2], vx, vy, vx, vy, AR_VIA / 2.0, net, idx[l2])
+                g.capsule(g.halo[l2], vx, vy, vx, vy, AR_VIA / 2.0 + grow - hw, net)
+            g.capsule(g.vhalo, vx, vy, vx, vy, AR_VIA + max(AR_CLEAR, cl), net)
+        else:
+            _c, _c2, ly = r[1], r[2], r[3]
+            x0, y0 = g.xy(_c)
+            x1, y1 = g.xy(_c2)
+            out.append(seg(x0, y0, x1, y1, AR_W, AR_LAYERS[ly], net, "ar%d.%d" % (net, n)))
+            g.capsule(g.core[ly], x0, y0, x1, y1, hw, net, idx[ly])
+            g.capsule(g.halo[ly], x0, y0, x1, y1, grow, net)
+            g.capsule(g.vhalo, x0, y0, x1, y1, hw + AR_VIA / 2.0 + max(AR_CLEAR, cl), net)
+        n += 1
+    return (len([r for r in runs if r[0] in ("seg", "lead")]),
+            len([r for r in runs if r[0] == "via"]))
+
+
+def autoroute(comps, pos, padnet, netidx, placed, keepouts):
+    """Route every signal net that is not already whole.  Returns the segments and vias."""
+    gnd = netidx.get("GND")
+    t0 = _time.time()
+    g = _ar_build(comps, pos, padnet, netidx, placed, keepouts)
+    print("autorouter: clearance map over %d x %d cells in %.1f s"
+          % (g.w, g.h, _time.time() - t0))
+
+    todo = []
+    for net in sorted(g.cells):
+        if net <= 0 or net == gnd:
+            continue
+        cname, _cl = _ar_class(net)
+        if cname in AR_SKIP_CLASSES:
+            continue
+        comps_ = _ar_components(g, net)
+        if len(comps_) < 2:
+            continue
+        # shortest first: the tight nets get the channels before the loose ones fill them
+        xs = [g.xy(c)[0] for cm in comps_ for c, _l in cm]
+        ys = [g.xy(c)[1] for cm in comps_ for c, _l in cm]
+        todo.append((max(xs) - min(xs) + max(ys) - min(ys), len(comps_), net))
+    todo.sort()
+    print("autorouter: %d net(s) to route, %.1f s to here"
+          % (len(todo), _time.time() - t0))
+
+    out = []
+    done = fail = nseg = nvia = 0
+    failed = []
+    for _span, _n, net in todo:
+        comps_ = _ar_components(g, net)
+        # grow one component until it has swallowed the rest, nearest first
+        while len(comps_) > 1:
+            comps_.sort(key=len, reverse=True)
+            src = comps_[0]
+            rest = comps_[1:]
+            sx = [g.xy(c) for c, _l in src]
+            scx = sum(p[0] for p in sx) / len(sx)
+            scy = sum(p[1] for p in sx) / len(sx)
+            rest.sort(key=lambda cm: min(math.hypot(g.xy(c)[0] - scx, g.xy(c)[1] - scy)
+                                         for c, _l in cm))
+            dst = rest[0]
+            dxy = [g.xy(c) for c, _l in dst]
+            pts = [(int(round((x - L.X0) / AR_GRID)), int(round((y - L.Y0) / AR_GRID)))
+                   for x, y in dxy[::max(1, len(dxy) // 8)]]
+            path = None
+            print("    %-26s %d piece(s), %.1f s" % (NETNAME.get(net, "?"), len(comps_),
+                                                     _time.time() - t0))
+            for margin in AR_MARGIN:
+                allx = [p[0] for p in sx] + [p[0] for p in dxy]
+                ally = [p[1] for p in sx] + [p[1] for p in dxy]
+                box = (max(0, g.ij(min(allx) - margin, 0)[0]),
+                       max(0, g.ij(0, min(ally) - margin)[1]),
+                       min(g.w - 1, g.ij(max(allx) + margin, 0)[0]),
+                       min(g.h - 1, g.ij(0, max(ally) + margin)[1]))
+                path = _ar_search(g, net, src, set(dst), pts, box)
+                if path:
+                    break
+            if not path:
+                failed.append("%s (%d piece(s) left)" % (NETNAME.get(net, "?"), len(comps_)))
+                fail += 1
+                break
+            s, v = _ar_emit(g, net, path, out, placed)
+            nseg += s
+            nvia += v
+            done += 1
+            comps_ = _ar_components(g, net)
+
+    print("autorouter: %d connection(s) routed, %d segment(s), %d via(s)"
+          % (done, nseg, nvia))
+    if failed:
+        print("  WARN: no path for %d net(s):" % len(failed))
+        for f in failed:
+            print("      %s" % f)
+    return out
+
+
 # --------------------------------------------------------------------------- main
 NETNAME = {}
 
@@ -1561,6 +2175,10 @@ def main():
     dv, ds = gnd_drops(comps, pos, padnet, netidx, placed, kos)
     out += dv
     out += ds
+    # The autorouter goes LAST of the copper, so its map sees the hand routes, the thermal and
+    # stitching vias, and every ground drop as obstacles it has to work around.  Running it any
+    # earlier would let it take the space a drop has no alternative to.
+    out += autoroute(comps, pos, padnet, netidx, placed, kos)
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")
