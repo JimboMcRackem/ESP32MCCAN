@@ -1323,6 +1323,157 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
     return vias, segs
 
 
+# --------------------------------------------------------------------------- routes
+#
+# layout_pcb.ROUTES / ROUTE_VIAS turned into track segments and vias, with the two checks the
+# comment there describes.  Both work on COPPER OVERLAP rather than on centrelines -- see that
+# comment for why -- and both are advisory: they print and carry on, because the authority on a
+# routed board is DRC, and a check here that refused to emit would only hide the geometry from
+# the tool that can actually judge it.
+#
+# Boxes are axis-aligned bounds: exact for the orthogonal runs, which is nearly all of them,
+# and pessimistic for diagonals.  Pessimistic is the safe direction for a clearance test and
+# the unsafe one for an anchorage test, so a diagonal that only just reaches its pad will be
+# reported as anchored when it is not.  DRC still catches that as an unconnected item; what
+# this catches is the coordinate typo that DRC can only describe as "unconnected", somewhere,
+# in a list of hundreds.
+
+
+def _rect_gap(a, b):
+    """Gap between two (x0, y0, x1, y1) rectangles; 0.0 if they touch or overlap."""
+    dx = max(b[0] - a[2], a[0] - b[2], 0.0)
+    dy = max(b[1] - a[3], a[1] - b[3], 0.0)
+    return math.hypot(dx, dy)
+
+
+def _seg_box(x0, y0, x1, y1, w):
+    return (min(x0, x1) - w / 2, min(y0, y1) - w / 2,
+            max(x0, x1) + w / 2, max(y0, y1) + w / 2)
+
+
+def _pad_box(p):
+    _ref, _pn, _net, px, py, pw, ph, _smd, _pid = p
+    return (px - pw / 2, py - ph / 2, px + pw / 2, py + ph / 2)
+
+
+def routes(comps, pos, padnet, netidx, placed):
+    """Emit ROUTES and ROUTE_VIAS, after checking anchorage and foreign clearance."""
+    spec = list(getattr(L, "ROUTES", []))
+    vspec = list(getattr(L, "ROUTE_VIAS", []))
+    if not spec and not vspec:
+        return []
+
+    # Nets are named by their last path component, so "+24V" finds "/+24V" and "SW_BOOST"
+    # finds "/rails/SW_BOOST" without this file knowing which sheet declared them.
+    short = {}
+    for name, code in netidx.items():
+        short.setdefault(name.rsplit("/", 1)[-1], []).append(name)
+
+    def resolve(n, what):
+        if n in netidx:
+            return netidx[n]
+        hits = short.get(n, [])
+        if len(hits) == 1:
+            return netidx[hits[0]]
+        if not hits:
+            print("  ERROR: %s names net %r, which is not in the netlist" % (what, n))
+        else:
+            print("  ERROR: %s names net %r, which is ambiguous: %s"
+                  % (what, n, ", ".join(sorted(hits))))
+        return None
+
+    allpads = pads_board(comps, pos, padnet)
+    hash_ = Hash(allpads)
+
+    # Flatten first, so the anchorage test can see pieces that come later in the table as well
+    # as earlier ones -- the order entries are written in should not decide whether they pass.
+    segs, vias = [], []
+    for i, (n, layer, w, pts) in enumerate(spec):
+        code = resolve(n, "ROUTES entry %d" % i)
+        if code is None:
+            continue
+        for j in range(len(pts) - 1):
+            (x0, y0), (x1, y1) = pts[j], pts[j + 1]
+            segs.append(dict(code=code, name=n, layer=layer, w=w, i=i, j=j,
+                             p0=(x0, y0), p1=(x1, y1),
+                             box=_seg_box(x0, y0, x1, y1, w)))
+    for i, (n, x, y, sz, dr) in enumerate(vspec):
+        code = resolve(n, "ROUTE_VIAS entry %d" % i)
+        if code is None:
+            continue
+        vias.append(dict(code=code, name=n, x=x, y=y, sz=sz, dr=dr, i=i,
+                         box=(x - sz / 2, y - sz / 2, x + sz / 2, y + sz / 2)))
+
+    # --- check 1: does each polyline END land on copper of its own net?
+    #
+    # A via counts on any layer -- that is what a via is for -- so vias carry layer None and
+    # match anything.  A segment counts only on its own layer.
+    dangling = []
+    for s in segs:
+        for end, which in ((s["p0"], "start"), (s["p1"], "end")):
+            w = s["w"]
+            b = (end[0] - w / 2, end[1] - w / 2, end[0] + w / 2, end[1] + w / 2)
+            ok = any(p[2] == s["code"] and _rect_gap(b, _pad_box(p)) <= 0.0
+                     for p in hash_.near(*b))
+            if not ok:
+                ok = any(o is not s and o["code"] == s["code"]
+                         and o["layer"] == s["layer"] and _rect_gap(b, o["box"]) <= 0.0
+                         for o in segs)
+            if not ok:
+                ok = any(v["code"] == s["code"] and _rect_gap(b, v["box"]) <= 0.0
+                         for v in vias)
+            if not ok:
+                dangling.append("%s ROUTES[%d] seg %d %s (%.2f, %.2f)"
+                                % (s["name"], s["i"], s["j"], which, end[0], end[1]))
+
+    # --- check 2: foreign clearance, against the wider of the two nets' class clearances
+    close = []
+
+    def check(box, code, what):
+        for p in hash_.near(box[0] - 0.5, box[1] - 0.5, box[2] + 0.5, box[3] + 0.5):
+            if p[2] == code:
+                continue
+            need = max(net_clearance(p[2]), net_clearance(code))
+            g = _rect_gap(box, _pad_box(p))
+            if g < need:
+                close.append("%s vs %s.%s (%s): %.3f < %.3f"
+                             % (what, p[0], p[1], NETNAME.get(p[2], "?"), g, need))
+
+    for s in segs:
+        check(s["box"], s["code"], "%s ROUTES[%d] seg %d" % (s["name"], s["i"], s["j"]))
+    for v in vias:
+        what = "%s ROUTE_VIAS[%d]" % (v["name"], v["i"])
+        check(v["box"], v["code"], what)
+        for vx, vy, vs, vd, vnet in placed:
+            if vnet == v["code"]:
+                continue
+            need = max(net_clearance(vnet), net_clearance(v["code"]))
+            g = _rect_gap(v["box"], (vx - vs / 2, vy - vs / 2, vx + vs / 2, vy + vs / 2))
+            if g < need:
+                close.append("%s vs a via on %s: %.3f < %.3f"
+                             % (what, NETNAME.get(vnet, "?"), g, need))
+
+    print("routes: %d segment(s) on %d net(s), %d via(s)"
+          % (len(segs), len(set(s["code"] for s in segs)), len(vias)))
+    if dangling:
+        print("  ERROR: %d route end(s) land on no copper of their own net:" % len(dangling))
+        for d in dangling:
+            print("      %s" % d)
+    if close:
+        print("  ERROR: %d route clearance(s) short:" % len(close))
+        for c in close:
+            print("      %s" % c)
+
+    out = []
+    for s in segs:
+        out.append(seg(s["p0"][0], s["p0"][1], s["p1"][0], s["p1"][1],
+                       s["w"], s["layer"], s["code"], "rt%d.%d" % (s["i"], s["j"])))
+    for v in vias:
+        out.append(via(v["x"], v["y"], v["code"], v["sz"], v["dr"], "rv%d" % v["i"]))
+        placed.append((v["x"], v["y"], v["sz"], v["dr"], v["code"]))
+    return out
+
+
 # --------------------------------------------------------------------------- main
 NETNAME = {}
 
@@ -1402,7 +1553,12 @@ def main():
         if c["ref"] in pos:
             x, y, rot = pos[c["ref"]]
             kos += fp_keepouts(c["fp"], x, y, rot)
-    dv, ds = gnd_drops(comps, pos, padnet, netidx, list(VIA_LOG), kos)
+    # Hand routes go BEFORE the ground drops, so a drop cannot be placed on top of a route
+    # via: gnd_drops tests every candidate against `placed`, and `placed` has to already hold
+    # them for that test to mean anything.
+    placed = list(VIA_LOG)
+    out += routes(comps, pos, padnet, netidx, placed)
+    dv, ds = gnd_drops(comps, pos, padnet, netidx, placed, kos)
     out += dv
     out += ds
     out += zones(netidx)

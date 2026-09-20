@@ -191,13 +191,13 @@ PLACE = {
     #    L3 pad 1 and C18/C19 reach it with a via each, which is why L3 can sit on the far side
     #    of U3 from the input without a 20 mm run to get there.
     "U3":  (74.0, 32.0, 0),      # LM51571-Q1
-    "D4":  (74.5, 25.6, 180),    # catch diode, tab up, anode down at U3's SW pins 13/14
-    "L3":  (79.8, 28.6, 180),    # boost inductor, SW pad facing U3
-    "C20": (69.5, 23.6, 180),    # +24V output caps, a 1206 column against D4's cathode tab:
-    "C21": (69.5, 26.0, 180),    # +24V pad inboard at the tab, GND pad outboard where the
-    "C22": (69.5, 28.4, 180),    # drop vias reach the plane.  This is the commutation loop.
-    "C18": (85.0, 28.6, 0),      # VBAT input caps at L3 pad 1; VBAT arrives from the In2.Cu
-    "C19": (85.0, 32.2, 0),      # plane underneath, by via, not by a track across the board
+    "D4":  (75.3, 25.6, 180),    # catch diode, tab up, anode down at U3's SW pins 13/14
+    "L3":  (81.0, 28.6, 180),    # boost inductor, SW pad facing U3
+    "C20": (69.9, 23.6, 180),    # +24V output caps, a 1206 column against D4's cathode tab:
+    "C21": (69.9, 26.0, 180),    # +24V pad inboard at the tab, GND pad outboard where the
+    "C22": (69.9, 28.4, 180),    # drop vias reach the plane.  This is the commutation loop.
+    "C18": (86.2, 28.6, 0),      # VBAT input caps at L3 pad 1; VBAT arrives from the In2.Cu
+    "C19": (86.2, 32.2, 0),      # plane underneath, by via, not by a track across the board
     # right of U3: FB (pin 9), the highest-impedance node after COMP, as a short vertical rail
     "R12": (79.0, 32.2, 180),    # FB divider top, 576k -- FB pad faces U3
     "C61": (79.0, 34.0, 180),    # feedforward across R12 (DNP)
@@ -395,9 +395,84 @@ PAD_ALIAS = {("D4", "3"): "1"}
 # because B.Cu is not the reference plane -- In1.Cu is, and In1.Cu stays unbroken.  Against the
 # enclosure it is +24 V separated from the plate by the gap pad alone, which is an insulator
 # rated in kilovolts; note it on the fab drawing all the same.
-D4_24V_ISLAND = [(71.6, 21.7), (77.4, 21.7), (77.4, 27.4), (71.6, 27.4)]
+D4_24V_ISLAND = [(72.4, 21.7), (78.2, 21.7), (78.2, 27.4), (72.4, 27.4)]
 
 TIM_PADS = [
     ("TIM-A", 64.0, 23.0, 98.0, 58.0),
     ("TIM-B", 69.0, 82.0, 83.0, 94.0),
+]
+
+
+# --------------------------------------------------------------------------- routes
+#
+# Hand routing, as data.  Each entry is (net, layer, width_mm, [(x, y), ...]) and becomes one
+# track segment per adjacent pair of points; ROUTE_VIAS entries are (net, x, y, size, drill).
+#
+# `net` is matched against the netlist by its LAST path component, so "SW_BOOST" finds
+# "/rails/SW_BOOST" without this file having to know which sheet a net was declared on.
+#
+# gen_pcb.routes() checks two things that are easy to get wrong by hand and invisible
+# afterwards:
+#
+#   * every polyline END lands on copper of its own net -- a pad, a via, or another segment of
+#     the same net.  The test is COPPER OVERLAP, not centreline-in-pad, because that is what
+#     KiCad's connectivity actually uses: a 0.75 mm track whose centreline runs between two
+#     0.25 mm QFN pads still connects to both, and demanding the centreline hit a pad would
+#     rule out the only geometry that works on a 0.5 mm pitch part.
+#   * no segment or via is closer to a FOREIGN pad than that pad's net class allows.
+#
+# Neither check replaces DRC.  They exist because a typo in a coordinate here produces a board
+# that looks routed, and DRC reports only "unconnected item" somewhere in a list of hundreds.
+
+ROUTES = [
+    # -- Task 9 Step 1: the boost power stage -------------------------------------------
+    #
+    # The commutation loop is C20/C21/C22 -> D4 -> U3's SW pins -> U3's internal FET -> GND,
+    # and it is the loop with the high di/dt, so it is the one laid out first and tightest.
+    # The return half of it is not routed at all: In1.Cu is solid GND one 0.2 mm dielectric
+    # below F.Cu, so the return current mirrors the outbound path directly beneath it, which
+    # is a smaller loop than any trace could be.
+    #
+    # SW is carried on U3 pins 12, 13 and 14.  Pins 13 and 14 are the two rightmost of the top
+    # edge, 0.5 mm apart, and a 0.75 mm track centred between them at x 74.5 overlaps both and
+    # still clears pin 15 (NC, right edge at x 73.875) by 0.25 mm.  That is why D4 was moved to
+    # x 75.3: it puts D4's anode pad at x 73.56..74.96, so the same 0.75 mm track runs straight
+    # up into it without a bend, and keeps 0.765 mm from D4's cathode pad on the way.  You
+    # cannot bring 0.75 mm of copper into a single pin of a 0.5 mm pitch QFN; you can bring it
+    # into two adjacent pins of the same net, and the switch node is the one place worth
+    # arranging the placement around to get it.
+    # It stops at y 30.55, not lower: U3's exposed GND paddle (pad 17) reaches up to
+    # y 31.16, and a 0.75 mm track's end cap reaches 0.375 mm past its endpoint.  At
+    # 30.55 the copper stops at 30.925 and clears the paddle by 0.235 mm, while still
+    # covering pins 13 and 14 over 0.835 mm of their 0.84 mm length.
+    ("SW_BOOST", "F.Cu", 0.75, [(74.5, 30.55), (74.5, 28.37)]),
+
+    # L3 joins the node from the east along y 29.70.  It has to pass under D4's cathode pad
+    # (bottom edge y 29.00) and over U3's top-edge pads (top edge y 30.12): at 0.75 mm wide the
+    # track spans 29.325..30.075, which clears the cathode -- a FOREIGN net, +24V, POWER class,
+    # 0.30 mm -- by 0.325 mm, and touches U3's pins, which is the connection.
+    ("SW_BOOST", "F.Cu", 0.75, [(79.81, 29.70), (74.5, 29.70)]),
+
+    # Pin 12 is the third SW pin, on the right edge, and it gets a 0.3 mm tie rather than a
+    # share of the current: its neighbour is pin 11 (MODE) 0.5 mm below, and 0.3 mm is the
+    # widest track that still clears MODE by 0.225 mm.  The current is on pins 13 and 14.
+    ("SW_BOOST", "F.Cu", 0.30, [(75.46, 31.25), (76.40, 30.31), (76.40, 29.70)]),
+
+    # +24V: the output caps to D4's cathode tab.  A 1.0 mm column at x 71.37 picks up all three
+    # +24V pads -- the caps are oriented with that pad inboard for exactly this -- and a 1.5 mm
+    # rung at mid-tab height carries it into the tab.  0.5 A on 1.0 mm of 1 oz outer copper is
+    # 2.3 A of capability; the width here is about loop area and inductance, not about heat.
+    ("+24V", "F.Cu", 1.00, [(71.37, 28.40), (71.37, 23.60)]),
+    ("+24V", "F.Cu", 1.50, [(71.37, 25.00), (73.60, 25.00)]),
+
+    # VBAT into the boost.  L3 pad 1 and C18/C19 sit over the In2.Cu VBAT plane, so the feed
+    # comes UP out of the plane rather than along the board: two 0.8/0.4 vias, ~0.5 A each.
+    # This is the whole reason In2.Cu became one VBAT plane in ae9319e.
+    ("VBAT", "F.Cu", 1.20, [(82.19, 28.60), (84.73, 28.60)]),
+    ("VBAT", "F.Cu", 1.20, [(84.73, 28.60), (84.73, 32.20)]),
+]
+
+ROUTE_VIAS = [
+    ("VBAT", 83.40, 28.60, 0.8, 0.4),
+    ("VBAT", 84.73, 30.40, 0.8, 0.4),
 ]
