@@ -1,0 +1,289 @@
+# -*- coding: utf-8 -*-
+"""Board outline, regions and placement for mccan.kicad_pcb (plan Task 8).
+
+Same rule as the schematic sheets: **the board is generated, never hand-edited in pcbnew.**
+Edit this module and re-run `python scripts/gen_pcb.py`.
+
+--------------------------------------------------------------------------- THE BOARD SIZE
+140 x 100 mm, decided here and not guessed. The parts' own courtyards, summed from the
+footprint library, come to **68.3 cm2** across 231 placed parts. **20.1 cm2 of that is U5's
+courtyard alone**, which is mostly the ESP32's antenna keep-out and hangs off the board edge,
+so the real on-board demand is about **57 cm2**. Single-sided SMD assembly at a realistic 50%
+packing therefore wants ~114 cm2, and 2 oz copper power polygons want width on top of that.
+
+**140 x 100 = 140 cm2.** It also sits sensibly against the >= 150 cm2 heat-spreader plate
+(spec 9.4) rather than fighting it, and `hardware/docs/enclosure.md` carries 100 x 80 mm as
+**[PROVISIONAL] pending Task 8** -- this module is what that entry was waiting for.
+
+**Assembly is SINGLE SIDED (F.Cu).** Nothing is placed on B.Cu. At this volume a second
+assembly side costs more than the board area it saves, and B.Cu is wanted whole for routing.
+
+------------------------------------------------------------------------- THE FOUR EDGES
+Three spec constraints fix the orientation between them, and only one arrangement holds:
+
+  * spec 9.3 / enclosure 2.3 -- the heat-spreader plate is on the wall **opposite** the antenna.
+  * plan Task 8 Step 4 -- the antenna edge faces **away** from the aluminium plate, and the
+    module overhangs the board edge (Espressif's own first choice).
+  * plan Task 8 Step 5 / enclosure 4 -- the wire-exit pads are on **one** edge.
+
+        LEFT edge  = the plate edge. Thermal group, in from the wall by the gap pad.
+        RIGHT edge = the antenna edge. U5 overhangs it; keep-out on all four layers.
+        BOTTOM edge = the wire-exit edge. Power at the far left, CAN at the far right,
+                      which is also plan Task 8's "CAN separated from the power feed".
+        TOP edge   = free.
+
+Note the connectors themselves are **panel mount**; what is on the board is
+`Connector_Wire:SolderWire-*_Relief` solder pads. The board's "connector edge" is a wire-exit
+field, not an abutting row of housings, which is why the widths below add up.
+
+--------------------------------------------------------------------------- THE THERMAL GROUP
+Amended 2026-09-20 after spec 4.2's rewrite. **L2, U9, L1, U3, L3** -- about 1.6 W of the
+2.31 W night total. There are no external boost FETs (the LM51571-Q1 integrates its switch) and
+there is no P-FET (4.2's pass pair dissipates 0.12 W between them).
+
+**L2 is placed first and everything else gives way to it**: largest single term at 0.78 W,
+tallest part at ~24 mm, through-hole on an otherwise-SMD board, and 23.0 x 17.0 mm in plane.
+
+**R100 is deliberately NOT in the thermal group.** It dissipates 0.27 W but spec 4.2 requires
+its own copper and a Kelvin tap -- the copper around it is part of the *measurement*, so it goes
+in the eFuse island next to U10, not on the plate edge.
+"""
+
+# ------------------------------------------------------------------ board outline
+X0, Y0 = 20.0, 20.0
+X1, Y1 = 160.0, 120.0
+EDGE_R = 3.0          # corner radius, drawn as four arcs
+MOUNT_INSET = 5.0     # M3 mounting holes, centre inset from each corner
+MOUNT_DRILL = 3.2
+MOUNT_PAD = 6.0
+
+# ------------------------------------------------------------------ antenna keep-out
+# ESP32-WROOM-32E datasheet v1.8, Figure 12: the Antenna Area is 18.0 mm wide x 6.19 mm deep,
+# measured from the module's end face and spanning the full module width. U5 is rotated so the
+# antenna points right, overhanging X1 entirely -- so this rectangle is mostly off the board and
+# is drawn as a keep-out for the part of it that is not.
+ANT_W, ANT_D = 18.0, 6.19
+
+# ------------------------------------------------------------------ regions
+# (x0, y0, x1, y1) in board coordinates.  Parts not named in PLACE are auto-flowed into their
+# block's region on a courtyard-sized grid, in reference order.
+#
+# The left band runs the 7 A feed in ONE direction only -- J1 at the bottom, up through the
+# eFuse, up through L2 and the pi filter, out of the top right of "input".  Nothing doubles back.
+REGIONS = {
+    "input":   (23.0,  23.0,  62.0,  52.0),   # D2, L2, R2/R3, C1-C4, L1, D3, C5
+    "efuse":   (23.0,  54.0,  62.0,  94.0),   # U10, Q10, Q11, R100, C65 and the gate network
+    "boost":   (64.0,  23.0, 100.0,  50.0),   # U3, L3, D4, C61 and their passives
+    "rails":   (64.0,  52.0, 100.0,  80.0),   # U1 buck, U2 5 V, U4, decoupling
+    "profet":  (64.0,  82.0, 100.0,  94.0),   # U9 and its passives
+    "outputs": (102.0, 23.0, 131.0,  94.0),   # 12 RGB channels, U7, U8, F2-F5
+    "mcu":     (133.0, 23.0, 158.0,  46.0),   # U6 and the CAN front end, above U5's courtyard
+    "wire":    (23.0,  95.0, 158.0, 119.0),   # the wire-exit field
+}
+
+# Which region each sheet's leftovers flow into.  Parts whose block differs from their sheet
+# are pinned by name in BLOCK below.
+SHEET_REGION = {
+    "power_input": "input",
+    "rails":       "rails",
+    "outputs":     "outputs",
+    "mcu_can":     "mcu",
+}
+
+# Overrides: ref -> region, for parts whose sheet is not where they belong on the board.
+BLOCK = {}
+for _r in ("U10", "Q10", "Q11", "Q12", "R100", "R101", "R102", "R103", "R104", "R105",
+           "R106", "R107", "C62", "C63", "C64", "C65", "D21", "D22", "D23",
+           # D2 and R3 belong to the GND_IN side, not to the input filter their sheet puts
+           # them on.  D2 is the TVS from VBAT_PROT to GND_IN and R3 is the single resistor
+           # that ties GND_IN to GND; both reference the INPUT ground, so they have to sit in
+           # the GND_IN column with U10 and J1.  Left in the input region they land above the
+           # choke, on the far side of the very boundary they define, and the F.Cu GND_IN
+           # island then cannot reach them without swallowing the post-choke filter.
+           "D2", "R3"):
+    BLOCK[_r] = "efuse"
+for _r in ("U3", "L3", "D4", "C61"):
+    BLOCK[_r] = "boost"
+for _r in ("U9",):
+    BLOCK[_r] = "profet"
+for _r in ("J1", "J2", "J3", "J4", "J5", "J6", "J7", "J8"):
+    BLOCK[_r] = "wire"
+
+# ------------------------------------------------------------------ hand placement
+# ref -> (x, y, rotation).  Everything here is placed for a reason; everything else is flowed.
+PLACE = {
+    # -- the wire-exit field, left to right, laid end to end from the real courtyards.
+    #    These footprints put their ORIGIN ON PAD 1, not on the centroid, so the numbers below
+    #    are not the boxes: the box each one occupies is in the trailing comment.  J1 and J2
+    #    sit at opposite ends, which is plan Task 8's "high-current separated from CAN"
+    #    expressed as a distance.  J3-J6 stay adjacent, as enclosure.md section 4 requires.
+    #    The wire-exit row is pitched to fit BETWEEN the two lower mounting holes.  H3 and H4
+    #    are at x 25 and 155 with a 6 mm pad, so their courtyards own x 21.75..28.25 and
+    #    151.75..158.25 at connector height -- leaving 123.0 mm of usable row.  The eight
+    #    courtyards total 114.34 mm, so the gaps are 1.2 mm, not the 2.0 mm used elsewhere.
+    #    These are courtyards, which already carry their own clearance, and nothing is routed
+    #    between them: the row is pads and wire, so 1.2 mm is a real gap, not a shaved one.
+    "J1":  (30.85, 97.91, 0),    # box x  28.60.. 45.10  y 95.84..118.16
+    "J7":  (48.55, 97.91, 0),    # box x  46.30.. 62.80  y 95.84..118.16
+    "J8":  (65.80, 100.59, 0),   # box x  64.00.. 72.20  y 99.01..114.99
+    "J3":  (75.20, 100.59, 0),   # box x  73.40.. 90.80  y 99.01..114.99
+    "J4":  (93.80, 100.59, 0),   # box x  92.00..109.40  y 99.01..114.99
+    "J5":  (112.40, 100.59, 0),  # box x 110.60..128.00  y 99.01..114.99
+    "J6":  (131.00, 100.59, 0),  # box x 129.20..146.60  y 99.01..114.99
+    "J2":  (149.57, 100.65, 0),  # box x 147.80..151.34  y 98.88..115.12
+
+    # -- the input filter.  Current arrives from the eFuse below and leaves at the top right.
+    #    L2's origin is on pad 1 and sits +3.75, -5.03 off its box centre, so (37.25, 38.0)
+    #    puts the box at x 28.50..53.50, y 23.15..42.80 -- clear of H1's pad at x 25, y 25.
+    "L2":  (37.25, 38.0, 0),     # CM choke: placed FIRST. 25.0 x 19.65 mm, ~24 mm tall, THT
+    "L1":  (31.0, 50.0, 0),      # pi-filter inductor, 0.28 W
+    "C3":  (46.0, 50.0, 0),      # 220 uF bulk, at L1's output
+
+    # -- the eFuse island.  Bottom row is nearest J1, so the 7 A path runs strictly upward:
+    #    J1 -> Q10 -> Q11 -> R100 -> up to U10 and C65 -> out of the top into L2.
+    "Q10": (31.0, 87.0, 0),
+    "Q11": (46.0, 87.0, 0),
+    "R100": (57.0, 87.0, 90),    # own copper, Kelvin tap -- see KEEPCLEAR
+    "U10": (39.0, 74.0, 0),
+    "C65": (54.0, 76.0, 0),      # at U10 pin 5, not merely on the net
+
+    # -- boost and PROFET
+    "U3":  (74.0, 30.0, 0),      # LM51571-Q1
+    "L3":  (84.0, 30.0, 0),      # boost inductor
+    "U9":  (76.0, 88.0, 0),      # PROFET, the shortest run to J7's Denali pads
+
+    # -- the antenna edge.  Rotated 270 so the antenna points +X (verified against the
+    #    footprint: its keep-out sits at local -Y, and 270 maps -Y to +X).
+    #    The module END FACE is flush with X1 = 160: not cantilevered off the edge, but with
+    #    the whole of the footprint's own all-layer keep-out zone left bare.
+    #
+    #    U5 sits LOW, not centred on the right edge, and that costs real estate on purpose.
+    #    The stock footprint's courtyard is 48.5 x 41.5 mm because it carries Espressif's
+    #    15 mm antenna clearance, and its embedded keep-out zone bans copper, vias and
+    #    footprints over 48 x 21.2 mm of it.  Honouring that is not optional -- DRC enforces
+    #    the keep-out, and the clearance is the whole reason the module is on this edge.
+    #    Dropped to y = 72 the courtyard spans y 47.8..96.2, which clears the wire-exit field
+    #    below and leaves the top right (y 23..46) usable for the MCU block.
+    "U5":  (147.0, 72.0, 270),
+}
+
+# R100's surrounding copper is part of the current MEASUREMENT, not just cooling (spec 4.2).
+# Nothing is auto-flowed within this radius of it.
+KEEPCLEAR = {"R100": 4.0}
+
+# Parts whose courtyard is allowed to leave the board outline.  U5's courtyard carries
+# Espressif's 15 mm antenna clearance, and the whole point of putting the module on this edge
+# is that most of that clearance is off the board.
+OFFBOARD_OK = {"U5"}
+
+# ------------------------------------------------------------------ board text
+NOTES = [
+    # (text, x, y, layer, size)
+    ("LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10 / plan Task 8)\n"
+     "4 layers: F.Cu signal, In1.Cu GND solid and unbroken, In2.Cu power, B.Cu signal.\n"
+     "2 oz outer copper. Assembly is SINGLE SIDED -- nothing on B.Cu.\n"
+     "Power polygon >= 4-5 mm effective width (10 C rise at 2 oz, 7.0 A cont / 7.8 A transient).\n"
+     "Use 5-6 mm where space allows; that is margin, not the requirement.\n"
+     "Plate edge is LEFT: L2 (0.78 W), U9 (0.35 W), L1 (0.28 W), U3, L3 -- ~1.6 W of 2.31 W night.\n"
+     "There are NO external boost FETs and NO P-FET. Night governs, not daytime.\n"
+     "eFuse island near J1, NOT on the plate edge: U10, Q10, Q11, R100, C65.\n"
+     "R100 needs its own copper and a Kelvin tap. C65 must sit AT U10 pin 5.\n"
+     "Antenna edge is RIGHT: no copper, plating or parts on ANY layer in the U5 keep-out.\n"
+     "Wire-exit field is BOTTOM: J1 power at the far left, J2 CAN at the far right.\n"
+     "Boost switch-node loop area minimised; gate loops short and tight.\n"
+     "GND_IN and GND are SEPARATE and meet at TWO places only: L2 winding B, and R3.\n"
+     "The plane must not bridge them anywhere else -- see scripts/check_grounds.py.",
+     23.0, 124.0, "Cmts.User", 1.5),
+    ("THERMAL / FAB\n"
+     "VIA IN PAD: U1.9, U2.9, U3.17, U9.15 and D4.3 are filled with 0.5 / 0.25 mm vias.\n"
+     "These MUST be plugged and capped (IPC-4761 type IV or VI) -- unplugged vias in a\n"
+     "solderable paddle wick paste out of the joint and void the thermal path they exist for.\n"
+     "Heat leaves through B.Cu: assembly is single sided and the bottom is bare on purpose.\n"
+     "Gap pad contacts the two dashed Cmts.User patches, ~1360 mm2 total. Do not tent the\n"
+     "stitching vias inside them on B.Cu any more than the rest of the bottom side.\n"
+     "U10 is MSOP-10 with NO exposed pad; its dissipation leaves through the lead frame.",
+     102.0, 124.0, "Cmts.User", 1.2),
+    ("ANTENNA KEEP-OUT -- no copper / plating / parts, ALL LAYERS.\n"
+     "18.0 x 6.19 mm from the module end face (datasheet v1.8 Fig. 12).\n"
+     "Enclosure must also give >= 15 mm clear in ALL directions (enclosure.md).",
+     121.0, 16.0, "Cmts.User", 1.2),
+]
+
+# ------------------------------------------------------------------ net classes -> mccan.kicad_pro
+# Written into the PROJECT file, not the board: KiCad has kept net classes there since v7.
+NETCLASSES = [
+    # name, track width, clearance, via size, via drill, nets
+    ("POWER", 2.0, 0.3, 0.8, 0.4,
+     ["VBAT", "VBAT_PROT", "VBAT_F", "VLOGIC_IN", "FEED_P", "MID", "SNS",
+      "+24V", "+5V", "GND_IN"]),
+    ("CAN", 0.3, 0.2, 0.6, 0.3, ["CANH", "CANL"]),
+]
+
+
+# --------------------------------------------------------------------------- pours
+# The F.Cu GND_IN island, in board coordinates.  It lives here rather than inside gen_pcb's
+# zones() because two other things need the same polygon: the stitching-via generator, which
+# must not drop a GND via inside it, and scripts/check_grounds.py, which reads it back off the
+# board.  Shape reasoning is in zones().
+GND_IN_ISLAND = [
+    (42.0, 36.0), (48.0, 36.0), (48.0, 53.5), (66.0, 53.5), (66.0, 94.0),
+    (46.0, 94.0), (46.0, Y1 - 0.5), (22.0, Y1 - 0.5), (22.0, 53.5), (42.0, 53.5),
+]
+
+
+def in_gnd_in_island(x, y, halo=0.0):
+    """Is (x, y) -- grown by `halo` -- inside or touching the GND_IN island?
+
+    Tested as a point-in-polygon on the four corners of the halo box plus the centre.  The
+    island is an axis-aligned staircase, so that is exact for anything smaller than its
+    narrowest 6 mm limb, which every via is.
+    """
+    pts = [(x, y)] if halo <= 0 else [
+        (x, y), (x - halo, y - halo), (x + halo, y - halo),
+        (x - halo, y + halo), (x + halo, y + halo)]
+    for px, py in pts:
+        hit = False
+        n = len(GND_IN_ISLAND)
+        for i in range(n):
+            x0, y0 = GND_IN_ISLAND[i]
+            x1, y1 = GND_IN_ISLAND[(i + 1) % n]
+            if (y0 > py) != (y1 > py):
+                if px < x0 + (py - y0) * (x1 - x0) / (y1 - y0):
+                    hit = not hit
+        if hit:
+            return True
+    return False
+
+
+# --------------------------------------------------------------------------- pad aliases
+# Footprint pads that carry no symbol pin but are electrically the same terminal as one that
+# does.  D4's TO-277A (Vishay SMPC) has three pads: two 1.4 x 1.27 mm leads and a
+# 4.8 x 4.72 mm tab.  The tab is the CATHODE, the same terminal as pad 1 -- but Device:D_Schottky
+# is a two-pin symbol, so the netlist never mentions pad 3.  Left as the netlist has it, the
+# boost catch diode's entire thermal pad, and the only low-impedance path its current has out
+# of the die, sits floating on the board.  ERC cannot see it (the symbol is fully connected)
+# and DRC files it under "unconnected items" alongside every not-yet-routed net.
+PAD_ALIAS = {("D4", "3"): "1"}
+
+
+# --------------------------------------------------------------------------- thermal interface
+# Gap-pad contact patches, drawn on Cmts.User for the assembly drawing.  Heat leaves this board
+# through its BOTTOM: assembly is single sided, so B.Cu is bare and free to be pressed against
+# the enclosure through a gap pad.  That is the whole reason the exposed paddles are filled with
+# vias -- the via array is the series element between a part's paddle on F.Cu and the B.Cu
+# copper the gap pad actually touches, and a patch over copper with no vias under it cools
+# nothing but the laminate.
+#
+# So the patches are drawn around where the THERMAL VIAS are, not around every part that
+# dissipates.  L1 and L2 are deliberately outside them: their loss is in the windings and in
+# the copper at their own pads, and neither has a paddle a via array could serve.
+#
+#   TIM-A  the boost and rail block -- D4's tab, U3's paddle, U1 and U2's paddles, L3 alongside
+#   TIM-B  U9, the PROFET, which sits on its own at the bottom of the profet region
+#
+# Total contact area is ~1.36e3 mm2.  hardware/docs/enclosure.md still assumes ~1000 mm2 at
+# 3.8 W; both numbers need revisiting together now that night at ~2.31 W is the governing case.
+TIM_PADS = [
+    ("TIM-A", 64.0, 23.0, 98.0, 58.0),
+    ("TIM-B", 69.0, 82.0, 83.0, 94.0),
+]

@@ -1327,8 +1327,10 @@ Two mitigations, both still required:
 **Plastic IP67 box with a FINNED aluminium heat-spreader plate sealed into one wall.**
 **(DECIDED 2026-09-12 — finned, not flat; see §9.4 for why a flat plate fails.)** An off-the-shelf
 polycarbonate enclosure (Hammond 1554/1555, Fibox, Bopla class) with one wall machined for a
-gasketed aluminium plate. The boost FETs, inductor and P-FET couple to the plate through a
-silicone gap pad. Remaining walls stay RF-transparent so the onboard antenna works.
+gasketed aluminium plate. **The CM choke L2, the PROFET U9, L1, the boost IC U3 and the boost
+inductor L3** couple to the plate through a silicone gap pad — §9.4's current list, which no
+longer contains boost FETs (the LM51571-Q1 integrates its switch) or a P-FET (§4.2's pass pair
+dissipates 0.12 W and does not need the plate). Remaining walls stay RF-transparent so the onboard antenna works.
 
 Rejected alternatives: extruded aluminium with plastic end caps (off-the-shelf sealed versions
 claim IP54–IP65, not IP67); diecast aluminium (best thermally but forces a U.FL antenna and an

@@ -67,14 +67,30 @@ predates the 2026-09-13 rewrite of spec §9.4. Corrected:
 
 | Step 3 says | Current truth | Source |
 |---|---|---|
-| ~3.8 W, **daytime** governs | **~2.70 W, NIGHT governs.** Daytime is ~1.4 W + inductors | spec §9.4 |
+| ~3.8 W, **daytime** governs | **NIGHT governs.** ~2.70 W here, **superseded below: 2.31 W.** Daytime is ~1.4 W + inductors | spec §9.4 |
 | 3.50 W boost | **0.83 W daytime / ~0.20 W night** — the RGB load fell ~4× | spec §9.4 |
 | "Boost high-side and low-side FETs" | **THERE ARE NO EXTERNAL BOOST FETs.** The LM51571-Q1 integrates the switch | part-selection row 3.6 (VOID) |
 | — | **L1 + L2 dissipate 0.90 W of the ~2.70 W** and are not mentioned at all | review F4 |
 
-**The thermal group to place on the plate edge is therefore:** **Q1** (P-FET, **0.78 W — the largest
-single term**), **L2** (input CM choke, **0.78 W across both windings**), **U9** (PROFET, 0.35 W),
-**L1** (0.28 W), **U3** (boost IC, 0.20 W night / 0.83 W daytime) and **L3** (boost inductor).
+**The thermal group to place on the plate edge is therefore:** **L2** (input CM choke, **0.78 W
+across both windings — the largest single term**), **U9** (PROFET, 0.35 W), **L1** (0.28 W),
+**U3** (boost IC, 0.20 W night / 0.83 W daytime) and **L3** (boost inductor).
+
+> **AMENDED AGAIN 2026-09-20 — Q1 has left this list, and R100 has joined it with a different
+> requirement.** §4.2's rewrite (commit `0b61648`) replaced the lone P-FET with **Q10/Q11**, a
+> back-to-back pair at **2.4 mΩ hot — 0.12 W between them**. The pass element is no longer a
+> thermal term worth placing for, and **the plate edge does not need to host it.** What *did*
+> survive is **R100**, the 5.6 mΩ sense resistor at **0.27 W**, and it is **explicitly not a
+> plate part** — §4.2 requires its own copper area and a Kelvin connection, and the datasheet's
+> layout note ("1 oz copper exhibits a sheet resistance of about 530 µΩ/square") makes the
+> copper around it part of the *measurement*, not merely part of the cooling. **Place Q10, Q11,
+> R100, U10 and C65 as one tight island near J1, not on the plate edge**, and keep the SNS pair
+> Kelvin-tapped at the resistor body.
+>
+> **The night total therefore becomes ~2.31 W, not ~2.70 W:** 2.70 - 0.78 (the P-FET that
+> no longer exists) + 0.12 (Q10/Q11) + 0.27 (R100) = **2.31 W**. That is the figure the rest
+> of this plan and `hardware/docs/enclosure.md` quote; the 2.70 W in the table above is the
+> previous step of the same correction, kept for the audit trail.
 
 > **L2 is the most constrained placement on the board** and should be placed first: it is
 > simultaneously a top-two heat source, **the tallest part at ~24 mm**, **through-hole** on an
@@ -1065,7 +1081,7 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 - Consumes: the netlist from Task 7's approved schematic
 - Produces: a placed board with power polygons and thermal provisions; Task 9 routes signals
 
-- [ ] **Step 1: Write the layout constraints into the board as a text layer note**
+- [x] **Step 1: Write the layout constraints into the board as a text layer note**
 
 ```
 LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
@@ -1076,29 +1092,37 @@ LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
   space allows** -- that was this note's original figure, but it was sized for the superseded
   7.8 A / 10.5 A pair, so it is margin now rather than a requirement
 - Boost switch-node loop area MINIMISED; gate loops short and tight
-- Boost FETs, inductor, **the single P-FET** and the PROFET grouped on the heat-spreader edge (~3.8 W)
+- Plate-edge thermal group: **L2 (0.78 W), U9 PROFET (0.35 W), L1 (0.28 W), U3, L3** -- ~1.6 W
+  of the 2.31 W night total. **There are no external boost FETs and no P-FET.**
+- eFuse island near J1, NOT on the plate edge: **U10, Q10, Q11, R100, C65**. R100 needs its own
+  copper and a Kelvin tap; C65 must sit at U10 pin 5, not merely on the net
 - ESP32 antenna keep-out: NO copper/plating/parts any layer under the antenna
 - Antenna edge faces AWAY from the aluminium plate
 - Connectors on one edge, matching the panel layout in docs/enclosure.md
 - High-current (feed input / PROFET / Denali outputs) separated from CAN and analog sense traces
 ```
 
-- [ ] **Step 2: Set up the stackup and design rules**
+- [x] **Step 2: Set up the stackup and design rules**
 
 4-layer board, 2 oz outer copper. Set net classes: a `POWER` class with wide clearance and track
 width for `VBAT`, `VLOGIC_IN`, `+24V`, `+5V`, `DEN_*_OUT`, `GND`; a `DEFAULT` class for
 signals; a `CAN` class for `CANH`/`CANL` with matched width and spacing for ~120 Ω differential.
 
-- [ ] **Step 3: Place the thermal group on the heat-spreader edge**
+- [x] **Step 3: Place the thermal group on the heat-spreader edge**
 
-Boost high-side and low-side FETs, the boost inductor, **the single P-FET** and the PROFET, all grouped
-along the edge that will face the aluminium plate. These are **~3.8 W** of the board's dissipation in daytime — 3.50 W boost + 0.30 W P-FET (spec §9.4) —
-and the plate is the only real path out of a plastic box.
+**L2, U9 (PROFET), L1, U3 and L3**, grouped along the edge that will face the aluminium plate —
+see the AMENDMENTS block for why this list no longer contains boost FETs or a P-FET. These are
+**~1.6 W of the ~2.31 W night total** (spec §9.4), and the plate is the only real path out of a
+plastic box. **Night governs, not daytime.**
+
+**Place L2 first.** It is simultaneously the largest heat source, the tallest part at ~24 mm,
+through-hole on an otherwise-SMD board, and 23.0 × 17.0 mm in the board plane — every other
+placement on this edge has more freedom than it does.
 
 Add thermal via arrays under each part's exposed pad — enough vias that the pad-to-L3 resistance
 does not dominate. Note the intended gap-pad contact area on the board.
 
-- [ ] **Step 4: Place the ESP32 module with its antenna keep-out honoured**
+- [x] **Step 4: Place the ESP32 module with its antenna keep-out honoured**
 
 Module at the board edge **furthest from the aluminium plate**, antenna overhanging the board edge
 with a keep-out on all four layers. Plastic enclosure walls are the RF window (spec §9.3) — an
@@ -1148,17 +1172,17 @@ Design* (owner-supplied URL, see `hardware/docs/part-selection.md`). Four rules,
 *Espressif also requires the finished product be tested for throughput and range — a bring-up item
 (Task 11), not a layout one.*
 
-- [ ] **Step 5: Place connectors to match the panel**
+- [x] **Step 5: Place connectors to match the panel**
 
 One edge, ordered to match the panel layout. Corner connectors grouped, power and CAN separated
 from each other.
 
-- [ ] **Step 6: Pour the power polygons and the ground plane**
+- [x] **Step 6: Pour the power polygons and the ground plane**
 
 Solid unbroken GND on L2 — do not route signals through it. Power polygons on L3 sized per the
 constraints note. Stitch vias generously between GND regions, especially around the boost.
 
-- [ ] **Step 7: Run DRC with schematic parity**
+- [x] **Step 7: Run DRC with schematic parity**
 
 ```bash
 cd hardware && "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \

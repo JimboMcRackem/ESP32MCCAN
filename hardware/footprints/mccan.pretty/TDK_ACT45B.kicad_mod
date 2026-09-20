@@ -1,44 +1,211 @@
 (footprint "TDK_ACT45B"
-	(version 20240108)
-	(generator "mccan-hand-drawn")
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
 	(layer "F.Cu")
 	(descr "TDK ACT45B automotive signal common-mode choke, 4.5 x 3.2 x 2.8 mm, 4 terminals. Land pattern taken from the RECOMMENDED LAND PATTERN figure of cmf_automotive_signal_act45b_en.pdf: pads 1.35 x 0.90 mm, column gap 3.2 mm / overall 5.9 mm, row gap 1.6 mm / overall 3.4 mm. Pin 1 top-left, 4 top-right, 2 bottom-left, 3 bottom-right, matching the datasheet's SHAPE & DIMENSIONS figure. Winding A = 1-4, winding B = 2-3.")
 	(tags "TDK ACT45B common-mode choke CAN automotive")
-	(attr smd)
-	(fp_text reference "REF**"
+	(property "Reference" "REF**"
 		(at 0 -3.1 0)
 		(layer "F.SilkS")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(uuid "ca64e6b9-0bc7-40a7-a1cf-5b35ad3cebc6")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
 	)
-	(fp_text value "TDK_ACT45B"
+	(property "Value" "TDK_ACT45B"
 		(at 0 3.1 0)
 		(layer "F.Fab")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(uuid "8a448ff4-5c9c-4583-b24c-f7c20eecc610")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "11c48d77-e78f-445a-856d-fbe35b158854")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "bf70eeb2-e0c9-4104-a73a-1559a4cde54f")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -1.4 -1.75)
+		(end 1.4 -1.75)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "7b7687fa-e74d-4324-a5bf-5242764ac9d8")
+	)
+	(fp_line
+		(start -1.4 1.75)
+		(end 1.4 1.75)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "49e6b363-3bda-4dc7-b179-853069e86f5a")
+	)
+	(fp_circle
+		(center -3.2 -1.25)
+		(end -3.05 -1.25)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "3baadee5-836c-4045-9066-99d2b955fdd2")
+	)
+	(fp_line
+		(start -3.2 -1.95)
+		(end 3.2 -1.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "c69c0cda-4078-4837-8b0d-a80afdf58835")
+	)
+	(fp_line
+		(start -3.2 1.95)
+		(end -3.2 -1.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "168d2101-c6da-4bff-8148-7901e3b610c8")
+	)
+	(fp_line
+		(start 3.2 -1.95)
+		(end 3.2 1.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "d0ff42cd-c45a-49e7-a35f-3a20a58c7ce9")
+	)
+	(fp_line
+		(start 3.2 1.95)
+		(end -3.2 1.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "afe4e374-c39b-4423-aaf8-c8430d330748")
+	)
+	(fp_line
+		(start -2.25 -1.6)
+		(end -2.75 -1.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "4c845a35-e54d-4049-9ec4-0e91dab68b58")
+	)
+	(fp_line
+		(start -2.25 -1.6)
+		(end 2.25 -1.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d721bc2f-9d13-4399-835b-bbc76787a328")
+	)
+	(fp_line
+		(start -2.25 1.6)
+		(end -2.25 -1.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "57931bed-19f3-49fc-83ea-2baabf273787")
+	)
+	(fp_line
+		(start 2.25 -1.6)
+		(end 2.25 1.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "6d1bd6d5-29ac-4896-a29c-74a2ecaa0dad")
+	)
+	(fp_line
+		(start 2.25 1.6)
+		(end -2.25 1.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "1151948f-5348-4d94-be59-b032c0ad1a38")
 	)
 	(fp_text user "${REFERENCE}"
 		(at 0 0 0)
 		(layer "F.Fab")
-		(effects (font (size 0.8 0.8) (thickness 0.12)))
+		(uuid "b776170a-1b53-47b8-9cb5-3e841cdf4299")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
 	)
-
-	(fp_line (start -2.25 -1.6) (end 2.25 -1.6) (layer "F.Fab") (stroke (width 0.1) (type solid)))
-	(fp_line (start 2.25 -1.6) (end 2.25 1.6) (layer "F.Fab") (stroke (width 0.1) (type solid)))
-	(fp_line (start 2.25 1.6) (end -2.25 1.6) (layer "F.Fab") (stroke (width 0.1) (type solid)))
-	(fp_line (start -2.25 1.6) (end -2.25 -1.6) (layer "F.Fab") (stroke (width 0.1) (type solid)))
-
-	(fp_line (start -1.4 -1.75) (end 1.4 -1.75) (layer "F.SilkS") (stroke (width 0.12) (type solid)))
-	(fp_line (start -1.4 1.75) (end 1.4 1.75) (layer "F.SilkS") (stroke (width 0.12) (type solid)))
-
-	(fp_circle (center -3.2 -1.25) (end -3.05 -1.25) (layer "F.SilkS") (stroke (width 0.25) (type solid)) (fill solid))
-	(fp_line (start -2.25 -1.6) (end -2.75 -1.6) (layer "F.Fab") (stroke (width 0.1) (type solid)))
-
-	(fp_line (start -3.2 -1.95) (end 3.2 -1.95) (layer "F.CrtYd") (stroke (width 0.05) (type solid)))
-	(fp_line (start 3.2 -1.95) (end 3.2 1.95) (layer "F.CrtYd") (stroke (width 0.05) (type solid)))
-	(fp_line (start 3.2 1.95) (end -3.2 1.95) (layer "F.CrtYd") (stroke (width 0.05) (type solid)))
-	(fp_line (start -3.2 1.95) (end -3.2 -1.95) (layer "F.CrtYd") (stroke (width 0.05) (type solid)))
-
-	(pad "1" smd rect (at -2.275 -1.25) (size 1.35 0.9) (layers "F.Cu" "F.Paste" "F.Mask"))
-	(pad "4" smd rect (at 2.275 -1.25) (size 1.35 0.9) (layers "F.Cu" "F.Paste" "F.Mask"))
-	(pad "2" smd rect (at -2.275 1.25) (size 1.35 0.9) (layers "F.Cu" "F.Paste" "F.Mask"))
-	(pad "3" smd rect (at 2.275 1.25) (size 1.35 0.9) (layers "F.Cu" "F.Paste" "F.Mask"))
+	(pad "1" smd rect
+		(at -2.275 -1.25)
+		(size 1.35 0.9)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "0b4802c2-4242-4525-8cd4-1f3dc202fa21")
+	)
+	(pad "2" smd rect
+		(at -2.275 1.25)
+		(size 1.35 0.9)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "3e30a370-997f-449e-a4ee-9d0884e390ac")
+	)
+	(pad "3" smd rect
+		(at 2.275 1.25)
+		(size 1.35 0.9)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "98a21b77-5163-44f5-8798-2637057ecf50")
+	)
+	(pad "4" smd rect
+		(at 2.275 -1.25)
+		(size 1.35 0.9)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "e96ad744-580b-48ca-b707-1c5c688a9941")
+	)
+	(embedded_fonts no)
 )
