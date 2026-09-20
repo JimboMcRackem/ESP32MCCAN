@@ -232,7 +232,13 @@ on `+3V3_SW`; TJA1042 VIO on `+3V3_ALW` and its VCC on `+5V`; ESP32 on `+3V3_ALW
 **REVISED 2026-09-19: a BOARD-MOUNTED eFUSE, not a panel-mount blade holder.** Board-mount,
 resettable, no consumable, and it removes a panel penetration. Requirements — and the reason a
 polyfuse cannot do this job — are in `hardware/docs/part-selection.md`, "F1 — eFuse
-requirements". **No part is selected yet.**
+requirements".
+
+> **PART SELECTED, AND THE FUNCTION MOVED. See §4.2.** The eFuse is **U10, an ADI
+> LTC4380HMS-2** driving the back-to-back pass pair **Q10/Q11** across the **R100** 5.6 mΩ
+> sense resistor. There is **no separate fuse element on this board** — F1 does not exist, and
+> a series fuse must not be re-added: it would put its own I²R back into the path the eFuse was
+> chosen to keep cool (§9.4). The current-limit window below is what §4.2 sizes R100 to.
 
 > **STALE FIGURES CORRECTED 2026-09-19.** This section carried **7.8 A night / 10.5 A
 > flash-to-pass** and reasoned from a "105% overload". Those are pre-correction numbers.
@@ -284,22 +290,45 @@ path.** The reasoning, the routes rejected and the thermal arithmetic are in
 
 **Q1 (SQJ461EP P-FET) and the blade fuse are both deleted.** In their place:
 
+> ### RENUMBERED 2026-09-20 — the designators below are NOT the ones first written here.
+>
+> This section originally named its parts **R88–R95, C49–C52 and D22–D24**. **Every one of those
+> was already taken**: `sheets/outputs.kicad_sch` uses **R88–R99** for the twelve RGB snubber
+> resistors and **C49–C61** for their partners, and D22–D24 were the next free diodes on a sheet
+> that already reached D20. Building the section as written would have put duplicate references in
+> the netlist. The parts were renumbered into free space before the schematic was generated, and
+> **this section now uses the built numbers throughout**:
+>
+> | Was | Is | | Was | Is | | Was | Is |
+> |---|---|---|---|---|---|---|---|
+> | R88 | **R100** (R<sub>SNS</sub>) | | R92 | **R104** (V<sub>CC</sub> 10k) | | C49 | **C62** (C<sub>TMR</sub>) |
+> | R89 | **R101** (R<sub>DRN</sub>) | | R93 | **R105** (240k) | | C50 | **C63** (V<sub>CC</sub> 220nF) |
+> | R90 | **R102** (10 Ω) | | R94 | **R106** (10k) | | C51 | **C64** (47nF) |
+> | R91 | **R103** (33 Ω) | | R95 | **R107** (240k) | | C52 | **C65** (22 µF, new) |
+> | D22 | **D21** (22 V Zener) | | D23 | **D22** | | D24 | **D23** |
+>
+> **U10, Q10, Q11 and Q12 were free and keep the names this section gave them.** Anything written
+> against the old numbers — notes, review comments, the part-selection document — must be read
+> through this table.
+
+
 | Ref | Part | Role |
 |---|---|---|
 | **U10** | **ADI LTC4380HMS-2#TRPBF** | Surge stopper + overcurrent controller. Auto-retry (`-2`), MSOP-10, H-grade −40…125 °C |
 | **Q10** | **Infineon IPT008N06NM5LF** | Pass FET, **input side** — **source** to the feed, drain to MID |
-| **Q11** | **Infineon IPT008N06NM5LF** | Pass FET, **output side** — drain to MID, **source** to R88 |
-| **R88** | **5.6 mΩ, 1%, ≥ 1 W** | Current-limit sense. 4-terminal (Kelvin) part preferred |
-| **R89** | **30 kΩ** | R<sub>DRN</sub> — drain sense for the SOA multiplier |
-| **R90** | **10 Ω** | Gate series damping (Fig. 7 R3) |
-| **R91 / C51** | **33 Ω / 47 nF** | Gate-node compensation to GND (Fig. 7 R2/C2). **Populated — see below** |
-| **C49** | **680 nF** | C<sub>TMR</sub> fault timer |
-| **R92 / C50 / D22** | **10 kΩ / 220 nF / 22 V Zener** | V<sub>CC</sub> feed, hold-up and clamp (Fig. 7 R1/C1/D1) |
-| **Q12** | NPN, 40 V, SOT-23 (**MMBT3904 class**) | Q11-gate steering network (Fig. 7 Q3) |
-| **D23 / D24** | 75 V switching diode (**1N4148 class**) | same network (Fig. 7 D3/D2) |
-| **R93 / R94 / R95** | **240 kΩ / 10 kΩ / 240 kΩ** | same network (Fig. 7 R6/R5/R4) |
+| **Q11** | **Infineon IPT008N06NM5LF** | Pass FET, **output side** — drain to MID, **source** to R100 |
+| **R100** | **5.6 mΩ, 1%, ≥ 1 W** | Current-limit sense. 4-terminal (Kelvin) part preferred |
+| **R101** | **30 kΩ** | R<sub>DRN</sub> — drain sense for the SOA multiplier |
+| **R102** | **10 Ω** | Gate series damping (Fig. 7 R3) |
+| **R103 / C64** | **33 Ω / 47 nF** | Gate-node compensation to GND (Fig. 7 R2/C2). **Populated — see below** |
+| **C62** | **680 nF** | C<sub>TMR</sub> fault timer |
+| **C65** | **22 µF, 63 V** | **Mandatory** OUT bypass. PIN FUNCTIONS: minimum 22 µF, "as close to the pin as possible". Cannot be ceramic at 63 V — aluminium V-chip |
+| **R104 / C63 / D21** | **10 kΩ / 220 nF / 22 V Zener** | V<sub>CC</sub> feed, hold-up and clamp (Fig. 7 R1/C1/D1) |
+| **Q12** | NPN, 40 V, SOT-23 (**MMBT3904 class**) | **Q10**-gate steering network (Fig. 7 Q3) |
+| **D22 / D23** | 75 V switching diode (**1N4148 class**) | same network (Fig. 7 D3/D2) |
+| **R105 / R106 / R107** | **240 kΩ / 10 kΩ / 240 kΩ** | same network (Fig. 7 R6/R5/R4) |
 
-> **Q12, D23, D24, R93–R95 are jellybean parts and no orderable is named here.** They need
+> **Q12, D22, D23, R105–R107 are jellybean parts and no orderable is named here.** They need
 > picking against the usual criteria (AEC-Q101, SOT-23/SOD-323) before the BOM freezes.
 
 #### Why one element does both, and why that is cheaper than it sounds
@@ -315,43 +344,61 @@ limits forward current. With the IPT008N06NM5LF at **0.8 mΩ max** the pair cont
 | | R | Loss at 7.0 A |
 |---|---|---|
 | Q10 + Q11, hot (0.8 mΩ max, ×1.5 at 125 °C) | 2.4 mΩ | 0.12 W |
-| R88 sense | 5.6 mΩ | **0.27 W** |
+| R100 sense | 5.6 mΩ | **0.27 W** |
 | **Total** | **8.0 mΩ** | **0.39 W** |
 | *Replaced: Q1 P-FET* | *16 mΩ* | *0.78 W* |
 
 **Night falls from 2.70 W to 2.31 W and the board lands at ~60 °C — three degrees cooler than the
 present design, while gaining protection it does not currently have.**
 
-> **R88 is now 69% of the pass-element loss.** The FETs have become negligible and the sense
+> **R100 is now 69% of the pass-element loss.** The FETs have become negligible and the sense
 > resistor is the dominant term. It needs its own copper area and a **Kelvin connection**; the
 > datasheet's layout note is explicit that "1 oz copper exhibits a sheet resistance of about
-> 530 µΩ/square. Small resistances can cause large errors in high current applications." **R88 is
+> 530 µΩ/square. Small resistances can cause large errors in high current applications." **R100 is
 > not on the heat-spreader plate** and must be thermally provisioned separately.
 
 #### Topology — COMMON DRAIN, sources outward. This is the error ERC cannot catch.
 
 ```
-  FEED_P ─┬────────┬── S:Q10:D ──┬── D:Q11:S ──┬─ R88 ─┬── VBAT_PROT
-          │        │             │  5.6mΩ      │       │
-        R92 10k  R93 240k      (MID)           │       │
-          │        │             │           SNS│    OUT│
-          ├─ C50 ──┤          Q10 gate ◄─ D23 ◄─┴─ R95 ─┤
-          ├─ D22 ──┤             ▲              240k    │
-          │  22V   │           Q12 c            │       │
-         VCC      Q12 b ──┘      │      Q11 gate ─ R90 ─┤
-                  Q12 e ─ R94 ─ D24 ─ GND       10Ω     │
-                          10k                           │
-                                          R91 33Ω ─ C51 47nF ─ GND
-        ┌──────────────── U10 LTC4380-2 ─────────────────┐
-        │ DRN ─ R89 30k ─ to FEED_P     GATE ── as above │
-        │ SNS, OUT ─ across R88         SEL ── GND       │
-        │ VCC ─ from R92/C50/D22        TMR ── C49 680nF │
-        │ ON  ─ open (internal pull-up) GND ── GND_IN    │
-        │ FLT ─ open drain, optional to MCU              │
-        └────────────────────────────────────────────────┘
+  POWER PATH — sources outward, drains in the middle
+
+  FEED_P ──┬── S:Q10:D ──┬── D:Q11:S ──┬── R100 5.6 mΩ ──┬── VBAT_PROT ── §4.3 (D2, L2)
+   (J1.2)  │   pin2 pin3 │  pin3 pin2  │                 │
+           │           (MID)         (SNS)             (OUT) ── C65 22 µF ── GND_IN
+           │                                                      (at U10 pin 5)
+           └── R104 10k ── VCC10 ─┬─ C63 220nF ─ GND_IN
+                                  ├─ D21 22V ─── GND_IN
+                                  └─ U10 VCC
 ```
 
-*Drawn from the datasheet's **Figure 7**, which is this circuit at 2 A. Q12/D23/D24/R93–R95 are
+**Every node, as generated and read back from the netlist.** This table is the authority; the
+sketch above is only the shape of it.
+
+| Net | Nodes |
+|---|---|
+| `FEED_P` | J1.2, **Q10 pin 2 (S)**, Q12 E, R104.1, R105.1 |
+| `MID` | **Q10 pin 3 (D)**, **Q11 pin 3 (D)**, R101.1 |
+| `SNS` | **Q11 pin 2 (S)**, R100.1, U10 SNS |
+| `VBAT_PROT` | R100.2, **C65**, U10 OUT, D2.1, L2.1 (→ §4.3) |
+| `U10_DRN` | R101.2, U10 DRN — **R<sub>DRN</sub> senses MID, not `FEED_P`** |
+| `U10_GATE` | U10 GATE, R102.2, R103.1, R107.2 |
+| `Q11_G` | Q11 G, R102.1 — the *direct* drive, referenced to OUT |
+| `Q10_G` | Q10 G, Q12 C, D22 K — the *steered* drive, referenced to `FEED_P` |
+| — | D22 A → R107 240k → `U10_GATE` |
+| `Q12_B` | **Q12 B**, R105.2, R106.1 — the bias sits on the **BASE**, not the emitter |
+| — | R106.2 → **D23 K**, and **D23 A → GND_IN** — D23 stands off the full 50.6 V clamp, hence 75 V |
+| — | R103.2 → C64 47nF → GND_IN (gate-node compensation) |
+| — | U10 TMR → C62 680nF → GND_IN; U10 SEL → GND_IN (selects the 31.5 V gate clamp) |
+| — | U10 ON open on its internal 1 MΩ pull-up; U10 FLT open-drain, not routed |
+| `GND_IN` | U10 GND **and** SEL, C62.2, C63.2, C64.2, C65.2, D21 A, D23 A, J1.3, L2.2, R3.1, D2.2 |
+
+> **The whole eFuse references `GND_IN`, the connector-side return — not board `GND`.** U10
+> measures the feed, so it must reference the return the battery is actually connected to. The two
+> are joined only through the choke's second winding (§4.3); moving any of these to board `GND` to
+> "shorten the return" bridges the choke and silently defeats it.
+
+
+*Drawn from the datasheet's **Figure 7**, which is this circuit at 2 A. Q12/D22/D23/R105–R107 are
 the second FET's gate-steering network — see the correction below for why they are not optional.*
 **COMMON DRAIN. Drains tied together in the middle, SOURCES facing outward.**
 
@@ -365,7 +412,7 @@ the second FET's gate-steering network — see the correction below for why they
 > the reasoning that produced the error is left visible below so it is not repeated.
 
 - **Q10** (input side): **source to `FEED_P`**, drain to MID.
-- **Q11** (output side): drain to MID, **source toward `R88`/`OUT`**.
+- **Q11** (output side): drain to MID, **source toward `R100`/`OUT`**.
 
 **Body diodes then oppose each other**, which is the whole point:
 
@@ -385,7 +432,7 @@ the second FET's gate-steering network — see the correction below for why they
 The mistake was to argue from the LTC4380's single GATE pin: ΔV<sub>GATE</sub> is specified
 **GATE − OUT**, so it looked as though both sources had to sit at OUT potential for one driver to
 work. **The datasheet's answer is not to tie the sources together — it is to steer the second
-gate**, which is exactly what Q12/D23/D24/R93–R95 are for, and exactly why that network appears
+gate**, which is exactly what Q12/D22/D23/R105–R107 are for, and exactly why that network appears
 only in the back-to-back figures.
 
 **The tell is that the two gates are driven differently.** Under common source both gates would
@@ -394,13 +441,15 @@ Figure 7 they are emphatically not the same node:
 
 | | Drive | Referenced to |
 |---|---|---|
-| **Q11** (Fig. 7 M1) | `GATE` → R90 10 Ω → gate | OUT — the pin's own reference |
-| **Q10** (Fig. 7 M2) | `GATE` → R95 240 kΩ → D23 → gate, with Q12 clamping it | **`FEED_P`** — its source |
+| **Q11** (Fig. 7 M1) | `GATE` → R102 10 Ω → gate | OUT — the pin's own reference |
+| **Q10** (Fig. 7 M2) | `GATE` → R107 240 kΩ → D22 → gate, with Q12 clamping it | **`FEED_P`** — its source |
 
 Q10's source is at `FEED_P`, so its gate needs ≈ `FEED_P` + 10 V. `GATE` sits at OUT + 11.5 V ≈
-`FEED_P` + 11.5 V, so feeding it through R95 and D23 lands ≈ `FEED_P` + 10.8 V — **enough to
-enhance a FET whose source is at the input.** R93 (240 kΩ from `FEED_P`) biases Q12, whose
-collector clamps Q10's gate through R94/D24, limiting V<sub>GS</sub> as the input swings.
+`FEED_P` + 11.5 V, so feeding it through R107 and D22 lands ≈ `FEED_P` + 10.8 V — **enough to
+enhance a FET whose source is at the input.** R105 (240 kΩ from `FEED_P`) biases Q12's **base**
+through R106/D23 — R106 to D23's cathode, D23's anode to `GND_IN` — and Q12's **collector sits
+directly on Q10's gate**, clamping V<sub>GS</sub> to its own source as the input swings. Under
+reverse polarity `GND_IN` rises above the feed, D23 conducts, Q12 turns on and holds Q10 hard off.
 **None of that structure makes sense for a common-source pair.**
 
 > **The datasheet's own wording agrees, and it was quoted in the earlier draft without its
@@ -413,22 +462,22 @@ collector clamps Q10's gate through R94/D24, limiting V<sub>GS</sub> as the inpu
 **This remains the error class that gets through every automated check on this board** — the
 CM-choke pin numbering (Task 7) and the RGB-FET clamp path (F6) were both of it, and so was this
 paragraph. **The generated netlist must be read by hand**, specifically confirming that the MID
-node lands on **pin 3 (D) of both Q10 and Q11**, and that `FEED_P` and the `R88` side land on
+node lands on **pin 3 (D) of both Q10 and Q11**, and that `FEED_P` and the `R100` side land on
 **pin 2 (S)** of Q10 and Q11 respectively.
 
 #### Component values, and what is not yet settled
 
-**R88 = 5.6 mΩ** gives a **9.0 A nominal** limit (ΔV<sub>SNS</sub> = 50 mV typ). With the IC's
+**R100 = 5.6 mΩ** gives a **9.0 A nominal** limit (ΔV<sub>SNS</sub> = 50 mV typ). With the IC's
 45–55 mV spread and a 1% resistor the real window is **8.0–10.0 A** — above §4.1's 7.8 A
 flash-to-pass transient, at or below the connector's 10 A. **Both ends pass and neither has room
-to spare**, so R88 must be 1% or better. Dissipation at the 9.9 A worst-case limit is **0.55 W**,
+to spare**, so R100 must be 1% or better. Dissipation at the 9.9 A worst-case limit is **0.55 W**,
 hence the ≥ 1 W rating.
 
-**R89 = 30 kΩ and C49 = 680 nF. CALCULATED 2026-09-19** by the datasheet's own Design Example
+**R101 = 30 kΩ and C62 = 680 nF. CALCULATED 2026-09-19** by the datasheet's own Design Example
 procedure (Applications Information, pp. 17–18). Working shown because these two fail in opposite
 directions — too short nuisance-trips on inrush, too long violates the FETs' SOA.
 
-**R89, from the DRN pin's 1 mA limit at peak input:**
+**R101, from the DRN pin's 1 mA limit at peak input:**
 
 > R<sub>DRN</sub> = (V<sub>IN(peak)</sub> − V<sub>OUT(clamp)</sub>) / 1 mA = (50.6 − 27) / 1 mA = **23.6 kΩ**
 
@@ -452,19 +501,19 @@ a controlled ramp; these FETs' own 370 nC already dominates and gives a gentler 
 around **0.16 A against an 8.0 A worst-case limit** — a factor of 50 clear, so startup cannot trip
 the current limit.
 
-**C49, sized so TMR does not reach its 1.215 V threshold during that ramp:**
+**C62, sized so TMR does not reach its 1.215 V threshold during that ramp:**
 
 > C<sub>TMR</sub> = I<sub>TMR(UP)</sub> × t<sub>INRUSH</sub> / ΔV<sub>TMR</sub>
 
 With ΔV<sub>SNS</sub> ≈ 0.9 mV during soft start the multiplier sits in its **light-load** row,
 I<sub>TMR(UP)</sub> ≈ **1.6 µA typ / 2.4 µA max**, and the datasheet's own guideline is to hold the
-TMR rise to **0.4 V**. With C51 fitted the ramp is **95 ms** worst case, giving
+TMR rise to **0.4 V**. With C64 fitted the ramp is **95 ms** worst case, giving
 2.4 µA × 95 ms / 0.4 V = **570 nF → 680 nF**.
 
-> **The table above is the no-C51 case and is superseded.** Without C51 the ramp is 38.6 ms and
+> **The table above is the no-C64 case and is superseded.** Without C64 the ramp is 38.6 ms and
 > the answer is 330 nF; an earlier draft said 220 nF, which met the 1.215 V threshold but not the
 > 0.4 V guideline. **680 nF is the value, and the reason it moved is the correction two sections
-> below** — C51 is populated, not DNP, and it adds to the gate capacitance that sets the ramp.
+> below** — C64 is populated, not DNP, and it adds to the gate capacitance that sets the ramp.
 
 **Checked in the other direction — both fault cases time out well inside SOA:**
 
@@ -482,11 +531,14 @@ the tighter of the two.*
 > persistent short the lights pulse briefly at that rate rather than staying dark — which is the
 > intended behaviour, and is also a useful diagnostic signature at bring-up (Task 11).
 
+> **SUPERSEDED — R103/C64 are POPULATED.** The paragraph below was written before the correction two sections down; it is kept because its *reasoning* still explains where the
+> values came from, but **do not leave them DNP**, and note that **33 Ω / 47 nF is the datasheet's stated PIN FUNCTIONS minimum, not Figure 7's drawn 150 Ω / 0.1 µF** — a deliberate departure from "everything else is taken as drawn". A larger C64 lengthens the output ramp, and 0.1 µF pushes the fault timeout past 10 ms, off the end of the SOA curve that was checked.
+>
 > **One thing left open deliberately.** The datasheet's Figure 6 puts **R2 33 Ω + C2 47 nF** from
 > the gate node to ground. We do not need C2 to set the ramp, but it is not established whether
 > that network is also **compensating the current-limit loop** — a linear regulator around a
 > 0.8 mΩ FET is not obviously unconditionally stable. **Provide footprints for an optional gate
-> R-C (R91, C51) and leave them DNP**, so the loop can be compensated at bring-up without a
+> R-C (R103, C64) and leave them DNP**, so the loop can be compensated at bring-up without a
 > respin. This is the same pattern as R2/R3 on the choke, and it costs two unstuffed footprints.
 
 #### CORRECTED 2026-09-19 — the auxiliary gate network is NOT optional, and I had it wrong
@@ -512,20 +564,20 @@ second FET's gate needs steering that the LTC4380's one GATE pin does not provid
 > line. **Only R<sub>SNS</sub>, R<sub>DRN</sub> and C<sub>TMR</sub> are rescaled** (Figure 7 is a
 > 2 A design); everything else is taken as drawn. **Do not re-derive it from Figure 5.**
 
-**The V<sub>CC</sub> network comes with it.** R92 10 kΩ / C50 220 nF / D22 22 V appear in *all
+**The V<sub>CC</sub> network comes with it.** R104 10 kΩ / C63 220 nF / D21 22 V appear in *all
 three* application circuits, Figure 8's 20 V design included — so the Zener is not a 250 V
 artefact either, and the earlier draft was wrong to propose dropping it.
 
-#### The gate network changes the inrush sum — C49 is 680 nF, not 220 nF
+#### The gate network changes the inrush sum — C62 is 680 nF, not 220 nF
 
-**R91/C51 were going to be DNP footprints "in case the loop needs compensating". They are
-populated, and that feeds back into C<sub>TMR</sub>**, because C51 adds to the gate capacitance
+**R103/C64 were going to be DNP footprints "in case the loop needs compensating". They are
+populated, and that feeds back into C<sub>TMR</sub>**, because C64 adds to the gate capacitance
 that sets the output ramp:
 
 | Gate C | t<sub>INRUSH</sub> (worst case) | Inrush | **C<sub>TMR</sub> needed** | Short timeout | Clamp timeout |
 |---|---|---|---|---|---|
 | FETs only, 32 nF | 38.6 ms | 0.078 A | 330 nF | 4.5 ms | 4.2 ms |
-| **+ C51 47 nF → 79 nF** | **95 ms** | **0.032 A** | **680 nF** | **9.2 ms** | **8.6 ms** |
+| **+ C64 47 nF → 79 nF** | **95 ms** | **0.032 A** | **680 nF** | **9.2 ms** | **8.6 ms** |
 | + 100 nF → 132 nF | 159 ms | 0.019 A | 1.0 µF | 13.5 ms | 12.6 ms |
 
 **Row two is the design.** Checked against Diagram 3, derated from its 25 °C case to 65 °C:
@@ -535,19 +587,19 @@ that sets the output ramp:
 | Severe short | 12 V at 9 A | 9.2 ms | ~34 A | **3.8×** |
 | Overvoltage clamp | 23.6 V at 7 A | 8.6 ms | ~14 A | **2×** |
 
-**The clamp case is now 2× rather than the 4× quoted before C51 was added.** Still a pass, and
+**The clamp case is now 2× rather than the 4× quoted before C64 was added.** Still a pass, and
 still read as if one FET took the whole voltage — but the margin is real and it is the reason the
 third row (100 nF) is rejected: it pushes the timeout past 10 ms, off the end of the SOA curve
 that was checked.
 
-> **If bring-up shows the current-limit loop is stable without C51**, depopulating it takes the
-> clamp timeout back to 4.2 ms and the margin back to ~2.6×. **C49 may stay at 680 nF in that
+> **If bring-up shows the current-limit loop is stable without C64**, depopulating it takes the
+> clamp timeout back to 4.2 ms and the margin back to ~2.6×. **C62 may stay at 680 nF in that
 > case** — it only makes the timer more conservative. Do not go the other way and fit a *larger*
-> C51 without re-checking SOA.
+> C64 without re-checking SOA.
 
-> **An earlier draft of this section said C49 = 220 nF.** That was computed with no C51 in the
+> **An earlier draft of this section said C62 = 220 nF.** That was computed with no C64 in the
 > circuit and against the threshold rather than the datasheet's own 0.4 V design guideline; even
-> for the no-C51 case the correct value is 330 nF. **680 nF supersedes it.**
+> for the no-C64 case the correct value is 330 nF. **680 nF supersedes it.**
 
 #### Two things this buys that were not asked for
 
@@ -1321,7 +1373,7 @@ of 0.8 mΩ FETs and is no longer significant.
 | Source | **Daytime** (corners white, Denali off) | **Night** (Denali on, front DRLs off) |
 |---|---|---|
 | Synchronous boost losses (92%, conservative) | 0.83 W (9.6 W of RGB) | ~0.20 W |
-| **Pass element** (§4.2, rewritten 2026-09-19): Q10 + Q11 **IPT008N06NM5LF** at 2.4 mΩ hot, plus **R88 sense 5.6 mΩ** | ~0.01 W (1.0 A) | **0.39 W (7.0 A)** — *was 0.78 W as a lone SQJ461EP P-FET* |
+| **Pass element** (§4.2, rewritten 2026-09-19): Q10 + Q11 **IPT008N06NM5LF** at 2.4 mΩ hot, plus **R100 sense 5.6 mΩ** | ~0.01 W (1.0 A) | **0.39 W (7.0 A)** — *was 0.78 W as a lone SQJ461EP P-FET* |
 | Denali PROFET, 150 °C max | 0 W — Denali off | 0.35 W |
 | RGB sense resistors, 12 × 10 Ω | 0.13 W | ~0.03 W |
 | RGB discrete FETs, all 12 | ~0 W | ~0 W |
@@ -1338,7 +1390,7 @@ of 0.8 mΩ FETs and is no longer significant.
 > ~60 °C**, about 3 K better than the previous design and the first real margin this table has
 > had. **L2 is now the largest single term at 0.78 W.**
 >
-> *Note R88, the 5.6 mΩ sense resistor, is **0.27 W of that 0.39 W** and is **not** coupled to the
+> *Note R100, the 5.6 mΩ sense resistor, is **0.27 W of that 0.39 W** and is **not** coupled to the
 > heat-spreader plate — it needs its own copper (§4.2).*
 
 > **L1 and L2 ADDED 2026-09-19.** They were missing from this table entirely — the gap raised
@@ -1361,10 +1413,10 @@ when §4.2's rewrite replaced the P-FET. Scaling the table: **150 cm² gives ~19
 the direct return on merging the fuse and the reverse-polarity FET into one pass element.
 **≥ 150 cm² remains the floor.**
 
-> **One term in the 2.31 W is NOT on the plate**: R88, the 5.6 mΩ sense resistor, contributes
+> **One term in the 2.31 W is NOT on the plate**: R100, the 5.6 mΩ sense resistor, contributes
 > 0.27 W and couples to the board rather than to the heat-spreader (§4.2). The plate figures above
 > are therefore slightly conservative for the plate itself and slightly optimistic for the board
-> around R88 — Task 8 must give it its own copper.
+> around R100 — Task 8 must give it its own copper.
 
 Original table, at 1.9 W:
 

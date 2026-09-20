@@ -466,5 +466,40 @@ blk = emit("PESD2CANFD24U", "PESD2CANFD24U-T",
 LIBTXT, how = install(LIBTXT, "PESD2CANFD24U", blk)
 print("PESD2CANFD24U", how, "(Table 2 - VERIFIED)")
 
+# ---------------------------------------------------------------- LTC4380 (MS package)
+# VERIFIED 2026-09-20 against Analog Devices LTC4380 Rev. C, "PIN CONFIGURATION" and
+# "PIN FUNCTIONS" (hardware/datasheets/LTC4380.pdf, pp. 2 and 8).  MSOP-10 (MS) pinout:
+#
+#   1 DRN   2 VCC   3 GATE   4 SNS   5 OUT   6 SEL   7 FLT   8 GND   9 ON   10 TMR
+#
+# The MS package has NO exposed pad -- only the DD (DFN) package does, and that one numbers
+# the pad 11.  Do not add an eleventh pin here or the MSOP footprint will not map.
+#
+# ELECTRICAL TYPES -- deliberately mostly passive, for the same reason the LM51571 pins were
+# retyped at the top of this file.  This part sits on GND_IN, the connector-side return, which
+# by design carries NO power symbol (see the split-ground note on the power_input sheet).  A
+# power_in GND or VCC pin there makes ERC demand a driver that must never exist, so it would
+# report a violation that is not in the circuit.  GATE is a real driver and is typed output;
+# FLT is open_collector, which is what the datasheet calls it.
+_ltc4380 = [
+    ("1",  "DRN",  "passive",         -7.62,  12.7,  270),
+    ("3",  "GATE", "output",          -2.54,  12.7,  270),
+    ("4",  "SNS",  "passive",          2.54,  12.7,  270),
+    ("5",  "OUT",  "passive",          7.62,  12.7,  270),
+    ("2",  "VCC",  "passive",        -15.24,   5.08,   0),
+    ("9",  "ON",   "passive",        -15.24,  -5.08,   0),
+    ("7",  "FLT",  "open_collector",  15.24,   5.08, 180),
+    ("8",  "GND",  "passive",         -7.62, -12.7,   90),
+    ("10", "TMR",  "passive",          0.0,  -12.7,   90),
+    ("6",  "SEL",  "passive",          7.62, -12.7,   90),
+]
+blk = emit("LTC4380", "LTC4380HMS-2",
+           "Surge stopper / overcurrent controller for back-to-back N-channel MOSFETs, "
+           "auto-retry (-2), 4 to 80 V, internal gate clamp 31.5 V with SEL = GND, MSOP-10",
+           "https://www.analog.com/media/en/technical-documentation/data-sheets/4380fc.pdf",
+           {1: _ltc4380}, rect=(-12.7, 10.16, 12.7, -10.16))
+LIBTXT, how = install(LIBTXT, "LTC4380", blk)
+print("LTC4380", how, "(Rev. C PIN FUNCTIONS - VERIFIED)")
+
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
 print("written")

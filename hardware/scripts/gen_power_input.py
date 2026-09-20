@@ -38,6 +38,15 @@ PINS = {
     # Transistor_FET:Q_PMOS_GSD -- 1 = G, 2 = S, 3 = D (numeric, maps to real footprints)
     "Transistor_FET:Q_PMOS_GSD": {"1": (-5.08, 0.0), "2": (2.54, -5.08), "3": (2.54, 5.08)},
     "Device:R":                 {"1": (0.0, 3.81), "2": (0.0, -3.81)},
+    # Transistor_FET:Q_NMOS_GSD -- 1 = G, 2 = S, 3 = D.  The eFuse pass pair Q10/Q11 is
+    # COMMON DRAIN: pin 3 of both meets at MID, pin 2 of Q10 goes to FEED_P and pin 2 of
+    # Q11 goes to R88.  Get this backwards and the reverse-polarity block disappears while
+    # ERC, DRC and the pad count all still pass.  See spec section 4.2.
+    "Transistor_FET:Q_NMOS_GSD": {"1": (-5.08, 0.0), "2": (2.54, -5.08), "3": (2.54, 5.08)},
+    # Transistor_BJT:Q_NPN_BEC -- 1 = B, 2 = E, 3 = C
+    "Transistor_BJT:Q_NPN_BEC": {"1": (-5.08, 0.0), "2": (2.54, -5.08), "3": (2.54, 5.08)},
+    # Device:D and the three diode variants below: pin 1 = CATHODE, pin 2 = ANODE.
+    "Device:D":                 {"1": (-3.81, 0.0), "2": (3.81, 0.0)},
     "Device:L":                 {"1": (0.0, 3.81), "2": (0.0, -3.81)},
     "Device:C":                 {"1": (0.0, 3.81), "2": (0.0, -3.81)},
     "Device:C_Polarized":       {"1": (0.0, 3.81), "2": (0.0, -3.81)},
@@ -49,6 +58,12 @@ PINS = {
     # using it here shorted VBAT_PROT to GND through a winding.  See symlib.py.
     "mccan_parts:CM_CHOKE_4T":  {"1": (-5.08, 2.54), "4": (5.08, 2.54),
                                  "2": (-5.08, -2.54), "3": (5.08, -2.54)},
+    # mccan_parts:LTC4380 -- MSOP-10, see symlib.py for the verified pin numbering.
+    "mccan_parts:LTC4380":      {"1": (-7.62, 12.7),  "3": (-2.54, 12.7),
+                                 "4": (2.54, 12.7),   "5": (7.62, 12.7),
+                                 "2": (-15.24, 5.08), "9": (-15.24, -5.08),
+                                 "7": (15.24, 5.08),  "8": (-7.62, -12.7),
+                                 "10": (0.0, -12.7),  "6": (7.62, -12.7)},
     "power:GND":                {"1": (0.0, 0.0)},
 }
 
@@ -77,6 +92,7 @@ WIRES = layout.WIRES
 JUNCTIONS = layout.JUNCTIONS
 LABELS = layout.LABELS
 HLABELS = layout.HLABELS
+NOCONN = getattr(layout, "NOCONN", ())
 
 import importlib.util as _ilu
 _spec = _ilu.spec_from_file_location("notes", os.path.join(HERE, "notes_power_input.py"))
@@ -100,7 +116,10 @@ w(1, "(version 20260306)")
 w(1, '(generator "eeschema")')
 w(1, '(generator_version "10.0")')
 w(1, '(uuid "%s")' % SHEET_UUID)
-w(1, '(paper "A4")')
+# A3 since 2026-09-20: the LTC4380 eFuse block (section 4.2) needs the room below the
+# rail that A4 does not have.  Mixed paper sizes are already normal on this project --
+# outputs is A2, mcu_can and rails are A3.
+w(1, '(paper "A3")')
 w(1, "(title_block")
 w(2, '(title "power_input")')
 w(1, ")")
@@ -152,6 +171,14 @@ for (txt, x, y, sx, sy) in TEXTBOXES:
     w(2, '(uuid "%s")' % U("tb" + txt[:40]))
     w(1, ")")
 
+# ---- no-connect flags
+# These are not decoration: without them ERC reports every deliberately unused pin.
+for (x, y) in NOCONN:
+    w(1, "(no_connect")
+    w(2, "(at %s %s)" % (f(x), f(y)))
+    w(2, '(uuid "%s")' % U("nc%s%s" % (x, y)))
+    w(1, ")")
+
 # ---- junctions
 for (x, y) in JUNCTIONS:
     w(1, "(junction")
@@ -184,7 +211,7 @@ for (name, x, y, rot) in LABELS:
     w(3, ")")
     w(3, "(justify left bottom)")
     w(2, ")")
-    w(2, '(uuid "%s")' % U("lbl" + name))
+    w(2, '(uuid "%s")' % U("lbl%s@%s,%s" % (name, x, y)))
     w(1, ")")
 
 # ---- hierarchical labels
@@ -270,18 +297,42 @@ open(OUT, "w", encoding="utf-8", newline="\n").write(_text)
 print("wrote", OUT, len(L), "lines")
 
 # -------- report expected connectivity from the geometry
+# The roster below is the netlist this sheet is SUPPOSED to produce, written from the
+# schematic intent rather than read back from the geometry -- so when the printed
+# coordinates for a net do not all agree, the geometry is wrong, not this list.
+#
+# Q10 / Q11 are the place to look first.  Pin 3 (D) of BOTH lands on MID; pin 2 (S) of Q10
+# lands on FEED_P and pin 2 (S) of Q11 on the R88 side.  That is COMMON DRAIN and it is
+# what blocks reverse current.  Common source passes ERC, DRC and the pad count and is
+# wrong.  Spec section 4.2 requires this to be read by hand after every regeneration.
 nets = {
-    "IGN_IN": [("J1", "1")],
-    "FEED_P": [("J1", "2"), ("F1", "1")],
-    "FEED_FUSED": [("F1", "2"), ("Q1", "3")],
-    "VBAT_PROT": [("Q1", "2"), ("D1", "1"), ("D2", "1"), ("L2", "1"), ("R2", "1")],
-    "VBAT_F": [("L2", "4"), ("R2", "2"), ("C1", "1"), ("L1", "1")],
-    "VBAT": [("L1", "2"), ("C2", "1"), ("C3", "1"), ("C4", "1"), ("D3", "2")],
-    "VLOGIC_IN": [("D3", "1"), ("C5", "1")],
-    "Q1_G": [("Q1", "1"), ("R1", "1"), ("D1", "2")],
-    "GND_IN": [("J1", "3"), ("D2", "2"), ("R1", "2"), ("L2", "2"), ("R3", "1")],
+    "IGN_IN":     [("J1", "1")],
+    "FEED_P":     [("J1", "2"), ("R104", "1"), ("Q10", "2"), ("R105", "1"), ("Q12", "2")],
+    "VCC10":      [("R104", "2"), ("C63", "1"), ("D21", "1"), ("U10", "2")],
+    "MID":        [("Q10", "3"), ("Q11", "3"), ("R101", "1")],
+    "U10_DRN":    [("R101", "2"), ("U10", "1")],
+    "U10_GATE":   [("U10", "3"), ("R102", "2"), ("R103", "1"), ("R107", "2")],
+    "Q10_G":      [("Q10", "1"), ("Q12", "3"), ("D22", "1")],
+    "Q11_G":      [("Q11", "1"), ("R102", "1")],
+    "Q12_B":      [("Q12", "1"), ("R105", "2"), ("R106", "1")],
+    "SNS":        [("Q11", "2"), ("R100", "1"), ("U10", "4")],
+    "VBAT_PROT":  [("R100", "2"), ("C65", "1"), ("U10", "5"),
+                   ("D2", "1"), ("L2", "1"), ("R2", "1")],
+    "VBAT_F":     [("L2", "4"), ("R2", "2"), ("C1", "1"), ("L1", "1")],
+    "VBAT":       [("L1", "2"), ("C2", "1"), ("C3", "1"), ("C4", "1"), ("D3", "2")],
+    "VLOGIC_IN":  [("D3", "1"), ("C5", "1")],
+    # GND_IN is the connector-side return.  It carries no power symbol by design -- see the
+    # split-ground note on the sheet -- so every member reaches it through a local label.
+    "GND_IN":     [("J1", "3"), ("D2", "2"), ("L2", "2"), ("R3", "1"),
+                   ("C63", "2"), ("D21", "2"), ("C64", "2"), ("C65", "2"),
+                   ("C62", "2"), ("D23", "2"), ("U10", "8"), ("U10", "6")],
     "GND(board)": [("L2", "3"), ("R3", "2"), ("C1", "2"), ("C2", "2"), ("C3", "2"),
                    ("C4", "2"), ("C5", "2")],
+    # the last three are two-member nets with no label of their own
+    "D22_A":      [("D22", "2"), ("R107", "1")],
+    "R106_D23":   [("R106", "2"), ("D23", "1")],
+    "R103_C64":   [("R103", "2"), ("C64", "1")],
+    "U10_TMR":    [("U10", "10"), ("C62", "1")],
 }
 lookup = {r: (lid, x, y, rot) for (r, lid, x, y, rot, v, fp) in COMPS}
 print("\nexpected pin coordinates:")

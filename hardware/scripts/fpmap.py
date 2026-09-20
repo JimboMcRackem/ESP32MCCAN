@@ -58,6 +58,17 @@ for _i in range(52, 64):
 # compact pair, not a 0603 next to a 1206.
 for _i in range(88, 100):
     R_OVERRIDE["R%d" % _i] = R_1206
+# R100-R107: the eFuse (spec 4.2).  Two reasons break the 0603 default here.
+#   R100 is the 5.6 mOhm current-sense shunt and carries the whole 7.0 A night load:
+#   0.27 W steady, and the datasheet's current-limit loop reads across it, so it wants its
+#   own copper and a 4-terminal part if one can be had.  2512 is the floor.
+#   R101/R105/R107 stand off the raw feed.  A 0603's working-voltage rating is 50 V and
+#   the SMBJ24A's 8/20 us clamp is 50.6 V -- that is not margin, it is a coin toss.  1206
+#   is rated 200 V.  R102/R103/R104/R106 all sit on clamped or low-voltage nodes and stay
+#   at the 0603 default.
+R_OVERRIDE["R100"] = R_2512
+for _r in ("R101", "R105", "R107"):
+    R_OVERRIDE[_r] = R_1206
 
 # ---------------------------------------------------------------- capacitors
 # Default 0603.  Overrides:
@@ -83,20 +94,41 @@ for _r in ("C20", "C21", "C22"):
 # C49-C60: output snubber capacitors, DNP.  Pairs with R88-R99; see that note.
 for _i in range(49, 61):
     C_OVERRIDE["C%d" % _i] = C_1206
+# C62-C65: the eFuse.  C62 (C_TMR) and C63 (VCC, clamped to 22 V by D21) are ordinary
+# 0603 parts.  C64 hangs off the GATE node, which rides at OUT + 11.5 V and therefore up
+# to ~40 V against GND_IN -- 0805 for a 63 V part, same reasoning as C2/C5/C7.
+C_OVERRIDE["C64"] = C_0805
+# C65: 22 uF minimum at the LTC4380's OUT pin, on the raw feed, so a 63 V part.  22 uF at
+# 63 V does not exist in any ceramic package that would survive the DC bias -- a 1210 63 V
+# X7R holds a few uF at 24 V.  An aluminium V-chip can, like C3.  FLAGGED: no orderable
+# picked yet; 6.3 x 7.7 mm is the smallest body that holds 22 uF at 63 V, and the
+# footprint must be re-checked against whatever part is actually chosen.
+C_OVERRIDE["C65"] = "Capacitor_SMD:CP_Elec_6.3x7.7"
 
 # ---------------------------------------------------------------- everything else
 EXPLICIT = {
     # --- diodes
-    "D1":  "Diode_SMD:D_SOD-123",              # 12 V Zener, P-FET gate clamp
     "D2":  "Diode_SMD:D_SMB",                  # SMBJ24A -- DO-214AA (SMB) per smbj.pdf
     "D3":  "Diode_SMD:D_SMA",                  # 40 V Schottky, logic-rail OR
     "D4":  "Package_TO_SOT_SMD:TO-277A",       # SS5PH102 -- SMPC/TO-277A per its datasheet
     "D5":  "LED_SMD:LED_0603_1608Metric",      # status LED
+    # --- eFuse, spec 4.2.  D1/Q1/F1 used to be the front end and are gone: one LTC4380
+    # and its pass pair now do reverse polarity, overcurrent and overvoltage together.
+    "D21": "Diode_SMD:D_SOD-123",              # 22 V Zener, U10 VCC clamp
+    "D22": "Diode_SMD:D_SOD-323",              # 1N4148 class, Q10 gate feed
+    "D23": "Diode_SMD:D_SOD-323",              # 1N4148 class, Q12 base steering
     "D6":  "Package_TO_SOT_SMD:SOT-23",        # PESD2CANFD24U-T, 3 terminals (Table 3)
     # --- transistors
-    "Q1":  "Package_SO:PowerPAK_SO-8L_Single", # SQJ461EP
     "Q2":  "Package_TO_SOT_SMD:SOT-23",        # MMBT3904
     "Q3":  "Package_TO_SOT_SMD:SOT-23",
+    # Q10/Q11: IPT008N06NM5LF, Infineon HSOF-8 ("OptiMOS Source-Down").  The KiCad
+    # footprint numbers only three pads -- 1, 2, 3 -- which is what lets a three-pin
+    # Q_NMOS_GSD symbol map onto it.  FLAGGED: HSOF-8-1 versus -2 versus -3 has NOT been
+    # confirmed against the datasheet's package drawing, and the variants differ in pad
+    # geometry.  Resolve before fabrication (Task 8).
+    "Q10": "Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1",
+    "Q11": "Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1",
+    "Q12": "Package_TO_SOT_SMD:SOT-23",        # MMBT3904 class, Q10 gate steering
     # --- integrated circuits
     # LM5164 DDA = 8-pin SO PowerPAD.  The datasheet's mechanical drawing gives the
     # thermal pad as 3.4 x 2.8 mm; KiCad has no exact match, and EP2.62x3.51 is the
@@ -112,6 +144,10 @@ EXPLICIT = {
     "U7":  "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm", # PCA9685PW/Q900, SOT361-1
     "U8":  "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm", # ADG706BRU
     "U9":  "Package_SO:Infineon_PG-TSDSO-14-22",    # BTS7008-2EPA, pad 15 = the EP (VS)
+    # LTC4380HMS-2: the MS package is MSOP-10 with NO exposed pad.  The DD (DFN) package
+    # does have one and numbers it 11; the symbol has ten pins, so ordering DD would leave
+    # the pad unlanded.  Order the MS part.
+    "U10": "Package_SO:MSOP-10_3x3mm_P0.5mm",
     # --- magnetics
     "L1":  "Inductor_SMD:L_Vishay_IHLP-4040",       # IHLP-4040DZ-01, 1.5 uH
     "L2":  "mccan:Wurth_WE-CMBNC_7448031002",       # vendor footprint, pads verified
@@ -172,15 +208,11 @@ for _i in range(7, 21):
 # project holds.  `fp()` returns "" for them so the gap is visible in the netlist rather
 # than papered over with a plausible-looking wrong package.  See datasheets/NEEDED.md.
 BLOCKED = {
-    # No part selected at all, and it is a panel penetration so the body matters.
-    # F1 changed 2026-09-19 from a panel-mount blade holder to a BOARD-MOUNTED eFUSE.
-    # Requirements are in docs/part-selection.md "F1 -- eFuse requirements"; the two that
-    # constrain the search hardest are a limit setpoint of 9-10 A (BELOW 7.8 A and the
-    # flash-to-pass transient is chopped, because an eFuse has none of the thermal inertia
-    # the blade fuse relied on; ABOVE 10 A and it exceeds the connector rating) and
-    # AUTO-RETRY rather than latch-off (the MCU is powered downstream of F1, so it cannot
-    # clear a latch).
-    "F1": "board-mount eFuse, >=8 A at 65 C, limit 9-10 A, auto-retry -- no part selected",
+    # F1 IS GONE.  It was a blade fuse, then briefly a board-mounted eFuse with no part
+    # selected; spec 4.2 resolved it by making U10 (LTC4380 + Q10/Q11) the fuse, the
+    # reverse-polarity block and the overvoltage clamp in one element.  D1, Q1 and R1 went
+    # with it.  Do not re-add a separate fuse without re-reading 4.2 -- a series fuse in
+    # front of the eFuse only adds resistance to the 7 A path.
     # Datasheet IS held, but the land pattern must be drawn:
     #   L6  -- ACT45B, 4.5 x 3.2 mm 4-pin.  KiCad's Coilank ACM4532 is the right size
     #          class but its pads (+-1.825/+-1.125, 1.15x1.55) do not map onto the
