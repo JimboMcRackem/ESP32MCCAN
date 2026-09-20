@@ -639,8 +639,9 @@ def stitch_vias(netidx, grid):
     Every one of these punches a hole in the In2.Cu power plane it passes through, which is why
     the ring is at 5 mm pitch and not something denser: a 0.8 mm via with 0.3 mm clearance
     takes 1.4 mm out of the plane, leaving a 3.6 mm web between holes.  The boost block gets
-    2.5 mm because Step 6 asks for stitching there specifically, and it sits over the VBAT half
-    of the In2.Cu split, away from the 7 A feed to the outputs.
+    2.5 mm because Step 6 asks for stitching there specifically; the denser ring costs the VBAT
+    plane more copper, but it sits over the boost corner rather than across the run from the
+    input to U9, which is where the 7 A actually flows.
 
     Candidates are tested against the placer's own occupancy grid, so a via can never land in a
     courtyard, in the ESP32 antenna keep-out or on a mounting hole -- those are already marked.
@@ -877,16 +878,27 @@ def zones(netidx):
     """Copper pours.
 
     In1.Cu  -- solid GND, the unbroken reference plane spec 10 asks for.
-    In2.Cu  -- VBAT over the input/rails half, +24V over the outputs half, 1 mm apart.
+    In2.Cu  -- VBAT, end to end.  It used to be split down x = 105 with +24V on the right, and
+               that split was wrong in both directions: seven of the eleven +24V pads are LEFT
+               of it (D4, C61, C20, C21, C22, R12) and two of the fifteen VBAT pads are RIGHT
+               of it (C45, C46).  The two nets interleave across the whole board, so no
+               straight line separates them -- the vertical split was not a lobe short of D4,
+               it was the wrong model.
+
+               The way out is not a cleverer split but the current figures.  VBAT is the 7.0 A
+               feed and wants every millimetre of plane it can get; +24V is the boost output at
+               0.5 A (spec 6), against 3.94 A of capability on a 2.0 mm POWER track at 1 oz.
+               Giving half the power plane to the rail that needs it least starved the one that
+               needs it most.  So In2.Cu is VBAT alone, and +24V is routed as POWER tracks --
+               which is exactly what its net class was already sized for.
+    B.Cu    -- GND, plus one small +24V island under D4's tab; see L.D4_24V_ISLAND.
     F.Cu    -- a local GND_IN island over the eFuse and the wire-exit corner.  GND_IN is a
                SEPARATE net from GND and meets it only through L2 winding B; giving it its own
                island is how that separation survives a pour instead of being an ideal on paper.
-    B.Cu    -- GND, for return-path continuity under routed signals.
     """
     out = []
     ins = 0.5
     x0, y0, x1, y1 = L.X0 + ins, L.Y0 + ins, L.X1 - ins, L.Y1 - ins
-    split = 105.0
 
     def poly(pts):
         s = "\t\t(polygon\n\t\t\t(pts\n"
@@ -908,10 +920,10 @@ def zones(netidx):
     full = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
     out.append(zone("GND", ["In1.Cu"], full, "GND_INNER"))
     out.append(zone("GND", ["B.Cu"], full, "GND_BOT"))
-    out.append(zone("/VBAT", ["In2.Cu"],
-                    [(x0, y0), (split - 0.5, y0), (split - 0.5, y1), (x0, y1)], "VBAT_IN2"))
-    out.append(zone("/+24V", ["In2.Cu"],
-                    [(split + 0.5, y0), (x1, y0), (x1, y1), (split + 0.5, y1)], "24V_IN2"))
+    out.append(zone("/VBAT", ["In2.Cu"], full, "VBAT_IN2"))
+    # D4's tab needs somewhere for its thermal array to land now that +24V has no plane.
+    # Priority 2 so it wins against the B.Cu ground pour, which notches around it.
+    out.append(zone("/+24V", ["B.Cu"], L.D4_24V_ISLAND, "24V_D4", prio=2))
     # The GND_IN island.  Its shape is dictated by where the input ground actually is, and it
     # is checked against the pads by scripts/check_grounds.py -- every GND_IN pad must sit in
     # it and no GND pad may.  Three features are deliberate:

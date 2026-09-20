@@ -310,6 +310,28 @@ PAD_ALIAS = {("D4", "3"): "1"}
 #
 # Total contact area is ~1.36e3 mm2.  hardware/docs/enclosure.md still assumes ~1000 mm2 at
 # 3.8 W; both numbers need revisiting together now that night at ~2.31 W is the governing case.
+# D4's +24V heat-spreader island on B.Cu.
+#
+# D4 is the boost catch diode; its tab is the cathode, so the tab IS the +24V node, and it sits
+# inside TIM-A -- the gap pad is where its heat is meant to go.  gen_pcb.thermal_vias() fills
+# the tab with a 5 x 6 array on that basis.  But +24V has no plane any more (see gen_pcb.zones):
+# In2.Cu is VBAT end to end, because VBAT carries 7.0 A and +24V carries 0.5 A.  Without this
+# island the array lands on B.Cu GND, gets notched away from it, and connects to nothing --
+# thirty dangling vias, and the diode's heat path and its lowest-impedance current path both
+# severed.  KiCad reported that as via_dangling warnings; DRC could not report it as an error,
+# because a via that reaches no copper breaks no clearance rule.
+#
+# The island stops at y 25.05, which clears D4 pad 2 (SW_BOOST, down to y 24.72) by 0.33 mm --
+# over the 0.30 mm the POWER class asks for.  It does not reach up to D4 pad 1: that pad is SMD
+# on F.Cu, so copper under it on B.Cu would connect nothing and would only narrow the gap to
+# the switch node.
+#
+# It costs a 6.2 x 5.9 mm hole in the B.Cu ground pour, in the boost corner.  That is affordable
+# because B.Cu is not the reference plane -- In1.Cu is, and In1.Cu stays unbroken.  Against the
+# enclosure it is +24 V separated from the plate by the gap pad alone, which is an insulator
+# rated in kilovolts; note it on the fab drawing all the same.
+D4_24V_ISLAND = [(63.75, 25.05), (69.95, 25.05), (69.95, 30.95), (63.75, 30.95)]
+
 TIM_PADS = [
     ("TIM-A", 64.0, 23.0, 98.0, 58.0),
     ("TIM-B", 69.0, 82.0, 83.0, 94.0),
