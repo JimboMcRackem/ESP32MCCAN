@@ -108,7 +108,30 @@ for _r in ("U10", "Q10", "Q11", "Q12", "R100", "R101", "R102", "R103", "R104", "
            # island then cannot reach them without swallowing the post-choke filter.
            "D2", "R3"):
     BLOCK[_r] = "efuse"
-for _r in ("U3", "L3", "D4", "C61"):
+# The whole boost, not just its four big parts.  U3's support network was on the `rails`
+# SHEET, so SHEET_REGION flowed all of it into the rails REGION -- and the region comment above
+# said "U3, L3, D4, C61 and their passives" while BLOCK pinned only the four.  The result was a
+# controller at y 30 with every one of its own components at y 62..71: COMP 35 mm from pin 8,
+# SS 33 mm from pin 10, the FB divider 37 mm from pin 9, and the VCC and BIAS bypasses 40 mm
+# from the pins they bypass.  COMP is the error amplifier's output and the highest-impedance
+# node in the converter; a 35 mm trace to its compensation network runs beside the switch node
+# and is how a boost oscillates.  C18/C19 are the INPUT capacitors and C20/C21/C22 the OUTPUT
+# capacitors, and both pairs were ~35 mm from the parts they decouple, which makes a nonsense
+# of "switch-node loop area minimised".
+#
+# This is placement, not routing, but it is the precondition for plan Task 9 Step 1: there is
+# no good route for a 35 mm COMP trace, so the routing step cannot be done until the parts
+# are where they belong.
+for _r in ("U3", "L3", "D4", "C61",
+           "C18", "C19",                      # VBAT input caps
+           "C20", "C21", "C22",               # +24V output caps -- the commutation loop
+           "C23", "C24", "R14",               # COMP network
+           "C25",                             # soft start
+           "C26", "R15",                      # VCC: 5.1R + 1uF, datasheet 9.3.2
+           "C27", "R16",                      # BIAS: 0R from VBAT + 100nF
+           "R10", "R11",                      # RT, MODE
+           "R12", "R13",                      # FB divider
+           "R20"):                            # EN pulldown
     BLOCK[_r] = "boost"
 for _r in ("U9",):
     BLOCK[_r] = "profet"
@@ -153,9 +176,45 @@ PLACE = {
     "U10": (39.0, 74.0, 0),
     "C65": (54.0, 76.0, 0),      # at U10 pin 5, not merely on the net
 
-    # -- boost and PROFET
-    "U3":  (74.0, 30.0, 0),      # LM51571-Q1
-    "L3":  (84.0, 30.0, 0),      # boost inductor
+    # -- the boost.  Laid out around U3's pinout rather than as a row, because the pinout is
+    #    what decides where each network can go: SW on the RIGHT and TOP edges (pins 12, 13,
+    #    14), VCC/BIAS on the LEFT (2, 3), RT/EN/COMP on the BOTTOM (5, 6, 8), FB/SS/MODE on
+    #    the RIGHT (9, 10, 11).  So the power parts go above and right, the bias network left,
+    #    the control network below and right, and nothing has to cross the switch node.
+    #
+    #    The commutation loop -- C20/21/22 -> D4 -> SW -> U3's internal FET -> GND -- is the
+    #    one with the high di/dt, and it is the one this arrangement minimises: the output
+    #    caps sit against D4's cathode tab, D4's anode is 2.3 mm from U3 pin 14, and the
+    #    return is the In1.Cu ground plane one dielectric away rather than a trace.
+    #
+    #    VBAT does NOT need to reach L3 as a track.  In2.Cu is a VBAT plane end to end now, so
+    #    L3 pad 1 and C18/C19 reach it with a via each, which is why L3 can sit on the far side
+    #    of U3 from the input without a 20 mm run to get there.
+    "U3":  (74.0, 32.0, 0),      # LM51571-Q1
+    "D4":  (74.5, 25.6, 180),    # catch diode, tab up, anode down at U3's SW pins 13/14
+    "L3":  (79.8, 28.6, 180),    # boost inductor, SW pad facing U3
+    "C20": (69.5, 23.6, 180),    # +24V output caps, a 1206 column against D4's cathode tab:
+    "C21": (69.5, 26.0, 180),    # +24V pad inboard at the tab, GND pad outboard where the
+    "C22": (69.5, 28.4, 180),    # drop vias reach the plane.  This is the commutation loop.
+    "C18": (85.0, 28.6, 0),      # VBAT input caps at L3 pad 1; VBAT arrives from the In2.Cu
+    "C19": (85.0, 32.2, 0),      # plane underneath, by via, not by a track across the board
+    # right of U3: FB (pin 9), the highest-impedance node after COMP, as a short vertical rail
+    "R12": (79.0, 32.2, 180),    # FB divider top, 576k -- FB pad faces U3
+    "C61": (79.0, 34.0, 180),    # feedforward across R12 (DNP)
+    "R13": (79.0, 35.8, 0),      # FB divider bottom, 24.9k -- GND pad outboard
+    # below U3: COMP (pin 8), RT (5), EN (6) all live on the bottom edge
+    "R14": (74.0, 35.4, 180),    # COMP series 2.61k, straight down from pin 8
+    "C23": (74.0, 37.2, 0),      # COMP series 10nF, straight down from R14
+    "C24": (76.55, 35.8, 270),   # COMP parallel 100pF
+    "R10": (70.6, 36.4, 180),    # RT 9.09k
+    "R20": (70.6, 38.2, 180),    # EN pulldown 100k
+    # left of U3: VCC (pin 2) and BIAS (pin 3) and their bypasses, off the switch node entirely
+    "R15": (70.0, 30.6, 180),    # VCC 5.1R
+    "C26": (66.6, 30.6, 180),    # VCC 1uF
+    "R16": (70.0, 32.4, 0),      # BIAS 0R from VBAT -- VBAT pad outboard, to the plane
+    "C27": (70.0, 34.2, 180),    # BIAS 100nF
+    "R11": (74.0, 39.0, 180),    # MODE 37.4k -- a static level, so it takes the long stub
+    "C25": (77.3, 39.0, 0),    # soft start 22nF -- a slow ramp, likewise
     "U9":  (76.0, 88.0, 0),      # PROFET, the shortest run to J7's Denali pads
 
     # -- the antenna edge.  Rotated 270 so the antenna points +X (verified against the
@@ -321,16 +380,22 @@ PAD_ALIAS = {("D4", "3"): "1"}
 # severed.  KiCad reported that as via_dangling warnings; DRC could not report it as an error,
 # because a via that reaches no copper breaks no clearance rule.
 #
-# The island stops at y 25.05, which clears D4 pad 2 (SW_BOOST, down to y 24.72) by 0.33 mm --
-# over the 0.30 mm the POWER class asks for.  It does not reach up to D4 pad 1: that pad is SMD
-# on F.Cu, so copper under it on B.Cu would connect nothing and would only narrow the gap to
-# the switch node.
+# It is sized to D4's tab plus half a millimetre all round, and it MUST be resized whenever D4
+# moves: a via that reaches no copper breaks no clearance rule, so KiCad can only report the
+# severed array as via_dangling warnings, which an error-level gate will not catch.  Moving D4
+# into the hand-placed boost cluster did exactly that, and the 30 dangling vias came straight
+# back -- which is the only reason this comment says so.
 #
-# It costs a 6.2 x 5.9 mm hole in the B.Cu ground pour, in the boost corner.  That is affordable
+# It stops at y 27.4, clearing D4 pad 2 (SW_BOOST, down to y 27.74) by 0.34 mm, over the 0.30 mm
+# the POWER class asks for.  It does not reach D4 pad 1: that pad is SMD on F.Cu and is the same
+# net anyway, so copper under it would connect nothing and only narrow the gap to the switch
+# node.  On the right it stops 0.72 mm short of L3 pad 2, the other end of that switch node.
+#
+# It costs a 5.8 x 5.7 mm hole in the B.Cu ground pour, in the boost corner.  That is affordable
 # because B.Cu is not the reference plane -- In1.Cu is, and In1.Cu stays unbroken.  Against the
 # enclosure it is +24 V separated from the plate by the gap pad alone, which is an insulator
 # rated in kilovolts; note it on the fab drawing all the same.
-D4_24V_ISLAND = [(63.75, 25.05), (69.95, 25.05), (69.95, 30.95), (63.75, 30.95)]
+D4_24V_ISLAND = [(71.6, 21.7), (77.4, 21.7), (77.4, 27.4), (71.6, 27.4)]
 
 TIM_PADS = [
     ("TIM-A", 64.0, 23.0, 98.0, 58.0),
