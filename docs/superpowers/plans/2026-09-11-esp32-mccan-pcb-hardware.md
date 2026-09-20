@@ -1194,7 +1194,7 @@ Expected: unrouted-net errors are acceptable at this stage (Task 9 routes them),
 parity must be clean** — any parity failure means the board and schematic disagree about a net or
 a footprint, which is a silent fabrication error. Record the parity result in the report.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add hardware/mccan.kicad_pcb hardware/output/drc.rpt
