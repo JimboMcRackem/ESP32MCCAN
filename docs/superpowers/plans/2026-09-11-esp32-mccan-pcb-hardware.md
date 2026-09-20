@@ -54,11 +54,15 @@ state occupies."* All eleven are corrected. Two were load-bearing rather than co
 the real ones — but the P-FET parenthetical at "Also relaxed in this pass" additionally had night
 and daytime dissipation the wrong way round, and that one did mislead: **night governs.**)*
 
-**One conflict the sweep exposed, now reconciled.** The constraints list (Prerequisites) called
-the power polygon **>= 4-5 mm**, derived from a 10 C rise at 2 oz and 7.0 A; Task 8 Step 1 called it
-**>= 5-6 mm** with no stated basis -- a figure that came from the superseded 7.8 A / 10.5 A pair.
-**Two different widths for the same net, in the document that writes one of them onto the board.**
-Step 1 now carries the derived figure with 5-6 mm kept as optional margin.
+**One conflict the sweep exposed, now SETTLED AT 5-6 mm (2026-09-20).** The constraints list
+(Prerequisites) called the power polygon **>= 4-5 mm**; Task 8 Step 1 called it **>= 5-6 mm**
+with no stated basis. **Two different widths for the same net, in the document that writes one
+of them onto the board.** Working it by IPC-2221 shows **5-6 mm was right and 4-5 mm was not**:
+7.0 A on an **internal** layer at 2 oz and a 10 C rise is **5.75 mm**. The catch is that it was
+never achievable while spec 10 put the 2 oz on the OUTER layers and left the plane at 1 oz,
+where the same current needs 11.5 mm. **The 2026-09-20 copper swap (1 oz outer / 2 oz inner)
+is what makes the requirement satisfiable**, and it was adopted for an unrelated reason -- 2 oz
+cannot etch U10's 0.15 mm land pattern. See spec 10.
 
 **Task 8 Step 3's thermal figures are STALE and its part list is wrong.** The step reads *"These are
 ~3.8 W of the board's dissipation in daytime — 3.50 W boost + 0.30 W P-FET"*, and names *"Boost
@@ -175,9 +179,11 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - Total internal dissipation: **~1.9 W, and NIGHT now governs** — the P-FET's 0.98 W at the Denali
   pair's 7.0 A is the largest single term. Daytime is the lighter case at ~1.2 W. Plate: **FLAT,
   ≥150 cm²** — **fins are no longer required**; they were needed only at the superseded 4.5 W
-- Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
-- Power polygon: **≥ 4–5 mm** width at 2 oz for a 10 °C rise at the single feed's **7.0 A**
-  continuous (7.8 A transient)
+- Stackup: **4 layers**, signal / GND / power / signal, **1 oz OUTER / 2 oz INNER copper**
+  (revised 2026-09-20; spec §10 said 2 oz outer, which cannot etch U10's 0.15 mm land pattern)
+- Power polygon: **≥ 5.75 mm** on In2.Cu for a 10 °C rise at the single feed's **7.0 A**
+  continuous (7.8 A transient) — this is spec §10's "5–6 mm", now derived. The superseded
+  "≥ 4–5 mm" was never a valid figure for an internal layer.
 
 **Firmware-imposed, non-negotiable**
 - `ChannelIndex` (`src/domain/channel_map.h`) fixes PWM ordering. PCA9685 **LED0–11** =
@@ -1086,11 +1092,10 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 ```
 LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
 - 4 layers: L1 signal, L2 GND (solid, unbroken), L3 power, L4 signal
-- 2 oz outer copper
-- Power polygon: **>= 4-5 mm** effective width, the figure the constraints list derives from a
-  10 C rise at 2 oz for the single feed's 7.0 A continuous / 7.8 A transient. **Use 5-6 mm where
-  space allows** -- that was this note's original figure, but it was sized for the superseded
-  7.8 A / 10.5 A pair, so it is margin now rather than a requirement
+- 1 oz OUTER / 2 oz INNER copper (revised 2026-09-20 -- see spec 10)
+- Power polygon: **>= 5.75 mm** effective width on In2.Cu, from a 10 C rise at **2 oz internal**
+  for the single feed's 7.0 A continuous / 7.8 A transient. **This note's original "5-6 mm" was
+  right all along**; the constraints list's "4-5 mm" was the wrong one and is withdrawn
 - Boost switch-node loop area MINIMISED; gate loops short and tight
 - Plate-edge thermal group: **L2 (0.78 W), U9 PROFET (0.35 W), L1 (0.28 W), U3, L3** -- ~1.6 W
   of the 2.31 W night total. **There are no external boost FETs and no P-FET.**
@@ -1104,9 +1109,19 @@ LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
 
 - [x] **Step 2: Set up the stackup and design rules**
 
-4-layer board, 2 oz outer copper. Set net classes: a `POWER` class with wide clearance and track
-width for `VBAT`, `VLOGIC_IN`, `+24V`, `+5V`, `DEN_*_OUT`, `GND`; a `DEFAULT` class for
-signals; a `CAN` class for `CANH`/`CANL` with matched width and spacing for ~120 Ω differential.
+4-layer board, **1 oz outer / 2 oz inner copper** (revised 2026-09-20). Net classes are written
+by `scripts/gen_netclasses.py` into `mccan.kicad_pro`, not by hand:
+
+- **`FEED` 3.5 mm / 0.3 mm** — the 7.0 A input chain (`VBAT`, `VBAT_PROT`, `VBAT_F`, `FEED_P`,
+  `MID`, `SNS`, `GND_IN`). Split out of `POWER` because 1 oz outer copper halves what an outer
+  track carries: a 2.0 mm track is 6.51 A at 2 oz but only 3.94 A at 1 oz.
+- **`POWER` 2.0 mm / 0.3 mm** — `VLOGIC_IN`, `+24V`, `+5V`. Largest load is the boost output at
+  0.5 A, against 3.94 A of capability.
+- **`CAN` 0.3 mm**, matched pair for ~120 Ω differential; **`Default` 0.2 mm** for signals.
+
+Board minimums drop to **0.20 mm track and clearance** — 1 oz territory, and not reachable at
+2 oz. That takes the whole 0.20 mm QFN/VSON population out of the land-pattern exception list
+in `mccan.kicad_dru`, which fell from 5 rules to 3 (U1, U2 at 0.200; U10 at 0.150).
 
 - [x] **Step 3: Place the thermal group on the heat-spreader edge**
 

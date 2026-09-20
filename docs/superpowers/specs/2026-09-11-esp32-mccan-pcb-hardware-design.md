@@ -1270,8 +1270,18 @@ wherever the bike has room instead of all seven crowding one wall.
         │                                        │
         │  (DENALI)   (PWR)    (CAN)    (VENT)   │  Denali, PWR: M16   CAN: M12
         └────────────────────────────────────────┘
-        opposite wall: aluminium heat-spreader plate
+        opposite wall: free (see below -- the plate is no longer here)
 ```
+
+> **REVISED 2026-09-20 — the heat-spreader plate is the BASE, not the wall opposite the panel.**
+> This section used to put the plate on the opposite wall. It cannot go there: the gap pad
+> contacts **B.Cu** (assembly is single sided so the bottom is bare copper), and a gap pad only
+> works between two roughly parallel faces, so the plate must be **parallel to the board**. An
+> edge wall would also have to be ~100 mm deep to reach the required 140 cm², against a board
+> that needs ~30 mm of height. The plate is therefore the **base**, 140 x 100 mm, with the
+> **antenna corner notched out** so no metal enters U5's keep-out. See `hardware/docs/enclosure.md`
+> §1. The wall opposite the panel is now free, which relaxes rather than tightens this section.
+
 
 | # | Penetration | Gland | Cable |
 |---|---|---|---|
@@ -1452,11 +1462,41 @@ P-FET — under 1 W in either mode. Across 1000 mm² of 1.5 mm, 2 W/mK material 
 
 ## 10. PCB and EMC
 
-**Stackup:** 4 layers — signal / GND / power / signal — with **2 oz outer copper**. The input
-path needs roughly **5–6 mm width at 2 oz** for a 10 °C rise at the single feed's **7.8 A continuous**
-(10.5 A transient), carried as a polygon rather
-than a trace, with via stitching. Four layers is not luxury: a solid ground plane is what makes
-the synchronous boost's gate loops and the EMC behaviour tractable.
+**Stackup:** 4 layers — signal / GND / power / signal — with **1 oz (35 µm) OUTER copper over
+2 oz (70 µm) INNER copper**. Four layers is not luxury: a solid ground plane is what makes the
+boost's gate loops and the EMC behaviour tractable.
+
+> **REVISED 2026-09-20. This section used to specify 2 oz OUTER copper, and that could not be
+> built.** 2 oz etching cannot hold the **0.15 mm** pad-to-pad U10's land pattern needs, nor
+> reliably the **0.20 mm** the QFN/VSON parts need — and outer copper is where every land pattern
+> lives. The weights are therefore inverted. **This costs the current path nothing and in fact
+> fixes it**, because the feed never ran on an outer layer: it runs on the In2.Cu polygon, which
+> *gained* copper in the swap. Total copper is 0.21 mm either way, so 1.6 mm still closes.
+
+**Current-carrying, by IPC-2221.** The feed is **7.0 A continuous** (night, the governing mode)
+with a **7.8 A flash-to-pass transient of seconds** — §2.2 and §4.1. It is carried as a polygon
+rather than a trace, with via stitching.
+
+| Path | Copper | Width for a 10 °C rise at 7.0 A | Note |
+|---|---|---|---|
+| **In2.Cu polygon — the actual feed** | **2 oz internal** | **5.75 mm** | 11.5 mm would be needed at 1 oz |
+| F.Cu stubs between the input parts | 1 oz external | 4.42 mm (2.91 mm at 20 °C) | `FEED` netclass floor is **3.5 mm**, a 20 °C rise, for hops of a few mm only |
+
+> **This finally gives the "5–6 mm" figure a derivation, and settles a conflict the plan has
+> carried since Task 8 Step 1.** The plan recorded two widths for the same net — the constraints
+> list said ≥ 4–5 mm and Step 1 said ≥ 5–6 mm "with no stated basis". **5–6 mm is the right one:
+> 7.0 A on a 2 oz internal layer at a 10 °C rise is 5.75 mm.** It was never reachable while the
+> 2 oz sat on the outer layers and the plane was 1 oz — which is the second reason for the
+> weight swap above, independent of the land patterns.
+
+> **STALE CURRENT CORRECTED 2026-09-20.** This section read **"7.8 A continuous (10.5 A
+> transient)"**. Those are the superseded two-feed figures; §4.1 corrected the same pair on
+> 2026-09-19 and §10 was missed. The real numbers are **7.0 A continuous / 7.8 A transient**,
+> and they make the required width *smaller*, so nothing sized against the old pair is unsafe.
+
+**No outer-layer track carries the feed.** Anything running more than a few millimetres on F.Cu
+must be poured to **≥ 4.5 mm**. The `FEED` netclass minimum expresses the floor; it cannot
+express "and pour it", so the board carries that as a layout note.
 
 **EMC measures:**
 

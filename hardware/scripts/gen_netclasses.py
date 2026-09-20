@@ -8,19 +8,30 @@ run it after gen_pcb.py and the two stay in step.
 It also writes hardware/mccan.kicad_dru, the custom-rule file, from a scan of the board --
 see write_dru() for why that exists.
 
-The constraints are set for **2 oz (70 um) outer copper**, which is what spec 10 asks for and
-what the 7.0 A continuous feed needs.  2 oz etching cannot hold the 0.15 mm features a 1 oz
-process can, so the minimums here are deliberately looser than KiCad's defaults:
+The constraints are set for **1 oz (35 um) OUTER copper over 2 oz (70 um) inner**, decided
+2026-09-20.  Spec 10 originally asked for 2 oz outer; it could not survive contact with the
+land patterns, because 2 oz etching cannot hold the 0.15 mm pad-to-pad U10 needs or reliably
+the 0.20 mm the QFN/VSON parts need, and outer copper is where every land pattern lives.  The
+7.0 A feed is unaffected: it runs on the In2.Cu polygon, which GAINED copper in the same swap.
 
-    min track / clearance   0.25 mm   (a standard 2 oz capability; 0.2 mm is 1 oz territory)
+    min track / clearance   0.20 mm   (standard 1 oz capability; at 2 oz this had to be 0.25)
     min via                 0.45 / 0.2 mm -- set by the 0.5 / 0.25 mm thermal vias that fill the
                             exposed paddles, not by routing, which uses 0.6 / 0.3 and 0.8 / 0.4
     min hole-to-hole        0.3 mm
     copper-to-edge          0.5 mm
 
-Net class widths come from the current-carrying requirement, not from taste:
-    POWER  2.0 mm track  -- for the routed stubs only.  The 7 A path itself is a POLYGON of
-                            >= 4-5 mm effective width (plan Task 8 Step 1); no track carries it.
+Dropping the global minimum to 0.20 mm does more than buy routing room: it takes the whole
+0.20 mm QFN/VSON population OUT of the land-pattern exception list below, because their
+land patterns no longer violate anything.  Only genuinely tighter parts need a rule now.
+
+Net class widths come from the current-carrying requirement, not from taste, and they changed
+with the copper.  By IPC-2221 a 2.0 mm outer track carries 6.51 A at 2 oz but only 3.94 A at
+1 oz (10 K rise), so the single POWER class no longer covered the feed:
+    FEED   3.5 mm track  -- the 7.0 A input chain.  3.5 mm is a 20 K-rise floor for the short
+                            hops between the input parts; POUR to >= 4.5 mm for 10 K on any
+                            real run.  The through-path is the In2.Cu polygon at >= 5.75 mm.
+    POWER  2.0 mm track  -- what is left: VLOGIC_IN, +24V, +5V.  Largest load is the boost
+                            output at 0.5 A (spec 6), against 3.94 A of capability.
     CAN    0.3 mm, tight pair, matched -- CANH/CANL are a differential pair.
 """
 
@@ -42,8 +53,8 @@ DRU = os.path.join(HW, "mccan.kicad_dru")
 NETLIST = os.path.join(HW, "output", "netlist.net")
 
 RULES = {
-    "min_clearance": 0.25,
-    "min_track_width": 0.25,
+    "min_clearance": 0.20,      # 1 oz outer copper -- see the module docstring
+    "min_track_width": 0.20,
     "min_via_diameter": 0.45,   # thermal vias are 0.5/0.25 -- see gen_pcb.thermal_vias()
     "min_through_hole_diameter": 0.2,   # U5 thermal-pad vias are 0.2 mm in the stock footprint
     "min_hole_to_hole": 0.3,
@@ -57,6 +68,11 @@ RULES = {
 # 0.20 mm.  0.12 keeps a margin under the worst of them, so a part fractionally tighter than
 # its neighbours does not need a hand-written exception -- and, more importantly, so that the
 # rule cannot pass by exactly equalling the gap it is meant to permit.
+#
+# Note the exception list SHRANK when the board went to 1 oz outer copper and the global
+# minimum fell from 0.25 to 0.20 mm: a 0.20 mm land pattern is now legal on its own terms.
+# What survives is the parts whose paddle sits on a FEED or POWER net, because those classes
+# still ask for 0.30 mm -- the exception is now about netclass clearance, not fabrication.
 DRU_MIN = 0.12
 
 DRU_HEAD = """(version 1)

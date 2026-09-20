@@ -34,16 +34,6 @@
 	(constraint clearance (min 0.12mm))
 	(condition "A.memberOfFootprint('U2')"))
 
-# U3 needs 0.200 mm pad-to-pad
-(rule "land pattern U3"
-	(constraint clearance (min 0.12mm))
-	(condition "A.memberOfFootprint('U3')"))
-
-# U9 needs 0.200 mm pad-to-pad
-(rule "land pattern U9"
-	(constraint clearance (min 0.12mm))
-	(condition "A.memberOfFootprint('U9')"))
-
 # U10 needs 0.150 mm pad-to-pad
 (rule "land pattern U10"
 	(constraint clearance (min 0.12mm))

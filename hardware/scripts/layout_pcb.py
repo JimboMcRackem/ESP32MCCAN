@@ -9,7 +9,7 @@ Edit this module and re-run `python scripts/gen_pcb.py`.
 footprint library, come to **68.3 cm2** across 231 placed parts. **20.1 cm2 of that is U5's
 courtyard alone**, which is mostly the ESP32's antenna keep-out and hangs off the board edge,
 so the real on-board demand is about **57 cm2**. Single-sided SMD assembly at a realistic 50%
-packing therefore wants ~114 cm2, and 2 oz copper power polygons want width on top of that.
+packing therefore wants ~114 cm2, and the power polygons want width on top of that.
 
 **140 x 100 = 140 cm2.** It also sits sensibly against the >= 150 cm2 heat-spreader plate
 (spec 9.4) rather than fighting it, and `hardware/docs/enclosure.md` carries 100 x 80 mm as
@@ -21,13 +21,19 @@ assembly side costs more than the board area it saves, and B.Cu is wanted whole 
 ------------------------------------------------------------------------- THE FOUR EDGES
 Three spec constraints fix the orientation between them, and only one arrangement holds:
 
-  * spec 9.3 / enclosure 2.3 -- the heat-spreader plate is on the wall **opposite** the antenna.
-  * plan Task 8 Step 4 -- the antenna edge faces **away** from the aluminium plate, and the
-    module overhangs the board edge (Espressif's own first choice).
+  * enclosure 1 -- the heat-spreader plate is the **BASE**, the face under the board, with the
+    **antenna corner notched out**.  Decided 2026-09-20; it supersedes spec 9.1's "wall opposite
+    the panel" and the earlier reading of enclosure 2.3 as "the wall opposite the antenna".
+    The gap pad contacts **B.Cu**, so the plate has to be parallel to the board, not an edge
+    wall -- which is also why the thermal group is not pushed against any one edge.
+  * plan Task 8 Step 4 -- the module overhangs the board edge (Espressif's own first choice),
+    and the plate is notched clear of the keep-out rather than routed around it in plan.
   * plan Task 8 Step 5 / enclosure 4 -- the wire-exit pads are on **one** edge.
 
-        LEFT edge  = the plate edge. Thermal group, in from the wall by the gap pad.
-        RIGHT edge = the antenna edge. U5 overhangs it; keep-out on all four layers.
+        BASE (B.Cu) = the plate face. Thermal group anywhere over it, coupled by vias.
+        LEFT edge  = free; historically called "the plate edge", which it no longer is.
+        RIGHT edge = the antenna edge. U5 overhangs it; keep-out on all four layers,
+                     and the base plate is NOTCHED so no metal enters it either.
         BOTTOM edge = the wire-exit edge. Power at the far left, CAN at the far right,
                       which is also plan Task 8's "CAN separated from the power feed".
         TOP edge   = free.
@@ -46,7 +52,7 @@ tallest part at ~24 mm, through-hole on an otherwise-SMD board, and 23.0 x 17.0 
 
 **R100 is deliberately NOT in the thermal group.** It dissipates 0.27 W but spec 4.2 requires
 its own copper and a Kelvin tap -- the copper around it is part of the *measurement*, so it goes
-in the eFuse island next to U10, not on the plate edge.
+in the eFuse island next to U10, and it gets no thermal vias down to the plate.
 """
 
 # ------------------------------------------------------------------ board outline
@@ -181,12 +187,17 @@ NOTES = [
     # (text, x, y, layer, size)
     ("LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10 / plan Task 8)\n"
      "4 layers: F.Cu signal, In1.Cu GND solid and unbroken, In2.Cu power, B.Cu signal.\n"
-     "2 oz outer copper. Assembly is SINGLE SIDED -- nothing on B.Cu.\n"
-     "Power polygon >= 4-5 mm effective width (10 C rise at 2 oz, 7.0 A cont / 7.8 A transient).\n"
-     "Use 5-6 mm where space allows; that is margin, not the requirement.\n"
-     "Plate edge is LEFT: L2 (0.78 W), U9 (0.35 W), L1 (0.28 W), U3, L3 -- ~1.6 W of 2.31 W night.\n"
+     "COPPER: 1 oz OUTER (35 um), 2 oz INNER (70 um). NOT the usual way round -- 1 oz\n"
+     "outer is what holds U10's 0.15 mm land pattern; 2 oz inner carries the 7.0 A feed.\n"
+     "Assembly is SINGLE SIDED -- nothing on B.Cu.\n"
+     "FEED path (7.0 A cont, 7.8 A transient): In2.Cu polygon >= 5.75 mm effective width\n"
+     "(IPC-2221, 10 C rise, internal, 2 oz = spec 10 5-6 mm). On F.Cu the FEED class floor is\n"
+     "3.5 mm = a 20 C rise; POUR to >= 4.5 mm for 10 C on any real run. No TRACK carries it.\n"
+     "HEAT LEAVES THROUGH THE BASE, NOT AN EDGE: the plate is the face UNDER the board and\n"
+     "couples through B.Cu. Thermal group L2 (0.78 W), U9 (0.35 W), L1 (0.28 W), U3, L3 --\n"
+     "~1.6 W of the 2.31 W night total. L2 has no paddle; its heat goes to board copper.\n"
      "There are NO external boost FETs and NO P-FET. Night governs, not daytime.\n"
-     "eFuse island near J1, NOT on the plate edge: U10, Q10, Q11, R100, C65.\n"
+     "eFuse island near J1, and NOT via-coupled to the plate: U10, Q10, Q11, R100, C65.\n"
      "R100 needs its own copper and a Kelvin tap. C65 must sit AT U10 pin 5.\n"
      "Antenna edge is RIGHT: no copper, plating or parts on ANY layer in the U5 keep-out.\n"
      "Wire-exit field is BOTTOM: J1 power at the far left, J2 CAN at the far right.\n"
@@ -211,11 +222,27 @@ NOTES = [
 
 # ------------------------------------------------------------------ net classes -> mccan.kicad_pro
 # Written into the PROJECT file, not the board: KiCad has kept net classes there since v7.
+# FEED is the 7.0 A input chain and POWER is everything else, and the split exists because
+# the stackup went to 1 oz OUTER copper on 2026-09-20 (see gen_pcb.STACKUP for why).
+#
+# Halving the outer copper halves what an outer-layer track carries.  By IPC-2221 a 2.0 mm
+# F.Cu track is good for 6.51 A at 2 oz and only 3.94 A at 1 oz, both at a 10 K rise -- so the
+# single POWER class at 2.0 mm, which was adequate before, is no longer adequate for the nets
+# that carry the whole feed.  Those need 4.42 mm at 10 K, or 2.91 mm if a 20 K rise is allowed.
+#
+# FEED is therefore 3.5 mm, which is a 20 K-rise width (8.01 A) rather than a 10 K one, and
+# that is deliberate: it is a FLOOR for the short hops between the input parts, which sit in
+# one tight island by J1.  Anything running further than a few millimetres on F.Cu must be
+# POURED to >= 4.5 mm, and the through-path itself belongs on the In2.Cu polygon at 5.75 mm.
+# The board note says so, because a netclass minimum cannot express "and pour it".
+#
+# POWER stays at 2.0 mm.  It now covers only +24V, +5V and VLOGIC_IN, whose largest load is
+# the boost output at 0.5 A (spec 6) -- 3.94 A of capability is ample.
 NETCLASSES = [
     # name, track width, clearance, via size, via drill, nets
-    ("POWER", 2.0, 0.3, 0.8, 0.4,
-     ["VBAT", "VBAT_PROT", "VBAT_F", "VLOGIC_IN", "FEED_P", "MID", "SNS",
-      "+24V", "+5V", "GND_IN"]),
+    ("FEED", 3.5, 0.3, 0.8, 0.4,
+     ["VBAT", "VBAT_PROT", "VBAT_F", "FEED_P", "MID", "SNS", "GND_IN"]),
+    ("POWER", 2.0, 0.3, 0.8, 0.4, ["VLOGIC_IN", "+24V", "+5V"]),
     ("CAN", 0.3, 0.2, 0.6, 0.3, ["CANH", "CANL"]),
 ]
 

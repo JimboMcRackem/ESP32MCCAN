@@ -48,7 +48,7 @@ and is absorbed by thermal mass.
 
 **This table is what moved the plate.** The old 80 cm² footprint was sized against a board assumed to
 be 100 × 80 mm; at 2.31 W it no longer clears the target. The real board is 140 × 100 mm, so a plate
-covering the board's own footprint does — see "Which wall the plate is" below.
+covering the board's own footprint does — see "Which face the plate is" below.
 
 > **Correction, 2026-09-20.** Earlier revisions of this section quoted "daytime, ~4.5 W governs;
 > night ~2.9 W", and a table headed "Night 1.9 W / Daytime 1.2 W" that contradicted the prose two
@@ -69,54 +69,65 @@ traded away.
 
 | | Value |
 |---|---|
-| Plate type | **Flat aluminium plate** forming one wall (a finned extrusion is optional, not required) |
-| Footprint | **≥ 140 cm², i.e. the board's own 140 × 100 mm** — see the open decision below |
-| **Effective area — requirement** | **≥ 150 cm²** → ~59 °C at 40 °C ambient |
-| Effective area — minimum acceptable | ≥ 140 cm² → ~61 °C, meets the target with little margin |
+| Plate type | **Flat aluminium plate** forming the base (a finned extrusion is optional, not required) |
+| Plate face | **The BASE** — the face under the board (decided 2026-09-20, below) |
+| Footprint | **140 × 100 mm, antenna corner notched** (3.1 cm²) → **~137 cm² of plate** |
+| **Effective area — requirement** | **≥ 150 cm²** → ~59 °C at 40 °C ambient; the bracket covers the last ~13 cm² |
+| Effective area — plate alone | **~137 cm² → ~61 °C**, which already meets the 65 °C target |
 | Base thickness | ≥ 3 mm, for flatness under fastener load and in-plane spreading |
 | Fin orientation, *if* fins are fitted | **VERTICAL in the installed attitude** — see below |
-| Material | Aluminium, 6063 extrusion (typical for finned profiles) or 6082/6061 if machined |
+| Material | Aluminium — **6082/6061, machined** (the notch makes an extrusion awkward) |
 
-Expressed as an area requirement rather than a named profile, so any extrusion meeting it qualifies.
-**[TO CONFIRM]** the specific profile and its published surface area.
+Expressed as an area requirement rather than a named profile, so any plate or extrusion meeting it
+qualifies. **[TO CONFIRM]** the supplier and, if a profile is used after all, its published area.
 
-### Which wall the plate is — OPEN, and it needs a decision
+### Which face the plate is — DECIDED 2026-09-20: the BASE, antenna corner notched
 
-**This is a live conflict, surfaced by Task 8's placement and not yet resolved.** Three things now
-point at different walls:
+**Decision: the heat-spreader plate is the BASE** — the face the board lies over — **140 × 100 mm,
+with the antenna corner notched out.**
 
-1. **Spec §9.1 puts the plate on the wall *opposite the panel*** — an edge wall, 140 mm or 100 mm
-   long and only as tall as the box is deep.
-2. **The gap pad contacts B.Cu** (§3, and the board's own fab note). Assembly is single sided
-   precisely so the bottom is bare copper. A gap pad only works between two roughly parallel faces,
-   so the plate it presses against has to be **parallel to the board** — the base or the lid, not an
-   edge wall.
-3. **An edge wall cannot be 140 cm².** The board is 1.6 mm thick with a ~24 mm tallest part (L2); an
-   edge wall large enough to host the plate would need the box to be roughly 100 mm deep, three
-   times the height the board actually needs.
+Three things forced it off the wall spec §9.1 named:
 
-**Recommendation: the plate becomes the BASE** — the face the board lies over — sized to the board's
-own 140 × 100 mm footprint, ~140 cm². That meets the 65 °C target on its own, reaches the 150 cm²
-requirement once the bracket's contribution is counted, makes the gap-pad geometry in §3 mean
-something, and leaves the panel wall and the antenna wall both free.
+1. **The gap pad contacts B.Cu** (§3, and the board's own fab note). Assembly is single sided
+   precisely so the bottom is bare copper. A gap pad only works between two roughly parallel
+   faces, so the plate it presses against has to be **parallel to the board**.
+2. **An edge wall cannot be 140 cm².** The board is 1.6 mm thick with a ~24 mm tallest part (L2);
+   an edge wall big enough to host the plate would need a box roughly 100 mm deep, against a
+   board that needs about 30 mm of height.
+3. **Spec §9.1's wall is now free**, which relaxes the three-constraint problem in §2 item 5
+   rather than tightening it.
 
-**The antenna does not block a base plate, but it does constrain its extent.** U5 sits on the
-right-hand board edge with its antenna end overhanging: the keep-out runs to **x = 174.75 mm in board
-coordinates, 14.75 mm beyond the board's own 160 mm edge** (this overhang is Espressif's preferred
-arrangement — see §2 item 5a). The gap-pad patches stop at **x = 98 mm**, so a base plate cut back to
-x ≈ 105 mm sits **more than 55 mm** from the antenna, far outside the 15 mm Espressif asks for. But a
-plate cut back that far is 85 × 100 mm ≈ **85 cm²**, which is below even the minimum acceptable area.
+**The notch.** U5 sits on the right-hand board edge with its antenna end overhanging: the
+keep-out runs to **x = 174.75 mm in board coordinates, 14.75 mm beyond the board's own 160 mm
+edge**, and spans **y = 48 to 96 mm** (this overhang is Espressif's preferred arrangement — §2
+item 5a). The plate is cut back clear of that rectangle. Because the gap-pad patches stop at
+**x = 98 mm** (§3), the notch costs nothing thermally — there is no thermal via east of x = 98.
 
-**What needs deciding — the trade is antenna margin against plate area:**
-- **(a)** full 140 × 100 mm base plate, accepting metal under the antenna end, **or**
-- **(b)** full plate with only the antenna corner notched out (keeps most of the area, costs a
-  machining step), **or**
-- **(c)** plate cut back to ~105 mm and the shortfall made up by fins or by counting the bracket.
+**Area after notching: ~137 cm².** The notch is small, because the plate shares the board's
+footprint and most of the keep-out hangs off the board edge. Only the overlap has to go:
+**x 153.56 → 160.00, y 48.00 → 96.00 = 6.44 × 48 mm = 3.1 cm²**, leaving **136.9 cm²** of the
+original 140 cm². At 2.31 W that is **~21 K over ambient, 61 °C at 40 °C** — it meets the 65 °C
+target on the plate alone, and the bracket's contribution goes toward the ≥ 150 cm² requirement
+as margin rather than as a rescue.
 
-**(b) is the recommendation** — it is the only one that keeps both the area and the 15 mm clearance.
+**Clearance actually achieved.** The keep-out rectangle already contains Espressif's 15 mm halo
+(21.19 mm deep against a 6.19 mm antenna; 48 mm wide against an 18 mm antenna), so the antenna
+proper occupies **x 168.56–174.75, y 63–81**. Measured from that:
 
-**Spec §9.1 has to be amended either way**: it currently says the plate is the wall opposite the
-panel, and that is not compatible with a gap pad on B.Cu.
+| Nearest plate metal | Distance to the antenna |
+|---|---|
+| Notch inner corners (153.56, 48) and (153.56, 96) | **21.2 mm** |
+| Plate edge at (160, 48) and (160, 96) | **17.3 mm** |
+
+Both clear the 15 mm minimum. **[TO CONFIRM]** the vertical case separately: the plate sits
+~1.6 mm below B.Cu, and nothing in the notch region may rise toward the antenna.
+
+> **Why notching beats cutting the plate back.** A straight cut-back to x ≈ 105 mm gives an
+> 85 × 100 mm plate ≈ 85 cm², which fails the target outright at 2.31 W. Notching only the
+> antenna corner costs 3.1 cm² and one machining operation.
+
+**Spec §9.1 has been amended** to record this — it previously said the plate was the wall
+opposite the panel, which is not compatible with a gap pad on B.Cu.
 
 ### Fin orientation, if fins are fitted
 
@@ -127,7 +138,9 @@ stops contributing. Record the intended mounting attitude alongside the bracket 
 ### Mounting interfaces
 
 - **Plate → bracket: metal-to-metal**, thermal compound at the interface. The bracket contributes
-  spreading area as *bonus margin*, not as something the design depends on.
+  spreading area as margin: the notched plate is ~137 cm² on its own, which already meets the
+  65 °C target at ~61 °C, and the bracket closes the last ~13 cm² to the ≥ 150 cm² requirement.
+  **[TO CONFIRM]** the bracket's effective area once its drawing exists.
 - **Bracket → frame: rubber isolators.** Vibration decoupling preserved; nothing thermal is lost.
 
 ### Gap pad — not the bottleneck
@@ -146,7 +159,8 @@ the pad sees ~1.35 W while the plate must still be sized for the full ~2.31 W.
 
 ## 2. Enclosure
 
-**[TO CONFIRM]** Polycarbonate or ABS, IP67, with a machinable wall for the heat-spreader plate.
+**[TO CONFIRM]** Polycarbonate or ABS, IP67, **with a removable or machinable BASE** for the
+heat-spreader plate (§1 — the plate is the base, not a wall).
 
 Selection criteria, in priority order:
 
@@ -155,12 +169,14 @@ Selection criteria, in priority order:
    of connector mating depth is gone** (glands, §5 below), and is replaced by a smaller but real
    allowance: enough slack on seven soldered tails to lift the board clear with the glands
    slackened, since nothing unplugs any more.
-2. **One face large enough for the plate's footprint** — **140 × 100 mm**, i.e. the board's own
-   outline. Per §1 this is expected to be the **base**, not an edge wall; confirm when the open
-   decision in §1 closes.
-3. **The plate face and the antenna must not shadow each other.** With a base plate this is a
-   clearance question rather than a choice of walls: see §1's three options. The antenna overhangs
-   the board's right-hand edge and needs 15 mm clear in every direction (item 5a).
+2. **The BASE must take a 140 × 100 mm plate** (§1, decided 2026-09-20). Either the box has a
+   separable base the plate replaces, or the base is machined to accept it with a gasket. A box
+   whose base is moulded in one piece with the walls will not work.
+3. **The plate is notched clear of the antenna**, so this is no longer a choice of walls. The
+   notch removes **x 153.56–160.00, y 48.00–96.00** in board coordinates (3.1 cm²) and leaves
+   ≥ 17.3 mm from the nearest plate metal to the antenna — see §1. What still needs checking
+   against the chosen box is the **vertical** case and that no bracket boss or gland body
+   intrudes into the same volume (item 5a).
 4. **Plastic elsewhere, not metal** — the ESP32-WROOM-32E uses its onboard antenna, so the remaining
    walls must be RF-transparent (spec §9.3). This is why a diecast aluminium box was rejected.
 5a. **ANTENNA CLEARANCE — 15 mm in all directions. ADDED 2026-09-19, and it may be the
@@ -204,11 +220,11 @@ Selection criteria, in priority order:
    needs only the cable's bend radius. That envelope was what made the old estimate the binding
    constraint on enclosure length.
 
-   **Also confirm jointly satisfiable:** spec §9.1 puts the plate on the wall *opposite the
-   panel*, item 3 here wants it clear of the antenna, and §4 forbids penetrations in the antenna
-   wall. Three constraints on a six-face box. **§1's base-plate recommendation is what makes them
-   satisfiable** — it takes the plate off the wall set entirely, leaving the panel and the antenna
-   on opposite edge walls with four faces spare. That is not yet ratified; §1 carries the decision.
+   **This is now satisfiable, and §1's decision is what settled it.** The plate moved to the
+   **base**, which takes it out of the wall set entirely: the panel and the antenna sit on
+   opposite edge walls with the remaining faces free. Spec §9.1 has been amended accordingly —
+   it previously put the plate on the wall opposite the panel, and that is what made the three
+   constraints fight.
 6. IP67 with a gasketed lid, and lid screws accessible after installation.
 
 Candidate families known to offer IP66/67 polycarbonate boxes in this size class: Hammond 1554/1555,
@@ -220,9 +236,10 @@ not guessed here.
 ## 3. Heat-spreader plate and gap pad
 
 **Plate** — flat plate per §1 (a finned extrusion is optional). Dimensions follow Task 8's outline:
-- Material: aluminium — 6082/6061 if machined, 6063 extrusion for a finned profile
+- Material: aluminium — **6082/6061, machined** (the notch makes an extrusion awkward)
 - Base thickness: **3 mm minimum** for flatness under fastener load and in-plane heat spreading
-- **Footprint 140 × 100 mm**, expected to be the **base**; see the open decision in §1
+- **Footprint 140 × 100 mm, the BASE, with the antenna corner notched** (§1) — no metal inside
+  x 153.56–174.75, y 48.00–96.00 in board coordinates
 - Fins, if fitted, vertical in the installed attitude (§1)
 - Replaces one face; sealed with a gasket in a machined groove, or a compressible gasket under a
   flange
@@ -343,7 +360,10 @@ elsewhere. Both are drawn on the board's `Cmts.User` layer so the coating house 
 | Item | Needed to close |
 |---|---|
 | ~~Thermal design~~ **RESOLVED 2026-09-12/13** | Flat plate, metal-to-metal plate-to-bracket, rubber at the frame. Remaining: pick a plate or profile meeting **≥ 150 cm²** |
-| **Which face the plate is — OPEN** | §1. The gap pad contacts B.Cu, so the plate must be parallel to the board; spec §9.1 says the wall opposite the panel. **Needs a decision, and a spec amendment either way.** |
+| ~~Which face the plate is~~ **RESOLVED 2026-09-20** | The **base**, 140 × 100 mm, antenna corner notched (3.1 cm²) → ~137 cm². Spec §9.1 amended. §1 |
+| ~~2 oz outer copper vs the land patterns~~ **RESOLVED 2026-09-20** | **1 oz outer / 2 oz inner.** Spec §10 amended; the In2.Cu feed polygon gained copper rather than losing it |
+| Bracket spreading area | The notched plate is ~137 cm² (~61 °C, target met). Quantify the bracket to reach the ≥ 150 cm² requirement |
+| Antenna-to-plate **vertical** clearance | In-plane is 17.3 mm (§1). The plate sits ~1.6 mm below B.Cu; confirm nothing rises into the notch |
 | ~~Board outline~~ **RESOLVED 2026-09-20** | 140 × 100 mm, M3 at 5 mm from each corner (Task 8) |
 | ~~Thermal group area~~ **RESOLVED 2026-09-20** | 1358 mm² in two patches — §3 |
 | Enclosure part number and internal dimensions | Catalogue lookup against 140 × 100 mm + ~24 mm tallest part + the antenna's 15 mm halo |
