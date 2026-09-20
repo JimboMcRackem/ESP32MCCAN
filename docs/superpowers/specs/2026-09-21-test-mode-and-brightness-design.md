@@ -52,6 +52,10 @@ channel-to-corner mapping matches `ChannelIndex`.
   would be a second way to do the same thing.
 - Gamma on the Denali channels. See "Denali stays raw" below.
 - Any change to CAN decoding, the mapping UI, or discovery.
+- **OTA firmware update.** Deliberately deferred to its own piece of work, not ruled out. It has an
+  independent safety story (a failed update bricks a sealed box on a vehicle) and a prerequisite
+  decision about flash size. This design must not make it harder to add later — see
+  "Deferred: OTA" below for the constraints that follow from that.
 
 ---
 
@@ -67,6 +71,8 @@ Recorded with rationale, because several were close calls.
 | Brightness representation | Hue plus separate level, gamma on the level | Dimming cannot drift hue; levels are readable and repeatable |
 | Where tuning happens | Appearance tab gains live preview | One place to edit a value; no copying between tabs |
 | Control granularity | Scenarios, per-zone colour, Denali | Raw channels dropped as redundant |
+| App/firmware mismatch | Protocol version int, banner on mismatch | Two flash images can already diverge today; a silent dead UI reads as a bug |
+| OTA | Deferred, not foreclosed | Independent safety story; flash-size decision must come first |
 
 ### Safety posture
 
@@ -251,6 +257,26 @@ bool     setTest = false;
 TestMode testOut;
 ```
 
+### Protocol version
+
+The outbound `config` message gains a version field:
+
+```json
+{"type": "config", "protocolVersion": 2, "config": { ... }}
+```
+
+`kProtocolVersion` is a single firmware constant, mirrored by a JS const. This design is version 2;
+the shipped protocol is version 1 and does not send the field, so a missing value reads as 1.
+
+The app compares on receipt and, if the versions differ, shows a persistent banner naming which
+side is stale and what to reflash. It does not attempt to adapt — a half-working UI is worse than a
+clear refusal.
+
+This exists because app and firmware are **separate flash images** and can already be updated
+independently today. Without it, a filesystem left un-reflashed produces a test tab whose buttons
+silently do nothing, which reads as a bug rather than as a stale install. The version is bumped
+whenever a message shape changes incompatibly, and is the mechanism OTA will rely on later.
+
 Outbound, **broadcast** on every change and on a 1 s tick while active:
 
 ```json
@@ -315,7 +341,7 @@ suite file.
 |---|---|
 | `test_color_level` | Resolution math; gamma table monotonic and endpoint-exact; hue preserved across levels; migration round trip duty-preserving within ±1 for all six defaults and a swept set of triples |
 | `test_test_mode` | `resolveOutputs` per kind; scenario blink follows `blinkPeriodMs`; zones passthrough verbatim; `testExpired` including a millis-rollover case; scenario `flash` leaves the real `EngineState` untouched |
-| `test_web_protocol` | Parse of all three `test` shapes; rejection of bad zone length, out-of-range values, unknown scenario; `test_state` serialization |
+| `test_web_protocol` | Parse of all three `test` shapes; rejection of bad zone length, out-of-range values, unknown scenario; `test_state` serialization; `config` carries `protocolVersion`; an unknown inbound `type` still yields an error rather than a crash |
 | `test_config_json` | Round trip of the new schema; migration from the old schema; unknown fields ignored |
 
 Existing suites must continue to pass unchanged except where the config type change forces an
@@ -332,11 +358,51 @@ update.
 | `src/domain/config_json.cpp` | Serialize new shape; migrate old |
 | `src/domain/test_mode.h`, `test_mode.cpp` | New — types, `resolveOutputs`, `testExpired`, scenario table |
 | `src/domain/behavior_engine.cpp` | Consume resolved colours |
-| `src/domain/web_protocol.h`, `.cpp` | `test` inbound, `test_state` outbound |
+| `src/domain/web_protocol.h`, `.cpp` | `test` inbound, `test_state` outbound, `kProtocolVersion` on `config` |
 | `src/hal/web_server.h`, `.cpp` | `onDisconnect` callback |
 | `src/main.cpp` | Hold `TestMode` and `testEst`; call `resolveOutputs`; wire disconnect, expiry, broadcast |
-| `data/index.html`, `app.js`, `style.css` | Banner, test tab, preview toggle, level sliders |
+| `data/index.html`, `app.js`, `style.css` | Test-mode banner, version-mismatch banner, test tab, preview toggle, level sliders |
 | `test/` | Two new suites, two updated |
+
+## Deferred: OTA
+
+OTA is out of scope here but expected later. Recorded so the deferral is a decision rather than an
+oversight, and so this work does not quietly foreclose it.
+
+**Current state.** The board is flashed over J2, a 6-pin internal header carrying
+`+3V3_ALW / GND / UART_TX / UART_RX / DTR / RTS`, with a cross-coupled auto-reset pair (Q2/Q3) so a
+plain USB-UART adapter flashes without a manual BOOT hold. J2 is not a panel penetration — it is
+reached with the lid off (`enclosure.md:290`), so reflashing on the bike means breaking the IP67
+seal. There is no OTA code in `src/` today, though the SoftAP, HTTP server and WebSocket transport
+it would need are already running.
+
+**Prerequisite, to settle before OTA and not during it.** `platformio.ini` sets
+`board = esp32dev`, whose definition assumes 4 MB flash, while the fitted module is
+WROOM-32E-**N8** with 8 MB. The stock partition table does carry `app0`, `app1` and `otadata`, so
+OTA would fit without repartitioning — but inside 4 MB, with the other 4 MB unused. Deciding flash
+size and partitioning is far cheaper before there is a config on the device worth preserving.
+
+**Constraints this design accepts in order to stay OTA-friendly:**
+
+1. **Two images, one system.** This feature changes both `src/` and `data/`. The app and LittleFS
+   are separate images, so a firmware-only flash leaves an old web app speaking a protocol the new
+   firmware does not expect, and the reverse leaves a new app sending `test` messages to firmware
+   that rejects them. That mismatch is possible *today* with two-image flashing; OTA only makes it
+   more likely, because app and filesystem updates become separate operations a user can
+   half-complete. Mismatch handling is therefore a property of the protocol, not of the flashing
+   procedure: see "Protocol version" above, which is specified as part of this work precisely so the
+   mechanism exists before OTA needs it.
+
+2. **Unknown messages must degrade, not break.** Firmware already answers an unrecognised `type`
+   with an `error` response rather than a crash, and that behaviour must be preserved. The web app
+   must likewise ignore message types it does not know, so a newer firmware broadcasting
+   `test_state` to an older app is inert rather than fatal.
+
+3. **Config rollback must not wipe a tuned bike.** Migration is specified one-way: old RGB triples
+   are read and upgraded. If an OTA is ever rolled back, firmware expecting bare 3-element arrays
+   would encounter `{hue, level}` objects and fall back to defaults — silently discarding tuned
+   colours. Either the OTA work must include a rollback-safe reader, or rollback must be treated as
+   config-destructive and say so. Not solved here; recorded so it is not discovered later.
 
 ## Risks
 
