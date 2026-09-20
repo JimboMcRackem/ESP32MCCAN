@@ -564,7 +564,14 @@ def pads_local(c):
     return out
 
 
+# Every via emitted, as (x, y, size, drill, net).  gnd_drops() needs to know where the
+# thermal and stitching vias went -- and the thermal ones are NOT all ground: there are
+# /VBAT and /+24V arrays, so a ground drop that touched one would short a plane.
+VIA_LOG = []
+
+
 def via(x, y, net, size, drill, tag):
+    VIA_LOG.append((x, y, size, drill, net))
     return ('\t(via\n\t\t(at %s %s)\n\t\t(size %s)\n\t\t(drill %s)\n'
             '\t\t(layers "F.Cu" "B.Cu")\n\t\t(net %d)\n\t\t(uuid %s)\n\t)'
             % (num(x), num(y), num(size), num(drill), net, U(tag)))
@@ -923,6 +930,387 @@ def zones(netidx):
     return out
 
 
+# --------------------------------------------------------------------------- ground drops
+#
+# Every SMD ground pad needs a via, and nothing else on the board provides one.
+#
+# GND is poured on In1.Cu and B.Cu; it is NOT poured on F.Cu, because F.Cu is the signal layer
+# and the one F.Cu pour that does exist is the GND_IN island, a DIFFERENT net.  So a ground pad
+# sits on a layer where its own net has no copper at all.  The 15 through-hole ground pads are
+# fine -- a plated barrel already crosses every layer -- and three exposed paddles are filled by
+# thermal_vias().  The other 140 have no path to the plane whatever, which is why they are a
+# quarter of the ratsnest.  This is not routing work and should not wait for it.
+#
+# The via goes BESIDE the pad, not in it.  thermal_vias() puts vias in pads, but only in ones
+# that look like a paddle, for the reason set out there: an unplugged via inside the terminal
+# pad of a chip part wicks paste out of the joint during reflow.  A 0402 ground pad gets a via
+# next to it and a stub to reach it -- which is also what the comment in thermal_vias promised
+# would happen "when Task 9 routes them".
+#
+# The via is 0.6 / 0.3, not the 0.8 / 0.4 used for stitching: these land in the tightest company
+# on the board, between chip pads, and every one of them punches a hole in the In2.Cu power
+# plane on its way past.  0.6 mm keeps that hole to 1.2 mm with clearance.
+#
+# Placement is a search, not a formula.  Candidates run outward from the pad, starting in the
+# direction away from the part's own centre -- which is where the free copper usually is -- and
+# fanning to either side.  Each candidate is tested against real geometry rather than against
+# the placer's occupancy grid: the grid marks whole courtyards as occupied, so every candidate
+# beside a pad would fail, including the correct ones.  What actually has to be checked is:
+#
+#   * foreign pads, at DROP_CLEAR -- the widest netclass clearance on the board, so the test
+#     does not depend on which net the neighbour happens to be on;
+#   * its OWN pad and other ground pads, at zero gap but no overlap, because via-in-pad is a
+#     fab decision this generator is specifically not taking;
+#   * every via already placed, including the thermal arrays, which are NOT all ground -- there
+#     are /VBAT and /+24V arrays, and a ground via touching one would short a plane to ground;
+#   * the antenna keep-out, read from U5's own footprint, where no plating is allowed at all;
+#   * the GND_IN island, for the reason stitch_vias() gives: a GND via inside it forces the
+#     island to notch around the one net it exists to stay away from;
+#   * the board edge and the mounting holes.
+#
+# The stub is checked the same way, as a swept rectangle.  A via that is reachable only by a
+# stub that clips a neighbouring pad is not a usable via, so the two are accepted together.
+
+DROP_VIA, DROP_DRILL = 0.6, 0.3
+DROP_CLEAR = 0.30       # the WIDEST netclass clearance -- used only where the neighbour is
+                        # not a pad on a known net: the board edge, a keep-out, a mounting
+                        # hole.  Pad-to-pad uses net_clearance() below, because assuming the
+                        # worst case everywhere is not conservative, it is wrong: 0.30 mm is
+                        # what FEED and POWER ask for, while GND and the signals are Default
+                        # class at 0.20 mm.  On a 0.65 mm pitch part the gap between pins is
+                        # 0.25 mm, so the difference decides whether a ground pin can have a
+                        # via at all.  Demanding 0.30 there does not make the board safer; it
+                        # makes it unroutable and leaves the pin unconnected, which is worse.
+DROP_DEFAULT_CLEAR = 0.20
+
+
+def net_clearance(code):
+    """The clearance the netclass rules actually apply to a net, by net code."""
+    name = NETNAME.get(code) or ""
+    short = name.rsplit("/", 1)[-1]
+    for cname, tw, cl, vd, vdr, nets in L.NETCLASSES:
+        if name in nets or short in nets:
+            return cl
+    return DROP_DEFAULT_CLEAR
+DROP_MAX_R = 3.0        # mm from pad centre; beyond this the stub is no longer a drop
+DROP_STUB_MAX = 0.5     # stub width ceiling; narrower if the pad is narrower
+
+
+def seg(x0, y0, x1, y1, w, layer, net, tag):
+    return ('\t(segment\n\t\t(start %s %s)\n\t\t(end %s %s)\n\t\t(width %s)\n'
+            '\t\t(layer %s)\n\t\t(net %d)\n\t\t(uuid %s)\n\t)'
+            % (num(x0), num(y0), num(x1), num(y1), num(w), q(layer), net, U(tag)))
+
+
+def pads_board(comps, pos, padnet):
+    """Every copper pad as (ref, pad, net, cx, cy, w, h, smd, id) with an AXIS-ALIGNED bbox.
+
+    `id` is a unique index per pad INSTANCE, and it is not decoration.  A pad NUMBER does not
+    identify a pad: the ESP32 module's ground pad is a dozen separate pads all numbered 39, and
+    keying "the pad we are placing a via for" on (ref, number) excused every one of them from
+    the clearance test at once.  Six ground drops landed inside a neighbouring 39 before this
+    had an index to tell them apart.
+
+    Pad positions are footprint-local and pad rotation is stored absolute, so the size is
+    oriented by the pad's own angle while the position is rotated by the footprint's.  Taking
+    the axis-aligned bounding box of the rotated pad is exact for the rectangular pads this
+    matters for and pessimistic -- safe -- for ovals and circles.
+    """
+    out = []
+    for c in comps:
+        if c["ref"] not in pos:
+            continue
+        fp = load_fp(c["fp"])
+        if fp is None:
+            continue
+        x, y, rot = pos[c["ref"]]
+        for p in find_all(fp, "pad"):
+            at, sz, lay = find(p, "at"), find(p, "size"), find(p, "layers")
+            if at is None or sz is None or lay is None:
+                continue
+            pn = unq(p[1])
+            if not pn:
+                continue
+            names = [unq(a) for a in lay[1:] if isinstance(a, str)]
+            if not any(n in ("F.Cu", "*.Cu") for n in names):
+                continue
+            pa = float(at[3]) if len(at) > 3 else 0.0
+            w, h = float(sz[1]), float(sz[2])
+            th = math.radians(pa)
+            cth, sth = abs(math.cos(th)), abs(math.sin(th))
+            bw, bh = w * cth + h * sth, w * sth + h * cth
+            dx, dy = rot_local(float(at[1]), float(at[2]), rot)
+            out.append((c["ref"], pn, padnet.get((c["ref"], pn)),
+                        x + dx, y + dy, bw, bh, unq(p[2]) == "smd", len(out)))
+    return out
+
+
+class Hash(object):
+    """A 4 mm bucket grid over the pads, so a candidate test is local rather than board-wide."""
+
+    CELL = 4.0
+
+    def __init__(self, items):
+        self.b = {}
+        for it in items:
+            cx, cy, w, h = it[3], it[4], it[5], it[6]
+            for i in range(int((cx - w / 2) / self.CELL), int((cx + w / 2) / self.CELL) + 1):
+                for j in range(int((cy - h / 2) / self.CELL), int((cy + h / 2) / self.CELL) + 1):
+                    self.b.setdefault((i, j), []).append(it)
+
+    def near(self, x0, y0, x1, y1):
+        out = []
+        for i in range(int(x0 / self.CELL), int(x1 / self.CELL) + 1):
+            for j in range(int(y0 / self.CELL), int(y1 / self.CELL) + 1):
+                out += self.b.get((i, j), [])
+        return out
+
+
+def _pt_rect(px, py, rx0, ry0, rx1, ry1):
+    """Euclidean distance from a point to an axis-aligned rectangle; 0 if inside."""
+    dx = max(rx0 - px, 0.0, px - rx1)
+    dy = max(ry0 - py, 0.0, py - ry1)
+    return math.hypot(dx, dy)
+
+
+def _seg_seg(ax, ay, bx, by, cx, cy, dx_, dy_):
+    """Distance between two line segments."""
+    def pt_seg(px, py, x0, y0, x1, y1):
+        vx, vy = x1 - x0, y1 - y0
+        L2 = vx * vx + vy * vy
+        t = 0.0 if L2 < 1e-12 else max(0.0, min(1.0, ((px - x0) * vx + (py - y0) * vy) / L2))
+        return math.hypot(px - (x0 + t * vx), py - (y0 + t * vy))
+
+    rx, ry = bx - ax, by - ay
+    sx, sy = dx_ - cx, dy_ - cy
+    den = rx * sy - ry * sx
+    if abs(den) > 1e-12:
+        t = ((cx - ax) * sy - (cy - ay) * sx) / den
+        u = ((cx - ax) * ry - (cy - ay) * rx) / den
+        if 0.0 <= t <= 1.0 and 0.0 <= u <= 1.0:
+            return 0.0          # they cross
+    return min(pt_seg(ax, ay, cx, cy, dx_, dy_), pt_seg(bx, by, cx, cy, dx_, dy_),
+               pt_seg(cx, cy, ax, ay, bx, by), pt_seg(dx_, dy_, ax, ay, bx, by))
+
+
+def _seg_rect(x0, y0, x1, y1, rx0, ry0, rx1, ry1):
+    """Distance from a segment to an axis-aligned rectangle; 0 if it touches or enters."""
+    if (rx0 <= x0 <= rx1 and ry0 <= y0 <= ry1) or (rx0 <= x1 <= rx1 and ry0 <= y1 <= ry1):
+        return 0.0
+    return min(_seg_seg(x0, y0, x1, y1, rx0, ry0, rx1, ry0),
+               _seg_seg(x0, y0, x1, y1, rx1, ry0, rx1, ry1),
+               _seg_seg(x0, y0, x1, y1, rx1, ry1, rx0, ry1),
+               _seg_seg(x0, y0, x1, y1, rx0, ry1, rx0, ry0))
+
+
+# Both tests below are EXACT rather than bounding-box, and that is not fussiness.  A via is a
+# circle and a track is a capsule -- KiCad's segments have round caps -- so exact is the same
+# amount of code as an approximation and answers the question the DRC will actually ask.  The
+# axis-aligned bbox this replaced merged the far end's x-extent with the near end's y-extent,
+# so a diagonal stub leaving a fine-pitch pin read as clipping the neighbour it was moving
+# AWAY from, and four ground pins on U3 and U8 were reported unreachable when they were not.
+
+def _via_clear(vx, vy, r, pads, gnd, skip):
+    """Is a via at (vx, vy) clear of every pad it could touch?
+
+    Same-net pads are held to a zero gap rather than ignored: a ground via landing inside a
+    ground pad is legal copper but a fab decision (paste wicks down an unplugged via in a
+    solderable pad), and one this generator deliberately does not take -- thermal_vias() is
+    where via-in-pad is decided, and only for pads that look like a paddle.
+    """
+    for ref, pn, net, px, py, pw, ph, smd, pid in pads:
+        if pid in skip:
+            continue
+        need = 0.0 if net == gnd else max(net_clearance(net), DROP_DEFAULT_CLEAR)
+        if _pt_rect(vx, vy, px - pw / 2, py - ph / 2, px + pw / 2, py + ph / 2) < r + need:
+            return False
+    return True
+
+
+def _stub_clear(x0, y0, x1, y1, w, pads, gnd, skip):
+    """Is the stub, as a capsule of width `w`, clear of every pad it could touch?
+
+    Same-net pads are not obstacles at all here.  A ground track crossing a ground pad is not
+    a fault; it is the connection.
+    """
+    for ref, pn, net, px, py, pw, ph, smd, pid in pads:
+        if pid in skip or net == gnd:
+            continue
+        need = max(net_clearance(net), DROP_DEFAULT_CLEAR)
+        if _seg_rect(x0, y0, x1, y1,
+                     px - pw / 2, py - ph / 2, px + pw / 2, py + ph / 2) < w / 2 + need:
+            return False
+    return True
+
+
+def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
+    """A via beside every SMD ground pad, with a stub to reach it.
+
+    `placed` is (x, y, size, drill, net) for every via already on the board; `keepouts` is the
+    all-layer keep-out boxes.  Returns (vias, segments) and appends the new vias to `placed`,
+    so the drops cannot collide with each other either.
+    """
+    gnd = netidx.get("GND")
+    if gnd is None:
+        return [], []
+
+    allpads = pads_board(comps, pos, padnet)
+    hash_ = Hash(allpads)
+    r = DROP_VIA / 2.0
+    holes = [(mx, my, L.MOUNT_PAD) for mx, my in mount_holes()]
+
+    def via_ok(vx, vy, skip, island=True):
+        if not (L.X0 + 0.5 + r <= vx <= L.X1 - 0.5 - r
+                and L.Y0 + 0.5 + r <= vy <= L.Y1 - 0.5 - r):
+            return False
+        for kx0, ky0, kx1, ky1 in keepouts:
+            if kx0 - r < vx < kx1 + r and ky0 - r < vy < ky1 + r:
+                return False
+        if island and L.in_gnd_in_island(vx, vy, r + DROP_CLEAR):
+            return False
+        for mx, my, md in holes:
+            if math.hypot(vx - mx, vy - my) < md / 2.0 + r + DROP_CLEAR:
+                return False
+        for px, py, ps, pd, pnet in placed:
+            d = math.hypot(vx - px, vy - py)
+            if d < max((DROP_DRILL + pd) / 2.0 + 0.3,
+                       (DROP_VIA + ps) / 2.0 + (0.0 if pnet == gnd else DROP_CLEAR)):
+                return False
+        near = hash_.near(vx - r - DROP_CLEAR, vy - r - DROP_CLEAR,
+                          vx + r + DROP_CLEAR, vy + r + DROP_CLEAR)
+        return _via_clear(vx, vy, r, near, gnd, skip)
+
+    def stub_ok(x0, y0, x1, y1, w, skip, pad=None):
+        """The stub, as a swept box -- but only the part of it OUTSIDE its own pad.
+
+        The run starts at the pad centre, so its first stretch lies within the pad's own
+        outline.  That stretch is not copper the stub adds; it is the pad.  Checking it
+        anyway fails every fine-pitch IC pin on the board: a 0.65 mm pitch leaves 0.25 mm
+        between pads, so a box drawn along a pin from its centre is inside its neighbour's
+        clearance before it has gone anywhere.  Clip to where the stub actually leaves the
+        pad and the test asks the right question.  The emitted segment is unchanged -- it
+        still starts at the centre, which is what anchors it to the pad.
+
+        """
+        if pad is not None:
+            pw, ph = pad
+            dx, dy = x1 - x0, y1 - y0
+            n = math.hypot(dx, dy)
+            if n > 1e-9:
+                # How far along the run the pad's own outline reaches.
+                tx = (pw / 2.0) / abs(dx) if abs(dx) > 1e-9 else 1e9
+                ty = (ph / 2.0) / abs(dy) if abs(dy) > 1e-9 else 1e9
+                t = min(min(tx, ty), 1.0)
+                x0, y0 = x0 + dx * t, y0 + dy * t
+        bx0, bx1 = min(x0, x1) - w / 2, max(x0, x1) + w / 2
+        by0, by1 = min(y0, y1) - w / 2, max(y0, y1) + w / 2
+        near = hash_.near(bx0 - DROP_CLEAR, by0 - DROP_CLEAR,
+                          bx1 + DROP_CLEAR, by1 + DROP_CLEAR)
+        if not _stub_clear(x0, y0, x1, y1, w, near, gnd, skip):
+            return False
+        # Foreign vias -- the thermal arrays are not all ground.
+        for px, py, ps, pd, pnet in placed:
+            if pnet == gnd:
+                continue
+            need = max(net_clearance(pnet), DROP_DEFAULT_CLEAR)
+            if _seg_rect(x0, y0, x1, y1, px - ps / 2, py - ps / 2,
+                         px + ps / 2, py + ps / 2) < w / 2 + need:
+                return False
+        return True
+
+    # Ground pads that still need one: SMD, and with no via already inside them.
+    todo = []
+    for ref, pn, net, px, py, pw, ph, smd, pid in allpads:
+        if net != gnd or not smd:
+            continue
+        if any(abs(vx - px) <= pw / 2 and abs(vy - py) <= ph / 2
+               for vx, vy, _s, _d, _n in placed):
+            continue
+        todo.append((ref, pn, px, py, pw, ph, pid))
+
+    centre = {}
+    for ref, pn, net, px, py, pw, ph, smd, pid in allpads:
+        cx, cy, n = centre.get(ref, (0.0, 0.0, 0))
+        centre[ref] = (cx + px, cy + py, n + 1)
+
+    vias, segs, failed, shared = [], [], [], []
+    for ref, pn, px, py, pw, ph, pid in sorted(
+            todo, key=lambda t: (natkey(t[0]), t[1], t[6])):
+        cx, cy, n = centre[ref]
+        ox, oy = px - cx / n, py - cy / n
+        base = math.atan2(oy, ox) if math.hypot(ox, oy) > 1e-6 else 0.0
+        w = min(DROP_STUB_MAX, pw, ph)
+        skip = set([pid])
+        # R3 is the ONE resistor that ties GND_IN to GND, so its ground pad sits in
+        # the middle of the GND_IN island by design.  Excluding the island here would
+        # deny a via to the only pad on the board that cannot do without one.  The
+        # island notches around the pad already; one more notch for its via changes
+        # nothing.  check_grounds.py still proves the two nets stay apart.
+        island = (ref != "R3")
+        # Directions to try, in order of preference.
+        #
+        # The pad's own LONG AXIS comes first, because that is how a pin escapes: straight out
+        # of the end, staying centred between its neighbours for as long as it can.  It is not
+        # a rounding of the fan below -- it is the one direction the fan cannot express.  The
+        # fan steps 15 degrees off the line to the part centre, which on a pad whose centre is
+        # offset from that line never lands square; U8 pin 27 missed a legal escape by three
+        # degrees and 0.03 mm, and was reported unreachable with clear copper straight ahead.
+        axis = 0.0 if pw >= ph else math.pi / 2.0
+        angles = sorted((axis, axis + math.pi), key=lambda a: -math.cos(a - base))
+        for step in range(0, 13):
+            for sgn in ((1,) if step == 0 else (1, -1)):
+                angles.append(base + sgn * step * math.radians(15))
+
+        got = None
+        for th in angles:
+            d = max(pw, ph) / 2.0 + r + 0.05
+            while d <= DROP_MAX_R:
+                vx, vy = px + d * math.cos(th), py + d * math.sin(th)
+                if (via_ok(vx, vy, skip, island)
+                        and stub_ok(px, py, vx, vy, w, skip, (pw, ph))):
+                    got = (vx, vy)
+                    break
+                d += 0.05
+            if got:
+                break
+        if not got:
+            # Fallback: SHARE a via that is already there.  On a multi-pad IC the ground pins
+            # come in runs -- U7 and U8 have eight apiece -- and once the first few have taken
+            # the free copper there is no room left for one via per pad.  Tying the pad to a
+            # neighbour's via is not a compromise; it is what a person would draw, and the
+            # stub is shorter than the one a private via 3 mm away would have needed.  The
+            # stub is checked exactly as before, so a share that would clip a pad is refused.
+            best = None
+            for vx, vy, vs, vd, vnet in placed:
+                if vnet != gnd:
+                    continue
+                d = math.hypot(vx - px, vy - py)
+                if d > DROP_MAX_R or (best is not None and d >= best[0]):
+                    continue
+                if stub_ok(px, py, vx, vy, w, skip, (pw, ph)):
+                    best = (d, vx, vy)
+            if best is not None:
+                shared.append("%s.%s" % (ref, pn))
+                segs.append(seg(px, py, best[1], best[2], w, "F.Cu", gnd,
+                                "gs%s.%s.%d" % (ref, pn, pid)))
+                continue
+            failed.append("%s.%s" % (ref, pn))
+            continue
+        vx, vy = got
+        vias.append(via(vx, vy, gnd, DROP_VIA, DROP_DRILL, "gd%s.%s.%d" % (ref, pn, pid)))
+        segs.append(seg(px, py, vx, vy, w, "F.Cu", gnd, "gs%s.%s.%d" % (ref, pn, pid)))
+        placed.append((vx, vy, DROP_VIA, DROP_DRILL, gnd))
+
+    print("ground drops: %d own via(s), %d shared, for %d SMD GND pad(s)"
+          % (len(vias), len(shared), len(todo)))
+    if shared:
+        print("    sharing a neighbour's via: %s" % ", ".join(shared))
+    if failed:
+        print("  WARN: no room for a drop at %d pad(s): %s"
+              % (len(failed), ", ".join(failed)))
+    return vias, segs
+
+
 # --------------------------------------------------------------------------- main
 NETNAME = {}
 
@@ -995,6 +1383,16 @@ def main():
     out += tim_areas()
     out += thermal_vias(comps, pos, padnet, netidx)
     out += stitch_vias(netidx, grid)
+    # Ground drops go LAST of the vias, so `placed` already holds the thermal and
+    # stitching ones and a drop cannot be put on top of either.
+    kos = []
+    for c in comps:
+        if c["ref"] in pos:
+            x, y, rot = pos[c["ref"]]
+            kos += fp_keepouts(c["fp"], x, y, rot)
+    dv, ds = gnd_drops(comps, pos, padnet, netidx, list(VIA_LOG), kos)
+    out += dv
+    out += ds
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")
