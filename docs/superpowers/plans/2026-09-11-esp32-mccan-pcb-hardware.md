@@ -1100,7 +1100,8 @@ LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
   internal**; measured at 71 mm, a 6.1x margin
   for the single feed's 7.0 A continuous / 7.8 A transient. **This note's original "5-6 mm" was
   right all along**; the constraints list's "4-5 mm" was the wrong one and is withdrawn
-- Boost switch-node loop area MINIMISED; gate loops short and tight
+- Boost switch-node loop area MINIMISED. There are no gate loops: the LM51571 switch is
+  internal, so the loop that matters is U3's SW pin to D4 to C61 and back to PGND
 - Plate-edge thermal group: **L2 (0.78 W), U9 PROFET (0.35 W), L1 (0.28 W), U3, L3** -- ~1.6 W
   of the 2.31 W night total. **There are no external boost FETs and no P-FET.**
 - eFuse island near J1, NOT on the plate edge: **U10, Q10, Q11, R100, C65**. R100 needs its own
@@ -1234,9 +1235,10 @@ git commit -m "hw(pcb): 4-layer stackup, thermal group on plate edge, antenna ke
 
 - [ ] **Step 1: Route the boost power stage first**
 
-The switch-node loop and both gate loops are the highest-risk routing on the board. Route them
-before anything else claims the space: minimal switch-node area, gate traces short and paired with
-their return, current-sense traces as a differential pair routed away from the switch node.
+The switch-node loop is the highest-risk routing on the board -- the LM51571 integrates its
+switch, so there are no gate loops to route and this is the only fast edge. Route it before
+anything else claims the space: minimal SW-D4-C61-PGND area, and the feedback tap taken
+from the far end of the output cap rather than from the switch node's end of it.
 
 - [ ] **Step 2: Route the remaining power nets**
 

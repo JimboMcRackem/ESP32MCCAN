@@ -1002,12 +1002,19 @@ combines enable, programmable line UVLO and sync. Driving it straight from the G
 What is given up is *programmable* line UVLO; the part's internal lockout remains. Acceptable here —
 the Experia's 12 V rail is DC-DC fed, there is no crank dip to ride out on an EV, and the board sleeps
 when the bus idles. Combined with the enclosure's heat-spreader plate (§9) this gives large
-thermal margin, and the topology brings EMC headroom. The cost is a controller with external
-FETs, a current-sense resistor, compensation network, bootstrap, and careful gate-loop layout.
+thermal margin, and the topology brings EMC headroom.
+
+> **CORRECTED 2026-09-22.** This paragraph used to end *"the cost is a controller with external
+> FETs, a current-sense resistor, compensation network, bootstrap, and careful gate-loop layout"*.
+> That was the cost of the **LM5122**, and it survived the 2026-09-13 part change by inertia --
+> it contradicts the table three paragraphs above, which says the LM51571 integrates its switch.
+> There are no external FETs, no sense resistor, no bootstrap and **no gate loops on this board**.
 
 **Known behaviour, benign:** a boost converter has a conduction path from input to output
-through the high-side FET's body diode, so the 24 V rail sits near 12 V when the boost is
-disabled. Harmless — with the low-side switches off there is no return path, so no current
+even when it is not switching, so the 24 V rail sits near 12 V when the boost is
+disabled. On **this** boost that path is **D4**, the external Schottky rectifier -- the stage is
+non-synchronous, so there is no high-side FET and no body diode to carry it. The behaviour is
+the same; the component that has to be rated for it is the diode, which D4 is. Harmless — with the low-side switches off there is no return path, so no current
 flows and no glow occurs.
 
 Boost requirements: shielded inductor, spread-spectrum dither, soft start, tightly controlled

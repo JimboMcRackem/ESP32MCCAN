@@ -269,19 +269,35 @@ NOTES = [
      "R100 needs its own copper and a Kelvin tap. C65 must sit AT U10 pin 5.\n"
      "Antenna edge is RIGHT: no copper, plating or parts on ANY layer in the U5 keep-out.\n"
      "Wire-exit field is BOTTOM: J1 power at the far left, J2 CAN at the far right.\n"
-     "Boost switch-node loop area minimised; gate loops short and tight.\n"
+     "Boost switch-node loop area minimised. NO gate loops: U3 switches internally, so the\n"
+     "only fast edge is SW -> D4 -> C61 -> PGND. Keep that loop tight; nothing else here is.\n"
      "GND_IN and GND are SEPARATE and meet at TWO places only: L2 winding B, and R3.\n"
      "The plane must not bridge them anywhere else -- see scripts/check_grounds.py.",
      23.0, 124.0, "Cmts.User", 1.5),
-    ("THERMAL / FAB\n"
+    ("THERMAL / FAB / DFM\n"
      "VIA IN PAD: U1.9, U2.9, U3.17, U9.15 and D4.3 are filled with 0.5 / 0.25 mm vias.\n"
      "These MUST be plugged and capped (IPC-4761 type IV or VI) -- unplugged vias in a\n"
      "solderable paddle wick paste out of the joint and void the thermal path they exist for.\n"
      "Heat leaves through B.Cu: assembly is single sided and the bottom is bare on purpose.\n"
      "Gap pad contacts the two dashed Cmts.User patches, ~1360 mm2 total. Do not tent the\n"
      "stitching vias inside them on B.Cu any more than the rest of the bottom side.\n"
-     "U10 is MSOP-10 with NO exposed pad; its dissipation leaves through the lead frame.",
-     102.0, 124.0, "Cmts.User", 1.2),
+     "U10 is MSOP-10 with NO exposed pad; its dissipation leaves through the lead frame.\n"
+     "B.Cu under D4 is +24 V, not ground. The gap pad is the ONLY thing between it and the\n"
+     "plate -- it must be an insulator rated for the rail, not a conductive filler.\n"
+     "\n"
+     "ORDER NOTES -- these are not defaults, they have to be asked for:\n"
+     "1. VIA IN PAD PLUGGED AND CAPPED on the five paddles above. The default finish is\n"
+     "   TENTED, which is a mask skin over an open barrel and is not the same thing.\n"
+     "2. NO SOLDER MASK DAM at U10. Its leads leave a 0.15 mm gap, and a dam that thin does\n"
+     "   not survive the mask process -- a half-formed sliver is worse than none. Run the\n"
+     "   opening across the leads and let the paste stencil define the joints.\n"
+     "3. STENCIL 0.12 mm laser cut, trapezoidal walls. U1/U2 land patterns are at 0.200 mm\n"
+     "   and U10 at 0.150 mm; all three are legal here by written exception\n"
+     "   (mccan.kicad_dru), not by accident. Reduce paddle apertures to ~70% area.\n"
+     "4. ASK BEFORE FAB: the quoted hole-to-hole minimum is written against 'vias <= 0.45\n"
+     "   mm'. Every via here is 0.5 / 0.55 / 0.6 / 0.8 mm, so it is not clear whether the\n"
+     "   0.3 mm rule this board is built to applies, or a wider one does.",
+     23.0, 165.0, "Cmts.User", 1.2),
     ("ANTENNA KEEP-OUT -- no copper / plating / parts, ALL LAYERS.\n"
      "18.0 x 6.19 mm from the module end face (datasheet v1.8 Fig. 12).\n"
      "Enclosure must also give >= 15 mm clear in ALL directions (enclosure.md).",
@@ -301,7 +317,8 @@ NOTES = [
 # FEED is therefore 3.5 mm, which is a 20 K-rise width (8.01 A) rather than a 10 K one, and
 # that is deliberate: it is a FLOOR for the short hops between the input parts, which sit in
 # one tight island by J1.  Anything running further than a few millimetres on F.Cu must be
-# POURED to >= 4.5 mm, and the through-path itself belongs on the In2.Cu polygon at 5.75 mm.
+# POURED to >= 4.5 mm, and the through-path itself belongs on the In3.Cu polygon, which
+# scripts/check_plane_width.py measures at 71 mm against the 11.44 mm 1 oz asks.
 # The board note says so, because a netclass minimum cannot express "and pour it".
 #
 # POWER stays at 2.0 mm.  It now covers only +24V, +5V and VLOGIC_IN, whose largest load is
