@@ -25,12 +25,20 @@ see AR_ROUTE in the autorouter section there, and hardware/docs/routing-tool.md.
 
 import io
 import json
+import math
 import os
 import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HW = os.path.dirname(HERE)
+
+# A tenth of the routing grid -- the same number check_geometry.py grades against, imported
+# from gen_pcb rather than typed here so the two cannot drift apart.  A segment this short is
+# a nub, not a track; see MIN_LEN in check_geometry.py.
+sys.path.insert(0, HERE)
+import gen_pcb as _G  # noqa: E402
+MIN_LEN = _G.AR_GRID / 10.0
 
 UNROUTED = os.path.join(HW, "output", "router", "unrouted.kicad_pcb")
 ROUTED = os.path.join(HW, "output", "router", "routed.kicad_pcb")
@@ -87,10 +95,20 @@ def copper(path):
 
     Rounded to the micron: the router writes the same numbers back with different formatting
     (3.0 vs 3), and a float comparison across two writers is not a thing to rely on.
+
+    Segments shorter than MIN_LEN are dropped, and counted.  They are junk the router's
+    cleanup leaves behind: the two on the first good run were 10 um nubs hanging off the end of
+    a real track and joining nothing to nothing, too short for KiCadRoutingTools' own
+    check_weird to call them dangling.  check_geometry.py refuses to freeze a board carrying
+    one, so letting them through would block the chain on a run that is otherwise good --
+    and freezing them would put them in the generated board for good.  Dropping them here
+    rather than in main() means both boards are read the same way, so the additive check below
+    still compares like with like.
     """
     text = io.open(path, encoding="utf-8").read()
     names = netmap(text)
     segs, vias = {}, {}
+    degenerate = 0
     for blk in blocks(text, "segment"):
         st, en = field(blk, "start", 2), field(blk, "end", 2)
         w = field(blk, "width")
@@ -101,6 +119,9 @@ def copper(path):
         name = names.get(int(nt.group(1)), "")
         key = (round(st[0], 3), round(st[1], 3), round(en[0], 3), round(en[1], 3),
                round(w[0], 3), ly.group(1), name)
+        if math.hypot(key[0] - key[2], key[1] - key[3]) <= MIN_LEN + 1e-9:
+            degenerate += 1
+            continue
         segs[key] = True
     for blk in blocks(text, "via"):
         at, sz, dr = field(blk, "at", 2), field(blk, "size"), field(blk, "drill")
@@ -110,7 +131,7 @@ def copper(path):
         name = names.get(int(nt.group(1)), "")
         key = (round(at[0], 3), round(at[1], 3), round(sz[0], 3), round(dr[0], 3), name)
         vias[key] = True
-    return segs, vias
+    return segs, vias, degenerate
 
 
 def main(argv):
@@ -122,8 +143,11 @@ def main(argv):
             print("FAIL: %s is missing -- run scripts/route_external.py first" % p)
             return 2
 
-    s0, v0 = copper(src)
-    s1, v1 = copper(dst)
+    s0, v0, d0 = copper(src)
+    s1, v1, d1 = copper(dst)
+    if d0 or d1:
+        print("dropped %d segment(s) under %g mm: %d on the input, %d on the router's output"
+              % (d0 + d1, MIN_LEN, d0, d1))
 
     # A segment or via that the router REMOVED is a red flag, not a detail: this chain is
     # supposed to be additive, and the exclusion list plus route.py's own

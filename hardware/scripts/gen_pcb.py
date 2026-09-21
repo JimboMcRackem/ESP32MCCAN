@@ -302,6 +302,212 @@ worth probing.
 """
 
 
+SILK_REF_GAP = 0.15
+"""Clearance, mm, between a designator this moves and whatever it was moved off."""
+
+SILK_REF_MIN_H = 0.8
+SILK_REF_MIN_T = 0.08
+"""The smallest a designator is allowed to get, mm.
+
+These are the board's OWN minimums -- mccan.kicad_pro carries min_text_height 0.8 and
+min_text_thickness 0.08 -- so shrinking to exactly them is the most room this can buy without
+trading a silkscreen warning for a text_height one, which is not a trade."""
+
+
+def _font_set(prop, sx, sy, tw):
+    """Set a property's font size and stroke, in place."""
+    eff = find(prop, "effects")
+    fnt = find(eff, "font") if eff is not None else None
+    if fnt is None:
+        return
+    sz = find(fnt, "size")
+    if sz is not None:
+        sz[1], sz[2] = num(sx), num(sy)
+    th = find(fnt, "thickness")
+    if th is not None:
+        th[1] = num(tw)
+
+
+def _font(prop):
+    """(size_x, size_y, thickness) of a property's text, with KiCad's defaults."""
+    eff = find(prop, "effects")
+    fnt = find(eff, "font") if eff is not None else None
+    sz = find(fnt, "size") if fnt is not None else None
+    th = find(fnt, "thickness") if fnt is not None else None
+    return (float(sz[1]) if sz is not None else 1.0,
+            float(sz[2]) if sz is not None else 1.0,
+            float(th[1]) if th is not None else 0.15)
+
+
+def _text_wh(ref, prop):
+    """How much board a designator covers, as (w, h) in mm at its own rotation.
+
+    KiCad's stroke font runs a little under one em per glyph; 0.8 plus the stroke on each
+    end is a slight over-estimate, which is the direction to err -- a box drawn too big only
+    makes this pass fussier about where it puts the text.
+    """
+    sx, sy, tw = _font(prop)
+    w, h = len(ref) * sx * 0.8 + tw, sy + tw
+    at = find(prop, "at")
+    ang = float(at[3]) if at is not None and len(at) > 3 else 0.0
+    if int(round(ang / 90.0)) % 2:
+        w, h = h, w
+    return w, h
+
+
+SILK_GFX = ("fp_line", "fp_rect", "fp_circle", "fp_arc", "fp_poly")
+
+
+def _gfx_box(g, fx, fy, rot):
+    """Board-coordinate bbox of one footprint graphic, or None if it is not on front silk."""
+    lay = find(g, "layer")
+    if lay is None or unq(lay[1]) != "F.SilkS":
+        return None
+    st = find(g, "stroke")
+    wd = find(st, "width") if st is not None else find(g, "width")
+    hw = (float(wd[1]) / 2.0) if wd is not None and len(wd) > 1 else 0.05
+    pts = []
+    for h in ("start", "mid", "end", "center"):
+        n = find(g, h)
+        if n is not None and len(n) > 2:
+            pts.append((float(n[1]), float(n[2])))
+    p = find(g, "pts")
+    if p is not None:
+        pts += [(float(v[1]), float(v[2])) for v in find_all(p, "xy")]
+    if g[0] == "fp_circle" and len(pts) == 2:
+        # centre + a point on the rim: the square around the whole circle, not the chord.
+        (cx, cy), (ex, ey) = pts
+        r = math.hypot(ex - cx, ey - cy)
+        pts = [(cx - r, cy - r), (cx + r, cy + r)]
+    if not pts:
+        return None
+    xs, ys = [], []
+    for lx, ly in pts:
+        bx, by = rot_local(lx, ly, rot)
+        xs.append(fx + bx)
+        ys.append(fy + by)
+    return (min(xs) - hw, min(ys) - hw, max(xs) + hw, max(ys) + hw)
+
+
+def _hits(box, obstacles, skip):
+    x0, y0, x1, y1 = box
+    for owner, a0, b0, a1, b1 in obstacles:
+        if owner == skip:
+            continue
+        if x0 < a1 and a0 < x1 and y0 < b1 and b0 < y1:
+            return True
+    return False
+
+
+def silk_refs(built, comps, pos, padnet):
+    """Put every kept designator somewhere it does not land on silk or on copper.
+
+    All 68 of the board's silkscreen warnings were one thing: a reference field over a
+    neighbour's outline (35) or over a pad (33).  None was between two real silk graphics,
+    and none involved a track -- so this is a text-placement problem, and it is decidable
+    here, before anything is routed.
+
+    SILK_REF_KEEP already took this from 398 to 68 by moving every other prefix to F.Fab.
+    Moving the rest there too would leave a board whose semiconductors cannot be identified
+    by eye, which is the opposite of what silkscreen is for.  So each survivor is tried where
+    the library put it, then at the four sides of its own body at increasing distance, and
+    only demoted to F.Fab if the part is boxed in on every side.
+
+    Boxes are axis-aligned and deliberately a little generous: over-reporting costs a nudge,
+    under-reporting costs a DRC warning.  A designator is tested against every OTHER
+    footprint's silk and against EVERY pad including its own, which is the pair of rules KiCad
+    itself applies -- it does not flag a footprint's text against its own outline.
+    """
+    obstacles, own = [], {}
+    for ref, fx, fy, rot, fp in built:
+        for g in fp:
+            if not isinstance(g, list) or g[0] not in SILK_GFX:
+                continue
+            box = _gfx_box(g, fx, fy, rot)
+            if box:
+                obstacles.append((ref,) + box)
+                own.setdefault(ref, []).append(box)
+    for pd in pads_board(comps, pos, padnet):
+        ref, _pn, _net, cx, cy, w, h = pd[0], pd[1], pd[2], pd[3], pd[4], pd[5], pd[6]
+        box = (cx - w / 2.0, cy - h / 2.0, cx + w / 2.0, cy + h / 2.0)
+        obstacles.append((ref,) + box)
+        own.setdefault(ref, []).append(box)
+
+    moved = kept = shrunk = 0
+    gone = []
+    for ref, fx, fy, rot, fp in sorted(built, key=lambda b: natkey(b[0])):
+        if ref.rstrip("0123456789") not in SILK_REF_KEEP:
+            continue
+        prop = None
+        for p in fp:
+            if isinstance(p, list) and p[0] == "property" and unq(p[1]) == "Reference":
+                prop = p
+        if prop is None:
+            continue
+        lay = find(prop, "layer")
+        if lay is None or not unq(lay[1]).endswith(".SilkS"):
+            continue
+        at = find(prop, "at")
+        w, h = _text_wh(ref, prop)
+
+        def box_at(cx, cy):
+            return (cx - w / 2.0 - SILK_REF_GAP, cy - h / 2.0 - SILK_REF_GAP,
+                    cx + w / 2.0 + SILK_REF_GAP, cy + h / 2.0 + SILK_REF_GAP)
+
+        bx, by = rot_local(float(at[1]), float(at[2]), rot)
+        cands = [(fx + bx, fy + by)]
+        mine = own.get(ref) or [(fx - 0.5, fy - 0.5, fx + 0.5, fy + 0.5)]
+        b0 = (min(m[0] for m in mine), min(m[1] for m in mine),
+              max(m[2] for m in mine), max(m[3] for m in mine))
+        mx, my = (b0[0] + b0[2]) / 2.0, (b0[1] + b0[3]) / 2.0
+        for push in (0.0, 0.3, 0.6, 0.9, 1.4):
+            d = SILK_REF_GAP + push
+            cands += [(mx, b0[1] - d - h / 2.0), (mx, b0[3] + d + h / 2.0),
+                      (b0[0] - d - w / 2.0, my), (b0[2] + d + w / 2.0, my)]
+
+        put, small = None, False
+        for cx, cy in cands:
+            if not _hits(box_at(cx, cy), obstacles, ref):
+                put = (cx, cy)
+                break
+        if put is None:
+            # Nothing fits at the library's text size.  Shrinking the designator is a smaller
+            # loss than not printing it: SILK_REF_SHRINK still clears the 0.15 mm silkscreen
+            # minimum most fabs quote, and a part whose label is small is more use than a part
+            # with no label at all.
+            sx, sy, tw = _font(prop)
+            if sy > SILK_REF_MIN_H:
+                k = SILK_REF_MIN_H / sy
+                _font_set(prop, sx * k, SILK_REF_MIN_H, max(SILK_REF_MIN_T, tw * k))
+                w, h = _text_wh(ref, prop)
+                for cx, cy in cands:
+                    if not _hits(box_at(cx, cy), obstacles, ref):
+                        put, small = (cx, cy), True
+                        break
+                if put is None:
+                    _font_set(prop, sx, sy, tw)
+        if put is None:
+            # Boxed in on every side even shrunk.  Value already lives on F.Fab, so the
+            # assembly drawing still names the part; what is lost is reading it off the
+            # bare board.
+            lay[1] = q(unq(lay[1])[:2] + "Fab")
+            gone.append(ref)
+            continue
+        if small:
+            shrunk += 1
+        obstacles.append((ref,) + box_at(put[0], put[1]))
+        if abs(put[0] - (fx + bx)) < 1e-6 and abs(put[1] - (fy + by)) < 1e-6:
+            kept += 1
+            continue
+        lx, ly = rot_local(put[0] - fx, put[1] - fy, -rot)
+        at[1], at[2] = num(lx), num(ly)
+        moved += 1
+    print("silk references: %d left alone, %d moved, %d shrunk, %d demoted to F.Fab"
+          % (kept, moved, shrunk, len(gone)))
+    if gone:
+        print("  no silkscreen room for: %s" % ", ".join(gone))
+
+
 def build_footprint(c, x, y, rot, padnet):
     spec = c["fp"]
     lib = load_fp(spec)
@@ -2778,14 +2984,19 @@ def main():
     if unplaced:
         print("  ERROR: %d part(s) would not fit: %s" % (len(unplaced), ", ".join(unplaced)))
 
-    body = []
+    # Footprints stay STRUCTURED until every one of them exists, because silk_refs()
+    # has to see the whole board's silkscreen and copper at once to know where a
+    # designator can go without landing on either.
+    built = []
     for c in sorted(comps, key=lambda c: natkey(c["ref"])):
         if c["ref"] not in pos:
             continue
         x, y, rot = pos[c["ref"]]
         fp = build_footprint(c, x, y, rot, padnet)
         if fp:
-            body.append("\t" + dump(fp, 2))
+            built.append((c["ref"], x, y, rot, fp))
+    silk_refs(built, comps, pos, padnet)
+    body = ["\t" + dump(fp, 2) for _r, _x, _y, _rt, fp in built]
 
     # Mounting holes: plain, NON-plated.  Tying signal GND to a metal enclosure at four points
     # is a grounding decision, not a layout default -- it stays out until someone decides it.

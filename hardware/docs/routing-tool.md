@@ -60,8 +60,9 @@ That is the whole thing. It:
    input board is everything this repo generates *minus* the signal copper — hand routes, thermal
    and stitching vias, ground drops and pours all present. `mccan.kicad_pcb` is not touched;
 2. runs `py_router/route.py` over the signal nets only;
-3. grades the result with KiCadRoutingTools' `check_connected`, `check_drc` and `check_weird`, then
-   with this repo's `check_vias.py` and `check_grounds.py`.
+3. grades the result with this repo's `check_geometry.py`, then KiCadRoutingTools'
+   `check_connected`, `check_drc` and `check_weird`, then this repo's `check_vias.py` and
+   `check_grounds.py`.
 
 Useful variants:
 
@@ -84,13 +85,25 @@ back into the sibling `.kicad_pro`, so it is deliberately given a copy and never
 automatically puts it out of the external router's reach. Those nets still exist on the input
 board as copper, so the router treats them as obstacles to work around.
 
-Two further guards, both from the tool itself:
+Further guards, all of them from the tool itself and none of them a default:
 
 - pre-existing routed nets are **never** ripped unless `--rip-existing-nets` asks for it, and this
   wrapper does not ask;
+- `--keep-input-copper` makes the input board's copper read-only through the post-route cleanup
+  passes. Without it the cleanup sweeps input copper it judges dead — the first full run stripped
+  7 input segments and left 5 nets ripped. The freeze step in §4 is a **diff**, so it is only
+  correct while the output stays a superset of the input, and this is what keeps that true;
+- `--escalation board` is the size floor. See the first bullet of §5: `--fab-tier` is *not* the
+  flag that holds sizes, and its own default lets a net be retried below the board's minimums;
+- `--no-bga-zones` switches off the BGA escape machinery entirely. **This board has no BGA, LGA or
+  CSP part on it** — the detector is really a fine-pitch-grid detector and it fires on TSSOP and
+  QFN, reading U7 (a 0.65 mm TSSOP-28) as a "14 rows x 2 columns" ball grid and then running an
+  under-pad shrink rescue at 0.0762 mm track / 0.25 mm via / 0.09 mm clearance;
 - `--layers F.Cu B.Cu` keeps it off the inner layers. **In1.Cu is the ground plane and In2.Cu is the
-  VBAT plane; neither is a routing layer.** This is not a default — `route.py` would otherwise use
-  every copper layer the board declares.
+  VBAT plane; neither is a routing layer.** `route.py` would otherwise use every copper layer the
+  board declares. It is also not quite watertight — the first run put four sub-micron stubs on
+  In1.Cu and In2.Cu despite logging both as forbidden — which is one of the things
+  `check_geometry.py` exists to catch.
 
 Geometry is read from `gen_pcb.py`'s own constants (`AR_W` 0.25 mm, `AR_CLEAR` 0.20 mm, `AR_VIA`
 0.6/0.3 mm, `AR_GRID` 0.1 mm, `AR_EDGE` 0.5 mm, `AR_VIA_COST`), so the two routers are comparable
@@ -134,21 +147,87 @@ going missing means one of the guards in §3 did not hold.
 Widths and layers come from the frozen file rather than from `AR_W` / `AR_LAYERS`, so a track the
 router necked down or laid wide keeps the width it was given.
 
+One thing the freeze does drop: **segments shorter than a tenth of the routing grid**. The first
+good run left two 10 µm nubs hanging off the ends of real tracks, joining nothing to nothing —
+too short for the tool's own `check_weird` to call them dangling, and too short for KiCad to draw.
+`check_geometry.py` refuses to freeze a board carrying one, so left in place they would have
+blocked the chain on a run that was otherwise ready. The threshold is imported from
+`gen_pcb.AR_GRID` so the two files cannot drift.
+
 `routes_signal.json` is committed. It is *data the scripts consume* — the same status as the
 netlist — so the board stays fully generated and `python scripts/gen_pcb.py` reproduces it on a
 machine that has never heard of KiCadRoutingTools.
 
 ---
 
-## 5. Things worth knowing before trusting a run
+## 5. What the first good run delivered
+
+2026-09-21, with every guard in §3 on. 58 minutes of routing, 72 million iterations.
+
+| | HEAD, built-in router | this run, frozen in |
+|---|---|---|
+| KiCad DRC errors | **1** (U4 pad 2 clearance) | **0** |
+| DRC warnings | 71 (68 silk, 2 footprint, 1 other) | 58 (51 dangling via, 5 connection width, 2 dangling track) |
+| Unconnected items | 179 | **105** |
+| Schematic parity | — | 0 issues |
+| Copper | 2613 seg / 787 via | 4248 seg / 1190 via |
+
+The guards held, and the summary says so as data rather than as an absence of warnings:
+`escalation_policy: board`, `fab_tier_escalations: 0`, and `min_delivered` exactly
+`{via_diameter: 0.45, track_width: 0.2}` — the board's own floors, not a micron under. 1007
+narrowings, every one of them legal. `--keep-input-copper` was tested for real: the router did rip
+`/outputs/SENSE_FL_B` to clear a blocker and then put it back, logged as *"original copper
+restored"*, and `freeze_routes.py`'s additive check passed on the result.
+
+Of the 105 unconnected items, **53 are on nets this router was never given** — VBAT, +24V, +5V,
+VLOGIC_IN, FEED_P, VBAT_PROT, VBAT_F, MID, SNS, CANH, CANL, GND_IN. Those are steps 2 and 3 of the
+routing task and they are still to be laid by hand. The other 52 are the router's own shortfall,
+38 nets it could not close — mostly one pad each, concentrated in the same RGB output bundle that
+defeats the built-in router, and its own hints name the pre-existing nets in the way.
+
+Two numbers are **not** fab-ready and are tracked separately: 123 of the router's vias came back at
+0.45 / 0.20 mm, and gen_pcb's 73 thermal vias are 0.50 / 0.25 mm. Both have a **0.125 mm annular
+ring**, under PCBWay's stated 0.15 mm minimum — which they state for exactly this case, *"for pads
+with vias in the middle"*. The router was entitled to the first set: `min_via_annular_width` in
+`mccan.kicad_pro` is **0.1**, so `--escalation board` permits it. Raising that floor to 0.15 is
+what stops it, and it has to happen before the next run rather than after.
+
+---
+
+## 6. Things worth knowing before trusting a run
+
+- **A clean exit code does not mean the sizes you asked for.** This is the one that cost a run.
+  `--fab-tier standard` reads like a floor and is not: the flag that governs how far below a
+  *requested* size a failing net may be retried is **`--escalation`**, whose default is `fab` —
+  documented as "down to the fab tier floor, **below the board's own minimums**". The first full
+  run exited 0 and handed back **2177 tracks at 0.0889 mm** against a 0.25 mm request and a 0.20 mm
+  board floor, 115 vias at 0.45/0.2 against a 0.6/0.3 request, 11 zero-length segments and 4 stubs
+  on the plane layers. Every descent was logged — in a warning, somewhere in 70 000 lines.
+
+  `--escalation board` is the setting this board wants: a net may neck down to what the board
+  declares and KiCad's DRC accepts, and no further. `--strict-sizes` exits 3 on any descent at all,
+  which is too strict here — necking 0.25 to 0.20 mm past a fine-pitch pad is ordinary layout — so
+  **`scripts/check_geometry.py`** does the grading instead. It fails on copper under the board's own
+  `rules.min_*`, on a track on a plane layer and on zero-length junk, and merely *reports* legal
+  necking. It runs first in the chain, and it is the gate on whether a run is freezable at all.
 
 - **Route the planes first is *their* advice, not ours.** The tool's README recommends
   `route_planes.py` before `route.py` so plane-drop vias land on real fill. This board already
   pours its planes and places all 142 ground drops in `gen_pcb.py`, so that step is skipped
   deliberately — running it would place a second set of taps.
-- **`check_drc.py` needs `--refill-zones`** when run standalone, for the same reason KiCad's own DRC
-  does here: a board shipped with zone outlines and no `filled_polygon` reports plane opens that are
-  not real.
+- **Nothing this repo writes carries a zone fill.** `gen_pcb.py` emits all six zones as outlines
+  with no `filled_polygon`, and KiCad fills them on load. Two consequences, both of them regular
+  false alarms rather than findings:
+
+  `check_drc.py` needs **`--refill-zones`** when run standalone, for the same reason KiCad's own DRC
+  does here — a board with outlines and no fill reports plane opens that are not real.
+
+  `check_connected.py` has no such flag, so **every "pad <-> zone" pair it reports on a planed net
+  is an artefact**. It reported `/power_input/GND_IN` open at `(41.100, 74.000) F.Cu pad <-> (42.000,
+  36.000) F.Cu zone`; that pad is U10.8, and it sits well inside the GND_IN outline (x 22..62,
+  y 36..119.5), as do all twelve GND_IN pads. There is simply no copper there yet for it to trace.
+  The authority on plane connectivity is KiCad's own DRC with `--refill-zones`; `check_grounds.py`
+  is the authority on the GND / GND_IN split.
 - **The two repo guards are not optional.** GND and GND\_IN are separate nets that meet at exactly
   two places (L2 winding B, and R3). Nothing in DRC enforces that, because a pour never shorts to a
   foreign net — `check_grounds.py` is what catches it, and the wrapper runs it on the router's

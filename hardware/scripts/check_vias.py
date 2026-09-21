@@ -29,6 +29,21 @@ HW = os.path.dirname(HERE)
 # A board path on the command line checks THAT board instead -- the external-router
 # chain in route_external.py grades its own output with the same two guards.
 PCB = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HW, "mccan.kicad_pcb")
+# A SECOND board path grades only the vias that board also has.  The two rules below read a
+# via's job off its diameter, which is true of everything gen_pcb.py places and false of
+# anything an external router adds: its signal vias are 0.6 mm like the stitching vias and
+# land in pads on purpose, so grading them here would report dozens of failures that are not
+# failures.  route_external.py therefore passes the unrouted input board as the baseline --
+# which grades exactly gen_pcb's own vias, and proves at the same time that the router gave
+# every one of them back unmoved.
+BASE = sys.argv[2] if len(sys.argv) > 2 else None
+# With no baseline board, the frozen route file is the baseline instead -- and for the
+# generated board it is the BETTER one, because it is committed.  Once routes_signal.json
+# exists, mccan.kicad_pcb carries the external router's copper too, so a bare
+# `python scripts/check_vias.py` would grade the router's via-in-pad against a rule written
+# for gen_pcb's stitching vias and report two dozen failures that are the router doing its
+# job.  Subtracting the frozen vias leaves exactly the ones this repo placed.
+FROZEN = os.path.join(HERE, "routes_signal.json")
 
 FP_AT_RE = re.compile(r'\n\t\t\(at ([-\d.]+) ([-\d.]+)\s*([-\d.]+)?\)')
 PAD_RE = re.compile(
@@ -91,6 +106,39 @@ def main():
     if not vias:
         print("FAIL: no vias on the board")
         return 1
+
+    skipped = 0
+    if BASE:
+        keep = set()
+        for a, b, c, d, _e in VIA_RE.findall(io.open(BASE, encoding="utf-8").read()):
+            keep.add((round(float(a), 3), round(float(b), 3),
+                      round(float(c), 3), round(float(d), 3)))
+        mine = [v for v in vias if (round(v[0], 3), round(v[1], 3),
+                                    round(v[2], 3), round(v[3], 3)) in keep]
+        skipped = len(vias) - len(mine)
+        missing = len(keep) - len(mine)
+        vias = mine
+        print("baseline %s: grading %d via(s), ignoring %d the router added"
+              % (os.path.basename(BASE), len(vias), skipped))
+        if missing > 0:
+            # --keep-input-copper is meant to make this impossible.  If it happens the
+            # routed board is not a superset of its input and freeze_routes.py will refuse
+            # it too; say so here, where the reason is legible.
+            print("  FAIL: %d via(s) of the baseline are not on this board" % missing)
+            return 1
+    elif os.path.exists(FROZEN):
+        import json
+        doc = json.load(io.open(FROZEN, encoding="utf-8"))
+        drop = set()
+        for net in doc.get("nets", {}).values():
+            for x, y, sz, dr in net.get("vias", []):
+                drop.add((round(x, 3), round(y, 3), round(sz, 3), round(dr, 3)))
+        mine = [v for v in vias if (round(v[0], 3), round(v[1], 3),
+                                    round(v[2], 3), round(v[3], 3)) not in drop]
+        skipped = len(vias) - len(mine)
+        vias = mine
+        print("routes_signal.json: grading %d via(s), ignoring %d frozen from the router"
+              % (len(vias), skipped))
 
     therm = [v for v in vias if v[2] < 0.6]
     stitch = [v for v in vias if v[2] >= 0.6]

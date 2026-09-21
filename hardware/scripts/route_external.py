@@ -29,8 +29,17 @@ The chain
        sibling project, so it is given a copy.
     2. KiCadRoutingTools route.py over the signal nets only, F.Cu and B.Cu only (In1.Cu is
        the ground plane and In2.Cu the VBAT plane; neither is a routing layer).
-    3. its own check_connected / check_drc / check_weird, then this repo's check_vias and
-       check_grounds.
+    3. this repo's check_geometry, then the tool's own check_connected / check_drc /
+       check_weird, then this repo's check_vias and check_grounds.
+
+Why check_geometry runs first
+----------------------------
+Because the tool does not fail when it goes below the sizes it was given.  Its --fab-tier
+flag is not the floor it reads as; --escalation is, and its default lets a failing net be
+retried BELOW the board's own minimums.  The first full run came back nominally clean and
+carried 2177 tracks at 0.0889 mm.  The flags below shut that off, and check_geometry is what
+proves they did -- a board whose copper is under its own declared floors cannot be frozen,
+however well it grades on connectivity.
 
 Nothing here writes mccan.kicad_pcb.  Folding a good result back into the generated board is
 a separate step -- see hardware/docs/routing-tool.md.
@@ -64,6 +73,7 @@ WORK = os.path.join(HW, "output", "router")
 
 UNROUTED = os.path.join(WORK, "unrouted.kicad_pcb")
 ROUTED = os.path.join(WORK, "routed.kicad_pcb")
+SUMMARY = os.path.join(WORK, "routed-summary.json")
 
 # The classes gen_pcb's own router refuses to touch, for the same reason: they are hand
 # routed, or plane copper, or wider than a signal track because their width is a decision
@@ -178,6 +188,28 @@ def main(argv):
     # is quoted at the standard tier and its own minimums are 0.20 mm, so a net that needs
     # finer geometry than that is a net we want reported as failed, not quietly laid.
     cmd += ["--fab-tier", "standard"]
+    # --fab-tier alone does not hold that floor.  The lever is --escalation, whose DEFAULT is
+    # "fab" -- documented as "down to the fab tier floor, BELOW the board's own minimums" --
+    # and the first full run took it, handing back 2177 tracks at 0.0889 mm against this
+    # 0.25 mm request.  "board" is the setting the comment above was reaching for: a net may
+    # neck down to what this board declares and KiCad's DRC accepts (0.20 mm track, 0.45 mm
+    # via) and no further; below that it fails and is named.
+    cmd += ["--escalation", "board"]
+    # There is not a BGA on this board -- no BGA, no LGA, no CSP, nothing on a ball grid at
+    # all.  The detector is really a fine-pitch-grid detector and it fires on TSSOP and QFN:
+    # it read U7, a 0.65 mm TSSOP-28, as "14 rows x 2 columns" and ran an under-pad shrink
+    # rescue at 0.0762 mm track / 0.25 mm via / 0.09 mm clearance.  That rescue path is where
+    # the sub-floor copper came from, and it is not a path this board ever needs.
+    cmd += ["--no-bga-zones"]
+    # freeze_routes.py is a DIFF, so it is only correct while the output is a SUPERSET of the
+    # input.  Left alone, the post-route cleanup sweeps input copper it judges dead: the last
+    # run stripped 7 input segments and left 5 nets ripped, which freeze_routes.py would have
+    # refused -- rightly, and after an hour of routing.  This makes the input read-only.
+    cmd += ["--keep-input-copper"]
+    # The run's own tally, as a file.  route.py prints two JSON_SUMMARY blocks to stdout when
+    # its end-of-run reconciliation fires, and scraping either one alone is wrong; this is the
+    # merged one, and it is the only place the escalation counts are reported as data.
+    cmd += ["--json-out", SUMMARY]
     if preview:
         cmd.append("--preview")
     cmd += extra
@@ -192,14 +224,23 @@ def main(argv):
     if rc or preview:
         return rc
 
+    # Geometry first, because it is the one that decides whether the rest is worth reading.
+    # A board with copper under its own floors cannot be frozen however well it grades on
+    # connectivity, and this is the check that catches the router quietly going below what it
+    # was told -- see the --escalation comment above, and scripts/check_geometry.py.
+    run([sys.executable, "-u", os.path.join(HERE, "check_geometry.py"), ROUTED],
+        "track and via geometry against the board's own floors (this repo)")
     run([py, "-u", os.path.join(home, "py_router", "check_connected.py"), ROUTED],
         "connectivity (KiCadRoutingTools)")
     run([py, "-u", os.path.join(home, "py_router", "check_drc.py"), ROUTED],
         "clearances (KiCadRoutingTools)")
     run([py, "-u", os.path.join(home, "py_router", "check_weird.py"), ROUTED],
         "copper hygiene, dangling stubs included (KiCadRoutingTools)")
-    run([sys.executable, "-u", os.path.join(HERE, "check_vias.py"), ROUTED],
-        "via placement (this repo)")
+    # With the input board as a baseline this grades gen_pcb's OWN vias and skips the
+    # router's, which is the only way the thermal/stitching split means anything here -- and
+    # it fails if the router handed back fewer than it was given.  See check_vias.py's BASE.
+    run([sys.executable, "-u", os.path.join(HERE, "check_vias.py"), ROUTED, UNROUTED],
+        "via placement, gen_pcb's own vias only (this repo)")
     run([sys.executable, "-u", os.path.join(HERE, "check_grounds.py"), ROUTED],
         "GND / GND_IN separation (this repo)")
 
