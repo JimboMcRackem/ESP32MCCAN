@@ -10,10 +10,13 @@ static DNSServer         s_dns;
 static WebSocketsServer  s_ws(81);
 static IPAddress         s_apIP(192, 168, 4, 1);
 static WebServerHal::MessageCb s_cb;
+static WebServerHal::DisconnectCb s_disc;
 
 static void onWsEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
   if (type == WStype_TEXT && s_cb) {
     s_cb(num, std::string(reinterpret_cast<char*>(payload), length));
+  } else if (type == WStype_DISCONNECTED && s_disc) {
+    s_disc(num);
   }
 }
 
@@ -76,6 +79,8 @@ void WebServerHal::loop() {
 }
 
 void WebServerHal::onMessage(MessageCb cb) { s_cb = cb; }
+
+void WebServerHal::onDisconnect(DisconnectCb cb) { s_disc = cb; }
 
 void WebServerHal::sendTo(uint8_t clientId, const std::string& text) {
   s_ws.sendTXT(clientId, text.c_str(), text.length());
