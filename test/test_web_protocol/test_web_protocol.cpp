@@ -96,6 +96,132 @@ void test_error_message_shape(void) {
   TEST_ASSERT_EQUAL_STRING("boom", doc["message"].as<const char*>());
 }
 
+void test_test_off_is_accepted(void) {
+  ProtocolAction a = handleRequest("{\"type\":\"test\",\"mode\":\"off\"}");
+  TEST_ASSERT_TRUE(a.setTest);
+  TEST_ASSERT_TRUE(a.error.empty());
+  TEST_ASSERT_TRUE(a.testOut.kind == TestKind::Off);
+}
+
+void test_test_scenario_resolves_the_preset(void) {
+  ProtocolAction a = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"scenario\",\"scenario\":\"hazards\"}");
+  TEST_ASSERT_TRUE(a.setTest);
+  TEST_ASSERT_TRUE(a.error.empty());
+  TEST_ASSERT_TRUE(a.testOut.kind == TestKind::Scenario);
+  TEST_ASSERT_TRUE(a.testOut.scenario.leftInd);
+  TEST_ASSERT_TRUE(a.testOut.scenario.rightInd);
+}
+
+void test_unknown_scenario_is_an_error(void) {
+  ProtocolAction a = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"scenario\",\"scenario\":\"disco\"}");
+  TEST_ASSERT_FALSE(a.setTest);
+  TEST_ASSERT_FALSE(a.error.empty());
+}
+
+void test_test_zones_parse_in_corner_order(void) {
+  ProtocolAction a = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":"
+      "[[255,80,0],[0,0,0],[255,0,0],[1,2,3]],\"denali\":128}");
+  TEST_ASSERT_TRUE(a.setTest);
+  TEST_ASSERT_TRUE(a.error.empty());
+  TEST_ASSERT_TRUE(a.testOut.kind == TestKind::Zones);
+  TEST_ASSERT_TRUE((a.testOut.zones.frontL == Rgb{255, 80, 0}));
+  TEST_ASSERT_TRUE((a.testOut.zones.frontR == Rgb{0, 0, 0}));
+  TEST_ASSERT_TRUE((a.testOut.zones.rearL == Rgb{255, 0, 0}));
+  TEST_ASSERT_TRUE((a.testOut.zones.rearR == Rgb{1, 2, 3}));
+  TEST_ASSERT_EQUAL_UINT8(128, a.testOut.zones.denali);
+}
+
+void test_test_zones_denali_defaults_to_zero(void) {
+  ProtocolAction a = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":"
+      "[[1,1,1],[1,1,1],[1,1,1],[1,1,1]]}");
+  TEST_ASSERT_TRUE(a.setTest);
+  TEST_ASSERT_EQUAL_UINT8(0, a.testOut.zones.denali);
+}
+
+void test_test_zones_reject_wrong_length(void) {
+  ProtocolAction a = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":[[1,1,1],[2,2,2]]}");
+  TEST_ASSERT_FALSE(a.setTest);
+  TEST_ASSERT_FALSE(a.error.empty());
+}
+
+void test_test_zones_reject_out_of_range_values(void) {
+  ProtocolAction hi = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":"
+      "[[256,0,0],[0,0,0],[0,0,0],[0,0,0]]}");
+  TEST_ASSERT_FALSE(hi.setTest);
+  TEST_ASSERT_FALSE(hi.error.empty());
+
+  ProtocolAction lo = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":"
+      "[[0,-1,0],[0,0,0],[0,0,0],[0,0,0]]}");
+  TEST_ASSERT_FALSE(lo.setTest);
+  TEST_ASSERT_FALSE(lo.error.empty());
+}
+
+void test_test_zones_reject_a_short_triple(void) {
+  ProtocolAction a = handleRequest(
+      "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":"
+      "[[1,1],[0,0,0],[0,0,0],[0,0,0]]}");
+  TEST_ASSERT_FALSE(a.setTest);
+  TEST_ASSERT_FALSE(a.error.empty());
+}
+
+void test_test_rejects_an_unknown_mode(void) {
+  ProtocolAction a = handleRequest("{\"type\":\"test\",\"mode\":\"strobe\"}");
+  TEST_ASSERT_FALSE(a.setTest);
+  TEST_ASSERT_FALSE(a.error.empty());
+}
+
+void test_config_message_carries_the_protocol_version(void) {
+  std::string msg = configMessage(defaultConfig());
+  JsonDocument doc;
+  TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
+  TEST_ASSERT_EQUAL_INT(kProtocolVersion, doc["protocolVersion"].as<int>());
+  TEST_ASSERT_EQUAL_INT(2, kProtocolVersion);
+}
+
+void test_test_state_message_shape(void) {
+  Config cfg = defaultConfig();
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.startedMs = 1000;
+
+  JsonDocument doc;
+  std::string msg = testStateMessage(t, cfg, 1000 + 11000);
+  TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
+  TEST_ASSERT_EQUAL_STRING("test_state", doc["type"].as<const char*>());
+  TEST_ASSERT_TRUE(doc["active"].as<bool>());
+  TEST_ASSERT_EQUAL_STRING("zones", doc["kind"].as<const char*>());
+  TEST_ASSERT_EQUAL_UINT32(cfg.testMaxMs - 11000, doc["remainingMs"].as<uint32_t>());
+}
+
+void test_test_state_message_when_off(void) {
+  Config cfg = defaultConfig();
+  TestMode t;                                   // Off
+  JsonDocument doc;
+  std::string msg = testStateMessage(t, cfg, 500000);
+  TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
+  TEST_ASSERT_FALSE(doc["active"].as<bool>());
+  TEST_ASSERT_EQUAL_STRING("off", doc["kind"].as<const char*>());
+  TEST_ASSERT_EQUAL_UINT32(0, doc["remainingMs"].as<uint32_t>());
+}
+
+void test_test_state_remaining_clamps_at_zero(void) {
+  Config cfg = defaultConfig();
+  TestMode t;
+  t.kind = TestKind::Scenario;
+  t.startedMs = 0;
+  JsonDocument doc;
+  std::string msg = testStateMessage(t, cfg, cfg.testMaxMs + 5000);
+  TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
+  TEST_ASSERT_EQUAL_UINT32(0, doc["remainingMs"].as<uint32_t>());
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_get_config_requests_send);
@@ -107,5 +233,18 @@ int main(int, char**) {
   RUN_TEST(test_config_message_round_trips);
   RUN_TEST(test_frames_message_serializes_ids_and_bytes);
   RUN_TEST(test_error_message_shape);
+  RUN_TEST(test_test_off_is_accepted);
+  RUN_TEST(test_test_scenario_resolves_the_preset);
+  RUN_TEST(test_unknown_scenario_is_an_error);
+  RUN_TEST(test_test_zones_parse_in_corner_order);
+  RUN_TEST(test_test_zones_denali_defaults_to_zero);
+  RUN_TEST(test_test_zones_reject_wrong_length);
+  RUN_TEST(test_test_zones_reject_out_of_range_values);
+  RUN_TEST(test_test_zones_reject_a_short_triple);
+  RUN_TEST(test_test_rejects_an_unknown_mode);
+  RUN_TEST(test_config_message_carries_the_protocol_version);
+  RUN_TEST(test_test_state_message_shape);
+  RUN_TEST(test_test_state_message_when_off);
+  RUN_TEST(test_test_state_remaining_clamps_at_zero);
   return UNITY_END();
 }
