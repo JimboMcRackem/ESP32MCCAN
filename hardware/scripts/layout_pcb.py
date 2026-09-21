@@ -32,7 +32,7 @@ Three spec constraints fix the orientation between them, and only one arrangemen
 
         BASE (B.Cu) = the plate face. Thermal group anywhere over it, coupled by vias.
         LEFT edge  = free; historically called "the plate edge", which it no longer is.
-        RIGHT edge = the antenna edge. U5 overhangs it; keep-out on all four layers,
+        RIGHT edge = the antenna edge. U5 overhangs it; keep-out on all six layers,
                      and the base plate is NOTCHED so no metal enters it either.
         BOTTOM edge = the wire-exit edge. Power at the far left, CAN at the far right,
                       which is also plan Task 8's "CAN separated from the power feed".
@@ -252,12 +252,14 @@ OFFBOARD_OK = {"U5"}
 NOTES = [
     # (text, x, y, layer, size)
     ("LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10 / plan Task 8)\n"
-     "4 layers: F.Cu signal, In1.Cu GND solid and unbroken, In2.Cu power, B.Cu signal.\n"
-     "COPPER: 1 oz OUTER (35 um), 2 oz INNER (70 um). NOT the usual way round -- 1 oz\n"
-     "outer is what holds U10's 0.15 mm land pattern; 2 oz inner carries the 7.0 A feed.\n"
+     "6 layers: F.Cu sig, In1.Cu GND solid and unbroken, In2.Cu sig, In3.Cu VBAT,\n"
+     "In4.Cu sig, B.Cu sig. COPPER: 1 oz (35 um) on ALL SIX. 1 oz outer is what holds\n"
+     "U10's 0.15 mm land pattern; 1 oz inner is what lets In2/In4 be etched to the\n"
+     "0.20 mm clearance this board declares -- a 2 oz inner layer cannot hold it.\n"
      "Assembly is SINGLE SIDED -- nothing on B.Cu.\n"
-     "FEED path (7.0 A cont, 7.8 A transient): In2.Cu polygon >= 5.75 mm effective width\n"
-     "(IPC-2221, 10 C rise, internal, 2 oz = spec 10 5-6 mm). On F.Cu the FEED class floor is\n"
+     "FEED path (7.0 A cont, 7.8 A transient): the In3.Cu polygon, measured at 71 mm on\n"
+     "its worst cut against the 11.44 mm IPC-2221 asks (10 C rise, internal, 1 oz) --\n"
+     "see scripts/check_plane_width.py. On F.Cu the FEED class floor is\n"
      "3.5 mm = a 20 C rise; POUR to >= 4.5 mm for 10 C on any real run. No TRACK carries it.\n"
      "HEAT LEAVES THROUGH THE BASE, NOT AN EDGE: the plate is the face UNDER the board and\n"
      "couples through B.Cu. Thermal group L2 (0.78 W), U9 (0.35 W), L1 (0.28 W), U3, L3 --\n"

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Produce a fab-ready 4-layer PCB — schematic, layout, BOM, fabrication outputs — plus
+**Goal:** Produce a fab-ready 6-layer PCB — schematic, layout, BOM, fabrication outputs — plus
 enclosure and harness documentation and a bring-up procedure, for the ESP32 MCCAN motorcycle
 lighting controller.
 
@@ -179,9 +179,11 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - Total internal dissipation: **~1.9 W, and NIGHT now governs** — the P-FET's 0.98 W at the Denali
   pair's 7.0 A is the largest single term. Daytime is the lighter case at ~1.2 W. Plate: **FLAT,
   ≥150 cm²** — **fins are no longer required**; they were needed only at the superseded 4.5 W
-- Stackup: **4 layers**, signal / GND / power / signal, **1 oz OUTER / 2 oz INNER copper**
-  (revised 2026-09-20; spec §10 said 2 oz outer, which cannot etch U10's 0.15 mm land pattern)
-- Power polygon: **≥ 5.75 mm** on In2.Cu for a 10 °C rise at the single feed's **7.0 A**
+- Stackup: **6 layers**, F.Cu sig / In1.Cu GND / In2.Cu sig / In3.Cu VBAT / In4.Cu sig / B.Cu sig,
+  **1 oz copper on all six** (revised 2026-09-22; was 4 layers at 1 oz outer / 2 oz inner, and
+  before that spec §10's 2 oz outer, which cannot etch U10's 0.15 mm land pattern)
+- Power polygon: **≥ 11.44 mm** on In3.Cu for a 10 °C rise at the single feed's **7.0 A**;
+  measured at **71 mm** on its worst cut by `scripts/check_plane_width.py`
   continuous (7.8 A transient) — this is spec §10's "5–6 mm", now derived. The superseded
   "≥ 4–5 mm" was never a valid figure for an internal layer.
 
@@ -1091,9 +1093,11 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 
 ```
 LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
-- 4 layers: L1 signal, L2 GND (solid, unbroken), L3 power, L4 signal
-- 1 oz OUTER / 2 oz INNER copper (revised 2026-09-20 -- see spec 10)
-- Power polygon: **>= 5.75 mm** effective width on In2.Cu, from a 10 C rise at **2 oz internal**
+- 6 layers: F.Cu signal, In1.Cu GND (solid, unbroken), In2.Cu signal, In3.Cu VBAT,
+  In4.Cu signal, B.Cu signal
+- 1 oz copper on all six (revised 2026-09-22 -- see spec 10)
+- Power polygon: **>= 11.44 mm** effective width on In3.Cu, from a 10 C rise at **1 oz
+  internal**; measured at 71 mm, a 6.1x margin
   for the single feed's 7.0 A continuous / 7.8 A transient. **This note's original "5-6 mm" was
   right all along**; the constraints list's "4-5 mm" was the wrong one and is withdrawn
 - Boost switch-node loop area MINIMISED; gate loops short and tight
@@ -1109,7 +1113,7 @@ LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
 
 - [x] **Step 2: Set up the stackup and design rules**
 
-4-layer board, **1 oz outer / 2 oz inner copper** (revised 2026-09-20). Net classes are written
+6-layer board, **1 oz copper on all six** (revised 2026-09-22). Net classes are written
 by `scripts/gen_netclasses.py` into `mccan.kicad_pro`, not by hand:
 
 - **`FEED` 3.5 mm / 0.3 mm** — the 7.0 A input chain (`VBAT`, `VBAT_PROT`, `VBAT_F`, `FEED_P`,

@@ -930,7 +930,7 @@ def thermal_vias(comps, pos, padnet, netidx):
 def stitch_vias(netidx, grid):
     """GND vias tying In1.Cu, B.Cu and the F.Cu pours together (Step 6).
 
-    Every one of these punches a hole in the In2.Cu power plane it passes through, which is why
+    Every one of these punches a hole in the In3.Cu power plane it passes through, which is why
     the ring is at 5 mm pitch and not something denser: a 0.8 mm via with 0.3 mm clearance
     takes 1.4 mm out of the plane, leaving a 3.6 mm web between holes.  The boost block gets
     2.5 mm because Step 6 asks for stitching there specifically; the denser ring costs the VBAT
@@ -1013,7 +1013,9 @@ def U(tag):
 LAYERS = """	(layers
 		(0 "F.Cu" signal)
 		(4 "In1.Cu" power "GND")
-		(6 "In2.Cu" power "PWR")
+		(6 "In2.Cu" signal)
+		(8 "In3.Cu" power "PWR")
+		(10 "In4.Cu" signal)
 		(2 "B.Cu" signal)
 		(9 "F.Adhes" user "F.Adhesive")
 		(11 "B.Adhes" user "B.Adhesive")
@@ -1035,36 +1037,77 @@ LAYERS = """	(layers
 		(33 "B.Fab" user)
 	)"""
 
-# 4-layer, 1.6 mm, 1 oz OUTER / 2 oz INNER copper.  Prepreg/core split so the
-# GND plane (In1.Cu) is close to F.Cu: that is what makes the reference plane worth having.
+# The layers a track may legally sit on, and the layers where one is a slot cut through a
+# reference plane.  Kept here rather than in the autorouter section because they are a fact
+# about the STACKUP, not about any one router: check_geometry.py grades against them and
+# route_external.py hands them to KiCadRoutingTools, and both would otherwise have to repeat
+# the list and drift from it.
 #
-# The weights are INVERTED relative to the usual arrangement, and relative to what spec 10
-# originally asked for (2 oz outer).  Two reasons, decided 2026-09-20:
+# AR_LAYERS, further down, is a SUBSET of this and deliberately so.  gen_pcb's own router
+# carries a two-layer occupancy grid -- core, halo and vhalo are pairs, and a via is modelled
+# as crossing "both" layers -- so widening it to six is a rewrite of the grid rather than a
+# change to a constant.  It is the fallback path now that routes_signal.json exists, so it
+# keeps the two layers it understands and the external router gets all four.
+SIGNAL_LAYERS = ("F.Cu", "In2.Cu", "In4.Cu", "B.Cu")
+PLANE_LAYERS = ("In1.Cu", "In3.Cu")
+
+# 6-layer, 1.6 mm, 1 oz throughout.
 #
-#   1. 2 oz etching cannot hold the 0.15 mm pad-to-pad U10's land pattern needs, nor
-#      reliably the 0.20 mm the QFN/VSON parts need.  1 oz can.  Outer copper is where
-#      every land pattern lives, so the fine-feature requirement lands entirely on it.
+#   F.Cu   signal
+#   In1.Cu GND, solid and unbroken -- the reference plane spec 10 asks for
+#   In2.Cu signal
+#   In3.Cu VBAT, the 7.0 A feed
+#   In4.Cu signal
+#   B.Cu   signal
 #
-#   2. The 7.0 A feed does not run on an outer layer.  It runs on the In2.Cu polygon --
-#      and at 1 oz that polygon was UNDER-SPECIFIED: IPC-2221 for an internal layer wants
-#      11.5 mm of effective width at 1 oz for 7.0 A at a 10 K rise, against 5.75 mm at 2 oz.
-#      Spec 10's '5-6 mm' figure is exactly the 2 oz number and was never reachable at 1 oz.
-#      So putting the 2 oz on the inner layers does not trade the current path away; it is
-#      what finally satisfies it, and it settles the plan's 4-5 vs 5-6 mm conflict at 5-6.
+# Why six and not the five that was asked for (2026-09-22): a five-layer board is laminated
+# out of a six-layer stack with one copper layer left unused, so it costs the same money, and
+# an odd stack is asymmetric, so it warps more in reflow.  Six buys two routing layers instead
+# of one for that money and puts a reference plane next to every signal layer.
 #
-# Total copper is 0.21 mm either way, so 1.6 mm overall still closes.  The dielectric
-# sub-thicknesses below are nominal -- the fab adjusts them to hit 1.6 mm with 2 oz inners.
+# Why six at all: F.Cu and B.Cu alone did not close the board.  The external router settled at
+# about 100 of 139 signal nets with the rest failing for want of a channel, and the failures
+# were not clustered -- they were one pad here and one pad there across forty nets, which is
+# what running out of layer looks like rather than what a bad net order looks like.
+#
+# Why 1 oz on the INNER layers, where this board used to carry 2 oz:
+#
+#   1. In2.Cu and In4.Cu now carry tracks, and at 2 oz PCBWay cannot etch them to this
+#      board's rules.  Their inner-layer minimum is 4/4 mil at 1 oz but 6/8 mil at 2 oz, and
+#      8 mil is 0.203 mm -- ABOVE the 0.20 mm clearance every net class here declares.  A
+#      fab's inner copper weight is one selector for all inner layers unless you pay for a
+#      custom stackup, so the signal layers decide it for the planes too.
+#
+#   2. The 2 oz was bought for the VBAT plane, on the argument that IPC-2221 wants 11.44 mm
+#      of internal width for 7.0 A at a 10 K rise at 1 oz against 5.72 mm at 2 oz.  That
+#      argument was never measured, and it is wrong by a wide margin: scripts/check_plane_width.py
+#      rasterises the pour, punches all 1190 via and through-hole antipads out of it, and cuts
+#      it in both directions.  The worst cut carries 71 mm of copper.  That is 6.1x what 1 oz
+#      needs, so the weight was never what made the feed work -- having a whole layer was.
+#
+# The OUTER copper stays 1 oz for the reason it always did: 2 oz etching cannot hold the
+# 0.15 mm pad-to-pad U10's land pattern needs, nor reliably the 0.20 mm the QFN/VSON parts
+# need, and every land pattern lives on an outer layer.
+#
+# The dielectrics are a foil lamination -- two cores (In1/In2 and In3/In4) bonded by three
+# prepregs, with F.Cu and B.Cu as foil on the outside.  It is symmetric about the middle
+# prepreg, which is what keeps the panel flat.  The sub-thicknesses are nominal; the fab
+# adjusts them to hit 1.6 mm.
 STACKUP = """	(setup
 		(stackup
 			(layer "F.SilkS" (type "Top Silk Screen"))
 			(layer "F.Paste" (type "Top Solder Paste"))
 			(layer "F.Mask" (type "Top Solder Mask") (thickness 0.01))
 			(layer "F.Cu" (type "copper") (thickness 0.035))
-			(layer "dielectric 1" (type "prepreg") (thickness 0.2104) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
-			(layer "In1.Cu" (type "copper") (thickness 0.07))
-			(layer "dielectric 2" (type "core") (thickness 0.94) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
-			(layer "In2.Cu" (type "copper") (thickness 0.07))
-			(layer "dielectric 3" (type "prepreg") (thickness 0.2104) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "dielectric 1" (type "prepreg") (thickness 0.1) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "In1.Cu" (type "copper") (thickness 0.035))
+			(layer "dielectric 2" (type "core") (thickness 0.2) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "In2.Cu" (type "copper") (thickness 0.035))
+			(layer "dielectric 3" (type "prepreg") (thickness 0.7608) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "In3.Cu" (type "copper") (thickness 0.035))
+			(layer "dielectric 4" (type "core") (thickness 0.2) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "In4.Cu" (type "copper") (thickness 0.035))
+			(layer "dielectric 5" (type "prepreg") (thickness 0.1) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
 			(layer "B.Cu" (type "copper") (thickness 0.035))
 			(layer "B.Mask" (type "Bottom Solder Mask") (thickness 0.01))
 			(layer "B.Paste" (type "Bottom Solder Paste"))
@@ -1172,7 +1215,8 @@ def zones(netidx):
     """Copper pours.
 
     In1.Cu  -- solid GND, the unbroken reference plane spec 10 asks for.
-    In2.Cu  -- VBAT, end to end.  It used to be split down x = 105 with +24V on the right, and
+    In2.Cu  -- nothing.  It is a signal layer and the router owns it; see SIGNAL_LAYERS.
+    In3.Cu  -- VBAT, end to end.  It used to be split down x = 105 with +24V on the right, and
                that split was wrong in both directions: seven of the eleven +24V pads are LEFT
                of it (D4, C61, C20, C21, C22, R12) and two of the fifteen VBAT pads are RIGHT
                of it (C45, C46).  The two nets interleave across the whole board, so no
@@ -1183,8 +1227,14 @@ def zones(netidx):
                feed and wants every millimetre of plane it can get; +24V is the boost output at
                0.5 A (spec 6), against 3.94 A of capability on a 2.0 mm POWER track at 1 oz.
                Giving half the power plane to the rail that needs it least starved the one that
-               needs it most.  So In2.Cu is VBAT alone, and +24V is routed as POWER tracks --
+               needs it most.  So In3.Cu is VBAT alone, and +24V is routed as POWER tracks --
                which is exactly what its net class was already sized for.
+
+               It carried 2 oz until the board went to six layers.  It does not need to:
+               scripts/check_plane_width.py measures the worst cut across this pour, with
+               every antipad punched out of it, at 71 mm against the 11.44 mm IPC-2221 asks
+               of 1 oz.  What carries the feed is having a layer, not having thick copper.
+    In4.Cu  -- nothing, for the same reason as In2.Cu.
     B.Cu    -- GND, plus one small +24V island under D4's tab; see L.D4_24V_ISLAND.
     F.Cu    -- a local GND_IN island over the eFuse and the wire-exit corner.  GND_IN is a
                SEPARATE net from GND and meets it only through L2 winding B; giving it its own
@@ -1222,7 +1272,7 @@ def zones(netidx):
     full = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
     out.append(zone("GND", ["In1.Cu"], full, "GND_INNER"))
     out.append(zone("GND", ["B.Cu"], full, "GND_BOT"))
-    out.append(zone("/VBAT", ["In2.Cu"], full, "VBAT_IN2"))
+    out.append(zone("/VBAT", ["In3.Cu"], full, "VBAT_IN3"))
     # D4's tab needs somewhere for its thermal array to land now that +24V has no plane.
     # Priority 2 so it wins against the B.Cu ground pour, which notches around it.
     out.append(zone("/+24V", ["B.Cu"], L.D4_24V_ISLAND, "24V_D4", prio=2))
@@ -1267,7 +1317,7 @@ def zones(netidx):
 # would happen "when Task 9 routes them".
 #
 # The via is 0.6 / 0.3, not the 0.8 / 0.4 used for stitching: these land in the tightest company
-# on the board, between chip pads, and every one of them punches a hole in the In2.Cu power
+# on the board, between chip pads, and every one of them punches a hole in the In3.Cu power
 # plane on its way past.  0.6 mm keeps that hole to 1.2 mm with clearance.
 #
 # Placement is a search, not a formula.  Candidates run outward from the pad, starting in the
@@ -3042,7 +3092,7 @@ def main():
     out.append('\t(paper "A3")')
     out.append('\t(title_block\n\t\t(title "MCCAN Lighting Controller")\n'
                '\t\t(comment 1 "GENERATED by scripts/gen_pcb.py -- do not edit in pcbnew")\n'
-               '\t\t(comment 2 "Board 140 x 100 mm, 4 layer, 1 oz outer / 2 oz inner copper")\n'
+               '\t\t(comment 2 "Board 140 x 100 mm, 6 layer, 1 oz copper on all layers")\n'
                '\t)')
     out.append(LAYERS)
     out.append(STACKUP)

@@ -61,8 +61,15 @@ That is the whole thing. It:
    and stitching vias, ground drops and pours all present. `mccan.kicad_pcb` is not touched;
 2. runs `py_router/route.py` over the signal nets only;
 3. grades the result with this repo's `check_geometry.py`, then KiCadRoutingTools'
-   `check_connected`, `check_drc` and `check_weird`, then this repo's `check_vias.py` and
-   `check_grounds.py`.
+   `check_connected`, `check_drc` and `check_weird`, then this repo's `check_vias.py`,
+   `check_grounds.py` and `check_plane_width.py`.
+
+   `check_plane_width.py` runs last because it is the only one whose answer the router can
+   make *worse*: every via it places punches another antipad through the VBAT plane, so the
+   pour is narrower after a run than on the input board. It rasterises the pour, subtracts
+   every via and through-hole antipad, cuts it in both directions and grades the worst cut
+   against IPC-2221 for 7.0 A at a 10 K rise. At 1 oz that asks 11.44 mm; the board delivers
+   71 mm.
 
 Useful variants:
 
@@ -99,11 +106,15 @@ Further guards, all of them from the tool itself and none of them a default:
   CSP part on it** — the detector is really a fine-pitch-grid detector and it fires on TSSOP and
   QFN, reading U7 (a 0.65 mm TSSOP-28) as a "14 rows x 2 columns" ball grid and then running an
   under-pad shrink rescue at 0.0762 mm track / 0.25 mm via / 0.09 mm clearance;
-- `--layers F.Cu B.Cu` keeps it off the inner layers. **In1.Cu is the ground plane and In2.Cu is the
-  VBAT plane; neither is a routing layer.** `route.py` would otherwise use every copper layer the
-  board declares. It is also not quite watertight — the first run put four sub-micron stubs on
-  In1.Cu and In2.Cu despite logging both as forbidden — which is one of the things
-  `check_geometry.py` exists to catch.
+- `--layers` comes from `gen_pcb.SIGNAL_LAYERS` — **F.Cu, In2.Cu, In4.Cu, B.Cu** since the board
+  went to six layers on 2026-09-22. **In1.Cu is the ground plane and In3.Cu is the VBAT plane;
+  neither is a routing layer**, because a track on either is a slot cut through a reference.
+  `route.py` would otherwise use every copper layer the board declares. It is also not quite
+  watertight — back when the list was `F.Cu B.Cu`, the first run put four sub-micron stubs on
+  the two plane layers despite logging both as forbidden — which is one of the things
+  `check_geometry.py` exists to catch. Note that `AR_LAYERS` is still `F.Cu B.Cu`: that is
+  `gen_pcb`'s own router, whose occupancy grid is two-layer by construction, and it is now the
+  fallback path rather than the one that lays the signal bundle.
 
 Geometry is read from `gen_pcb.py`'s own constants (`AR_W` 0.25 mm, `AR_CLEAR` 0.20 mm, `AR_VIA`
 0.6/0.3 mm, `AR_GRID` 0.1 mm, `AR_EDGE` 0.5 mm, `AR_VIA_COST`), so the two routers are comparable

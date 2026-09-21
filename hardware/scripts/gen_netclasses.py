@@ -8,11 +8,14 @@ run it after gen_pcb.py and the two stay in step.
 It also writes hardware/mccan.kicad_dru, the custom-rule file, from a scan of the board --
 see write_dru() for why that exists.
 
-The constraints are set for **1 oz (35 um) OUTER copper over 2 oz (70 um) inner**, decided
-2026-09-20.  Spec 10 originally asked for 2 oz outer; it could not survive contact with the
-land patterns, because 2 oz etching cannot hold the 0.15 mm pad-to-pad U10 needs or reliably
-the 0.20 mm the QFN/VSON parts need, and outer copper is where every land pattern lives.  The
-7.0 A feed is unaffected: it runs on the In2.Cu polygon, which GAINED copper in the same swap.
+The constraints are set for **1 oz (35 um) copper on all six layers**, decided 2026-09-22.
+Spec 10 originally asked for 2 oz outer; it could not survive contact with the land patterns,
+because 2 oz etching cannot hold the 0.15 mm pad-to-pad U10 needs or reliably the 0.20 mm the
+QFN/VSON parts need, and outer copper is where every land pattern lives.  The inner layers
+then ran at 2 oz until the board went to six: In2.Cu and In4.Cu carry tracks now, and PCBWay
+etches inner layers to 4/4 mil at 1 oz but only 6/8 mil at 2 oz -- and 8 mil is 0.203 mm,
+above the 0.20 mm clearance declared below.  The 7.0 A feed is unaffected either way; see
+the measurement in scripts/check_plane_width.py.
 
     min track / clearance   0.20 mm   (standard 1 oz capability; at 2 oz this had to be 0.25)
     min via                 0.45 / 0.2 mm -- set by the 0.5 / 0.25 mm thermal vias that fill the
@@ -29,7 +32,8 @@ with the copper.  By IPC-2221 a 2.0 mm outer track carries 6.51 A at 2 oz but on
 1 oz (10 K rise), so the single POWER class no longer covered the feed:
     FEED   3.5 mm track  -- the 7.0 A input chain.  3.5 mm is a 20 K-rise floor for the short
                             hops between the input parts; POUR to >= 4.5 mm for 10 K on any
-                            real run.  The through-path is the In2.Cu polygon at >= 5.75 mm.
+                            real run.  The through-path is the In3.Cu polygon, measured at
+                            71 mm on its worst cut against the 11.44 mm 1 oz asks.
     POWER  2.0 mm track  -- what is left: VLOGIC_IN, +24V, +5V.  Largest load is the boost
                             output at 0.5 A (spec 6), against 3.94 A of capability.
     CAN    0.3 mm, tight pair, matched -- CANH/CANL are a differential pair.

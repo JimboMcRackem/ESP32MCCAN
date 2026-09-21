@@ -27,8 +27,9 @@ The chain
        everything this repo generates MINUS the signal copper.  mccan.kicad_pcb is not
        touched, and neither is mccan.kicad_pro -- route.py writes DRC settings back into the
        sibling project, so it is given a copy.
-    2. KiCadRoutingTools route.py over the signal nets only, F.Cu and B.Cu only (In1.Cu is
-       the ground plane and In2.Cu the VBAT plane; neither is a routing layer).
+    2. KiCadRoutingTools route.py over the signal nets only, on gen_pcb.SIGNAL_LAYERS --
+       F.Cu, In2.Cu, In4.Cu and B.Cu.  In1.Cu is the ground plane and In3.Cu the VBAT
+       plane; a track on either is a slot cut through a reference, so neither is offered.
     3. this repo's check_geometry, then the tool's own check_connected / check_drc /
        check_weird, then this repo's check_vias and check_grounds.
 
@@ -175,7 +176,7 @@ def main(argv):
     # and so this one lands on the same 0.1 mm grid as the fan-out lanes it has to join.
     cmd = [py, "-u", route, UNROUTED, ROUTED]
     cmd += ["--nets", "*"] + excluded_nets()
-    cmd += ["--layers", "F.Cu", "B.Cu"]
+    cmd += ["--layers"] + list(G.SIGNAL_LAYERS)
     cmd += ["--track-width", str(G.AR_W)]
     cmd += ["--clearance", str(G.AR_CLEAR)]
     cmd += ["--via-size", str(G.AR_VIA), "--via-drill", str(G.AR_VIA_DRILL)]
@@ -243,6 +244,11 @@ def main(argv):
         "via placement, gen_pcb's own vias only (this repo)")
     run([sys.executable, "-u", os.path.join(HERE, "check_grounds.py"), ROUTED],
         "GND / GND_IN separation (this repo)")
+    # Last, because it is the only check whose answer the ROUTER can make worse: every via
+    # it placed punches another antipad through the VBAT plane, so the plane is narrower
+    # after a run than the input board it was measured on.
+    run([sys.executable, "-u", os.path.join(HERE, "check_plane_width.py"), ROUTED],
+        "VBAT plane cross-section against IPC-2221 (this repo)")
 
     print("")
     print("The routed board is %s." % ROUTED)

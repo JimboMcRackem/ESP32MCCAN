@@ -371,6 +371,7 @@ elsewhere. Both are drawn on the board's `Cmts.User` layer so the coating house 
 | ~~Thermal design~~ **RESOLVED 2026-09-12/13** | Flat plate, metal-to-metal plate-to-bracket, rubber at the frame. Remaining: pick a plate or profile meeting **≥ 150 cm²** |
 | ~~Which face the plate is~~ **RESOLVED 2026-09-20** | The **base**, 140 × 100 mm, antenna corner notched (3.1 cm²) → ~137 cm². Spec §9.1 amended. §1 |
 | ~~2 oz outer copper vs the land patterns~~ **RESOLVED 2026-09-20** | **1 oz outer / 2 oz inner.** Spec §10 amended; the In2.Cu feed polygon gained copper rather than losing it |
+| ~~Layer count~~ **RESOLVED 2026-09-22** | **6 layers, 1 oz on all six.** Two routing layers were asked for as a 5-layer board; odd stacks are laminated from an even one and warp, so 6 costs the same. The 2 oz inner went with it — PCBWay etch inner layers to 6/8 mil at 2 oz and 8 mil is 0.203 mm, above this board's 0.20 mm clearance. The VBAT plane does not need the copper: `check_plane_width.py` measures 71 mm on its worst cut against 11.44 mm required |
 | Bracket spreading area | The notched plate is ~137 cm² (~61 °C, target met). Quantify the bracket to reach the ≥ 150 cm² requirement |
 | Antenna-to-plate **vertical** clearance | In-plane is 17.3 mm (§1). The plate sits ~1.6 mm below B.Cu; confirm nothing rises into the notch |
 | ~~Board outline~~ **RESOLVED 2026-09-20** | 140 × 100 mm, M3 at 5 mm from each corner (Task 8) |

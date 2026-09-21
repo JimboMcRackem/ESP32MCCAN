@@ -1462,9 +1462,22 @@ P-FET — under 1 W in either mode. Across 1000 mm² of 1.5 mm, 2 W/mK material 
 
 ## 10. PCB and EMC
 
-**Stackup:** 4 layers — signal / GND / power / signal — with **1 oz (35 µm) OUTER copper over
-2 oz (70 µm) INNER copper**. Four layers is not luxury: a solid ground plane is what makes the
-boost's gate loops and the EMC behaviour tractable.
+**Stackup:** 6 layers — signal / GND / signal / VBAT / signal / signal — with **1 oz (35 µm)
+copper on all six**. The solid ground plane is what makes the boost's switching node and the
+EMC behaviour tractable; every signal layer is next to a plane.
+
+> **REVISED 2026-09-22. This section used to specify 4 layers and 2 oz inner copper.** Two
+> routing layers were not enough: the external router settled at about 100 of 139 signal nets
+> with the rest failing one pad at a time across forty nets, which is what running out of layer
+> looks like. An extra routing layer was asked for as a **5**-layer board; a 5-layer board is
+> laminated out of a 6-layer stack with one copper layer unused, so it costs the same money and
+> warps more, being asymmetric. **6 layers buys two routing layers for that money.**
+>
+> **The inner copper drops to 1 oz in the same change, and had to.** In2.Cu and In4.Cu carry
+> tracks now, and PCBWay etch inner layers to 4/4 mil at 1 oz but only **6/8 mil at 2 oz** —
+> and 8 mil is **0.203 mm**, above the 0.20 mm clearance every net class here declares. A fab's
+> inner copper weight is one selector for all inner layers short of a custom stackup, so the
+> signal layers decide it for the plane too. The table below is re-derived for 1 oz.
 
 > **REVISED 2026-09-20. This section used to specify 2 oz OUTER copper, and that could not be
 > built.** 2 oz etching cannot hold the **0.15 mm** pad-to-pad U10's land pattern needs, nor
@@ -1479,8 +1492,17 @@ rather than a trace, with via stitching.
 
 | Path | Copper | Width for a 10 °C rise at 7.0 A | Note |
 |---|---|---|---|
-| **In2.Cu polygon — the actual feed** | **2 oz internal** | **5.75 mm** | 11.5 mm would be needed at 1 oz |
+| **In3.Cu polygon — the actual feed** | **1 oz internal** | **11.44 mm** | measured at **71 mm** on its worst cut — a 6.1× margin |
 | F.Cu stubs between the input parts | 1 oz external | 4.42 mm (2.91 mm at 20 °C) | `FEED` netclass floor is **3.5 mm**, a 20 °C rise, for hops of a few mm only |
+
+> **The 11.44 mm is measured, not assumed, and that is new.** The width requirement was carried
+> as arithmetic for two years' worth of revisions without anyone checking what the pour
+> actually delivers. `hardware/scripts/check_plane_width.py` rasterises the VBAT zone, punches
+> all 1190 via and through-hole antipads out of it, and cuts it in both directions: the worst
+> cut carries **71 mm** of copper against the 11.44 mm required. **What carries the feed is
+> having a whole layer, not having thick copper** — which is why dropping to 1 oz costs the
+> current path nothing. The check is part of the build and fails the board if that stops
+> being true.
 
 > **This finally gives the "5–6 mm" figure a derivation, and settles a conflict the plan has
 > carried since Task 8 Step 1.** The plan recorded two widths for the same net — the constraints
