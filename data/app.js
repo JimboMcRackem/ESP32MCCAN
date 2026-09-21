@@ -15,6 +15,17 @@ const SCENARIOS = ["allOff","drlDay","drlNight","leftInd","rightInd",
                    "hazards","brake","brakeNight","lowBeam","highBeam"];
 // ChannelIndex corner order.
 const ZONES = ["front L","front R","rear L","rear R"];
+// Which zones each appearance entry drives while Preview is on. Preview is an
+// ordinary zones override whose contents the UI computes — the firmware needs
+// no concept of it.
+const PREVIEW_ZONES = {
+  drlWhiteDay:     [0, 1],
+  drlWhiteNight:   [0, 1],
+  drlDimRedDay:    [2, 3],
+  drlDimRedNight:  [2, 3],
+  brakeRed:        [2, 3],
+  indicatorOrange: [0, 1, 2, 3],
+};
 
 let cfg = null;         // last config from device
 let ws = null;
@@ -22,6 +33,7 @@ let testState = { active: false, kind: "off", remainingMs: 0 };
 let activeScenario = null;
 let testZoneState = [0, 0, 0, 0].map(() => ({ hue: [255, 255, 255], level: 0 }));
 let testDenali = 0;
+let previewOn = false;
 
 function setStatus(connected) {
   const el = document.getElementById("status");
@@ -91,14 +103,43 @@ function renderColors() {
   const host = document.getElementById("colors");
   host.innerHTML = "";
   COLORS.forEach((k) => {
+    const e = cfg.colors[k];
     const row = document.createElement("div");
     row.className = "row";
+
     const name = document.createElement("span"); name.textContent = k;
     const picker = document.createElement("input");
-    picker.type = "color"; picker.value = rgbToHex(cfg.colors[k]);
-    picker.oninput = () => { cfg.colors[k] = hexToRgb(picker.value); };
-    row.appendChild(name); row.appendChild(picker); host.appendChild(row);
+    picker.type = "color"; picker.value = rgbToHex(e.hue);
+    const level = document.createElement("input");
+    level.type = "range"; level.min = 0; level.max = 100;
+    level.value = levelToPct(e.level);
+    const pct = document.createElement("span");
+    pct.className = "pct"; pct.textContent = level.value + "%";
+
+    const update = () => {
+      // The stored hue is always normalized so brightness lives entirely in
+      // the level. The picker's own value is deliberately NOT written back:
+      // snapping the swatch mid-drag fights the user, and the level slider
+      // already shows the brightness the normalization moved there.
+      e.hue = normalizeHue(hexToRgb(picker.value));
+      e.level = pctToLevel(level.value);
+      pct.textContent = level.value + "%";
+      if (previewOn) previewEntry(k, e);
+    };
+    picker.oninput = update;
+    level.oninput = update;
+
+    row.appendChild(name); row.appendChild(picker);
+    row.appendChild(level); row.appendChild(pct);
+    host.appendChild(row);
   });
+}
+
+function previewEntry(k, e) {
+  const zones = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  const duty = resolveJs(e.hue, e.level);
+  (PREVIEW_ZONES[k] || []).forEach((i) => { zones[i] = duty; });
+  scheduleSend(() => send({ type: "test", mode: "zones", zones, denali: 0 }));
 }
 
 function renderTestBanner() {
@@ -106,6 +147,8 @@ function renderTestBanner() {
   el.hidden = !testState.active;
   if (!testState.active) {
     activeScenario = null;
+    previewOn = false;
+    document.getElementById("previewToggle").checked = false;
     renderScenarios();
     return;
   }
@@ -357,6 +400,12 @@ document.getElementById("testDenali").oninput = (e) => {
   testDenali = pctToLevel(e.target.value);
   document.getElementById("testDenaliPct").textContent = e.target.value + "%";
   sendTestZones();
+};
+document.getElementById("previewToggle").onchange = (e) => {
+  previewOn = e.target.checked;
+  // Turning preview off releases the override rather than leaving the last
+  // previewed colour latched on the bike.
+  if (!previewOn) send({ type: "test", mode: "off" });
 };
 
 connect();
