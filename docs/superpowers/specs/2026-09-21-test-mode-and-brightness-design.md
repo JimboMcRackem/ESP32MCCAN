@@ -146,7 +146,9 @@ upgrade, and the levels shown in the UI are the honest current values rather tha
 **Known imprecision, stated so test failures are not mistaken for bugs:** integer rounding can
 shift a resolved duty by one count, and at the very bottom of the range (duty 1-2) the gamma curve
 is steep enough that the `gammaInv` then `gamma8` round trip may land one off. Neither is visible.
-Tests assert a tolerance of ±1, not equality.
+Tests assert equality for the six shipped defaults (measured delta is zero),
+±1 for a single-channel ramp, and ±2 for arbitrary non-neutral triples, where
+hue normalization rounds as well as the gamma round trip.
 
 Migration triggers on load when `config_json` sees an entry in the old shape (a bare 3-element
 array rather than an object). Serialization always writes the new shape, so the first save
@@ -339,7 +341,7 @@ suite file.
 
 | Suite | Covers |
 |---|---|
-| `test_color_level` | Resolution math; gamma table monotonic and endpoint-exact; hue preserved across levels; migration round trip duty-preserving within ±1 for all six defaults and a swept set of triples |
+| `test_color_level` | Resolution math; gamma table monotonic and endpoint-exact; hue preserved across levels; migration round trip duty-preserving exact for all six defaults, ±1 on a ramp, ±2 on a swept set of triples |
 | `test_test_mode` | `resolveOutputs` per kind; scenario blink follows `blinkPeriodMs`; zones passthrough verbatim; `testExpired` including a millis-rollover case; scenario `flash` leaves the real `EngineState` untouched |
 | `test_web_protocol` | Parse of all three `test` shapes; rejection of bad zone length, out-of-range values, unknown scenario; `test_state` serialization; `config` carries `protocolVersion`; an unknown inbound `type` still yields an error rather than a crash |
 | `test_config_json` | Round trip of the new schema; migration from the old schema; unknown fields ignored |
