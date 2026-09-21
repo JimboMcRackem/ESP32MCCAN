@@ -3,6 +3,7 @@
 #include "domain/config_json.h"
 #include "domain/can_state.h"
 #include "domain/behavior_engine.h"
+#include "domain/test_mode.h"
 #include "domain/channel_map.h"
 #include "hal/pwm_pca9685.h"
 #include "hal/can_bus.h"
@@ -24,6 +25,8 @@ static const uint32_t kCanBitrate = 500000;
 static Config      g_cfg;
 static CanState    g_can;
 static EngineState g_engine;
+static TestMode    g_test;         // lighting override held by the web app
+static EngineState g_testEngine;   // scenarios run against THIS, never g_engine
 static Pca9685Pwm  g_pwm(kPca9685Addr);
 static CanBus      g_bus;
 
@@ -32,6 +35,14 @@ static bool         g_discovery = false;
 
 static const char* kApSsid = "MCCAN-Setup";
 static const char* kApPass = "mccan1234";     // WPA2 requires >= 8 chars
+
+// Drop any active override and tell every client. Called on explicit exit,
+// owner disconnect, and cap expiry.
+static void releaseTest(uint32_t now) {
+  g_test = TestMode{};
+  g_testEngine = EngineState{};
+  g_web.broadcast(testStateMessage(g_test, g_cfg, now));
+}
 
 void setup() {
   Serial.begin(115200);
@@ -63,6 +74,27 @@ void setup() {
     if (act.setDiscovery) {
       g_discovery = act.discoveryOut;
     }
+    if (act.setTest) {
+      const uint32_t now = millis();
+      if (act.testOut.kind == TestKind::Off) {
+        releaseTest(now);
+      } else {
+        // Last writer wins: a second client taking the mode is not an error.
+        g_test = act.testOut;
+        g_test.owner = client;
+        g_test.startedMs = now;
+        g_testEngine = EngineState{};
+        // Broadcast, not sendTo: a second phone must not be unaware the
+        // lights are held.
+        g_web.broadcast(testStateMessage(g_test, g_cfg, now));
+      }
+    }
+  });
+
+  g_web.onDisconnect([](uint8_t client) {
+    if (g_test.kind != TestKind::Off && g_test.owner == client) {
+      releaseTest(millis());
+    }
   });
 
   if (!g_web.begin(kApSsid, kApPass))
@@ -81,12 +113,14 @@ void loop() {
 
   uint32_t now = millis();
 
+  if (testExpired(g_test, g_cfg, now)) releaseTest(now);
+
   // Evaluate -> compute -> drive, on a ~10 ms tick.
   static uint32_t last = 0;
   if (now - last >= 10) {
     last = now;
     LogicalState s = g_can.evaluate(g_cfg);
-    OutputIntent o = computeOutputs(s, g_cfg, now, g_engine);
+    OutputIntent o = resolveOutputs(s, g_test, g_cfg, now, g_engine, g_testEngine);
     applyIntent(g_pwm, o);
   }
 
@@ -97,5 +131,13 @@ void loop() {
     CanFrameSnapshot fr[16];
     int n = g_can.snapshot(fr, 16);
     g_web.broadcast(framesMessage(fr, n));
+  }
+
+  // Keep the app's countdown honest, and re-announce the override to any
+  // client that connected after it was set.
+  static uint32_t lastTest = 0;
+  if (g_test.kind != TestKind::Off && now - lastTest >= 1000) {
+    lastTest = now;
+    g_web.broadcast(testStateMessage(g_test, g_cfg, now));
   }
 }
