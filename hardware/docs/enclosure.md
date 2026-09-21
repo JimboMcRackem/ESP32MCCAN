@@ -344,7 +344,7 @@ tolerates temperature better and is kinder over thermal cycles.
 | Must be masked | Why |
 |---|---|
 | All connector solder pads and tails | Coating is an insulator; a coated joint is an open circuit |
-| Programming header J2 (3V3, GND, TXD0, RXD0, EN, IO0) | Needed for flashing |
+| Programming header J2 (`+3V3_ALW`, `GND`, `UART_TX`, `UART_RX`, `DTR`, `RTS`) | Needed for flashing |
 | All test points | Needed for bring-up (`bring-up.md`) |
 | **ESP32 antenna keep-out** (x 153.56–174.75, y 48.00–96.00) | Coating over the antenna detunes it — the same reason potting was rejected |
 | Pressure-equalisation vent | Coating would seal the membrane and defeat it |
@@ -352,6 +352,15 @@ tolerates temperature better and is kinder over thermal cycles.
 
 Note the last two: both are cases where coating would silently destroy a feature designed in
 elsewhere. Both are drawn on the board's `Cmts.User` layer so the coating house can see them.
+
+> **Corrected 2026-09-21.** This row listed J2 as `(3V3, GND, TXD0, RXD0, EN, IO0)`. Pins 5 and 6
+> are **`DTR` and `RTS`**, not `EN` and `IO0` — they reach `EN_MCU` and `BOOT_N` only *through* the
+> cross-coupled auto-reset pair Q2/Q3 (`schematic-review.md` §7.4; netlist at
+> `part-selection.md` §J2). The distinction matters when building an adapter cable: wiring a
+> USB-UART's DTR and RTS straight to `EN` and `IO0` is the naive arrangement the transistor pair
+> exists to replace, and it resets the board on every serial connect. Feed the header raw DTR and
+> RTS and let Q2/Q3 do the sequencing — that is what makes flashing work with **no manual BOOT
+> hold** (`bring-up.md` §106).
 
 ---
 
