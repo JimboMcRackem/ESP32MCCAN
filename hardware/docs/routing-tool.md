@@ -171,39 +171,73 @@ machine that has never heard of KiCadRoutingTools.
 
 ---
 
-## 5. What the first good run delivered
+## 5. What the runs delivered
 
-2026-09-21, with every guard in §3 on. 58 minutes of routing, 72 million iterations.
+### 5.1 The first good run -- 2026-09-21, two signal layers
 
-| | HEAD, built-in router | this run, frozen in |
+58 minutes, 72 million iterations, every guard in §3 on. It is recorded here because it is the
+run that set the guards, not because its copper survives: 105 unconnected items, 4248 segments
+and 1190 vias, 0 DRC errors. `--keep-input-copper` was tested for real -- the router ripped
+`/outputs/SENSE_FL_B` to clear a blocker and put it back, logged as *"original copper restored"*,
+and `freeze_routes.py`'s additive check passed. Two numbers were not fab-ready and were fixed
+before the next run: 123 router vias at 0.45/0.20 mm and 73 thermal vias at 0.50/0.25 mm, both a
+0.125 mm annular ring against PCBWay's 0.15 mm minimum. `min_via_annular_width` in
+`mccan.kicad_pro` was 0.1, so `--escalation board` was entitled to them; raising that floor is
+what stopped it.
+
+The diagnosis that run produced is the one that mattered: the failures were not router quality,
+they were **channel count**. 38 nets could not close, concentrated in the RGB output bundle, and
+the router's own hints named pre-existing copper in the way every time.
+
+### 5.2 The six-layer run -- 2026-09-22, committed as `64182bf`
+
+Four signal layers instead of two (F.Cu, In2.Cu, In4.Cu, B.Cu). The diagnosis held:
+
+| | two signal layers | four signal layers |
 |---|---|---|
-| KiCad DRC errors | **1** (U4 pad 2 clearance) | **0** |
-| DRC warnings | 71 (68 silk, 2 footprint, 1 other) | 58 (51 dangling via, 5 connection width, 2 dangling track) |
-| Unconnected items | 179 | **105** |
-| Schematic parity | — | 0 issues |
-| Copper | 2613 seg / 787 via | 4248 seg / 1190 via |
+| Single-ended nets | -- | **122 / 139** |
+| Multi-point pads | -- | **293 / 299** |
+| Frozen copper | 4606 seg / 817 via | **3629 seg / 568 via** |
+| KiCad DRC violations | 61 | **22** |
+| Unconnected items | 105 | **72** |
+| Dangling vias | 53 | **10** |
 
-The guards held, and the summary says so as data rather than as an absence of warnings:
-`escalation_policy: board`, `fab_tier_escalations: 0`, and `min_delivered` exactly
-`{via_diameter: 0.45, track_width: 0.2}` — the board's own floors, not a micron under. 1007
-narrowings, every one of them legal. `--keep-input-copper` was tested for real: the router did rip
-`/outputs/SENSE_FL_B` to clear a blocker and then put it back, logged as *"original copper
-restored"*, and `freeze_routes.py`'s additive check passed on the result.
+Fewer segments *and* fewer vias for more connectivity, which is what a channel-starved board
+looks like once it stops being starved. Of the 72 unconnected items, **51 are nets this router
+was never given** -- FEED, POWER and CAN are in `AR_SKIP_CLASSES`, so VBAT, +24V, +5V,
+VLOGIC_IN, VBAT_PROT, FEED_P, VBAT_F, MID, SNS, CANH and CANL are steps 2 and 3 of the routing
+task and still to be laid by hand. The remaining **21 match the router's own report exactly**:
+11 failed single-ended nets plus 10 multi-point pads.
 
-Of the 105 unconnected items, **53 are on nets this router was never given** — VBAT, +24V, +5V,
-VLOGIC_IN, FEED_P, VBAT_PROT, VBAT_F, MID, SNS, CANH, CANL, GND_IN. Those are steps 2 and 3 of the
-routing task and they are still to be laid by hand. The other 52 are the router's own shortfall,
-38 nets it could not close — mostly one pad each, concentrated in the same RGB output bundle that
-defeats the built-in router, and its own hints name the pre-existing nets in the way.
+### 5.3 The rip-authority run -- 2026-09-22, tried and discarded
 
-Two numbers are **not** fab-ready and are tracked separately: 123 of the router's vias came back at
-0.45 / 0.20 mm, and gen_pcb's 73 thermal vias are 0.50 / 0.25 mm. Both have a **0.125 mm annular
-ring**, under PCBWay's stated 0.15 mm minimum — which they state for exactly this case, *"for pads
-with vias in the middle"*. The router was entitled to the first set: `min_via_annular_width` in
-`mccan.kicad_pro` is **0.1**, so `--escalation board` permits it. Raising that floor to 0.15 is
-what stops it, and it has to happen before the next run rather than after.
+The obvious next lever on those 21, and it does not work. route.py's failure histories named
+**62 distinct blocker nets**; filtering them against copper actually present in
+`unrouted.kicad_pcb` left exactly one that is this repo's -- `/rails/SW_BOOST`, the hand-routed
+boost stage -- so the other **61 were passed to `--rip-existing-nets` explicitly**, which also
+bypasses route.py's own self-granted `_RIP_ESCALATION_CAP = 12`.
 
----
+The guards held perfectly. SW_BOOST was ripped once, logged *"original copper restored"*, and
+`freeze_routes.py`'s additive check passed. KRT's own DRC came back **NO DRC VIOLATIONS**. And
+the result is still worse:
+
+| | `64182bf` | with 61 nets rippable |
+|---|---|---|
+| KiCad DRC violations | 22 | **15** |
+| dangling vias | 10 | **3** |
+| Unconnected items | **72** | 82 |
+| Frozen copper | 3629 seg / 568 via | 3981 seg / 555 via |
+
+It bought hygiene and paid in connectivity. The single worst line is `/+3V3_SW`, which was
+**fully connected before the run and carries five unconnected items after it** -- a net the
+router took apart to clear someone else's path and never put back. Six more output nets moved
+the same way, and six moved the other way; the net movement is +10 against the number that gates
+Task 9.
+
+That is the useful finding, and it is not "the rip list was too long". A rip is only a gain if
+the re-route succeeds, and on a board where 17 nets are already boxed in, granting authority over
+61 more just moves which ones lose. **Do not reach for `--rip-existing-nets` as a way out of a
+congested run.** The lever that worked was the stackup.
 
 ## 6. Things worth knowing before trusting a run
 
@@ -221,6 +255,21 @@ what stops it, and it has to happen before the next run rather than after.
   **`scripts/check_geometry.py`** does the grading instead. It fails on copper under the board's own
   `rules.min_*`, on a track on a plane layer and on zero-length junk, and merely *reports* legal
   necking. It runs first in the chain, and it is the gate on whether a run is freezable at all.
+
+- **`--keep-input-copper` does not stop `--rip-existing-nets`; the two compose.** The first
+  reads as "the input board's copper is read-only", and what it actually does is narrower: it
+  disables the late orphan sweep and the strip pass. A net named on the rip list is still
+  rippable with it on. What protected `/rails/SW_BOOST` on the rip run was not the flag, it was
+  that the list was filtered against `unrouted.kicad_pcb` first -- and then the router ripped it
+  anyway and restored it. Filter the list; do not trust the flag to do it.
+
+- **Git Bash mangles every rip-list argument silently.** MSYS path conversion rewrites any
+  argument starting with `/` into a Windows path, so `/outputs/PWM_FL_B` arrives at route.py as
+  `C:/Program Files/Git/outputs/PWM_FL_B` and matches nothing -- no error, just a rip list that
+  does nothing. Net names on this board all start with `/`. Export `MSYS2_ARG_CONV_EXCL='*'`
+  before the run, and verify with `python -c "import sys; print(sys.argv[1:])"` rather than
+  assuming. The same conversion silently redirects `kicad-cli`'s `-o /tmp/x.json` to the
+  drive root, `D:\tmp`.
 
 - **Route the planes first is *their* advice, not ours.** The tool's README recommends
   `route_planes.py` before `route.py` so plane-drop vias land on real fill. This board already
