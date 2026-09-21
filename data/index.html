@@ -8,13 +8,23 @@
 </head>
 <body>
   <header>
-    <h1>MCCAN Lighting</h1>
-    <span id="status" class="status off">disconnected</span>
+    <div class="hrow">
+      <h1>MCCAN Lighting</h1>
+      <span id="status" class="status off">disconnected</span>
+    </div>
+    <!-- Both banners live in the header, outside the tab system, so they
+         cannot be navigated away from while the lights are overridden. -->
+    <div id="versionBanner" class="banner warn" hidden></div>
+    <div id="testBanner" class="banner danger" hidden>
+      <span id="testBannerText"></span>
+      <button id="testExitBtn">Exit</button>
+    </div>
   </header>
 
   <nav>
     <button data-tab="tunables" class="active">Tunables</button>
     <button data-tab="appearance">Appearance</button>
+    <button data-tab="test">Test</button>
     <button data-tab="mapping">Mapping</button>
     <button data-tab="discovery">Discovery</button>
     <button data-tab="backup">Backup</button>
@@ -28,11 +38,26 @@
       <label>Spot hold threshold (ms)
         <input type="number" id="spotHoldMs" min="100" max="5000" step="50">
       </label>
+      <label>Test mode auto-exit (ms)
+        <input type="number" id="testMaxMs" min="10000" max="3600000" step="10000">
+      </label>
       <div id="denali"></div>
     </section>
 
     <section id="tab-appearance" class="tab">
       <div id="colors"></div>
+    </section>
+
+    <section id="tab-test" class="tab">
+      <p><small>Test mode overrides the lights until you exit it. The bike's
+      own brake and indicator signals are ignored while it is active.</small></p>
+      <h3>Scenarios</h3>
+      <div id="scenarios" class="scenarios"></div>
+      <h3>Zones</h3>
+      <div id="testZones"></div>
+      <label>Denali <span id="testDenaliPct">0%</span>
+        <input type="range" id="testDenali" min="0" max="100" value="0">
+      </label>
     </section>
 
     <section id="tab-mapping" class="tab">

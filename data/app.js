@@ -8,9 +8,20 @@ const COLORS = ["drlWhiteDay","drlWhiteNight","drlDimRedDay","drlDimRedNight",
 const DENALI = ["day","low","high","spot"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
 const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
+const PROTOCOL_VERSION = 2;   // must match kProtocolVersion in web_protocol.h
+// Must match kScenarioNames in test_mode.cpp — the firmware table is
+// authoritative and rejects anything it does not know.
+const SCENARIOS = ["allOff","drlDay","drlNight","leftInd","rightInd",
+                   "hazards","brake","brakeNight","lowBeam","highBeam"];
+// ChannelIndex corner order.
+const ZONES = ["front L","front R","rear L","rear R"];
 
 let cfg = null;         // last config from device
 let ws = null;
+let testState = { active: false, kind: "off", remainingMs: 0 };
+let activeScenario = null;
+let testZoneState = [0, 0, 0, 0].map(() => ({ hue: [255, 255, 255], level: 0 }));
+let testDenali = 0;
 
 function setStatus(connected) {
   const el = document.getElementById("status");
@@ -30,17 +41,35 @@ function send(obj) {
 }
 
 function onMessage(msg) {
-  if (msg.type === "config") { cfg = msg.config; render(); }
+  if (msg.type === "config") { checkVersion(msg.protocolVersion); cfg = msg.config; render(); }
   else if (msg.type === "frames") { renderFrames(msg.frames); }
+  else if (msg.type === "test_state") { testState = msg; renderTestBanner(); }
   else if (msg.type === "error") { alert("Device error: " + msg.message); }
+  // Anything else is ignored on purpose: a newer firmware broadcasting a
+  // message this app does not know must be inert, not fatal.
+}
+
+function checkVersion(v) {
+  v = (v === undefined) ? 1 : v;    // v1 firmware did not send the field
+  const el = document.getElementById("versionBanner");
+  if (v === PROTOCOL_VERSION) { el.hidden = true; return; }
+  el.textContent = v < PROTOCOL_VERSION
+    ? "Firmware is older than this web app (device v" + v + ", app v" + PROTOCOL_VERSION +
+      "). Reflash the firmware: py -3.13 -m platformio run -e esp32 -t upload"
+    : "This web app is older than the firmware (device v" + v + ", app v" + PROTOCOL_VERSION +
+      "). Reflash the web files: py -3.13 -m platformio run -e esp32 -t uploadfs";
+  el.hidden = false;
 }
 
 // ---- rendering ----
 function render() {
   document.getElementById("blinkPeriodMs").value = cfg.blinkPeriodMs;
   document.getElementById("spotHoldMs").value = cfg.spotHoldMs;
+  document.getElementById("testMaxMs").value = cfg.testMaxMs;
   renderDenali();
   renderColors();
+  renderScenarios();
+  renderTestZones();
   renderMaps();
   renderDiscFuncOptions();
 }
@@ -69,6 +98,90 @@ function renderColors() {
     picker.type = "color"; picker.value = rgbToHex(cfg.colors[k]);
     picker.oninput = () => { cfg.colors[k] = hexToRgb(picker.value); };
     row.appendChild(name); row.appendChild(picker); host.appendChild(row);
+  });
+}
+
+function renderTestBanner() {
+  const el = document.getElementById("testBanner");
+  el.hidden = !testState.active;
+  if (!testState.active) {
+    activeScenario = null;
+    renderScenarios();
+    return;
+  }
+  const s = Math.max(0, Math.round(testState.remainingMs / 1000));
+  const mm = String(Math.floor(s / 60)).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  document.getElementById("testBannerText").textContent =
+    "TEST MODE — lights overridden, CAN input ignored · " +
+    testState.kind + " · auto-exit in " + mm + ":" + ss;
+}
+
+// The device broadcasts test_state once a second; tick locally between
+// broadcasts so the countdown does not look stalled.
+setInterval(() => {
+  if (!testState.active) return;
+  testState.remainingMs = Math.max(0, testState.remainingMs - 1000);
+  renderTestBanner();
+}, 1000);
+
+function exitTest() { send({ type: "test", mode: "off" }); }
+
+function renderScenarios() {
+  const host = document.getElementById("scenarios");
+  host.innerHTML = "";
+  SCENARIOS.forEach((name) => {
+    const b = document.createElement("button");
+    b.textContent = name;
+    if (name === activeScenario) b.classList.add("active");
+    b.onclick = () => {
+      activeScenario = name;
+      send({ type: "test", mode: "scenario", scenario: name });
+      renderScenarios();
+    };
+    host.appendChild(b);
+  });
+}
+
+function sendTestZones() {
+  activeScenario = null;
+  scheduleSend(() => send({
+    type: "test",
+    mode: "zones",
+    zones: testZoneState.map((z) => resolveJs(z.hue, z.level)),
+    denali: testDenali,
+  }));
+}
+
+function renderTestZones() {
+  const host = document.getElementById("testZones");
+  host.innerHTML = "";
+  ZONES.forEach((label, i) => {
+    const z = testZoneState[i];
+    const box = document.createElement("div"); box.className = "zone";
+    const h = document.createElement("h4"); h.textContent = label; box.appendChild(h);
+
+    const row = document.createElement("div"); row.className = "row";
+    const picker = document.createElement("input");
+    picker.type = "color"; picker.value = rgbToHex(z.hue);
+    const level = document.createElement("input");
+    level.type = "range"; level.min = 0; level.max = 100;
+    level.value = levelToPct(z.level);
+    const pct = document.createElement("span");
+    pct.className = "pct"; pct.textContent = level.value + "%";
+
+    const update = () => {
+      z.hue = normalizeHue(hexToRgb(picker.value));
+      z.level = pctToLevel(level.value);
+      pct.textContent = level.value + "%";
+      sendTestZones();
+      renderScenarios();     // a zone edit clears the active scenario
+    };
+    picker.oninput = update;
+    level.oninput = update;
+
+    row.appendChild(picker); row.appendChild(level); row.appendChild(pct);
+    box.appendChild(row); host.appendChild(box);
   });
 }
 
@@ -159,6 +272,7 @@ function assignBit(id, bit) {
 function collect() {
   cfg.blinkPeriodMs = clamp(document.getElementById("blinkPeriodMs").value, 50, 5000);
   cfg.spotHoldMs = clamp(document.getElementById("spotHoldMs").value, 100, 10000);
+  cfg.testMaxMs = clamp(document.getElementById("testMaxMs").value, 10000, 3600000);
   return cfg;
 }
 
@@ -190,6 +304,35 @@ function hexToRgb(s) {
   return [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
 }
 
+// Mirrors resolveColor()/colorFromRgb() in color.h. Zone overrides are sent
+// as raw duty, so the app applies gamma itself.
+function gamma8Js(level) { return Math.round(255 * Math.pow(level / 255, 2.2)); }
+
+function normalizeHue(rgb) {
+  const m = Math.max(rgb[0], rgb[1], rgb[2]);
+  return m ? rgb.map((c) => Math.round((c * 255) / m)) : [255, 255, 255];
+}
+
+function resolveJs(hue, level) {
+  const g = gamma8Js(level);
+  return normalizeHue(hue).map((c) => Math.floor((c * g) / 255));
+}
+
+function pctToLevel(p) { return Math.round((Number(p) * 255) / 100); }
+function levelToPct(l) { return Math.round((l * 100) / 255); }
+
+// One send per animation frame, so dragging a slider cannot flood the socket.
+let pendingSend = null, rafId = 0;
+function scheduleSend(fn) {
+  pendingSend = fn;
+  if (rafId) return;
+  rafId = requestAnimationFrame(() => {
+    rafId = 0;
+    const f = pendingSend; pendingSend = null;
+    if (f) f();
+  });
+}
+
 // ---- wiring ----
 document.querySelectorAll("nav button").forEach((b) => {
   b.onclick = () => {
@@ -207,6 +350,13 @@ document.getElementById("importInput").onchange = (e) => {
 };
 document.getElementById("discToggle").onchange = (e) => {
   send({ type: "discovery", enable: e.target.checked });
+};
+
+document.getElementById("testExitBtn").onclick = exitTest;
+document.getElementById("testDenali").oninput = (e) => {
+  testDenali = pctToLevel(e.target.value);
+  document.getElementById("testDenaliPct").textContent = e.target.value + "%";
+  sendTestZones();
 };
 
 connect();
