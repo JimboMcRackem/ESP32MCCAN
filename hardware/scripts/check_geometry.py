@@ -66,31 +66,59 @@ ROUTING_LAYERS = set(G.AR_LAYERS)
 # not a gate, it is a coin toss.
 MIN_LEN = G.AR_GRID / 10.0
 
-# The board's own floors, for when no project file turns up next to it.  KiCad's built-in
+# The floors, for when even the repo's own project file cannot be read.  KiCad's built-in
 # defaults are looser than anything this board declares, so falling back to those silently
-# would turn a FAIL into a pass; these are mccan.kicad_pro's values, and a missing project
-# file is reported rather than papered over.
+# would turn a FAIL into a pass.  These are gen_netclasses.RULES, and a missing project file
+# is reported rather than papered over.
 FALLBACK = {
     "min_track_width": 0.2,
-    "min_via_diameter": 0.45,
-    "min_via_annular_width": 0.1,
+    "min_via_diameter": 0.5,
+    "min_via_annular_width": 0.15,
     "min_through_hole_diameter": 0.2,
 }
 
+# The repo's project file, and the ONLY authority for what this board declares.
+REPO_PRO = os.path.join(os.path.dirname(HERE), "mccan.kicad_pro")
+
 
 def rules(board):
-    """The board's declared minimums, from the .kicad_pro beside it."""
-    pro = os.path.splitext(board)[0] + ".kicad_pro"
-    if not os.path.exists(pro):
-        print("NOTE: no %s next to the board -- grading against mccan.kicad_pro's floors"
-              % os.path.basename(pro))
-        return dict(FALLBACK)
-    doc = json.loads(io.open(pro, encoding="utf-8").read())
-    got = doc.get("board", {}).get("design_settings", {}).get("rules", {})
+    """The board's declared minimums -- from the REPO's project file, never the board's own.
+
+    This does not read the .kicad_pro beside the board being graded, and that is the whole
+    point.  KiCadRoutingTools' route.py writes DRC settings back into its output project, and
+    what it writes is LOOSER than what it was given: handed a project declaring a 0.50 mm via
+    and a 0.15 mm annular ring, it wrote back 0.45 and 0.10.  (It does the same to
+    min_connection, 0.25 -> 0.15, which is how the committed mccan.kicad_pro came to disagree
+    with the generator that writes it.)  Grading a router's output against floors the router
+    itself just rewrote is not a gate; it is the tool marking its own homework, and it would
+    have passed exactly the 123 sub-floor vias this check exists to catch.
+
+    gen_netclasses.py writes mccan.kicad_pro from RULES, so that file is what this repo has
+    decided.  A sibling that disagrees is reported, because the disagreement is information.
+    """
     out = dict(FALLBACK)
-    for k in FALLBACK:
-        if k in got:
-            out[k] = float(got[k])
+    if os.path.exists(REPO_PRO):
+        got = (json.loads(io.open(REPO_PRO, encoding="utf-8").read())
+               .get("board", {}).get("design_settings", {}).get("rules", {}))
+        for k in FALLBACK:
+            if k in got:
+                out[k] = float(got[k])
+    else:
+        print("NOTE: %s is missing -- grading against gen_netclasses' own RULES"
+              % os.path.basename(REPO_PRO))
+
+    pro = os.path.splitext(board)[0] + ".kicad_pro"
+    if os.path.exists(pro) and os.path.abspath(pro) != os.path.abspath(REPO_PRO):
+        side = (json.loads(io.open(pro, encoding="utf-8").read())
+                .get("board", {}).get("design_settings", {}).get("rules", {}))
+        loose = ["%s %g (repo says %g)" % (k, float(side[k]), out[k])
+                 for k in sorted(FALLBACK)
+                 if k in side and float(side[k]) < out[k] - 1e-9]
+        if loose:
+            print("NOTE: %s declares looser floors than the repo, and is being IGNORED:"
+                  % os.path.basename(pro))
+            for line in loose:
+                print("        " + line)
     return out
 
 

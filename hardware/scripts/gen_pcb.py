@@ -784,9 +784,21 @@ MOUNT_FP = "MountingHole:MountingHole_3.2mm_M3"
 # QFN paddle), and thermal resistance falls with via COUNT far faster than with via diameter
 # -- the barrel is a 25 um copper tube either way, so a 0.5 mm via has about 60 % of the
 # copper cross-section of a 0.8 mm one but four of them fit where one did.
-THERM_VIA, THERM_DRILL = 0.5, 0.25
+# 0.55 rather than 0.50 buys the annular ring, not the copper: 0.55/0.25 is a 0.15 mm ring,
+# which is PCBWay's published minimum and is stated for exactly this case -- "for pads with
+# vias in the middle".  At 0.50/0.25 the ring was 0.125 mm and under it.  The cost is eight
+# vias, because the bigger via insets the array further: D4 goes 6x5 -> 5x5 and U9 3x5 -> 3x4,
+# while U1, U2 and U3 are unchanged.  That is affordable on the argument this file already
+# makes above -- the array stops being the bottleneck once it is well under the 8-15 K/W of
+# the gap pad, and 25 vias under D4 still is.
+THERM_VIA, THERM_DRILL = 0.55, 0.25
 THERM_PITCH = 0.8
-THERM_MARGIN = 0.15     # mm of pad copper left outside the via annulus
+# mm of pad copper left outside the via annulus.  Held at 0.15 deliberately when THERM_VIA
+# grew: the clearance that binds is via-to-NEIGHBOURING-pad (see thermal_vias below), 0.15 +
+# 0.20 = 0.35 mm against the 0.30 mm the POWER class asks.  Dropping it to 0.125 would have
+# kept D4 at 6x5, and left 0.025 mm of margin instead of 0.05 mm to do it.  Not a trade worth
+# making for five vias.
+THERM_MARGIN = 0.15
 
 # What counts as an exposed thermal pad.  This is deliberately strict, because a via in a pad
 # is a MANUFACTURING decision, not just a copper one: an unplugged via in a solderable pad
@@ -891,8 +903,13 @@ def thermal_vias(comps, pos, padnet, netidx):
             uw, uh = w - 2 * inset, h - 2 * inset
             if uw < 0 or uh < 0:
                 continue
-            nx = int(uw / THERM_PITCH) + 1
-            ny = int(uh / THERM_PITCH) + 1
+            # The epsilon is not decoration.  uw is a difference of floats, so a pad whose
+            # usable width is an exact multiple of the pitch lands on either side of the
+            # integer by luck: 4.80 - 2*(0.275 + 0.125) is 3.9999999999999996, and int() of
+            # that over 0.8 gives 4 where the arithmetic says 5, silently costing a column.
+            # Whether a via array gets one more column should not be decided by rounding.
+            nx = int(uw / THERM_PITCH + 1e-9) + 1
+            ny = int(uh / THERM_PITCH + 1e-9) + 1
             sx = uw / (nx - 1) if nx > 1 else 0.0
             sy = uh / (ny - 1) if ny > 1 else 0.0
             for i in range(nx):

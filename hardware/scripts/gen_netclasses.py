@@ -55,12 +55,26 @@ NETLIST = os.path.join(HW, "output", "netlist.net")
 RULES = {
     "min_clearance": 0.20,      # 1 oz outer copper -- see the module docstring
     "min_track_width": 0.20,
-    "min_via_diameter": 0.45,   # thermal vias are 0.5/0.25 -- see gen_pcb.thermal_vias()
+    # 0.50 and 0.15 are one decision, not two: PCBWay's published floor is a 0.15 mm annular
+    # ring, and they state it for exactly this board's case -- "for pads with vias in the
+    # middle", which is what all 73 thermal vias are.  With min_through_hole_diameter at 0.2
+    # a 0.15 mm ring makes 0.50 mm the smallest via that can exist, so the two numbers have to
+    # move together.  This is also the floor the EXTERNAL router escalates down to: it is run
+    # with --escalation board, which permits anything the board declares, and while this said
+    # 0.1 it was entitled to hand back 123 vias at 0.45/0.20 -- a 0.125 mm ring, under PCBWay
+    # and quietly so, because it was legal by this file's own word.  See docs/routing-tool.md.
+    "min_via_diameter": 0.50,   # thermal vias are 0.55/0.25 -- see gen_pcb.thermal_vias()
+    "min_via_annular_width": 0.15,
     "min_through_hole_diameter": 0.2,   # U5 thermal-pad vias are 0.2 mm in the stock footprint
     "min_hole_to_hole": 0.3,
     "min_hole_clearance": 0.25,
     "min_copper_edge_clearance": 0.5,
-    "min_connection": 0.25,
+    # Tied to min_track_width, and it has to be: min_connection is the narrowest copper that
+    # may carry a connection, so setting it ABOVE the thinnest track the board permits makes
+    # every legitimately necked track a violation of a rule the same file grants.  It read
+    # 0.25 here against a 0.20 track floor while the project file on disk said 0.15, which is
+    # how the inconsistency stayed invisible: nothing had regenerated the file since.
+    "min_connection": 0.20,
     "min_silk_clearance": 0.0,
 }
 
