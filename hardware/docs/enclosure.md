@@ -381,4 +381,4 @@ elsewhere. Both are drawn on the board's `Cmts.User` layer so the coating house 
 | Gasket and fastener torque | Follows the gasket part choice |
 | Vent part number | Catalogue lookup |
 | Gland cutout diameters and minimum spacing | Gland datasheets (5 × M12, 2 × M16) |
-| `harness.md` §6 | Still describes an owner-chosen panel fuse holder that no longer exists — §4 |
+| ~~`harness.md` §6~~ **RESOLVED 2026-09-22** | Rewritten for the eFuse. §4 no longer claims a 10 A panel fuse, and §6's accepted risk now says what it always meant: the protection is at the wrong end of the cable, and that was as true of the panel fuse as it is of F1. The one thing it could not answer is what the **vehicle** fuses the peripheral outlet with, which is now a **[TO CONFIRM]** in harness.md rather than an assumption. |

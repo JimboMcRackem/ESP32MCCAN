@@ -156,7 +156,10 @@ matters on the road.
 
 ## 4. Power feeds
 
-**ONE** Experia peripheral outlet, rated 10 A, with a **10 A** panel-mounted fuse.
+**ONE** Experia peripheral outlet, rated 10 A. Overcurrent protection is **F1, the board-mounted
+eFuse** (U10 with Q10/Q11 and the R100 sense resistor), limiting at **9-10 A**. There is no
+panel-mounted fuse and no blade fuse holder: that row was deleted on 2026-09-20 when F1 became
+an eFuse, and the enclosure went from nine penetrations to eight (spec 4.1, enclosure.md).
 
 | Mode | Load | % of the 10 A feed |
 |---|---|---|
@@ -164,10 +167,15 @@ matters on the road.
 | **Night (Denali on, front DRLs off)** | **7.0 A** | **70% — the governing case** |
 | Flash-to-pass in daylight, seconds | 7.8 A | 78% — no longer an overload at all |
 
-This works because the loads never coincide (spec §2.4). **78% sustained is at the upper end of good
-practice** for an automotive blade fuse and is the figure to watch on the first warm-night ride. If it
-ever nuisance-opens, the fix needs no hardware: the Denali maximum level is a web-app tunable, and 90%
-of full brings the night total to 7.2 A (72%).
+This works because the loads never coincide (spec §2.4). The percentages are against the **outlet's**
+10 A rating, which is the binding number now -- the eFuse limits above the 7.8 A transient, not
+below it. **An eFuse has no inertia**: it current-limits in microseconds, where a blade fuse
+tolerated 7.8 A for seconds purely by being slow. That is why the setpoint is 9-10 A and not
+7.8 A, and why the old "78% sustained is at the upper end of good practice for a blade fuse"
+framing no longer applies to anything on this board. 78% of the OUTLET is still the figure to
+watch on the first warm-night ride. If the eFuse ever nuisance-trips, the fix needs no
+hardware: the Denali maximum level is a web-app tunable, and 90% of full brings the night
+total to 7.2 A (72%).
 
 **[TO CONFIRM] on the vehicle:** that the chosen outlet genuinely sustains **7.8 A** without voltage
 sag or a warm connector.
@@ -206,12 +214,15 @@ one outlet carry both domains.
 
 ### Accepted risk: the feed runs are not fused at their source
 
-The fuses are **on the enclosure panel**, at the far end of the cable from the supply. This was the
-user's explicit decision, recorded in spec §4.1. The consequence is plain:
+F1 is **on the board, inside the enclosure**, at the far end of the cable from the supply. It was a
+panel fuse when this risk was first written and it is an eFuse now; the geometry that creates
+the risk did not change, because the protection is still at the wrong end of the cable. The
+consequence is plain:
 
 > **The cable run from the Experia's peripheral outlet to the enclosure carries no overcurrent
-> protection.** A chafe-through to the frame anywhere along that run is not interrupted by the panel
-> fuse, because the fault is upstream of it.
+> protection of this board's making.** A chafe-through to the frame anywhere along that run is
+> not interrupted by F1, because the fault is upstream of it. Whatever the vehicle fuses that
+> outlet with is the only thing in the path. **[TO CONFIRM]** what that is.
 
 Mitigations that partly offset it, all of which the harness build must honour:
 
