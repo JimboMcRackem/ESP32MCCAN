@@ -16,28 +16,28 @@ void test_drl_default_day() {
   LogicalState s; s.run = true;
   EngineState est{};
   OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == cfg.drlWhiteDay));
-  TEST_ASSERT_TRUE((o.frontR == cfg.drlWhiteDay));
-  TEST_ASSERT_TRUE((o.rearL == cfg.drlDimRedDay));
-  TEST_ASSERT_TRUE((o.rearR == cfg.drlDimRedDay));
+  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteDay)));
+  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.drlWhiteDay)));
+  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.drlDimRedDay)));
+  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.drlDimRedDay)));
 }
 
 void test_drl_default_night_uses_night_colors() {
   LogicalState s; s.run = true; s.night = true;
   EngineState est{};
   OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == cfg.drlWhiteNight));
-  TEST_ASSERT_TRUE((o.rearL == cfg.drlDimRedNight));
+  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteNight)));
+  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.drlDimRedNight)));
 }
 
 void test_left_indicator_flashes_left_corners_on_phase() {
   LogicalState s; s.run = true; s.leftInd = true;
   EngineState est{};
   OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == cfg.indicatorOrange));
-  TEST_ASSERT_TRUE((o.rearL == cfg.indicatorOrange));
-  TEST_ASSERT_TRUE((o.frontR == cfg.drlWhiteDay));   // right side unaffected
-  TEST_ASSERT_TRUE((o.rearR == cfg.drlDimRedDay));
+  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.drlWhiteDay)));   // right side unaffected
+  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.drlDimRedDay)));
 }
 
 void test_indicator_off_phase_is_fully_dark() {
@@ -52,29 +52,29 @@ void test_hazards_flash_all_four() {
   LogicalState s; s.run = true; s.leftInd = true; s.rightInd = true;
   EngineState est{};
   OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == cfg.indicatorOrange));
-  TEST_ASSERT_TRUE((o.frontR == cfg.indicatorOrange));
-  TEST_ASSERT_TRUE((o.rearL == cfg.indicatorOrange));
-  TEST_ASSERT_TRUE((o.rearR == cfg.indicatorOrange));
+  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.indicatorOrange)));
 }
 
 void test_brake_lights_both_rears_full_red() {
   LogicalState s; s.run = true; s.rearBrake = true;
   EngineState est{};
   OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.rearL == cfg.brakeRed));
-  TEST_ASSERT_TRUE((o.rearR == cfg.brakeRed));
-  TEST_ASSERT_TRUE((o.frontL == cfg.drlWhiteDay));
+  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.brakeRed)));
+  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));
+  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteDay)));
 }
 
 void test_brake_plus_left_indicator_priority() {
   LogicalState s; s.run = true; s.frontBrake = true; s.leftInd = true;
   EngineState est{};
   OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.rearL == cfg.indicatorOrange));  // indicator wins on left
-  TEST_ASSERT_TRUE((o.rearR == cfg.brakeRed));         // right rear brakes
-  TEST_ASSERT_TRUE((o.frontL == cfg.indicatorOrange));
-  TEST_ASSERT_TRUE((o.frontR == cfg.drlWhiteDay));
+  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.indicatorOrange)));  // indicator wins on left
+  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));         // right rear brakes
+  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.drlWhiteDay)));
 }
 
 void test_brake_plus_left_indicator_off_phase_left_is_dark() {
@@ -82,15 +82,15 @@ void test_brake_plus_left_indicator_off_phase_left_is_dark() {
   EngineState est{};
   OutputIntent o = computeOutputs(s, cfg, flashOffTime(), est);
   TEST_ASSERT_TRUE((o.rearL == OFF));       // fully dark, brake suppressed
-  TEST_ASSERT_TRUE((o.rearR == cfg.brakeRed));
+  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));
 }
 
 void test_not_run_drl_off_but_indicator_works() {
   LogicalState s; s.run = false; s.leftInd = true;
   EngineState est{};
   OutputIntent on = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((on.frontL == cfg.indicatorOrange));
-  TEST_ASSERT_TRUE((on.rearL == cfg.indicatorOrange));
+  TEST_ASSERT_TRUE((on.frontL == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((on.rearL == resolveColor(cfg.indicatorOrange)));
   TEST_ASSERT_TRUE((on.frontR == OFF));     // non-indicating corners dark
   TEST_ASSERT_TRUE((on.rearR == OFF));
 }

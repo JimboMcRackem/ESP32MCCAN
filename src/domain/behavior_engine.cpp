@@ -11,9 +11,10 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
                             uint32_t nowMs, EngineState& est) {
   OutputIntent o;
   const bool on = flashIsOn(cfg, nowMs);
-  const Rgb orange = cfg.indicatorOrange;
-  const Rgb white  = s.night ? cfg.drlWhiteNight : cfg.drlWhiteDay;
-  const Rgb dimRed = s.night ? cfg.drlDimRedNight : cfg.drlDimRedDay;
+  const Rgb orange   = resolveColor(cfg.indicatorOrange);
+  const Rgb white    = resolveColor(s.night ? cfg.drlWhiteNight : cfg.drlWhiteDay);
+  const Rgb dimRed   = resolveColor(s.night ? cfg.drlDimRedNight : cfg.drlDimRedDay);
+  const Rgb brakeRed = resolveColor(cfg.brakeRed);
   const Rgb flashCol = on ? orange : OFF;
 
   if (!s.run) {
@@ -26,8 +27,8 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
     const bool brakeOn = s.brake();
     o.frontL = s.leftInd  ? flashCol : white;
     o.frontR = s.rightInd ? flashCol : white;
-    o.rearL  = s.leftInd  ? flashCol : (brakeOn ? cfg.brakeRed : dimRed);
-    o.rearR  = s.rightInd ? flashCol : (brakeOn ? cfg.brakeRed : dimRed);
+    o.rearL  = s.leftInd  ? flashCol : (brakeOn ? brakeRed : dimRed);
+    o.rearR  = s.rightInd ? flashCol : (brakeOn ? brakeRed : dimRed);
   }
 
   // --- Spot latch state machine (flash long-press) ---

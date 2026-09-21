@@ -5,7 +5,8 @@ void test_default_timing_and_colors() {
   Config c = defaultConfig();
   TEST_ASSERT_EQUAL_UINT32(340, c.blinkPeriodMs);
   TEST_ASSERT_EQUAL_UINT32(800, c.spotHoldMs);
-  TEST_ASSERT_TRUE((c.indicatorOrange == Rgb{255, 80, 0}));
+  TEST_ASSERT_TRUE((resolveColor(c.indicatorOrange) == Rgb{255, 80, 0}));
+  TEST_ASSERT_EQUAL_UINT32(600000, c.testMaxMs);
 }
 
 void test_experia_indicator_mapping() {
@@ -75,11 +76,11 @@ void test_default_colors_and_denali_levels() {
   Config c = defaultConfig();
 
   // Test all remaining color defaults
-  TEST_ASSERT_TRUE((c.drlWhiteDay == Rgb{255, 255, 255}));
-  TEST_ASSERT_TRUE((c.drlWhiteNight == Rgb{120, 120, 120}));
-  TEST_ASSERT_TRUE((c.drlDimRedDay == Rgb{120, 0, 0}));
-  TEST_ASSERT_TRUE((c.drlDimRedNight == Rgb{60, 0, 0}));
-  TEST_ASSERT_TRUE((c.brakeRed == Rgb{255, 0, 0}));
+  TEST_ASSERT_TRUE((resolveColor(c.drlWhiteDay) == Rgb{255, 255, 255}));
+  TEST_ASSERT_TRUE((resolveColor(c.drlWhiteNight) == Rgb{120, 120, 120}));
+  TEST_ASSERT_TRUE((resolveColor(c.drlDimRedDay) == Rgb{120, 0, 0}));
+  TEST_ASSERT_TRUE((resolveColor(c.drlDimRedNight) == Rgb{60, 0, 0}));
+  TEST_ASSERT_TRUE((resolveColor(c.brakeRed) == Rgb{255, 0, 0}));
 
   // Test all Denali levels
   TEST_ASSERT_EQUAL_UINT8(50, c.denaliDay);

@@ -1,6 +1,7 @@
 #include <unity.h>
 #include "domain/config_json.h"
 #include "domain/config.h"
+#include "domain/color.h"
 
 void test_roundtrip_preserves_mapping_and_tunables() {
   Config in = defaultConfig();
@@ -22,10 +23,49 @@ void test_roundtrip_preserves_mapping_and_tunables() {
 
 void test_roundtrip_preserves_colors() {
   Config in = defaultConfig();
-  in.indicatorOrange = {250, 90, 5};
+  in.indicatorOrange = ColorLevel{ Rgb{255, 90, 5}, 200 };
   bool ok = false;
   Config out = configFromJson(configToJson(in), ok);
-  TEST_ASSERT_TRUE((out.indicatorOrange == Rgb{250, 90, 5}));
+  TEST_ASSERT_TRUE(ok);
+  TEST_ASSERT_TRUE((out.indicatorOrange == ColorLevel{Rgb{255, 90, 5}, 200}));
+}
+
+void test_roundtrip_preserves_test_cap() {
+  Config in = defaultConfig();
+  in.testMaxMs = 120000;
+  bool ok = false;
+  Config out = configFromJson(configToJson(in), ok);
+  TEST_ASSERT_TRUE(ok);
+  TEST_ASSERT_EQUAL_UINT32(120000, out.testMaxMs);
+}
+
+void test_old_rgb_triples_migrate_duty_preserving() {
+  // A config written by the shipped firmware: colours are bare [r,g,b].
+  const char* legacy =
+    "{\"colors\":{\"drlWhiteDay\":[255,255,255],"
+    "\"drlWhiteNight\":[120,120,120],"
+    "\"drlDimRedDay\":[120,0,0],"
+    "\"drlDimRedNight\":[60,0,0],"
+    "\"indicatorOrange\":[255,80,0],"
+    "\"brakeRed\":[255,0,0]}}";
+  bool ok = false;
+  Config c = configFromJson(legacy, ok);
+  TEST_ASSERT_TRUE(ok);
+  TEST_ASSERT_TRUE((resolveColor(c.drlWhiteDay)     == Rgb{255, 255, 255}));
+  TEST_ASSERT_TRUE((resolveColor(c.drlWhiteNight)   == Rgb{120, 120, 120}));
+  TEST_ASSERT_TRUE((resolveColor(c.drlDimRedDay)    == Rgb{120, 0, 0}));
+  TEST_ASSERT_TRUE((resolveColor(c.drlDimRedNight)  == Rgb{60, 0, 0}));
+  TEST_ASSERT_TRUE((resolveColor(c.indicatorOrange) == Rgb{255, 80, 0}));
+  TEST_ASSERT_TRUE((resolveColor(c.brakeRed)        == Rgb{255, 0, 0}));
+  // ...and the hue really was normalized, not left as the raw triple.
+  TEST_ASSERT_TRUE((c.drlDimRedNight.hue == Rgb{255, 0, 0}));
+}
+
+void test_unknown_color_shape_falls_back_to_default() {
+  bool ok = false;
+  Config c = configFromJson("{\"colors\":{\"brakeRed\":\"scarlet\"}}", ok);
+  TEST_ASSERT_TRUE(ok);
+  TEST_ASSERT_TRUE((c.brakeRed == defaultConfig().brakeRed));
 }
 
 void test_corrupt_json_falls_back_to_default() {
@@ -50,6 +90,9 @@ int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_roundtrip_preserves_mapping_and_tunables);
   RUN_TEST(test_roundtrip_preserves_colors);
+  RUN_TEST(test_roundtrip_preserves_test_cap);
+  RUN_TEST(test_old_rgb_triples_migrate_duty_preserving);
+  RUN_TEST(test_unknown_color_shape_falls_back_to_default);
   RUN_TEST(test_corrupt_json_falls_back_to_default);
   RUN_TEST(test_empty_string_falls_back_to_default);
   return UNITY_END();

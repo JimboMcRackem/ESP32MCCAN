@@ -6,10 +6,38 @@ static const char* kFuncNames[(size_t)Function::COUNT] = {
   "lowBeam", "highBeam", "highBeamFlash", "dayNight", "kickStand"
 };
 
-static void rgbTo(JsonArray a, const Rgb& c) { a.add(c.r); a.add(c.g); a.add(c.b); }
-static Rgb rgbFrom(JsonArrayConst a, Rgb def) {
-  if (a.size() != 3) return def;
-  return Rgb{ (uint8_t)a[0].as<int>(), (uint8_t)a[1].as<int>(), (uint8_t)a[2].as<int>() };
+static void colorTo(JsonObject o, const ColorLevel& c) {
+  JsonArray h = o["hue"].to<JsonArray>();
+  h.add(c.hue.r); h.add(c.hue.g); h.add(c.hue.b);
+  o["level"] = c.level;
+}
+
+// Accepts both shapes:
+//   {"hue":[r,g,b],"level":n}   current
+//   [r,g,b]                     written before the hue/level split
+// The bare triple is migrated duty-preserving, so upgrading does not change
+// how the bike looks. Serialization always writes the new shape, so the
+// first save completes the upgrade.
+static ColorLevel colorFrom(JsonVariantConst v, ColorLevel def) {
+  if (v.is<JsonArrayConst>()) {
+    JsonArrayConst a = v.as<JsonArrayConst>();
+    if (a.size() != 3) return def;
+    return colorFromRgb(Rgb{ (uint8_t)a[0].as<int>(),
+                             (uint8_t)a[1].as<int>(),
+                             (uint8_t)a[2].as<int>() });
+  }
+  if (v.is<JsonObjectConst>()) {
+    JsonObjectConst o = v.as<JsonObjectConst>();
+    JsonArrayConst a = o["hue"];
+    if (a.size() != 3) return def;
+    ColorLevel c;
+    c.hue = Rgb{ (uint8_t)a[0].as<int>(),
+                 (uint8_t)a[1].as<int>(),
+                 (uint8_t)a[2].as<int>() };
+    c.level = (uint8_t)(o["level"] | 255);
+    return c;
+  }
+  return def;
 }
 
 std::string configToJson(const Config& c) {
@@ -30,14 +58,15 @@ std::string configToJson(const Config& c) {
 
   doc["blinkPeriodMs"] = c.blinkPeriodMs;
   doc["spotHoldMs"] = c.spotHoldMs;
+  doc["testMaxMs"] = c.testMaxMs;
 
   JsonObject col = doc["colors"].to<JsonObject>();
-  rgbTo(col["drlWhiteDay"].to<JsonArray>(), c.drlWhiteDay);
-  rgbTo(col["drlWhiteNight"].to<JsonArray>(), c.drlWhiteNight);
-  rgbTo(col["drlDimRedDay"].to<JsonArray>(), c.drlDimRedDay);
-  rgbTo(col["drlDimRedNight"].to<JsonArray>(), c.drlDimRedNight);
-  rgbTo(col["indicatorOrange"].to<JsonArray>(), c.indicatorOrange);
-  rgbTo(col["brakeRed"].to<JsonArray>(), c.brakeRed);
+  colorTo(col["drlWhiteDay"].to<JsonObject>(),     c.drlWhiteDay);
+  colorTo(col["drlWhiteNight"].to<JsonObject>(),   c.drlWhiteNight);
+  colorTo(col["drlDimRedDay"].to<JsonObject>(),    c.drlDimRedDay);
+  colorTo(col["drlDimRedNight"].to<JsonObject>(),  c.drlDimRedNight);
+  colorTo(col["indicatorOrange"].to<JsonObject>(), c.indicatorOrange);
+  colorTo(col["brakeRed"].to<JsonObject>(),        c.brakeRed);
 
   JsonObject den = doc["denali"].to<JsonObject>();
   den["day"] = c.denaliDay;
@@ -81,15 +110,16 @@ Config configFromJson(const std::string& json, bool& ok) {
 
   c.blinkPeriodMs = doc["blinkPeriodMs"] | c.blinkPeriodMs;
   c.spotHoldMs = doc["spotHoldMs"] | c.spotHoldMs;
+  c.testMaxMs = doc["testMaxMs"] | c.testMaxMs;
 
   JsonObjectConst col = doc["colors"];
   if (!col.isNull()) {
-    c.drlWhiteDay = rgbFrom(col["drlWhiteDay"], c.drlWhiteDay);
-    c.drlWhiteNight = rgbFrom(col["drlWhiteNight"], c.drlWhiteNight);
-    c.drlDimRedDay = rgbFrom(col["drlDimRedDay"], c.drlDimRedDay);
-    c.drlDimRedNight = rgbFrom(col["drlDimRedNight"], c.drlDimRedNight);
-    c.indicatorOrange = rgbFrom(col["indicatorOrange"], c.indicatorOrange);
-    c.brakeRed = rgbFrom(col["brakeRed"], c.brakeRed);
+    c.drlWhiteDay     = colorFrom(col["drlWhiteDay"], c.drlWhiteDay);
+    c.drlWhiteNight   = colorFrom(col["drlWhiteNight"], c.drlWhiteNight);
+    c.drlDimRedDay    = colorFrom(col["drlDimRedDay"], c.drlDimRedDay);
+    c.drlDimRedNight  = colorFrom(col["drlDimRedNight"], c.drlDimRedNight);
+    c.indicatorOrange = colorFrom(col["indicatorOrange"], c.indicatorOrange);
+    c.brakeRed        = colorFrom(col["brakeRed"], c.brakeRed);
   }
 
   JsonObjectConst den = doc["denali"];
