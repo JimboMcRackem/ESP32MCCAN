@@ -1,0 +1,143 @@
+#include <unity.h>
+#include "domain/test_mode.h"
+
+static Config cfg;
+static EngineState est;
+static EngineState testEst;
+
+void setUp(void) {
+  cfg = defaultConfig();
+  est = EngineState{};
+  testEst = EngineState{};
+}
+void tearDown(void) {}
+
+// Time at which the blink phase is ON (nowMs % (2*period) < period).
+static const uint32_t kOn = 0;
+
+void test_off_passes_the_real_state_through(void) {
+  LogicalState real; real.run = true;
+  TestMode t;                                  // kind defaults to Off
+  OutputIntent got  = resolveOutputs(real, t, cfg, kOn, est, testEst);
+  EngineState ref;
+  OutputIntent want = computeOutputs(real, cfg, kOn, ref);
+  TEST_ASSERT_TRUE((got.frontL == want.frontL));
+  TEST_ASSERT_TRUE((got.rearL == want.rearL));
+  TEST_ASSERT_EQUAL_UINT8(want.denali, got.denali);
+}
+
+void test_scenario_ignores_the_real_state(void) {
+  LogicalState real;                            // bike is off
+  TestMode t;
+  t.kind = TestKind::Scenario;
+  TEST_ASSERT_TRUE(scenarioByName("brake", t.scenario));
+
+  OutputIntent o = resolveOutputs(real, t, cfg, kOn, est, testEst);
+  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.brakeRed)));
+  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));
+  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteDay)));
+}
+
+void test_scenario_blinks_at_the_configured_rate(void) {
+  LogicalState real;
+  TestMode t;
+  t.kind = TestKind::Scenario;
+  TEST_ASSERT_TRUE(scenarioByName("hazards", t.scenario));
+
+  // On-phase and off-phase of one blink cycle at the configured period.
+  OutputIntent on  = resolveOutputs(real, t, cfg, 0, est, testEst);
+  OutputIntent off = resolveOutputs(real, t, cfg, cfg.blinkPeriodMs, est, testEst);
+  TEST_ASSERT_TRUE((on.frontL == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((on.rearR == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_TRUE((off.frontL == Rgb{0, 0, 0}));
+  TEST_ASSERT_TRUE((off.rearR == Rgb{0, 0, 0}));
+}
+
+void test_zones_pass_through_verbatim(void) {
+  LogicalState real; real.run = true; real.rearBrake = true;
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.zones.frontL = Rgb{1, 2, 3};
+  t.zones.frontR = Rgb{4, 5, 6};
+  t.zones.rearL  = Rgb{7, 8, 9};
+  t.zones.rearR  = Rgb{10, 11, 12};
+  t.zones.denali = 77;
+
+  OutputIntent o = resolveOutputs(real, t, cfg, kOn, est, testEst);
+  TEST_ASSERT_TRUE((o.frontL == Rgb{1, 2, 3}));
+  TEST_ASSERT_TRUE((o.frontR == Rgb{4, 5, 6}));
+  TEST_ASSERT_TRUE((o.rearL == Rgb{7, 8, 9}));
+  TEST_ASSERT_TRUE((o.rearR == Rgb{10, 11, 12}));
+  TEST_ASSERT_EQUAL_UINT8(77, o.denali);
+}
+
+void test_scenario_cannot_corrupt_the_real_engine_state(void) {
+  // A held 'flash' latches the spot lights. Run it as a scenario for well
+  // past spotHoldMs and the REAL EngineState must be untouched, or exiting
+  // test mode would leave the bike's spots latched on.
+  LogicalState real;
+  TestMode t;
+  t.kind = TestKind::Scenario;
+  t.scenario.run = true;
+  t.scenario.flash = true;
+
+  for (uint32_t ms = 0; ms <= cfg.spotHoldMs + 100; ms += 10) {
+    resolveOutputs(real, t, cfg, ms, est, testEst);
+  }
+  TEST_ASSERT_TRUE_MESSAGE(testEst.spotLatched, "the test engine should latch");
+  TEST_ASSERT_FALSE_MESSAGE(est.spotLatched, "the real engine must NOT latch");
+  TEST_ASSERT_FALSE(est.flashPrev);
+}
+
+void test_expiry_is_false_when_off(void) {
+  TestMode t;                                   // Off
+  TEST_ASSERT_FALSE(testExpired(t, cfg, 0xFFFFFFFFu));
+}
+
+void test_expiry_at_the_cap(void) {
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.startedMs = 1000;
+  TEST_ASSERT_FALSE(testExpired(t, cfg, 1000 + cfg.testMaxMs - 1));
+  TEST_ASSERT_TRUE(testExpired(t, cfg, 1000 + cfg.testMaxMs));
+}
+
+void test_expiry_survives_millis_rollover(void) {
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.startedMs = 0xFFFFF000u;                    // ~4 s before rollover
+  TEST_ASSERT_FALSE(testExpired(t, cfg, 0x00000100u));   // 4352 ms elapsed
+  TEST_ASSERT_TRUE(testExpired(t, cfg, 0xFFFFF000u + cfg.testMaxMs));
+}
+
+void test_scenario_lookup_rejects_unknown_names(void) {
+  LogicalState s;
+  TEST_ASSERT_FALSE(scenarioByName("nope", s));
+  TEST_ASSERT_FALSE(scenarioByName("", s));
+}
+
+void test_every_advertised_scenario_name_resolves(void) {
+  // kScenarioNames is what the UI mirrors; a name in the list that does not
+  // resolve would be a dead button.
+  TEST_ASSERT_EQUAL_INT(10, kScenarioCount);
+  LogicalState s;
+  for (int i = 0; i < kScenarioCount; ++i) {
+    TEST_ASSERT_TRUE_MESSAGE(scenarioByName(kScenarioNames[i], s),
+                             "an advertised scenario name did not resolve");
+  }
+}
+
+int main(int, char**) {
+  UNITY_BEGIN();
+  RUN_TEST(test_off_passes_the_real_state_through);
+  RUN_TEST(test_scenario_ignores_the_real_state);
+  RUN_TEST(test_scenario_blinks_at_the_configured_rate);
+  RUN_TEST(test_zones_pass_through_verbatim);
+  RUN_TEST(test_scenario_cannot_corrupt_the_real_engine_state);
+  RUN_TEST(test_expiry_is_false_when_off);
+  RUN_TEST(test_expiry_at_the_cap);
+  RUN_TEST(test_expiry_survives_millis_rollover);
+  RUN_TEST(test_scenario_lookup_rejects_unknown_names);
+  RUN_TEST(test_every_advertised_scenario_name_resolves);
+  return UNITY_END();
+}
