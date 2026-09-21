@@ -79,6 +79,30 @@ RULES = {
     # 0.25 here against a 0.20 track floor while the project file on disk said 0.15, which is
     # how the inconsistency stayed invisible: nothing had regenerated the file since.
     "min_connection": 0.20,
+    # Measured 2026-09-22, because this is the rule that will decide whether Task 9 step 6's
+    # "zero warnings" gate is reachable.  It fires 12 times on the routed board and the 12
+    # are two different things:
+    #
+    #   2 are REAL -- a router via landing off the corner of Q10 and Q11's gate pads rather
+    #     than into them, so the two coppers overlap by 0.08 mm.  That is exactly what this
+    #     rule is for and it wants fixing in the routing, not here.
+    #   10 are necks inside the GND_BOT and VBAT_IN3 POURS, 0.01 to 0.19 mm, where the fill
+    #     squeezes between two antipads.
+    #
+    # The obvious lever for the second group is the zones' own min_thickness, and it is not
+    # the lever: raising it 0.3 -> 0.5 on a scratch copy took the count 12 -> 10, removing
+    # both VBAT_IN3 necks and none of GND_BOT's eight.  KiCad's filler and KiCad's
+    # connection_width check are not measuring the same thing.
+    #
+    # What makes the pour necks benign is not their width, it is that the pour is not the
+    # path.  Return current runs on In1.Cu, which is solid and unbroken, and every SMD GND
+    # pad has its own drop via into it -- B.Cu's GND is a shield and a thermal pour, not a
+    # conductor of anything.  The same argument holds for VBAT_IN3, whose feed
+    # scripts/check_plane_width.py measures at 71 mm.  And KiCad agrees the necks strand
+    # nothing: it reports no isolated-copper violation and no unconnected GND item.
+    # So the resolution is a scoped exception in mccan.kicad_dru for those two pours only,
+    # written once the routing is final -- not a global relaxation, which would also stop
+    # this rule catching the Q10/Q11 kind.
     "min_silk_clearance": 0.0,
 }
 
