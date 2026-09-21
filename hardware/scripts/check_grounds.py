@@ -22,7 +22,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HW = os.path.dirname(HERE)
-PCB = os.path.join(HW, "mccan.kicad_pcb")
+# A board path on the command line checks THAT board instead -- the external-router
+# chain in route_external.py grades its own output with the same two guards.
+PCB = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HW, "mccan.kicad_pcb")
 
 ISLAND_NET = "/power_input/GND_IN"
 PLANE_NET = "GND"
