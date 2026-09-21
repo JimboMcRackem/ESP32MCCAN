@@ -501,5 +501,28 @@ blk = emit("LTC4380", "LTC4380HMS-2",
 LIBTXT, how = install(LIBTXT, "LTC4380", blk)
 print("LTC4380", how, "(Rev. C PIN FUNCTIONS - VERIFIED)")
 
+
+# ---------------------------------------------------------------- D_SCHOTTKY_TAB
+# D4 is an SS5PH102 in TO-277A: three pads, the third of which is the cathode tab that
+# carries the heat out.  Device:D_Schottky has only pins 1 and 2, so however the tab pad was
+# aliased, board parity reported it as copper with no schematic pin behind it.  This is the
+# stock symbol with a third pin added -- hidden, and stacked on the cathode -- so the tab is
+# the cathode electrically and the footprint has a pin to answer to.
+_dsrc = io.open(STOCKDEV, encoding="utf-8").read()
+_da = _dsrc.index('\t(symbol "D_Schottky"')
+blk = _dsrc[_da:balanced_end(_dsrc, _da)]
+for _old, _new in (('(symbol "D_Schottky"', '(symbol "D_SCHOTTKY_TAB"'),
+                   ('"D_Schottky_0_1"', '"D_SCHOTTKY_TAB_0_1"'),
+                   ('"D_Schottky_1_1"', '"D_SCHOTTKY_TAB_1_1"')):
+    blk = blk.replace(_old, _new)
+_p = blk.rfind("(pin ", 0, blk.index('(number "1"'))
+_e = balanced_end(blk, _p)
+_ind = blk[blk.rfind("\n", 0, _p) + 1:_p]
+_pin3 = blk[_p:_e].replace('(number "1"', '(number "3"', 1)
+_pin3 = _pin3.replace("(length 2.54)", "(length 2.54)\n%s\t(hide yes)" % _ind, 1)
+blk = blk[:_e] + "\n" + _ind + _pin3 + blk[_e:] + "\n"
+LIBTXT, how = install(LIBTXT, "D_SCHOTTKY_TAB", blk)
+print("D_SCHOTTKY_TAB", how, "(TO-277A cathode tab = hidden pin 3)")
+
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
 print("written")

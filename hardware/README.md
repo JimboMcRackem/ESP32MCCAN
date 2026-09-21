@@ -21,6 +21,25 @@ DRC (must exit 0, includes schematic parity):
     --severity-error --schematic-parity --exit-code-violations \
     --refill-zones -o output/drc.rpt mccan.kicad_pcb
 
+## Board setup decisions
+
+Minimum connection width is 0.15 mm, not 0.25 mm.
+
+  It was originally set equal to the minimum TRACK width, which is wrong for any board
+  routed at 45 degrees: two 0.25 mm tracks meeting at a 45 degree corner neck to
+  0.25 * cos(22.5) = 0.231 mm at the joint, so every corner the autorouter turned came
+  back as a connection_width warning.  0.15 mm is the fabricator's limit, which is what
+  this rule is for.  Minimum track width stays 0.25 mm.
+
+Reference designators are on F.Fab, except J*, F*, TP*, U*, Q*, D* and L*.
+
+  233 parts on 140 x 100 mm leaves no room for 1 mm text: all 398 silkscreen warnings were
+  Reference fields over a pad, over a neighbour's outline, or over another Reference, and
+  none was between two real silk graphics.  Value was already on F.Fab, so the assembly
+  drawing carries a fully labelled copy either way.  What stays on the silkscreen is what
+  someone has to find on a finished board by eye -- connectors, fuses, test points and the
+  semiconductors worth probing -- plus the outlines, pin-1 dots and polarity marks.
+
 ## Sheet responsibilities
 
 | Sheet | Contents |

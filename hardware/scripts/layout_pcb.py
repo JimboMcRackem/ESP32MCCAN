@@ -79,10 +79,17 @@ ANT_W, ANT_D = 18.0, 6.19
 REGIONS = {
     "input":   (23.0,  23.0,  62.0,  52.0),   # D2, L2, R2/R3, C1-C4, L1, D3, C5
     "efuse":   (23.0,  54.0,  62.0,  94.0),   # U10, Q10, Q11, R100, C65 and the gate network
-    "boost":   (64.0,  23.0, 100.0,  50.0),   # U3, L3, D4, C61 and their passives
-    "rails":   (64.0,  52.0, 100.0,  80.0),   # U1 buck, U2 5 V, U4, decoupling
-    "profet":  (64.0,  82.0, 100.0,  94.0),   # U9 and its passives
-    "outputs": (102.0, 23.0, 131.0,  94.0),   # 12 RGB channels, U7, U8, F2-F5
+    # The output block is by far the biggest -- 105 auto-flowed parts -- and at the original
+    # 102..131 it packed them to 59 % courtyard fill, which is about twice what a two-layer
+    # escape can be routed through: the autorouter left 60 nets unrouted and the occupancy
+    # map showed 13..28 % free copper per 10 mm tile across the whole block, against 85..100 %
+    # over the empty left half of the board.  So the block is given the 95..102 column as
+    # well, and the rails block takes the southern half of its own column back from profet
+    # (which holds no auto-flowed parts at all -- U9 is placed by hand) to pay for it.
+    "boost":   (64.0,  23.0,  93.0,  48.0),   # U3, L3, D4, C61 and their passives
+    "rails":   (64.0,  50.0,  93.0,  94.0),   # U1 buck, U2 5 V, U4, decoupling
+    "profet":  (64.0,  82.0,  93.0,  94.0),   # U9 and its passives, inside the rails column
+    "outputs": (95.0,  23.0, 131.0,  94.0),   # 12 RGB channels, U7, U8, F2-F5
     "mcu":     (133.0, 23.0, 158.0,  46.0),   # U6 and the CAN front end, above U5's courtyard
     "wire":    (23.0,  95.0, 158.0, 119.0),   # the wire-exit field
 }
@@ -312,7 +319,7 @@ NETCLASSES = [
 # must not drop a GND via inside it, and scripts/check_grounds.py, which reads it back off the
 # board.  Shape reasoning is in zones().
 GND_IN_ISLAND = [
-    (42.0, 36.0), (48.0, 36.0), (48.0, 53.5), (66.0, 53.5), (66.0, 94.0),
+    (42.0, 36.0), (48.0, 36.0), (48.0, 53.5), (62.0, 53.5), (62.0, 94.0),
     (46.0, 94.0), (46.0, Y1 - 0.5), (22.0, Y1 - 0.5), (22.0, 53.5), (42.0, 53.5),
 ]
 
@@ -339,17 +346,6 @@ def in_gnd_in_island(x, y, halo=0.0):
         if hit:
             return True
     return False
-
-
-# --------------------------------------------------------------------------- pad aliases
-# Footprint pads that carry no symbol pin but are electrically the same terminal as one that
-# does.  D4's TO-277A (Vishay SMPC) has three pads: two 1.4 x 1.27 mm leads and a
-# 4.8 x 4.72 mm tab.  The tab is the CATHODE, the same terminal as pad 1 -- but Device:D_Schottky
-# is a two-pin symbol, so the netlist never mentions pad 3.  Left as the netlist has it, the
-# boost catch diode's entire thermal pad, and the only low-impedance path its current has out
-# of the die, sits floating on the board.  ERC cannot see it (the symbol is fully connected)
-# and DRC files it under "unconnected items" alongside every not-yet-routed net.
-PAD_ALIAS = {("D4", "3"): "1"}
 
 
 # --------------------------------------------------------------------------- thermal interface

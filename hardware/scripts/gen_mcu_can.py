@@ -639,7 +639,7 @@ for s in SYMS:
     A("\t\t(unit 1)")
     A("\t\t(body_style 1)")
     A("\t\t(exclude_from_sim no)")
-    A("\t\t(in_bom yes)")
+    A("		(in_bom %s)" % ("yes" if fpmap.in_bom(s["ref"]) else "no"))
     A("\t\t(on_board yes)")
     A("\t\t(in_pos_files yes)")
     A("\t\t(dnp %s)" % ("yes" if s["dnp"] else "no"))

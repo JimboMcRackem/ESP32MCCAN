@@ -253,7 +253,7 @@ def emit_symbol(ref, lib_id, x, y, rot, value, footprint, desc, hide_ref=False,
     w(2, "(unit 1)")
     w(2, "(body_style 1)")
     w(2, "(exclude_from_sim no)")
-    w(2, "(in_bom yes)")
+    w(2, "(in_bom %s)" % ("yes" if fpmap.in_bom(ref) else "no"))
     w(2, "(on_board yes)")
     w(2, "(in_pos_files yes)")
     w(2, "(dnp %s)" % ("yes" if ref in getattr(layout, "DNP", ()) else "no"))

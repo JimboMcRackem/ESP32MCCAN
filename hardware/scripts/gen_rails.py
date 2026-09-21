@@ -60,6 +60,8 @@ LIBS.append(from_library(os.path.join(STOCK, "power.kicad_sym"),
                          "PWR_FLAG", "power:PWR_FLAG"))
 LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
                          "DML3017LDC", "mccan_parts:DML3017LDC"))
+LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
+                         "D_SCHOTTKY_TAB", "mccan_parts:D_SCHOTTKY_TAB"))
 LIBS.append(from_library(os.path.join(STOCK, "Regulator_Switching.kicad_sym"),
                          "LM5164DDA", "Regulator_Switching:LM5164DDA"))
 LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
@@ -84,6 +86,10 @@ LM51571 = {1: (25.4, -17.78), 2: (-25.4, 17.78), 3: (-25.4, 12.7), 4: (25.4, -2.
            17: (25.4, -10.16)}
 TWOPIN = {1: (0, 3.81), 2: (0, -3.81)}          # C, R, L
 DIODE = {1: (-3.81, 0), 2: (3.81, 0)}           # 1 = K, 2 = A
+# D4 is in a TO-277A, whose third pad is the cathode tab.  Device:D_Schottky has no pin 3, so
+# board parity reported the tab as a net with no corresponding pin however the pad was aliased.
+# mccan_parts:D_SCHOTTKY_TAB is that symbol with a hidden pin 3 stacked on the cathode.
+DIODE_TAB = {1: (-3.81, 0), 2: (3.81, 0), 3: (-3.81, 0)}
 
 SYMS, WIRES, JUNCS, LABELS, HLABELS, NOTES, NOCONN = [], [], [], [], [], [], []
 PINMAP = {}   # ref -> {num: (x, y)}
@@ -229,9 +235,9 @@ w(U3[12], (127.0, 124.46)); j((127.0, 124.46))
 w(U3[13], (127.0, 127.0)); j((127.0, 127.0))
 w(U3[14], (127.0, 129.54))
 lab("SW_BOOST", 127.0, 128.27)
-place("D4", "Device:D_Schottky", "SS5PH102", 134.62, 127.0, 180, DIODE,
+place("D4", "mccan_parts:D_SCHOTTKY_TAB", "SS5PH102", 134.62, 127.0, 180, DIODE_TAB,
       [("Reference", "D4", 138.43, 130.81, 0), ("Value", "SS5PH102", 138.43, 133.35, 0)],
-      npins=2, desc="Schottky diode")
+      npins=3, desc="Schottky diode")
 w((127.0, 127.0), (130.81, 127.0))                  # SW -> D4 anode
 w((138.43, 127.0), (165.1, 127.0))                  # D4 cathode -> +24V rail
 w((165.1, 127.0), (170.18, 127.0))
@@ -485,7 +491,7 @@ for s in SYMS:
     A("\t\t(unit 1)")
     A("\t\t(body_style 1)")
     A("\t\t(exclude_from_sim no)")
-    A("\t\t(in_bom yes)")
+    A("		(in_bom %s)" % ("yes" if fpmap.in_bom(s["ref"]) else "no"))
     A("\t\t(on_board yes)")
     A("\t\t(in_pos_files yes)")
     A("\t\t(dnp %s)" % ("yes" if s.get("dnp") else "no"))

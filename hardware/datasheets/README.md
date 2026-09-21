@@ -38,7 +38,7 @@ a document is unobtainable.*
 | `sqj461ep.pdf` | Vishay **SQJ461EP** | Reverse-polarity P-FET Q1 | The **60 V** replacement for the 40 V SQJ415EP. Task 7 finding **F1** — the schematic still carried the old number five days after the swap |
 | `lm5164.pdf` | TI **LM5164** | 3.3 V and 5 V bucks U1/U2 | Selected. 100 V input rating clears the TVS clamp with large margin |
 | `lm51571-q1.pdf` | TI **LM51571-Q1** | 24 V boost U3 | Selected, **non-synchronous**. Source of the 37.4k MODE value and the 2.6 µA typ / 5 µA max shutdown bias. **Its "transient protection up to 50 V" is at/just past the SMBJ24A's 50.6 V 8/20 clamp** — re-examine at EMI pre-scan |
-| `DML3017LDC.pdf` | Diodes **DML3017LDC** | `+3V3_SW` load switch U4 | Selected. **Pin-1 orientation of V-DFN3030-12 is still ambiguous between the two figures in DS46371** — resolve from the package outline in Task 8, do not infer |
+| `DML3017LDC.pdf` | Diodes **DML3017LDC** | `+3V3_SW` load switch U4 | Selected. Pin-1 RESOLVED 2026-09-21: top-left in top view, counter-clockwise, six per side; pad 13 (EP) is **VIN, not GND**. Footprint `Package_DFN_QFN:DFN-12-1EP_3x3mm_P0.5mm_EP2.05x2.86mm` |
 | `NX5020UNBKS.pdf` | Nexperia **NX5020UNBKS** | RGB low-side FETs, 6 dual packages = 12 channels | Selected. Built as a 2-unit symbol. 50 V, characterised at Vgs 2.5 V |
 | `NX3020NAKW-Q.pdf` | Nexperia NX3020NAKW-Q | Considered for the same role | Not selected |
 | `ss5ph102.pdf` | Vishay **SS5PH102** | Boost rectifier D4 | Selected — VRRM 100 V, IF(AV) 5 A, VF 0.70 V at 5 A, SMPC (TO-277A) |

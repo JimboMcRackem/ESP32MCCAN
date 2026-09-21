@@ -614,11 +614,32 @@ Confirmed from `hardware/output/netlist.net`:
 
 ### Still open
 
-- **No footprints are assigned anywhere in this project yet** — every `Footprint` field on both
-  sheets is empty. That is Task 8's job, but note one trap for it: the DML3017LDC's
-  **V-DFN3030-12 pin-1 orientation is ambiguous between the two figures** in DS46371. The package
-  outline puts the pin-1 ID at top-left; the suggested pad layout labels pad 1 at bottom-left.
-  Resolve from the package-outline drawing before committing the footprint, do not infer it.
+- ~~**No footprints are assigned anywhere in this project yet**~~ — RESOLVED. Every part now has
+  one, and `scripts/fpmap.py`'s `BLOCKED` dict is empty.
+- ~~**V-DFN3030-12 pin-1 orientation is ambiguous**~~ — RESOLVED 2026-09-21, and the premise was
+  wrong. The two figures do not disagree: the Suggested Pad Layout is a bare land pattern carrying
+  no pin names, drawn in a different orientation from the Package Outline, so it was never evidence
+  about pin 1 in the first place. The three figures that *do* carry pin names all agree —
+  the page-1 Pin Descriptions top view (VIN top-left, VCC two below it, five VOUT down the right),
+  the application connection diagram (1–6 = VIN EN VCC GND SR PG down one side, 7 = BLEED at the
+  near corner, 8–12 = VOUT back up the other), and the Pin Descriptions table. **Pin 1 is top-left
+  in top view, numbering counter-clockwise, six per side.** A mirrored part would put the VOUT
+  block on the same side as VIN, which the page-1 figure rules out.
+
+  Footprint is `Package_DFN_QFN:DFN-12-1EP_3x3mm_P0.5mm_EP2.05x2.86mm`, a dimensional match rather
+  than merely the right size class: e 0.50 BSC six-a-side against pads on 0.50 pitch; EP D2×E2
+  2.70×2.00 against pad 13 at 2.86×2.05 and the suggested layout's X2 2.86 / Y1 2.10; and an
+  EP-to-pad gap of 1.225 − 1.025 = **0.200 mm, which is k exactly**. KiCad's toe is longer than
+  Diodes' own figure (3.75 mm toe-to-toe vs Y2 3.30) because it draws the IPC nominal fillet.
+
+  **Pad 13 is VIN, not GND** — pins 1 and 13 are one node and layout note 7 says "The copper
+  polygons and exposed pad shall connect to VIN". Do not pour it to ground.
+
+  U4.4 (GND) and U4.6 (PG, tied to GND) get no plane via-drop: 0.3 mm pads on 0.5 mm pitch have
+  no room for a 0.6 mm via, so both are routed. That is what DS46371 layout note 6 asks for
+  anyway — "keep a single connection from GND pin to the power ground behind the input or output
+  capacitors" — so the generator's "no room for a drop" warning on these two pads is the
+  intended outcome, not a defect.
 - The bucks run at **~400 kHz**, below the AM band, but their 2nd and 3rd harmonics (800 kHz,
   1.2 MHz) land inside it. The LM5164 tops out at 1 MHz so 2.2 MHz is not available; ~400 kHz with
   the fundamental below the band is the best this part can do. Flagged for the EMI pre-scan.

@@ -20,9 +20,12 @@ overlap, which is the one placement error DRC will otherwise report 200 times.
 """
 
 import array as _array
+import collections as _collections
 import copy
 import heapq as _heapq
+import hashlib as _hashlib
 import io
+import json
 import math
 import os
 import re
@@ -37,7 +40,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HW = os.path.dirname(HERE)
 STOCK = r"C:\Program Files\KiCad\10.0\share\kicad\footprints"
 NETLIST = os.path.join(HW, "output", "netlist.net")
-BOARD = os.path.join(HW, "mccan.kicad_pcb")
+# PCB_OUT redirects the write, so a throwaway board can be generated without standing on
+# the real one -- that is what the external-router chain does when it wants an input board
+# with the signal copper left off.  See docs/routing-tool.md.
+BOARD = os.environ.get("PCB_OUT") or os.path.join(HW, "mccan.kicad_pcb")
+# The external router's copper, frozen by scripts/freeze_routes.py.  When this file is
+# present it REPLACES the autorouter below -- see docs/routing-tool.md.
+FROZEN = os.path.join(HERE, "routes_signal.json")
 
 NS = _uuid.UUID("6f1d5a7c-0b2e-4a91-9c33-mccanpcb0001".replace("mccanpcb0001", "8c33aa01b7d2"))
 
@@ -148,11 +157,14 @@ def read_netlist():
                 sheetname = unq(vn[1]) if vn and len(vn) > 1 else ""
             elif nm == "Sheetfile":
                 sheetfile = unq(vn[1]) if vn and len(vn) > 1 else ""
+        dn = find(c, "description")
+        desc = unq(dn[1]) if dn is not None and len(dn) > 1 else ""
+        dnp = any(unq(find(pr, "name")[1]) == "dnp" for pr in find_all(c, "property"))
         sp = find(c, "sheetpath")
         spath = unq(find(sp, "tstamps")[1]) if sp else "/"
         ts = unq(find(c, "tstamps")[1])
         comps.append(dict(ref=ref, value=val, fp=fp, sheetname=sheetname,
-                          sheetfile=sheetfile, path=spath + ts))
+                          sheetfile=sheetfile, path=spath + ts, desc=desc, dnp=dnp))
 
     nets = []            # (code, name)
     padnet = {}          # (ref, pin) -> code
@@ -274,6 +286,22 @@ def addrot(at, rot):
         at[3:] = [num(a)]
 
 
+SILK_REF_KEEP = ("J", "F", "TP", "U", "Q", "D", "L")
+"""Reference designators that stay on the silkscreen.
+
+Every one of the 398 silkscreen warnings was a Reference field -- over a pad, over a
+neighbour's outline, or over another Reference.  None was between two real silk graphics.
+That is what 233 parts on 140 x 100 mm costs: a 1 mm designator is about 2 mm wide and the
+0402 field is on a 2 mm pitch, so the text cannot fit whatever it is moved to.
+
+Value already lives on F.Fab, so moving the passives' references there too gives the
+assembly drawing a fully labelled copy and leaves the silkscreen with outlines, pin-1 dots
+and polarity marks -- which is what silkscreen is for at this density.  What a person has to
+find on a finished board by eye stays: connectors, fuses, test points, and the semiconductors
+worth probing.
+"""
+
+
 def build_footprint(c, x, y, rot, padnet):
     spec = c["fp"]
     lib = load_fp(spec)
@@ -294,14 +322,40 @@ def build_footprint(c, x, y, rot, padnet):
             keep.append(ch)
 
     # Reference and Value carry the real designator, not REF** / the library name.
+    ref = c["ref"]
+    pre = ref.rstrip("0123456789")
+    got_desc = [False]
     for p in props:
         nm = unq(p[1])
         if nm == "Reference":
-            p[2] = q(c["ref"])
+            p[2] = q(ref)
+            lay = find(p, "layer")
+            if lay is not None and unq(lay[1]).endswith(".SilkS") and pre not in SILK_REF_KEEP:
+                lay[1] = q(unq(lay[1])[:2] + "Fab")
         elif nm == "Value":
             p[2] = q(c["value"])
         elif nm == "Footprint":
             p[2] = q(spec)
+        elif nm == "Description":
+            p[2] = q(c.get("desc", ""))
+            got_desc[0] = True
+
+    # The symbol's Description and its Do-Not-Populate flag are part of what board parity
+    # compares, and a footprint that carries neither reports as a mismatch for every part
+    # that has one: 46 "Field 'Description' differs" plus 31 "'Do not populate' settings
+    # differ".  The schematic is the source of truth for both, so both are copied across.
+    if c.get("desc") and not got_desc[0]:
+        props.append(["property", q("Description"), q(c["desc"]),
+                      ["at", "0", "0", "0"],
+                      ["unlocked", "yes"], ["layer", q("F.Fab")], ["hide", "yes"],
+                      ["effects", ["font", ["size", "1", "1"], ["thickness", "0.15"]]]])
+    if c.get("dnp"):
+        at = [k for k in keep if k[0] == "attr"]
+        if at:
+            if "dnp" not in at[0]:
+                at[0].append("dnp")
+        else:
+            keep.insert(0, ["attr", "dnp"])
 
     # Every (at) that belongs to something orientable becomes absolute.
     for ch in props + keep:
@@ -309,6 +363,20 @@ def build_footprint(c, x, y, rot, padnet):
             at = find(ch, "at")
             if at and ch[0] != "model":
                 addrot(at, rot)
+
+    # A zone inside a footprint is the one child KiCad keeps in BOARD coordinates rather than
+    # in the footprint's own frame.  Copied across verbatim, the ESP32 module's antenna
+    # keep-out landed at the board origin instead of over the antenna: that is why U5 was the
+    # only part DRC reported as differing from its library copy, and it meant DRC was policing
+    # an empty rectangle off the edge of the board while the antenna itself was unguarded.
+    # The placer and the router were never fooled -- fp_keepouts() does this same transform.
+    for z in keep:
+        if z[0] != "zone":
+            continue
+        for poly in find_all(z, "polygon"):
+            for xy in find_all(find(poly, "pts"), "xy"):
+                zx, zy = rot_local(float(xy[1]), float(xy[2]), rot)
+                xy[1], xy[2] = num(x + zx), num(y + zy)
 
     # Nets onto the pads.
     for p in keep:
@@ -909,13 +977,21 @@ def zones(netidx):
             s += "\t\t\t\t(xy %s %s)\n" % (num(px), num(py))
         return s + "\t\t\t)\n\t\t)"
 
+    # Pad connection is `thru_hole_only`: thermal reliefs for through-hole pads, solid copper
+    # for SMD.  With reliefs on everything, three SMD pads came back as starved_thermal -- one
+    # spoke where the zone asks for two -- because a routed track had crossed the line a second
+    # spoke would have taken.  Chasing spokes around the autorouter is the wrong fix: this
+    # board is reflow-assembled, where a relief on an SMD pad buys nothing and costs ground
+    # impedance, and on the GND_IN island and the VBAT plane that impedance is the point.  The
+    # connectors and other through-hole parts, which someone may well touch with an iron, keep
+    # their reliefs.
     def zone(net, layers, pts, tag, prio=0):
         code = netidx[net]
         lay = ("(layers " + " ".join(q(x) for x in layers) + ")") if len(layers) > 1 \
               else ("(layer " + q(layers[0]) + ")")
         return ("\t(zone (net %d) (net_name %s) %s (uuid %s)\n"
                 "\t\t(name %s) (hatch edge 0.5) (priority %d)\n"
-                "\t\t(connect_pads (clearance 0.3))\n"
+                "\t\t(connect_pads thru_hole_only (clearance 0.3))\n"
                 "\t\t(min_thickness 0.3) (filled_areas_thickness no)\n"
                 "\t\t(fill yes (thermal_gap 0.4) (thermal_bridge_width 0.5))\n"
                 "%s\n\t)" % (code, q(net), lay, U("zone_" + tag), q(tag), prio, poly(pts)))
@@ -931,8 +1007,13 @@ def zones(netidx):
     # is checked against the pads by scripts/check_grounds.py -- every GND_IN pad must sit in
     # it and no GND pad may.  Three features are deliberate:
     #
-    #   * the body, x 22..66 y 53.5..94, covers the whole eFuse column -- U10, Q10/Q11, R100,
-    #     the sense path and D2/R3;
+    #   * the body, x 22..62 y 53.5..94, covers the whole eFuse column -- U10, Q10/Q11, R100,
+    #     the sense path and D2/R3.  The east edge was 66 until 2026-09-21, which put it 1.2 mm
+    #     INSIDE the rails block (x 64..93) and wrapped input ground around the west pad column
+    #     of U4, C14, C31, R8 and L4 -- two of U4's pads are GND, so check_grounds.py failed the
+    #     moment U4 got a footprint, and L4 pad 1 is the 3V3 switch node, which wants input
+    #     ground nowhere near it.  62 keeps 3 mm past the easternmost GND_IN pad (D2 at x 59)
+    #     and clears the rails column by 2.8 mm;
     #   * a narrow SPUR, x 42..48 up to y 36, reaches L2 pad 2 (GND_IN, at 44.75, 38) and
     #     nothing else.  L2's OUTPUT pads are at y 27.3, so the spur stops well short of them
     #     and the post-choke pi filter (C1, C2, C3, L1) stays outside the pour entirely.  A
@@ -1024,6 +1105,44 @@ def seg(x0, y0, x1, y1, w, layer, net, tag):
             % (num(x0), num(y0), num(x1), num(y1), num(w), q(layer), net, U(tag)))
 
 
+def prim_bbox(pad):
+    """Bounding box of a custom pad's `primitives`, in pad-local mm, or None.
+
+    Only the vertex/centre geometry is read; a primitive's stroke `width` is added on all sides
+    so an unfilled outline is not under-reported.
+    """
+    prims = find(pad, "primitives")
+    if prims is None:
+        return None
+    xs, ys = [], []
+    for g in prims[1:]:
+        if not isinstance(g, list) or not g:
+            continue
+        wd = find(g, "width")
+        hw = (float(wd[1]) / 2.0) if wd is not None and len(wd) > 1 else 0.0
+        pts = find(g, "pts")
+        got = []
+        if pts is not None:
+            got = [(float(q[1]), float(q[2])) for q in pts[1:]
+                   if isinstance(q, list) and q and q[0] == "xy"]
+        elif g[0] in ("gr_circle", "gr_arc"):
+            ctr, end = find(g, "center"), find(g, "end")
+            if ctr is not None and end is not None:
+                cx, cy = float(ctr[1]), float(ctr[2])
+                r = math.hypot(float(end[1]) - cx, float(end[2]) - cy)
+                got = [(cx - r, cy - r), (cx + r, cy + r)]
+        elif g[0] == "gr_line":
+            st, end = find(g, "start"), find(g, "end")
+            if st is not None and end is not None:
+                got = [(float(st[1]), float(st[2])), (float(end[1]), float(end[2]))]
+        for qx, qy in got:
+            xs += [qx - hw, qx + hw]
+            ys += [qy - hw, qy + hw]
+    if not xs:
+        return None
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
 def pads_board(comps, pos, padnet):
     """Every copper pad as (ref, pad, net, cx, cy, w, h, smd, id) with an AXIS-ALIGNED bbox.
 
@@ -1065,10 +1184,29 @@ def pads_board(comps, pos, padnet):
                 continue
             pa = (float(at[3]) if len(at) > 3 else 0.0) + rot
             w, h = float(sz[1]), float(sz[2])
+            ox = oy = 0.0
+            if unq(p[3]) == "custom":
+                # A custom pad's `size` is only its ANCHOR shape.  The copper that actually gets
+                # etched is the union of the anchor with the `primitives`, and on a power package
+                # that is very much bigger: Q10's pad 3 reads `size 2.9 x 8.7` but its two polys
+                # span 8.0 x 10.1 and sit off to one side of the anchor.  Routing against the
+                # anchor alone drove three Q10_G tracks straight across the MID drain.
+                bb = prim_bbox(p)
+                if bb is not None:
+                    x0 = min(bb[0], -w / 2.0); y0 = min(bb[1], -h / 2.0)
+                    x1 = max(bb[2], w / 2.0); y1 = max(bb[3], h / 2.0)
+                    w, h = x1 - x0, y1 - y0
+                    ox, oy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
             th = math.radians(pa)
             cth, sth = abs(math.cos(th)), abs(math.sin(th))
             bw, bh = w * cth + h * sth, w * sth + h * cth
-            dx, dy = rot_local(float(at[1]), float(at[2]), rot)
+            ax, ay = float(at[1]), float(at[2])
+            if ox or oy:
+                # the offset is in the pad's own frame, so it turns with the pad, not the part
+                c_, s_ = math.cos(math.radians(pa)), math.sin(math.radians(pa))
+                ax += ox * c_ + oy * s_
+                ay += -ox * s_ + oy * c_
+            dx, dy = rot_local(ax, ay, rot)
             out.append((c["ref"], pn, padnet.get((c["ref"], pn)),
                         x + dx, y + dy, bw, bh, unq(p[2]) == "smd", len(out)))
     return out
@@ -1543,13 +1681,53 @@ AR_CLEAR = 0.20                # Default class; wider classes are read per obsta
 AR_VIA, AR_VIA_DRILL = 0.6, 0.3
 AR_LAYERS = ("F.Cu", "B.Cu")
 AR_EDGE = 0.5                  # mm of copper-free border inside the board outline
-AR_VIA_COST = 45               # in tenth-mm steps: a layer change is worth 4.5 mm of detour
+AR_VIA_COST = 35               # in tenth-mm steps: a layer change is worth 3.5 mm of detour
 AR_DIAG_OK = True
-AR_MARGIN = (6.0, 14.0, 30.0)  # mm the search box grows by, tried in order
-AR_MAX_POP = 600000            # give up on one attempt rather than hang the generator
+# Each layer has a grain: F.Cu runs east-west, B.Cu north-south.  Going across the grain is
+# allowed but costs AR_CROSS a step instead of 10, so a route that needs both axes would
+# rather pay for a via than cut a long diagonal swathe across the open field -- which is what
+# partitions the board and strands every net that comes after.
+AR_CROSS = 22
+AR_DIAG_COST = 22
+# mm the search box grows by, tried in order, each with the pop budget it is worth: a box
+# four times the area needs four times the budget or it just runs out with the frontier still
+# growing, which is what "pop" in the failure list means.
+AR_MARGIN = ((6.0, 1), (14.0, 2), (30.0, 5))
+AR_MAX_POP = 600000
+AR_RETRY_POP = 0            # give up on one attempt rather than hang the generator
+# Rip-up.  A net that cannot get through asks which nets are in the way and has them taken off
+# the board, then they queue up again behind it.  The caps are what stop two nets trading the
+# same channel for ever; every rip-up also costs a map rebuild, so they are not free.
+AR_SOFT_COST = 3000         # what crossing another net costs the question "who is in my way?"
+AR_MAX_RIPS = 120           # rip-ups in the whole run
+AR_RIP_TRIES = 6            # times one net may ask
+AR_RIP_LIMIT = 5            # times one net may be torn up
+# Every rip-up makes the contested corridor dearer for everyone except the net that just won
+# it.  Without this two nets swap the same channel back and forth until the budget runs out,
+# which is exactly what the first run did.  100 is 10 mm of detour: enough to send the loser
+# round the outside rather than back through the door it was just shown out of.
+AR_HIST_BUMP = 100
+
+# Fan-out.  A pad in a dense package can only leave its package one way, and a track laid
+# along the outside of the pad row seals every pin behind it -- which is how seven ESP32 GPIOs
+# ended up with 160 reachable cells each.  So every pin of a multi-pad part is given a short
+# lane straight out of the package before general routing starts, and that lane is never
+# ripped up.  Two-pin parts need this as much as the packages do: an 0402 in a row of 0402s
+# is walled in by its neighbours' clearance halos on three sides, and the map showed pads
+# whose every surrounding cell was contested -- unreachable by any route, for ever.
+AR_FAN_PADS = 2             # parts with at least this many pads get fan-out
+AR_FAN_GAP = 0.8            # mm clear of the package outline the lane has to reach
+AR_FAN_MAX = 3.0            # mm the lane may be, at most
+AR_FAN_MIN = 0.35           # mm past the pad edge, below which the lane is not worth having
 
 # The nets the router is not allowed to touch, by class name.  GND is named directly.
 AR_SKIP_CLASSES = ("FEED", "POWER", "CAN")
+# Why the last _ar_search gave up: "pop" means it ran out of budget with the frontier still
+# growing (raise AR_MAX_POP or shrink the box), "blocked" means it exhausted every reachable
+# cell (real congestion, or a box too small to go round the obstacle).
+_AR_WHY = [""]
+# The search that just failed, kept so the rip-up pass can ask the same question softly.
+_AR_STUCK = []
 
 
 def _ar_class(code):
@@ -1571,6 +1749,7 @@ class ARMap(object):
         z = _array.array('h', [0])
         self.core = [z * n, z * n]
         self.halo = [z * n, z * n]
+        self.hist = [_array.array('i', [0]) * n, _array.array('i', [0]) * n]
         self.vhalo = z * n          # too close for a VIA; one map, since a via crosses both
         self.cells = {}             # net -> [set of cells on F, set of cells on B]
         self.pads = {}              # net -> [(x0, y0, x1, y1, cx, cy, layers)]
@@ -1627,6 +1806,12 @@ class ARMap(object):
                     if index is not None:
                         index.add(base + i)
 
+    def zero(self):
+        if not hasattr(self, "_zero"):
+            z = _array.array('i', [0]) * (self.w * self.h)
+            self._zero = [z, z]
+        return self._zero
+
     def net_cells(self, net):
         if net not in self.cells:
             self.cells[net] = [set(), set()]
@@ -1640,8 +1825,11 @@ def _ar_build(comps, pos, padnet, netidx, placed, keepouts):
 
     # -- board edge: a border of hard-blocked cells, as a net nobody owns.  The outline is a
     #    rounded rectangle, so the corner radius is taken off the corners too.
-    bw = AR_EDGE + hw
-    nb = int(bw / AR_GRID) + 1
+    # A via is wider than a track, so it needs a wider border than one: measuring the via
+    # keep-out with the track's half-width let U10_DRN drop two vias 0.7 mm from the outline,
+    # 0.1 mm inside the 0.8 mm an 0.6 mm annulus actually needs.
+    nb = int((AR_EDGE + hw) / AR_GRID) + 1
+    nbv = int((AR_EDGE + AR_VIA / 2.0) / AR_GRID) + 1
     for j in range(g.h):
         base = j * g.w
         edge = j < nb or j >= g.h - nb
@@ -1649,6 +1837,9 @@ def _ar_build(comps, pos, padnet, netidx, placed, keepouts):
         for i in span:
             g.halo[0][base + i] = -1
             g.halo[1][base + i] = -1
+        edge = j < nbv or j >= g.h - nbv
+        span = range(g.w) if edge else list(range(0, nbv)) + list(range(g.w - nbv, g.w))
+        for i in span:
             g.vhalo[base + i] = -1
     r = L.EDGE_R
     for cx, cy, sx, sy in ((L.X0 + r, L.Y0 + r, -1, -1), (L.X1 - r, L.Y0 + r, 1, -1),
@@ -1660,10 +1851,13 @@ def _ar_build(comps, pos, padnet, netidx, placed, keepouts):
             base = j * g.w
             for i in range(i0, i1 + 1):
                 x = L.X0 + i * AR_GRID
-                if (x - cx) * sx > 0 and (y - cy) * sy > 0 \
-                        and math.hypot(x - cx, y - cy) > r - AR_EDGE - hw:
+                if not ((x - cx) * sx > 0 and (y - cy) * sy > 0):
+                    continue
+                d = math.hypot(x - cx, y - cy)
+                if d > r - AR_EDGE - hw:
                     g.halo[0][base + i] = -1
                     g.halo[1][base + i] = -1
+                if d > r - AR_EDGE - AR_VIA / 2.0:
                     g.vhalo[base + i] = -1
 
     # -- pads.  A through-hole pad is copper on both layers; an SMD pad only on F.Cu, which is
@@ -1799,7 +1993,7 @@ def _ar_components(g, net):
     return comps
 
 
-def _ar_search(g, net, srcs, dsts, dst_pts, box):
+def _ar_search(g, net, srcs, dsts, dst_pts, box, maxpop=None, soft=0, hist=True):
     """A* from a set of (cell, layer) to a set of (cell, layer).  Returns the path, or None.
 
     Costs are in tenths of a millimetre so they stay integers: 10 for an orthogonal step, 14
@@ -1809,21 +2003,41 @@ def _ar_search(g, net, srcs, dsts, dst_pts, box):
     """
     i0, j0, i1, j1 = box
     core, halo, vhalo, w = g.core, g.halo, g.vhalo, g.w
+    # The net that has just had a channel cleared for it routes without the history penalty;
+    # everyone else pays it, which is what stops the pair of them swapping the channel.
+    hcost = g.hist if hist else g.zero()
 
     def inbox(c):
         i = c % w
         return i0 <= i <= i1 and j0 <= (c // w) <= j1
 
-    def pass_(c, ly):
+    def extra(c, ly):
+        """What this cell adds to the cost: 0 if free to this net, None if it may not be used.
+
+        With `soft` set, a cell held by exactly one other net costs that much instead of being
+        refused, so the search still finds a way through a full board and the path it returns
+        names the nets standing in the way.  Contested cells (-1) stay hard: those are the
+        board edge, the keep-outs and the places where two nets already meet.
+        """
         v = halo[ly][c]
-        return v == 0 or v == net or core[ly][c] == net
+        if v == 0 or v == net or core[ly][c] == net:
+            return hcost[ly][c]
+        if soft and v > 0:
+            return soft + hcost[ly][c]
+        return None
+
+    def pass_(c, ly):
+        return extra(c, ly) is not None
 
     def hh(c):
+        # Manhattan, not octile: with the grain costs below no step is cheaper than 10 per
+        # tenth of a millimetre of Manhattan distance -- a diagonal covers two units for 22,
+        # dearer than the 20 two orthogonal steps cost -- so this is admissible, and it is
+        # tighter than octile, which is what keeps the search from sprawling.
         i, j = c % w, c // w
         best = 1 << 30
         for pi, pj in dst_pts:
-            dx, dy = abs(i - pi), abs(j - pj)
-            v = 10 * (dx + dy) - 6 * min(dx, dy) if AR_DIAG_OK else 10 * (dx + dy)
+            v = 10 * (abs(i - pi) + abs(j - pj))
             if v < best:
                 best = v
         return best
@@ -1840,8 +2054,11 @@ def _ar_search(g, net, srcs, dsts, dst_pts, box):
             dist[k] = 0
             _heapq.heappush(heap, (hh(c), 0, c, ly))
     pops = 0
-    steps = ((1, 0, 10), (-1, 0, 10), (0, 1, 10), (0, -1, 10))
-    diags = ((1, 1, 14), (1, -1, 14), (-1, 1, 14), (-1, -1, 14))
+    ew, ns = 10, AR_CROSS                       # F.Cu: east-west is with the grain
+    by_layer = (((1, 0, ew), (-1, 0, ew), (0, 1, ns), (0, -1, ns)),
+                ((1, 0, ns), (-1, 0, ns), (0, 1, ew), (0, -1, ew)))
+    diags = ((1, 1, AR_DIAG_COST), (1, -1, AR_DIAG_COST),
+             (-1, 1, AR_DIAG_COST), (-1, -1, AR_DIAG_COST))
     while heap:
         f, d, c, ly = _heapq.heappop(heap)
         if d > dist.get((c, ly), 1 << 30):
@@ -1854,17 +2071,19 @@ def _ar_search(g, net, srcs, dsts, dst_pts, box):
             path.reverse()
             return path
         pops += 1
-        if pops > AR_MAX_POP:
+        if pops > (maxpop or AR_MAX_POP):
+            _AR_WHY[0] = "pop"
             return None
         i, j = c % w, c // w
-        for dx, dy, cost in steps:
+        for dx, dy, cost in by_layer[ly]:
             ni, nj = i + dx, j + dy
             if not (i0 <= ni <= i1 and j0 <= nj <= j1):
                 continue
             nc = nj * w + ni
-            if not pass_(nc, ly):
+            e = extra(nc, ly)
+            if e is None:
                 continue
-            nd = d + cost
+            nd = d + cost + e
             if nd < dist.get((nc, ly), 1 << 30):
                 dist[(nc, ly)] = nd
                 prev[(nc, ly)] = (c, ly)
@@ -1876,9 +2095,10 @@ def _ar_search(g, net, srcs, dsts, dst_pts, box):
                     continue
                 nc = nj * w + ni
                 # no squeezing between two blocked cells on the diagonal
-                if not (pass_(nc, ly) and pass_(j * w + ni, ly) and pass_(nj * w + i, ly)):
+                e = extra(nc, ly)
+                if e is None or not (pass_(j * w + ni, ly) and pass_(nj * w + i, ly)):
                     continue
-                nd = d + cost
+                nd = d + cost + e
                 if nd < dist.get((nc, ly), 1 << 30):
                     dist[(nc, ly)] = nd
                     prev[(nc, ly)] = (c, ly)
@@ -1891,6 +2111,7 @@ def _ar_search(g, net, srcs, dsts, dst_pts, box):
                 dist[(c, oly)] = nd
                 prev[(c, oly)] = (c, ly)
                 _heapq.heappush(heap, (nd + hh(c), nd, c, oly))
+    _AR_WHY[0] = "blocked, %d cell(s) reached" % len(dist)
     return None
 
 
@@ -1943,12 +2164,13 @@ def _ar_trim(g, net, seq):
     return k, (cx, cy, tx, ty, ly0)
 
 
-def _ar_emit(g, net, path, out, placed):
-    """Turn a cell path into segments and vias, and stamp it back into the map."""
+def _ar_emit(g, net, path, geo, placed):
+    """Turn a cell path into board geometry, stamp it into the map, and file it under `net`.
+
+    The geometry is kept in millimetres rather than as s-expressions because the rip-up pass
+    has to be able to throw a net's routing away and lay the rest down again on a fresh map.
+    """
     hw = AR_W / 2.0
-    _cn, cl = _ar_class(net)
-    grow = hw + hw + max(AR_CLEAR, cl)
-    idx = g.net_cells(net)
 
     kh, lead_h = _ar_trim(g, net, path)
     kt, lead_t = _ar_trim(g, net, path[::-1])
@@ -1981,41 +2203,438 @@ def _ar_emit(g, net, path, out, placed):
     if lead_t:
         runs.append(("lead",) + lead_t)
 
-    n = 0
+    world = []
     for r in runs:
-        if r[0] == "lead":
-            _t, x0, y0, x1, y1, ly = r
-            out.append(seg(x0, y0, x1, y1, AR_W, AR_LAYERS[ly], net, "ar%d.%d" % (net, n)))
-            g.capsule(g.core[ly], x0, y0, x1, y1, hw, net, idx[ly])
-            g.capsule(g.halo[ly], x0, y0, x1, y1, grow, net)
-            g.capsule(g.vhalo, x0, y0, x1, y1, hw + AR_VIA / 2.0 + max(AR_CLEAR, cl), net)
-        elif r[0] == "via":
-            _c, ly = r[1], r[2]
-            vx, vy = g.xy(_c)
-            out.append(via(vx, vy, net, AR_VIA, AR_VIA_DRILL, "ar%d.%d" % (net, n)))
+        if r[0] == "via":
+            vx, vy = g.xy(r[1])
+            world.append(("via", vx, vy))
+        elif r[0] == "lead":
+            world.append(("seg",) + tuple(r[1:5]) + (r[5],))
+        else:
+            x0, y0 = g.xy(r[1])
+            x1, y1 = g.xy(r[2])
+            world.append(("seg", x0, y0, x1, y1, r[3]))
+    geo.setdefault(net, []).extend(world)
+    _ar_stamp(g, net, world, placed)
+    return (len([r for r in world if r[0] == "seg"]),
+            len([r for r in world if r[0] == "via"]))
+
+
+def _ar_stamp(g, net, world, placed):
+    """Write one net's routing into the map, and its vias into `placed`."""
+    hw = AR_W / 2.0
+    _cn, cl = _ar_class(net)
+    grow = hw + hw + max(AR_CLEAR, cl)
+    idx = g.net_cells(net)
+    for r in world:
+        if r[0] == "via":
+            _t, vx, vy = r
             placed.append((vx, vy, AR_VIA, AR_VIA_DRILL, net))
             for l2 in (0, 1):
                 g.capsule(g.core[l2], vx, vy, vx, vy, AR_VIA / 2.0, net, idx[l2])
                 g.capsule(g.halo[l2], vx, vy, vx, vy, AR_VIA / 2.0 + grow - hw, net)
             g.capsule(g.vhalo, vx, vy, vx, vy, AR_VIA + max(AR_CLEAR, cl), net)
         else:
-            _c, _c2, ly = r[1], r[2], r[3]
-            x0, y0 = g.xy(_c)
-            x1, y1 = g.xy(_c2)
-            out.append(seg(x0, y0, x1, y1, AR_W, AR_LAYERS[ly], net, "ar%d.%d" % (net, n)))
+            _t, x0, y0, x1, y1, ly = r
             g.capsule(g.core[ly], x0, y0, x1, y1, hw, net, idx[ly])
             g.capsule(g.halo[ly], x0, y0, x1, y1, grow, net)
             g.capsule(g.vhalo, x0, y0, x1, y1, hw + AR_VIA / 2.0 + max(AR_CLEAR, cl), net)
-        n += 1
-    return (len([r for r in runs if r[0] in ("seg", "lead")]),
-            len([r for r in runs if r[0] == "via"]))
+
+
+# Set AR_PRUNE_DBG to a comma-separated net list to watch _ar_prune work on them.
+_PRUNE_DBG = tuple(x for x in os.environ.get("AR_PRUNE_DBG", "").split(",") if x)
+
+
+def _ar_prune(g, geo, fan):
+    """Take off every track end that joins nothing -- what KiCad calls a dangling track.
+
+    Two things leave stubs behind.  A fan-out lane is speculative by construction: it is laid
+    before the net is routed, and if the net then fails, or the route arrives from a different
+    side, the lane is a spur off a pad with a free far end.  And a net that failed part-way
+    keeps the pieces it did manage, whose loose ends are the same thing.  354 lanes and 56
+    failed nets between them put the dangling-track count over KiCad's 199 report cap.
+
+    Three rules, and getting any of them wrong costs live copper:
+
+    LAYER.  A pad holds an end only if the pad has copper on that layer -- every SMD pad here
+    is F.Cu only, so a B.Cu end lying over one touches nothing.  Another run holds it only if
+    that run is on the same layer.  A via holds it on either layer, because every via this
+    router places spans both, and a via itself needs holding on BOTH layers, which is exactly
+    what "connected on only one layer" means in KiCad's report.
+
+    JUNCTION, not coverage.  A 0.1 mm step's far end sits 0.1414 mm from its own predecessor,
+    inside that predecessor's 0.125 mm half-width -- so a plain "is this point covered by
+    copper" test declares every chain end held by the segment behind it and prunes nothing.
+    An end is held only where it MEETS something: another run's endpoint within half a grid
+    step, or a T onto the interior of another run.
+
+    TRIM, do not delete.  A fan-out lane is one long segment, and the route usually joins it
+    part way along and leaves the rest hanging.  Deleting the lane takes the route's only
+    path to the pad with it and unravels the whole net -- which is what happened to PWM_DEN_A.
+    So a run held at one end only is walked in from the free end a grid step at a time and cut
+    back to the last point that still meets something.  Only then, if nothing does, is it gone.
+
+    Only free ends are ever removed, so nothing that was connected can stop being connected.
+    """
+    def dbg(net, msg):
+        if NETNAME.get(net) in _PRUNE_DBG:
+            print("    prune %s %s" % (NETNAME.get(net), msg))
+
+    hw = AR_W / 2.0
+    eps = 1e-6
+    snap = AR_GRID / 2.0 + eps          # "the same point", at the grid the router works on
+    cut = cutv = trim = 0
+    for net in set(list(geo) + list(fan)):
+        runs = [("geo", i) for i in range(len(geo.get(net, ())))]
+        runs += [("fan", i) for i in range(len(fan.get(net, ())))]
+        src = {"geo": geo, "fan": fan}
+        live = set(runs)
+        boxes = [b for b in g.pads.get(net, ())]
+
+        def item(k):
+            return src[k[0]][net][k[1]]
+
+        def held(k, x, y, ly, rad, ox, oy):
+            """Does the copper of radius `rad` at (x, y) meet its own net on layer `ly`?
+
+            (ox, oy) is the OTHER end of the same run, and it is what makes this test honest.
+            Copper overlaps when the shapes overlap -- that is the rule KiCad's connectivity
+            uses, and it is why a route that stops one cell beside a fan-out lane is joined to
+            it.  But a run's own chain neighbour, the one sitting on (ox, oy), has a 0.125 mm
+            end cap that reaches straight past a 0.1 mm step and covers this end too.  That is
+            not a connection, it is the same wire; count it and nothing ever prunes.  So the
+            neighbour at the far end may hold this end only by a real T onto its interior.
+            """
+            for x0, y0, x1, y1, _px, _py, lys in boxes:
+                if ly not in lys:
+                    continue
+                cx = min(max(x, x0), x1)
+                cy = min(max(y, y0), y1)
+                if math.hypot(x - cx, y - cy) <= eps:
+                    return True
+            for o in live:
+                if o == k:
+                    continue
+                r = item(o)
+                if r[0] == "via":
+                    if math.hypot(r[1] - ox, r[2] - oy) <= snap:
+                        continue               # the via this run climbs at its other end
+                    if math.hypot(x - r[1], y - r[2]) <= max(AR_VIA / 2.0, rad) + eps:
+                        return True
+                    continue
+                if r[5] != ly:
+                    continue
+                ax, ay, bx, by = r[1], r[2], r[3], r[4]
+                if math.hypot(x - ax, y - ay) <= snap or math.hypot(x - bx, y - by) <= snap:
+                    return True                # end to end: a junction, whatever else is true
+                dx, dy = bx - ax, by - ay
+                dd = dx * dx + dy * dy
+                if dd <= 1e-12:
+                    continue
+                s = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / dd))
+                if math.hypot(x - (ax + s * dx), y - (ay + s * dy)) > hw + rad + eps:
+                    continue
+                if (math.hypot(ax - ox, ay - oy) <= snap or math.hypot(bx - ox, by - oy) <= snap):
+                    ln = math.sqrt(dd)         # chain neighbour: only a real T counts
+                    if s * ln <= snap or (1.0 - s) * ln <= snap:
+                        continue
+                return True
+            return False
+
+        # Tracks and vias have to come off together, not one pass then the other.  Cutting a
+        # track can orphan the via it climbed, and cutting that via can orphan the track on
+        # the far layer that was hanging off it, so the two rules chase each other until
+        # neither fires.  Every step shortens the copper, so this terminates.  A via on a net
+        # that owns a pour is exempt: the plane connects it, and none of this geometry sees it.
+        planed = NETNAME.get(net) in PLANED_NETS
+        again = True
+        while again:
+            again = False
+            for k in sorted(live):
+                if k not in live:               # already gone earlier in this same pass
+                    continue
+                r = item(k)
+                if r[0] == "via":
+                    if planed or (held(k, r[1], r[2], 0, AR_VIA / 2.0, r[1], r[2])
+                                  and held(k, r[1], r[2], 1, AR_VIA / 2.0, r[1], r[2])):
+                        continue
+                    dbg(net, "cuts %s %s" % (k, r))
+                    live.discard(k)
+                    cut += 1
+                    cutv += 1
+                    again = True
+                    continue
+                ly = r[5]
+                one = held(k, r[1], r[2], ly, hw, r[3], r[4])
+                two = held(k, r[3], r[4], ly, hw, r[1], r[2])
+                if one and two:
+                    continue
+                if one or two:
+                    ax, ay = (r[1], r[2]) if one else (r[3], r[4])
+                    bx, by = (r[3], r[4]) if one else (r[1], r[2])
+                    ln = math.hypot(bx - ax, by - ay)
+                    n = max(1, int(round(ln / AR_GRID)))
+                    for i in range(n - 1, 0, -1):
+                        f = float(i) / n
+                        px, py = ax + (bx - ax) * f, ay + (by - ay) * f
+                        if held(k, px, py, ly, hw, ax, ay):
+                            src[k[0]][net][k[1]] = ("seg", ax, ay, px, py, ly)
+                            trim += 1
+                            dbg(net, "trims %s to (%.2f, %.2f)" % (k, px, py))
+                            again = True
+                            break
+                    else:
+                        dbg(net, "cuts %s %s" % (k, r))
+                        live.discard(k)
+                        cut += 1
+                        again = True
+                    continue
+                dbg(net, "cuts %s %s" % (k, r))
+                live.discard(k)
+                cut += 1
+                again = True
+
+        for tag, d in (("geo", geo), ("fan", fan)):
+            if net in d:
+                keep = [r for i, r in enumerate(d[net]) if (tag, i) in live]
+                if keep:
+                    d[net] = keep
+                else:
+                    del d[net]
+    print("autorouter: %d dangling run(s) cut (%d track, %d via), %d trimmed back"
+          % (cut, cut - cutv, cutv, trim))
+
+
+def _ar_sexpr(geo, tag="ar"):
+    """The board text for everything the router laid down."""
+    out = []
+    for net in sorted(geo):
+        for n, r in enumerate(geo[net]):
+            if r[0] == "via":
+                out.append(via(r[1], r[2], net, AR_VIA, AR_VIA_DRILL,
+                               "%s%d.%d" % (tag, net, n)))
+            else:
+                out.append(seg(r[1], r[2], r[3], r[4], AR_W, AR_LAYERS[r[5]], net,
+                               "%s%d.%d" % (tag, net, n)))
+    return out
+
+
+def _ar_fanout(g, comps, pos, padnet, wanted, fan, placed):
+    """Give every pin of a dense package a short lane straight out of the package.
+
+    Pads inside a package cannot be reached sideways: two neighbouring pads' clearance halos
+    meet in the gap between them, so the only way to a pin is from outside, along the one line
+    that leaves the package.  The first track that runs past the pad row takes that line away
+    from every pin behind it.  Laying the lanes first reserves them; they are stamped like any
+    other copper and are never ripped up, so the general router meets them as obstacles and
+    starts each net from the far end of its own lane, out in the open.
+    """
+    byref = {}
+    for ref, _pn, net, px, py, pw, ph, smd, _pid in pads_board(comps, pos, padnet):
+        byref.setdefault(ref, []).append((net, px, py, pw, ph, smd))
+    hw = AR_W / 2.0
+    n = 0
+    # Densest first: a 38-pin module has less choice about where its lanes go than an 8-pin
+    # part, and whatever it does not take is still there for the others.
+    for ref in sorted(byref, key=lambda r: -len(byref[r])):
+        ps = byref[ref]
+        if len(ps) < AR_FAN_PADS:
+            continue
+        bx0 = min(p[1] - p[3] / 2.0 for p in ps)
+        bx1 = max(p[1] + p[3] / 2.0 for p in ps)
+        by0 = min(p[2] - p[4] / 2.0 for p in ps)
+        by1 = max(p[2] + p[4] / 2.0 for p in ps)
+        for net, px, py, pw, ph, smd in ps:
+            if net not in wanted:
+                continue
+            # Out of the package the short way: whichever edge this pad is nearest.
+            d = ((px - bx0, (-1, 0)), (bx1 - px, (1, 0)), (py - by0, (0, -1)), (by1 - py, (0, 1)))
+            _dist, (ux, uy) = min(d)
+            # How far out the lane has to run: clear of the package, but no further than a pad
+            # pitch or two -- a long lane is just a track laid blind.
+            if ux:
+                want = ((bx1 + AR_FAN_GAP) - px) if ux > 0 else (px - (bx0 - AR_FAN_GAP))
+                edge = pw / 2.0
+            else:
+                want = ((by1 + AR_FAN_GAP) - py) if uy > 0 else (py - (by0 - AR_FAN_GAP))
+                edge = ph / 2.0
+            want = min(max(want, edge + AR_FAN_MIN), AR_FAN_MAX)
+            ly = 0
+            steps = int(want / AR_GRID)
+            ok = 0
+            for k in range(1, steps + 1):
+                x, y = px + ux * k * AR_GRID, py + uy * k * AR_GRID
+                i, j = g.ij(x, y)
+                if not (0 <= i < g.w and 0 <= j < g.h):
+                    break
+                c = j * g.w + i
+                v = g.halo[ly][c]
+                if not (v == 0 or v == net or g.core[ly][c] == net):
+                    break
+                ok = k
+            if ok * AR_GRID < edge + AR_FAN_MIN:
+                continue
+            ex, ey = px + ux * ok * AR_GRID, py + uy * ok * AR_GRID
+            run = [("seg", px, py, ex, ey, ly)]
+            fan.setdefault(net, []).extend(run)
+            _ar_stamp(g, net, run, placed)
+            n += 1
+    print("autorouter: %d fan-out lane(s)" % n)
+
+
+def _ar_rebuild(base, geo):
+    """A fresh map with everything in `geo` laid back down.  What is not in `geo` is gone.
+
+    Un-stamping one net in place is not possible: a halo cell holding -1 records that two nets
+    met there and cannot say which, so the only honest way to take a net off the board is to
+    build the map again without it.  That costs a few seconds, which is why rip-ups are
+    counted and capped.
+    """
+    comps, pos, padnet, netidx, placed0, keepouts, fan, hist = base
+    placed = list(placed0)
+    g = _ar_build(comps, pos, padnet, netidx, placed, keepouts)
+    g.hist = hist
+    for net in sorted(fan):
+        _ar_stamp(g, net, fan[net], placed)
+    for net in sorted(geo):
+        _ar_stamp(g, net, geo[net], placed)
+    return g, placed
+
+
+def _ar_route_net(g, net, geo, placed, tally, margins, maxpop, t0, hist=True):
+    """Join `net`'s pieces one at a time until it is whole.  Returns why it stopped, or "".
+
+    Each round takes the largest piece as the source and the nearest other piece as the
+    destination, so the net grows outward from its own centre of gravity rather than chaining
+    end to end.  The search box starts tight and is widened only if that fails: a tight box is
+    both faster and straighter, and a net that needs the wide one is usually going round
+    something.
+    """
+    comps_ = _ar_components(g, net)
+    while len(comps_) > 1:
+        comps_.sort(key=len, reverse=True)
+        src = comps_[0]
+        rest = comps_[1:]
+        sx = [g.xy(c) for c, _l in src]
+        scx = sum(p[0] for p in sx) / len(sx)
+        scy = sum(p[1] for p in sx) / len(sx)
+        rest.sort(key=lambda cm: min(math.hypot(g.xy(c)[0] - scx, g.xy(c)[1] - scy)
+                                     for c, _l in cm))
+        dst = rest[0]
+        dxy = [g.xy(c) for c, _l in dst]
+        pts = [(int(round((x - L.X0) / AR_GRID)), int(round((y - L.Y0) / AR_GRID)))
+               for x, y in dxy[::max(1, len(dxy) // 8)]]
+        path = None
+        print("    %-26s %d piece(s), %.1f s" % (NETNAME.get(net, "?"), len(comps_),
+                                                 _time.time() - t0))
+        for margin, budget in margins:
+            allx = [p[0] for p in sx] + [p[0] for p in dxy]
+            ally = [p[1] for p in sx] + [p[1] for p in dxy]
+            box = (max(0, g.ij(min(allx) - margin, 0)[0]),
+                   max(0, g.ij(0, min(ally) - margin)[1]),
+                   min(g.w - 1, g.ij(max(allx) + margin, 0)[0]),
+                   min(g.h - 1, g.ij(0, max(ally) + margin)[1]))
+            path = _ar_search(g, net, src, set(dst), pts, box, maxpop * budget, hist=hist)
+            if path:
+                break
+        if not path:
+            _AR_STUCK[:] = [src, set(dst), pts, box]
+            return "%d piece(s) left, %s" % (len(comps_), _AR_WHY[0])
+        s, v = _ar_emit(g, net, path, geo, placed)
+        tally[0] += 1
+        tally[1] += s
+        tally[2] += v
+        comps_ = _ar_components(g, net)
+    return ""
+
+
+def _ar_key(comps, pos, padnet, placed, keepouts):
+    """A fingerprint of everything the search actually depends on.
+
+    Which pads exist, where each one sits, what net it is on, what is already laid down and
+    where the keep-outs are -- plus the router's own constants.  Nothing else reaches the
+    search, so if this matches, last run's answer is still this run's answer.
+    """
+    h = _hashlib.sha1()
+    for t in sorted(repr(x) for x in pads_board(comps, pos, padnet)):
+        h.update(t.encode())
+    for t in sorted(repr(x) for x in placed):
+        h.update(t.encode())
+    for t in sorted(repr(x) for x in keepouts):
+        h.update(t.encode())
+    h.update(repr([(n, v) for n, v in sorted(globals().items())
+                   if n.startswith("AR_") and n != "AR_DUMP"]).encode())
+    return h.hexdigest()
+
+
+def _ar_cache(path, key, result=None):
+    """Read the cached routing for `key`, or write `result` under it.  None on a miss.
+
+    Routing is half an hour of search, and the board gets regenerated for things that have
+    nothing to do with routing: a silkscreen policy, a description field, a keep-out that was
+    in the wrong coordinate frame.  This lets those regenerate in seconds, and because the key
+    covers every input the search reads, a move of so much as one pad misses it.
+    """
+    import pickle
+    if result is None:
+        try:
+            with open(path, "rb") as fh:
+                k, geo, fan, failed = pickle.load(fh)
+        except (IOError, OSError, EOFError, ValueError, pickle.UnpicklingError):
+            return None
+        return (geo, fan, failed) if k == key else None
+    with open(path, "wb") as fh:
+        pickle.dump((key,) + result, fh, 2)
+    return result
+
+
+def frozen_routes(netidx):
+    """Emit the copper an external router laid, as frozen by scripts/freeze_routes.py.
+
+    The board stays generated: this reads data, not a board.  A run on a machine with no
+    router installed produces the same copper as the run that first laid it, which is the
+    whole point -- see docs/routing-tool.md 4.
+
+    Widths and layers come from the file rather than from AR_W / AR_LAYERS, because the
+    external router is allowed to neck a track down or lay a power net wide, and re-stamping
+    everything at one width would quietly undo that.
+    """
+    doc = json.load(io.open(FROZEN, encoding="utf-8"))
+    nets = doc.get("nets", {})
+    out, nseg, nvia, missing = [], 0, 0, []
+    for name in sorted(nets):
+        net = netidx.get(name)
+        if net is None:
+            missing.append(name)
+            continue
+        d = nets[name]
+        for i, r in enumerate(d.get("segments", ())):
+            out.append(seg(r[0], r[1], r[2], r[3], r[4], r[5], net, "fz%d.s%d" % (net, i)))
+            nseg += 1
+        for i, v in enumerate(d.get("vias", ())):
+            out.append(via(v[0], v[1], net, v[2], v[3], "fz%d.v%d" % (net, i)))
+            nvia += 1
+    print("frozen routes: %d segment(s), %d via(s) over %d net(s) from %s"
+          % (nseg, nvia, len(nets) - len(missing), os.path.basename(FROZEN)))
+    if missing:
+        # A net in the frozen file that the board no longer has means the schematic moved
+        # under the freeze.  Carrying on would drop that net's copper without saying so.
+        print("FAIL: %d frozen net(s) are not on this board: %s"
+              % (len(missing), ", ".join(missing[:8])))
+        print("      Re-run scripts/route_external.py and scripts/freeze_routes.py,")
+        print("      or delete %s to fall back to the built-in router." % FROZEN)
+        raise SystemExit(1)
+    return out
 
 
 def autoroute(comps, pos, padnet, netidx, placed, keepouts):
     """Route every signal net that is not already whole.  Returns the segments and vias."""
     gnd = netidx.get("GND")
     t0 = _time.time()
+    fan, hist = {}, None
+    base = [comps, pos, padnet, netidx, list(placed), keepouts, fan, None]
     g = _ar_build(comps, pos, padnet, netidx, placed, keepouts)
+    base[7] = hist = g.hist
     print("autorouter: clearance map over %d x %d cells in %.1f s"
           % (g.w, g.h, _time.time() - t0))
 
@@ -2032,59 +2651,108 @@ def autoroute(comps, pos, padnet, netidx, placed, keepouts):
         # shortest first: the tight nets get the channels before the loose ones fill them
         xs = [g.xy(c)[0] for cm in comps_ for c, _l in cm]
         ys = [g.xy(c)[1] for cm in comps_ for c, _l in cm]
-        todo.append((max(xs) - min(xs) + max(ys) - min(ys), len(comps_), net))
+        # Most pieces first, then shortest span.  A rail with a dozen stops has the least
+        # freedom about where it goes and has to be laid while the field is still open; the
+        # two-pad nets can thread whatever is left.
+        todo.append((-len(comps_), max(xs) - min(xs) + max(ys) - min(ys), net))
     todo.sort()
     print("autorouter: %d net(s) to route, %.1f s to here"
           % (len(todo), _time.time() - t0))
 
-    out = []
-    done = fail = nseg = nvia = 0
-    failed = []
-    for _span, _n, net in todo:
-        comps_ = _ar_components(g, net)
-        # grow one component until it has swallowed the rest, nearest first
-        while len(comps_) > 1:
-            comps_.sort(key=len, reverse=True)
-            src = comps_[0]
-            rest = comps_[1:]
-            sx = [g.xy(c) for c, _l in src]
-            scx = sum(p[0] for p in sx) / len(sx)
-            scy = sum(p[1] for p in sx) / len(sx)
-            rest.sort(key=lambda cm: min(math.hypot(g.xy(c)[0] - scx, g.xy(c)[1] - scy)
-                                         for c, _l in cm))
-            dst = rest[0]
-            dxy = [g.xy(c) for c, _l in dst]
-            pts = [(int(round((x - L.X0) / AR_GRID)), int(round((y - L.Y0) / AR_GRID)))
-                   for x, y in dxy[::max(1, len(dxy) // 8)]]
-            path = None
-            print("    %-26s %d piece(s), %.1f s" % (NETNAME.get(net, "?"), len(comps_),
-                                                     _time.time() - t0))
-            for margin in AR_MARGIN:
-                allx = [p[0] for p in sx] + [p[0] for p in dxy]
-                ally = [p[1] for p in sx] + [p[1] for p in dxy]
-                box = (max(0, g.ij(min(allx) - margin, 0)[0]),
-                       max(0, g.ij(0, min(ally) - margin)[1]),
-                       min(g.w - 1, g.ij(max(allx) + margin, 0)[0]),
-                       min(g.h - 1, g.ij(0, max(ally) + margin)[1]))
-                path = _ar_search(g, net, src, set(dst), pts, box)
-                if path:
-                    break
-            if not path:
-                failed.append("%s (%d piece(s) left)" % (NETNAME.get(net, "?"), len(comps_)))
-                fail += 1
-                break
-            s, v = _ar_emit(g, net, path, out, placed)
-            nseg += s
-            nvia += v
-            done += 1
-            comps_ = _ar_components(g, net)
+    _ar_fanout(g, comps, pos, padnet, set(net for _p, _s, net in todo), fan, placed)
+    # The lanes are copper too, so what was several pieces may now be fewer.
+    todo = [(-len(_ar_components(g, net)), sp, net) for _p, sp, net in todo]
+    todo = [t for t in todo if t[0] < -1]
+    todo.sort()
+    print("autorouter: %d net(s) still in pieces, %.1f s to here"
+          % (len(todo), _time.time() - t0))
 
-    print("autorouter: %d connection(s) routed, %d segment(s), %d via(s)"
-          % (done, nseg, nvia))
+    geo = {}
+    tally = [0, 0, 0]                       # connections, segments, vias
+    failed = {}
+    cpath = os.environ.get("AR_CACHE")
+    key = _ar_key(comps, pos, padnet, placed, keepouts) if cpath else None
+    hit = _ar_cache(cpath, key) if cpath else None
+    if hit:
+        geo, cfan, failed = hit
+        fan.clear()
+        fan.update(cfan)
+        g, placed = _ar_rebuild(base, geo)
+        queue = _collections.deque()
+        print("autorouter: %d routed net(s) reused from %s" % (len(geo), cpath))
+    else:
+        queue = _collections.deque(net for _p, _s, net in todo)
+    rips = _collections.Counter()           # how often each net has been torn up
+    tries = _collections.Counter()          # how often each net has asked for a rip-up
+    winner = set()                          # nets that have just had a channel cleared
+    nrip = 0
+    while queue:
+        net = queue.popleft()
+        why = _ar_route_net(g, net, geo, placed, tally, AR_MARGIN, AR_MAX_POP, t0,
+                            hist=(net not in winner))
+        winner.discard(net)
+        if not why:
+            failed.pop(net, None)
+            continue
+        failed[net] = why
+        if nrip >= AR_MAX_RIPS or tries[net] >= AR_RIP_TRIES or not _AR_STUCK:
+            continue
+        # Ask the same question again, this time allowed through other nets at a price.  The
+        # path that comes back is the one the board would permit if those nets moved, so the
+        # nets it crosses are exactly the ones worth tearing up.
+        src, dst, pts, box = _AR_STUCK
+        soft = _ar_search(g, net, src, dst, pts, box, AR_MAX_POP * AR_MARGIN[-1][1],
+                          soft=AR_SOFT_COST)
+        blockers = []
+        if soft:
+            for c, ly in soft:
+                v = g.halo[ly][c]
+                if (v > 0 and v != net and v in geo and v not in blockers
+                        and rips[v] < AR_RIP_LIMIT):
+                    blockers.append(v)
+        if not blockers:
+            continue
+        tries[net] += 1
+        nrip += 1
+        # Make the corridor dearer for everyone who is about to be sent round it.
+        for c, ly in soft:
+            v = g.halo[ly][c]
+            if v > 0 and v != net:
+                hist[ly][c] += AR_HIST_BUMP
+        winner.add(net)
+        for b in blockers:
+            rips[b] += 1
+            del geo[b]
+        geo.pop(net, None)                  # this net starts again too, from bare pads
+        print("    rip %d: %s takes out %s" % (nrip, NETNAME.get(net, "?"),
+                                               ", ".join(NETNAME.get(b, "?") for b in blockers)))
+        g, placed = _ar_rebuild(base, geo)
+        queue.appendleft(net)
+        for b in blockers:
+            queue.append(b)
+
+    if cpath and not hit:
+        _ar_cache(cpath, key, (geo, fan, failed))
+        print("autorouter: result cached in %s" % cpath)
+
+    _ar_prune(g, geo, fan)
+    done = len([n for n in geo if n not in failed])
+    nseg = (sum(1 for n in geo for r in geo[n] if r[0] == "seg")
+            + sum(len(v) for v in fan.values()))
+    nvia = sum(1 for n in geo for r in geo[n] if r[0] == "via")
+    out = _ar_sexpr(geo) + _ar_sexpr(fan, "fan")
+    print("autorouter: %d net(s) routed, %d rip-up(s), %d segment(s), %d via(s)"
+          % (done, nrip, nseg, nvia))
+    if os.environ.get("AR_DUMP"):
+        import pickle
+        with open(os.environ["AR_DUMP"], "wb") as fh:
+            pickle.dump((g.w, g.h, g.core, g.halo, g.vhalo, g.cells, g.pads,
+                         dict(failed), NETNAME, AR_GRID, L.X0, L.Y0, fan, geo), fh, 2)
+        print("autorouter: map dumped to %s" % os.environ["AR_DUMP"])
     if failed:
         print("  WARN: no path for %d net(s):" % len(failed))
-        for f in failed:
-            print("      %s" % f)
+        for net, why in sorted(failed.items(), key=lambda kv: NETNAME.get(kv[0], "")):
+            print("      %-26s %s" % (NETNAME.get(net, "?"), why))
     return out
 
 
@@ -2105,14 +2773,6 @@ def main():
     comps = [c for c in comps if c["ref"] not in missing]
 
     print("nets %d, parts %d" % (len(nets), len(comps)))
-    # Pads the footprint has but the symbol does not -- see layout_pcb.PAD_ALIAS.
-    for (ref, pad), src in sorted(L.PAD_ALIAS.items()):
-        if (ref, src) in padnet:
-            padnet[(ref, pad)] = padnet[(ref, src)]
-            print("  pad alias: %s pad %s follows pad %s -> %s"
-                  % (ref, pad, src, NETNAME[padnet[(ref, pad)]]))
-        else:
-            print("  WARN: PAD_ALIAS source %s pad %s is not in the netlist" % (ref, src))
 
     pos, unplaced, grid = place(comps)
     if unplaced:
@@ -2136,6 +2796,13 @@ def main():
                  fp=MOUNT_FP)
         fp = build_footprint(c, mx, my, 0, {})
         if fp:
+            # `board_only` is what exempts a footprint from the schematic-parity check,
+            # which is the honest description of a plain hole: it is not a part, it has no
+            # symbol, and it belongs in neither the BOM nor the pick-and-place file.
+            # Without it the four holes came back as four "Extra footprint" warnings.
+            fp.insert(2 if isinstance(fp[1], str) else 1,
+                      ["attr", "board_only", "exclude_from_bom",
+                       "exclude_from_pos_files"])
             mh.append("\t" + dump(fp, 2))
 
     out = []
@@ -2178,7 +2845,16 @@ def main():
     # The autorouter goes LAST of the copper, so its map sees the hand routes, the thermal and
     # stitching vias, and every ground drop as obstacles it has to work around.  Running it any
     # earlier would let it take the space a drop has no alternative to.
-    out += autoroute(comps, pos, padnet, netidx, placed, kos)
+    # AR_SKIP leaves the signal nets unrouted on purpose.  The hand routes, the thermal and
+    # stitching vias and the ground drops above are all still here, so what comes out is a
+    # board an external router can be pointed at: everything this repo decided by hand is
+    # already copper, and the only thing missing is the part being handed over.
+    if os.environ.get("AR_SKIP"):
+        print("autorouter: skipped (AR_SKIP) -- signal nets left unrouted")
+    elif os.path.exists(FROZEN) and not os.environ.get("AR_ROUTE"):
+        out += frozen_routes(netidx)
+    else:
+        out += autoroute(comps, pos, padnet, netidx, placed, kos)
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")

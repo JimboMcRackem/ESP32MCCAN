@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-09-20T10:53:35")
+		(date "2026-09-21T19:09:09")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -1028,6 +1028,9 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/power_input.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
 			)
 			(property
 				(name "ki_keywords")
@@ -5604,8 +5607,8 @@
 					(name "Description") "Schottky diode")
 			)
 			(libsource
-				(lib "Device")
-				(part "D_Schottky")
+				(lib "mccan_parts")
+				(part "D_SCHOTTKY_TAB")
 				(description "Schottky diode")
 			)
 			(property
@@ -5635,6 +5638,9 @@
 					(pins
 						(pin
 							(num "1")
+						)
+						(pin
+							(num "3")
 						)
 						(pin
 							(num "2")
@@ -7029,11 +7035,11 @@
 		(comp
 			(ref "U4")
 			(value "DML3017LDC")
+			(footprint "Package_DFN_QFN:DFN-12-1EP_3x3mm_P0.5mm_EP2.05x2.86mm")
 			(description "Single-channel smart load switch, active-high EN with internal pulldown, soft-start, short-circuit and thermal protection")
 			(fields
 				(field
-					(name "Footprint")
-				)
+					(name "Footprint") "Package_DFN_QFN:DFN-12-1EP_3x3mm_P0.5mm_EP2.05x2.86mm")
 				(field
 					(name "Datasheet")
 				)
@@ -9167,6 +9173,9 @@
 				(value "sheets/outputs.kicad_sch")
 			)
 			(property
+				(name "exclude_from_bom")
+			)
+			(property
 				(name "ki_keywords")
 				(value "connector")
 			)
@@ -9225,6 +9234,9 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
 			)
 			(property
 				(name "ki_keywords")
@@ -9287,6 +9299,9 @@
 				(value "sheets/outputs.kicad_sch")
 			)
 			(property
+				(name "exclude_from_bom")
+			)
+			(property
 				(name "ki_keywords")
 				(value "connector")
 			)
@@ -9345,6 +9360,9 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
 			)
 			(property
 				(name "ki_keywords")
@@ -9407,6 +9425,9 @@
 				(value "sheets/outputs.kicad_sch")
 			)
 			(property
+				(name "exclude_from_bom")
+			)
+			(property
 				(name "ki_keywords")
 				(value "connector")
 			)
@@ -9462,6 +9483,9 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
 			)
 			(property
 				(name "ki_keywords")
@@ -15029,6 +15053,48 @@
 		)
 		(libpart
 			(lib "mccan_parts")
+			(part "D_SCHOTTKY_TAB")
+			(description "Schottky diode")
+			(footprints
+				(fp "TO-???*")
+				(fp "*_Diode_*")
+				(fp "*SingleDiode*")
+				(fp "D_*")
+			)
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "D_Schottky")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Schottky diode")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "K")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "A")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "K")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "mccan_parts")
 			(part "LM51571QRTERQ1")
 			(docs "https://www.ti.com/lit/gpn/lm51571-q1")
 			(footprints
@@ -15628,7 +15694,7 @@
 		(net
 			(code "3")
 			(name "/+5V")
-			(class "Default")
+			(class "POWER")
 			(node
 				(ref "C16")
 				(pin "1")
@@ -15670,7 +15736,7 @@
 		(net
 			(code "4")
 			(name "/+24V")
-			(class "Default")
+			(class "POWER")
 			(node
 				(ref "C20")
 				(pin "1")
@@ -15695,6 +15761,12 @@
 				(ref "D4")
 				(pin "1")
 				(pinfunction "K_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "D4")
+				(pin "3")
+				(pinfunction "K_3")
 				(pintype "passive")
 			)
 			(node
@@ -15726,7 +15798,7 @@
 		(net
 			(code "5")
 			(name "/CANH")
-			(class "Default")
+			(class "CAN")
 			(node
 				(ref "D6")
 				(pin "1")
@@ -15754,7 +15826,7 @@
 		(net
 			(code "6")
 			(name "/CANL")
-			(class "Default")
+			(class "CAN")
 			(node
 				(ref "D6")
 				(pin "2")
@@ -16113,7 +16185,7 @@
 		(net
 			(code "22")
 			(name "/VBAT")
-			(class "Default")
+			(class "FEED")
 			(node
 				(ref "C12")
 				(pin "1")
@@ -16198,7 +16270,7 @@
 		(net
 			(code "23")
 			(name "/VLOGIC_IN")
-			(class "Default")
+			(class "POWER")
 			(node
 				(ref "C5")
 				(pin "1")

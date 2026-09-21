@@ -139,6 +139,31 @@ EXPLICIT = {
     # LM51571-Q1 RTE = WQFN-16 3x3 P0.5, exposed pad 1.66 +/-0.1 mm square (Figure 7-1
     # and the package drawing).  KiCad's EP1.675x1.675 is within tolerance.
     "U3":  "Package_DFN_QFN:QFN-16-1EP_3x3mm_P0.5mm_EP1.675x1.675mm",
+    # DML3017LDC, V-DFN3030-12 (Type B).  RESOLVED 2026-09-21; it had been BLOCKED since
+    # Task 8 step 0 because the pin-1 corner appeared to differ between two figures of
+    # DS46371.  It does not.  The Suggested Pad Layout drawing is a bare land pattern with
+    # no pin names on it, drawn in a different orientation from the Package Outline; the
+    # three figures that DO carry pin names all agree, and they are what fixes the part:
+    #   - Pin Descriptions (page 1, Top View): VIN top-left, VCC two places below it on the
+    #     left, and the five VOUT labels in a column down the right-hand side.
+    #   - Application connection diagram: 1..6 = VIN EN VCC GND SR PG down one side, then
+    #     7 = BLEED at the near corner and 8..12 = VOUT back up the other.  Six per side.
+    #   - Pin Descriptions table: 1 and 13 VIN, 2 EN, 3 VCC, 4 GND, 5 SR, 6 PG, 7 BLEED,
+    #     8-12 VOUT.  13 is the exposed pad and it is VIN, not GND -- do not pour it to
+    #     ground.  Section 7 of the layout notes says the same: "The copper polygons and
+    #     exposed pad shall connect to VIN".
+    # So: pin 1 top-left in top view, counter-clockwise.  A mirrored part would put the
+    # VOUT block on the same side as VIN, which the page-1 figure rules out.
+    #
+    # The KiCad land pattern is a dimensional match to the package outline, not just the
+    # right size class:  e 0.50 BSC and six per side -> pads on 0.50 pitch at +-1.25/+-0.75
+    # /+-0.25;  EP D2 x E2 = 2.70 x 2.00 -> pad 13 is 2.86 x 2.05 against the suggested
+    # layout's X2 2.86 / Y1 2.10;  and the EP-to-pad gap comes out at 1.225 - 1.025 =
+    # 0.200 mm, which is k exactly.  Pad heel 1.225 sits just inside the lead's inner end
+    # (body 1.50 - L 0.30 = 1.20).  The toe is longer than Diodes' own figure (3.75 mm
+    # toe-to-toe vs Y2 3.30) because KiCad draws the IPC nominal fillet; that is extra
+    # solder fillet to inspect, not a different land.
+    "U4":  "Package_DFN_QFN:DFN-12-1EP_3x3mm_P0.5mm_EP2.05x2.86mm",
     "U5":  "RF_Module:ESP32-WROOM-32E",        # ships with KiCad; 18.0 x 25.5 mm
     "U6":  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",   # TJA1042T/3
     "U7":  "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm", # PCA9685PW/Q900, SOT361-1
@@ -208,19 +233,20 @@ for _i in range(7, 21):
 # project holds.  `fp()` returns "" for them so the gap is visible in the netlist rather
 # than papered over with a plausible-looking wrong package.  See datasheets/NEEDED.md.
 BLOCKED = {
-    # F1 IS GONE.  It was a blade fuse, then briefly a board-mounted eFuse with no part
-    # selected; spec 4.2 resolved it by making U10 (LTC4380 + Q10/Q11) the fuse, the
-    # reverse-polarity block and the overvoltage clamp in one element.  D1, Q1 and R1 went
-    # with it.  Do not re-add a separate fuse without re-reading 4.2 -- a series fuse in
-    # front of the eFuse only adds resistance to the 7 A path.
-    # Datasheet IS held, but the land pattern must be drawn:
-    #   L6  -- ACT45B, 4.5 x 3.2 mm 4-pin.  KiCad's Coilank ACM4532 is the right size
-    #          class but its pads (+-1.825/+-1.125, 1.15x1.55) do not map onto the
-    #          ACT45B's extracted land figures (1.6/3.4/3.2) without guessing.
-    #   U4  -- DML3017LDC, V-DFN3030-12.  The pin-1 orientation is AMBIGUOUS between the
-    #          two figures in DS46371 and must be resolved from the package outline, not
-    #          inferred.  Drawing it with pin 1 wrong mirrors the whole part.
-    "U4": "DML3017LDC V-DFN3030-12 -- pin-1 orientation ambiguous in DS46371",
+    # EMPTY, and it should stay that way.  `fp()` returns "" for anything listed here so an
+    # unassignable part shows up as a hole in the netlist rather than being papered over
+    # with a plausible-looking wrong package, and every part on this board now has a
+    # footprint that was either shipped with KiCad or drawn from a held datasheet.
+    #
+    # The last two out were L6 (ACT45B, drawn 2026-09-19 from the recommended land pattern
+    # read as vector geometry) and U4 (DML3017LDC, 2026-09-21 -- see its entry above).
+    #
+    # F1 IS GONE, and is not a candidate to come back.  It was a blade fuse, then briefly a
+    # board-mounted eFuse with no part selected; spec 4.2 resolved it by making U10
+    # (LTC4380 + Q10/Q11) the fuse, the reverse-polarity block and the overvoltage clamp in
+    # one element.  D1, Q1 and R1 went with it.  Do not re-add a separate fuse without
+    # re-reading 4.2 -- a series fuse in front of the eFuse only adds resistance to the 7 A
+    # path.
 }
 
 
@@ -235,6 +261,18 @@ def fp(ref):
     if ref.startswith("C"):
         return C_OVERRIDE.get(ref, C_0603)
     return ""
+
+
+def in_bom(ref):
+    """False for a footprint that is not a purchased part.
+
+    KiCad's Connector_Wire:SolderWire-* footprints are BOM-excluded in the library, because
+    there is no connector to buy: they are bare pads with a strain-relief slot, and the wire
+    itself is a harness line, not a board line (see hardware/docs/harness.md).  The symbols
+    said "in BOM" while the footprints said otherwise, which board parity reported as seven
+    "'Exclude from bill of materials' settings differ" warnings.  The footprints are right.
+    """
+    return not fp(ref).startswith("Connector_Wire:SolderWire")
 
 
 def all_assigned():
