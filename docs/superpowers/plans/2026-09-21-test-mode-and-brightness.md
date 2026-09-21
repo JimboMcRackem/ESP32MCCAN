@@ -83,7 +83,7 @@ Amend the spec to match as part of Task 1.
 
 Nothing else in the tree changes in this task, so the build and all existing suites stay green throughout.
 
-- [ ] **Step 1: Write the generator**
+- [x] **Step 1: Write the generator**
 
 The spec says the table is built at compile time. A `constexpr` C++ implementation of `x^2.2` needs either floating point (`std::pow` is not `constexpr`) or an integer approximation nobody will want to review. Generating a committed header instead matches the house convention already used for the hardware sheets — artefacts are generated from a script and never hand-edited — and it keeps floating point off the device entirely.
 
@@ -130,7 +130,7 @@ with open(out, "w", newline="\n") as f:
 print("wrote %s" % out)
 ```
 
-- [ ] **Step 2: Run the generator**
+- [x] **Step 2: Run the generator**
 
 Run: `python scripts/gen_gamma.py`
 Expected: `wrote src\domain\gamma_table.h`
@@ -139,7 +139,7 @@ Sanity-check the output — `kGammaEncode` must start `0, 0, 0, ...` and end `..
 
 Run: `head -8 src/domain/gamma_table.h && sed -n '26,28p' src/domain/gamma_table.h`
 
-- [ ] **Step 3: Write the failing test**
+- [x] **Step 3: Write the failing test**
 
 Create `test/test_color_level/test_color_level.cpp`:
 
@@ -268,12 +268,12 @@ int main(int, char**) {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it fails**
+- [x] **Step 4: Run the test to verify it fails**
 
 Run: `python -m platformio test -e native -f test_color_level`
 Expected: compile error — `'ColorLevel' was not declared in this scope`.
 
-- [ ] **Step 5: Extend `color.h`**
+- [x] **Step 5: Extend `color.h`**
 
 Append to `src/domain/color.h`, after the existing `Rgb` operators:
 
@@ -317,17 +317,17 @@ inline ColorLevel colorFromRgb(const Rgb& c) {
 
 Move the `#include "domain/gamma_table.h"` up next to `#include <cstdint>` at the top of the file rather than leaving it mid-file.
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `python -m platformio test -e native -f test_color_level`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 7: Run the whole native suite — nothing else may have moved**
+- [x] **Step 7: Run the whole native suite — nothing else may have moved**
 
 Run: `python -m platformio test -e native`
 Expected: all suites PASS.
 
-- [ ] **Step 8: Correct the spec's tolerance claim**
+- [x] **Step 8: Correct the spec's tolerance claim**
 
 In `docs/superpowers/specs/2026-09-21-test-mode-and-brightness-design.md`, replace the final sentence of the "Known imprecision" paragraph (line 150):
 
@@ -345,7 +345,7 @@ hue normalization rounds as well as the gamma round trip.
 
 And in the `test_color_level` row of the Testing table (line 342), replace `within ±1 for all six defaults and a swept set of triples` with `exact for all six defaults, ±1 on a ramp, ±2 on a swept set of triples`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add scripts/gen_gamma.py src/domain/gamma_table.h src/domain/color.h \
@@ -383,7 +383,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 The type change breaks compilation in `behavior_engine.cpp` and `config_json.cpp`, so all three move in one commit. The build is green before and after, never in between.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `test_roundtrip_preserves_colors` in `test/test_config_json/test_config_json.cpp` (lines 23-29) with:
 
@@ -457,7 +457,7 @@ with an assertion on the resolved duty plus the new tunable — the default must
   TEST_ASSERT_EQUAL_UINT32(600000, c.testMaxMs);
 ```
 
-- [ ] **Step 2: Update the behaviour-engine assertions**
+- [x] **Step 2: Update the behaviour-engine assertions**
 
 Every colour assertion in `test/test_behavior_engine/test_behavior_engine.cpp` compares an `OutputIntent`'s `Rgb` against a config entry that is now a `ColorLevel`. They all need wrapping in `resolveColor`. This is mechanical:
 
@@ -469,12 +469,12 @@ grep -c "resolveColor" test/test_behavior_engine/test_behavior_engine.cpp
 
 Expected: `24`. If the count differs, inspect the file rather than re-running the sed.
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `python -m platformio test -e native -f test_config_json`
 Expected: compile error — no `testMaxMs` member in `Config`, and `configFromJson` returns `Rgb` where `ColorLevel` is expected.
 
-- [ ] **Step 4: Change the `Config` type**
+- [x] **Step 4: Change the `Config` type**
 
 In `src/domain/config.h`, replace lines 29-39 with:
 
@@ -501,7 +501,7 @@ In `src/domain/config.h`, replace lines 29-39 with:
 
 `config.cpp` needs no change — `defaultConfig()` builds a `Config c;` and relies on these in-class initializers.
 
-- [ ] **Step 5: Resolve colours in the behaviour engine**
+- [x] **Step 5: Resolve colours in the behaviour engine**
 
 In `src/domain/behavior_engine.cpp`, replace lines 14-17 with:
 
@@ -522,7 +522,7 @@ and in lines 29-30 use the local instead of the config field:
 
 No other logic changes. The resolution happens once per call, not per zone.
 
-- [ ] **Step 6: Serialize and migrate in `config_json.cpp`**
+- [x] **Step 6: Serialize and migrate in `config_json.cpp`**
 
 Replace the `rgbTo` / `rgbFrom` helpers (lines 9-13) with:
 
@@ -597,17 +597,17 @@ And read the tunable next to the existing two (after line 83):
   c.testMaxMs = doc["testMaxMs"] | c.testMaxMs;
 ```
 
-- [ ] **Step 7: Run the tests to verify they pass**
+- [x] **Step 7: Run the tests to verify they pass**
 
 Run: `python -m platformio test -e native`
 Expected: all suites PASS, including the four new `test_config_json` cases and the 24 rewritten behaviour-engine assertions.
 
-- [ ] **Step 8: Confirm the device build still links**
+- [x] **Step 8: Confirm the device build still links**
 
 Run: `py -3.13 -m platformio run -e esp32`
 Expected: SUCCESS. (`main.cpp` and the HAL are excluded from the native env, so this is the only check that they still compile.)
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/domain/config.h src/domain/behavior_engine.cpp src/domain/config_json.cpp \
@@ -641,7 +641,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   - `OutputIntent resolveOutputs(const LogicalState& real, const TestMode& t, const Config& cfg, uint32_t nowMs, EngineState& est, EngineState& testEst)`
   - `bool testExpired(const TestMode& t, const Config& cfg, uint32_t nowMs)`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `test/test_test_mode/test_test_mode.cpp`:
 
@@ -791,12 +791,12 @@ int main(int, char**) {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `python -m platformio test -e native -f test_test_mode`
 Expected: compile error — `domain/test_mode.h: No such file or directory`.
 
-- [ ] **Step 3: Write the header**
+- [x] **Step 3: Write the header**
 
 Create `src/domain/test_mode.h`:
 
@@ -845,7 +845,7 @@ OutputIntent resolveOutputs(const LogicalState& real, const TestMode& t,
 bool testExpired(const TestMode& t, const Config& cfg, uint32_t nowMs);
 ```
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Create `src/domain/test_mode.cpp`:
 
@@ -934,17 +934,17 @@ bool testExpired(const TestMode& t, const Config& cfg, uint32_t nowMs) {
 parallel arrays honest; the first catches a length mismatch at compile time,
 the second catches a reordering.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `python -m platformio test -e native -f test_test_mode`
 Expected: PASS, 10 tests.
 
-- [ ] **Step 6: Run the whole native suite**
+- [x] **Step 6: Run the whole native suite**
 
 Run: `python -m platformio test -e native`
 Expected: all suites PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/domain/test_mode.h src/domain/test_mode.cpp test/test_test_mode/
@@ -975,7 +975,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   - `std::string testStateMessage(const TestMode& t, const Config& cfg, uint32_t nowMs)`
   - `configMessage` now emits `protocolVersion`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `test/test_web_protocol/test_web_protocol.cpp`, before `main`:
 
@@ -1127,12 +1127,12 @@ Register all thirteen in `main`:
 
 `test_unknown_type_is_error` already exists in this file and must keep passing — it is the "unknown messages degrade, not break" guarantee. Do not remove it.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `python -m platformio test -e native -f test_web_protocol`
 Expected: compile error — `'TestKind' was not declared`, `'kProtocolVersion' was not declared`.
 
-- [ ] **Step 3: Extend the protocol header**
+- [x] **Step 3: Extend the protocol header**
 
 Replace `src/domain/web_protocol.h` entirely:
 
@@ -1171,7 +1171,7 @@ std::string errorMessage(const std::string& msg);
 std::string testStateMessage(const TestMode& t, const Config& cfg, uint32_t nowMs);
 ```
 
-- [ ] **Step 4: Implement the `test` branch**
+- [x] **Step 4: Implement the `test` branch**
 
 In `src/domain/web_protocol.cpp`, insert before the `act.error = "unknown type";` line:
 
@@ -1233,7 +1233,7 @@ In `src/domain/web_protocol.cpp`, insert before the `act.error = "unknown type";
   }
 ```
 
-- [ ] **Step 5: Add the version field and the `test_state` builder**
+- [x] **Step 5: Add the version field and the `test_state` builder**
 
 In `configMessage`, add the version line after `doc["type"] = "config";`:
 
@@ -1263,17 +1263,17 @@ std::string testStateMessage(const TestMode& t, const Config& cfg, uint32_t nowM
 }
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `python -m platformio test -e native -f test_web_protocol`
 Expected: PASS, 22 tests (9 existing + 13 new).
 
-- [ ] **Step 7: Run the whole native suite**
+- [x] **Step 7: Run the whole native suite**
 
 Run: `python -m platformio test -e native`
 Expected: all suites PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/domain/web_protocol.h src/domain/web_protocol.cpp test/test_web_protocol/
@@ -1301,7 +1301,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 The HAL is excluded from the native build (`build_src_filter = +<*> -<main.cpp> -<hal/>`), so this task has no unit test. Its gate is that the ESP32 build compiles and that the on-hardware check in Task 6 sees the callback fire. This is why it is a small task of its own rather than folded into Task 6: a reviewer can approve the HAL change independently of the wiring decisions.
 
-- [ ] **Step 1: Declare the callback**
+- [x] **Step 1: Declare the callback**
 
 In `src/hal/web_server.h`, add below the `MessageCb` alias:
 
@@ -1317,7 +1317,7 @@ and below `void onMessage(MessageCb cb);`:
   void onDisconnect(DisconnectCb cb);
 ```
 
-- [ ] **Step 2: Implement it**
+- [x] **Step 2: Implement it**
 
 In `src/hal/web_server.cpp`, add the storage next to `s_cb` (line 12):
 
@@ -1343,12 +1343,12 @@ Append next to the existing `onMessage` definition:
 void WebServerHal::onDisconnect(DisconnectCb cb) { s_disc = cb; }
 ```
 
-- [ ] **Step 3: Verify it compiles**
+- [x] **Step 3: Verify it compiles**
 
 Run: `py -3.13 -m platformio run -e esp32`
 Expected: SUCCESS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/hal/web_server.h src/hal/web_server.cpp
@@ -1373,7 +1373,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 `main.cpp` is excluded from the native build, so the gate here is the ESP32 build plus the on-hardware checks in Step 6.
 
-- [ ] **Step 1: Add the include and the globals**
+- [x] **Step 1: Add the include and the globals**
 
 In `src/main.cpp`, add after `#include "domain/behavior_engine.h"`:
 
@@ -1388,7 +1388,7 @@ static TestMode    g_test;         // lighting override held by the web app
 static EngineState g_testEngine;   // scenarios run against THIS, never g_engine
 ```
 
-- [ ] **Step 2: Handle `setTest` and release helpers**
+- [x] **Step 2: Handle `setTest` and release helpers**
 
 Add above `void setup()`:
 
@@ -1422,7 +1422,7 @@ Inside the `g_web.onMessage` lambda, after the `act.setDiscovery` block:
     }
 ```
 
-- [ ] **Step 3: Wire the disconnect release**
+- [x] **Step 3: Wire the disconnect release**
 
 Immediately after the `g_web.onMessage(...)` call in `setup()`:
 
@@ -1434,7 +1434,7 @@ Immediately after the `g_web.onMessage(...)` call in `setup()`:
   });
 ```
 
-- [ ] **Step 4: Route the outputs and broadcast the state**
+- [x] **Step 4: Route the outputs and broadcast the state**
 
 In `loop()`, replace the compute line (line 89):
 
@@ -1466,12 +1466,12 @@ And add the 1 s state tick after the discovery block, mirroring its shape:
   }
 ```
 
-- [ ] **Step 5: Verify it compiles**
+- [x] **Step 5: Verify it compiles**
 
 Run: `py -3.13 -m platformio run -e esp32`
 Expected: SUCCESS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/main.cpp
@@ -1501,7 +1501,7 @@ On-hardware verification waits until Task 8, when the UI exists to drive it. The
 
 There is no JS test harness in this repo, so these two tasks are verified by reading the diff and by the hardware checklist. Keep them small for that reason.
 
-- [ ] **Step 1: Restructure the header and add the test tab**
+- [x] **Step 1: Restructure the header and add the test tab**
 
 In `data/index.html`, replace the `<header>` block (lines 10-13) with:
 
@@ -1551,7 +1551,7 @@ Add the test section after `#tab-appearance` (line 36):
     </section>
 ```
 
-- [ ] **Step 2: Add the styles**
+- [x] **Step 2: Add the styles**
 
 Append to `data/style.css`:
 
@@ -1581,7 +1581,7 @@ input[type=range] { width: 100%; margin-top: .25rem; }
 .scenarios button.active { background: #4b8bff; color: #fff; }
 ```
 
-- [ ] **Step 3: Add the constants, state and helpers**
+- [x] **Step 3: Add the constants, state and helpers**
 
 In `data/app.js`, after the `MAX_BITS` const (line 10):
 
@@ -1637,7 +1637,7 @@ function scheduleSend(fn) {
 }
 ```
 
-- [ ] **Step 4: Handle the new messages**
+- [x] **Step 4: Handle the new messages**
 
 Replace `onMessage` (lines 32-36):
 
@@ -1664,7 +1664,7 @@ function checkVersion(v) {
 }
 ```
 
-- [ ] **Step 5: Render the banner and the test tab**
+- [x] **Step 5: Render the banner and the test tab**
 
 Add after `renderColors` (line 73):
 
@@ -1754,7 +1754,7 @@ function renderTestZones() {
 }
 ```
 
-- [ ] **Step 6: Wire it up**
+- [x] **Step 6: Wire it up**
 
 Add to `render()` (after `renderColors();`, line 44):
 
@@ -1781,12 +1781,12 @@ document.getElementById("testDenali").oninput = (e) => {
 };
 ```
 
-- [ ] **Step 7: Check the file parses**
+- [x] **Step 7: Check the file parses**
 
 Run: `node --check data/app.js`
 Expected: no output (success). If `node` is unavailable, open the page in a browser with the console visible and confirm there is no `SyntaxError`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add data/index.html data/app.js data/style.css
@@ -1812,7 +1812,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `resolveJs`, `normalizeHue`, `pctToLevel`, `levelToPct`, `scheduleSend` from Task 7; the `{hue, level}` config shape from Task 2.
 - Produces: nothing downstream. This is the last task.
 
-- [ ] **Step 1: Add the preview toggle to the markup**
+- [x] **Step 1: Add the preview toggle to the markup**
 
 In `data/index.html`, replace the appearance section (lines 34-36):
 
@@ -1824,7 +1824,7 @@ In `data/index.html`, replace the appearance section (lines 34-36):
     </section>
 ```
 
-- [ ] **Step 2: Add the preview mapping**
+- [x] **Step 2: Add the preview mapping**
 
 In `data/app.js`, after the `ZONES` const:
 
@@ -1848,7 +1848,7 @@ And next to the other module state:
 let previewOn = false;
 ```
 
-- [ ] **Step 3: Rewrite `renderColors` with hue plus level**
+- [x] **Step 3: Rewrite `renderColors` with hue plus level**
 
 Replace `renderColors` (lines 61-73):
 
@@ -1897,7 +1897,7 @@ function previewEntry(k, e) {
 }
 ```
 
-- [ ] **Step 4: Wire the toggle**
+- [x] **Step 4: Wire the toggle**
 
 Append to the wiring section:
 
@@ -1917,17 +1917,17 @@ And keep the checkbox honest when the device releases the mode on its own — ad
     document.getElementById("previewToggle").checked = false;
 ```
 
-- [ ] **Step 5: Check the file parses**
+- [x] **Step 5: Check the file parses**
 
 Run: `node --check data/app.js`
 Expected: no output.
 
-- [ ] **Step 6: Run the full native suite one last time**
+- [x] **Step 6: Run the full native suite one last time**
 
 Run: `python -m platformio test -e native`
 Expected: all suites PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add data/index.html data/app.js
