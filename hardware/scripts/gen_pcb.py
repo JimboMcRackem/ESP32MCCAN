@@ -1655,6 +1655,17 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
     r = DROP_VIA / 2.0
     holes = [(mx, my, L.MOUNT_PAD) for mx, my in mount_holes()]
 
+    # Track copper already on the board, as (x0, y0, x1, y1, w, layer, net) for everything in
+    # TRACK_LOG that is not ground.  At this point that is the hand routes and nothing else:
+    # routes() runs first, the autorouter runs last and reads the drops as obstacles rather
+    # than the other way round, and every drop stub laid here is itself ground.
+    #
+    # Without this a drop lands on top of a hand route, and check_track_crossings() then
+    # reports it as a fault in the HAND route -- in a place the hand route had no choice
+    # about.  U3 pin 2 is the case that forced it: its only escape is the 0.35 mm channel
+    # west of the pin, and pin 1's drop had taken it.
+    foreign = [t for t in TRACK_LOG if t[6] != gnd]
+
     def via_ok(vx, vy, skip, island=True):
         if not (L.X0 + 0.5 + r <= vx <= L.X1 - 0.5 - r
                 and L.Y0 + 0.5 + r <= vy <= L.Y1 - 0.5 - r):
@@ -1671,6 +1682,11 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
             d = math.hypot(vx - px, vy - py)
             if d < max((DROP_DRILL + pd) / 2.0 + 0.3,
                        (DROP_VIA + ps) / 2.0 + (0.0 if pnet == gnd else DROP_CLEAR)):
+                return False
+        for tx0, ty0, tx1, ty1, tw, _tlay, tnet in foreign:
+            # A via crosses every layer, so every layer's copper is in its way.
+            need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
+            if _pt_seg_dist(vx, vy, tx0, ty0, tx1, ty1) < r + tw / 2.0 + need:
                 return False
         near = hash_.near(vx - r - DROP_CLEAR, vy - r - DROP_CLEAR,
                           vx + r + DROP_CLEAR, vy + r + DROP_CLEAR)
@@ -1711,6 +1727,13 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
             need = max(net_clearance(pnet), DROP_DEFAULT_CLEAR)
             if _seg_rect(x0, y0, x1, y1, px - ps / 2, py - ps / 2,
                          px + ps / 2, py + ps / 2) < w / 2 + need:
+                return False
+        # Foreign track copper on F.Cu, which is the only layer a stub is on.
+        for tx0, ty0, tx1, ty1, tw, tlay, tnet in foreign:
+            if tlay != "F.Cu":
+                continue
+            need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
+            if _seg_seg(x0, y0, x1, y1, tx0, ty0, tx1, ty1) < (w + tw) / 2.0 + need:
                 return False
         return True
 
@@ -3086,11 +3109,17 @@ def frozen_routes(netidx):
     """
     doc = json.load(io.open(FROZEN, encoding="utf-8"))
     nets = doc.get("nets", {})
-    out, nseg, nvia, missing = [], 0, 0, []
+    drop = set(getattr(L, "FROZEN_DROP", ()))
+    out, nseg, nvia, missing, dropped = [], 0, 0, [], []
     for name in sorted(nets):
         net = netidx.get(name)
         if net is None:
             missing.append(name)
+            continue
+        if name in drop:
+            # layout_pcb.FROZEN_DROP: this net is hand-authored in ROUTES, so the router's
+            # copper for it -- usually an abandoned fanout via -- is not wanted.
+            dropped.append(name)
             continue
         d = nets[name]
         for i, r in enumerate(d.get("segments", ())):
@@ -3100,7 +3129,13 @@ def frozen_routes(netidx):
             out.append(via(v[0], v[1], net, v[2], v[3], "fz%d.v%d" % (net, i)))
             nvia += 1
     print("frozen routes: %d segment(s), %d via(s) over %d net(s) from %s"
-          % (nseg, nvia, len(nets) - len(missing), os.path.basename(FROZEN)))
+          % (nseg, nvia, len(nets) - len(missing) - len(dropped), os.path.basename(FROZEN)))
+    if dropped:
+        print("  dropped %d net(s) named in layout_pcb.FROZEN_DROP: %s"
+              % (len(dropped), ", ".join(dropped)))
+    for name in sorted(drop - set(dropped)):
+        # A stale entry would silently do nothing, and the next reader would believe it.
+        print("  WARNING: FROZEN_DROP names %r, which the frozen file does not carry" % name)
     if missing:
         # A net in the frozen file that the board no longer has means the schematic moved
         # under the freeze.  Carrying on would drop that net's copper without saying so.
