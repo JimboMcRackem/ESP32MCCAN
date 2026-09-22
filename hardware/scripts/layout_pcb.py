@@ -1054,7 +1054,20 @@ ROUTES = [
     #    pin 1 shares the paddle's via field instead, which is 1.1 mm away.
     ("Net-(U3-VCC)", "F.Cu", 0.25, [(70.825, 30.600), (71.600, 30.600),
                                     (71.600, 31.750), (72.544, 31.750)]),
-]
+    #
+    # -- EN_BOOST: U3 pin 6 down to R20, which is the pull-down at the bottom of the enable
+    #    divider and already carries the run out to the ESP32.  West of pin 6 is the RT
+    #    staircase and east of it is pin 7's ground drop, so the only way out is straight
+    #    south down the 0.85 mm channel between R14's two pads and then the 0.65 mm one
+    #    between C23's.  At 0.20 mm -- the board floor, and more than enough for a static
+    #    enable that draws microamps -- that leaves 0.325 and 0.225 mm a side.
+    #
+    #    Pin 7's ground drop was sitting at (74.25, 34.23), in the mouth of that channel.
+    #    It moves now: gnd_drops() reads the hand routes.
+    ("/EN_BOOST", "F.Cu", 0.20, [(73.750, 33.456), (73.750, 34.600),
+                                 (74.000, 34.850), (74.000, 38.200),
+                                 (71.500, 38.200)]),
+ ]
 
 ROUTE_VIAS = [
     # FEED_P's haul on In2.Cu, and the three taps it surfaces for -- see the routes above.
