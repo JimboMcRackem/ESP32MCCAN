@@ -13,3 +13,8 @@ datasheets/*.txt
 
 # Editor local-history extension (an embedded git repo; never commit it)
 .history/
+
+# Transient generator, DRC and router artefacts: regenerable, not source.
+output/drc_*.json
+output/genpcb.log
+output/route_external.log

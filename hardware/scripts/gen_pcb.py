@@ -1361,6 +1361,54 @@ def net_clearance(code):
         if name in nets or short in nets:
             return cl
     return DROP_DEFAULT_CLEAR
+
+
+_DRU_FLOOR = None
+
+
+def dru_floor():
+    """Per-footprint clearance floors, read back out of the generated mccan.kicad_dru.
+
+    gen_netclasses.py writes a rule for every footprint whose vendor land pattern is
+    tighter than the clearance the netclasses would apply -- U1, U2 and U10 today.  Those
+    rules are what let a 0.5 mm-pitch part exist on this board at all, and KiCad tests a
+    clearance condition with the two items in BOTH orders, so `A.memberOfFootprint('U10')`
+    relaxes a track against a U10 pad just as much as it relaxes two U10 pads against each
+    other.  That is broader than the comment in the .dru describes, and it is also the only
+    reason a track can escape U10's pins: at 0.30 mm the legal band between pin 4's
+    neighbours is 0.06 mm wide, i.e. there isn't one.
+
+    So the checker has to apply the same floor, or it reports violations on copper KiCad
+    passes and we learn to ignore it.  Parsing the artifact rather than re-deriving the
+    scan keeps the two from drifting: if a ref stops needing a rule, it stops getting the
+    exemption here on the same run.
+
+    Missing file -> empty map -> the netclass clearance stands, which is the safe way to
+    be wrong.
+    """
+    global _DRU_FLOOR
+    if _DRU_FLOOR is None:
+        _DRU_FLOOR = {}
+        try:
+            txt = io.open(os.path.join(HW, "mccan.kicad_dru"),
+                          encoding="utf-8").read()
+        except IOError:
+            txt = ""
+        for blk in txt.split("(rule ")[1:]:
+            m = re.search(r"\(min\s+([0-9.]+)mm\)", blk)
+            for ref in re.findall(r"A\.memberOfFootprint\('([^']+)'\)", blk):
+                if m:
+                    _DRU_FLOOR[ref] = min(_DRU_FLOOR.get(ref, 9e9), float(m.group(1)))
+    return _DRU_FLOOR
+
+
+def pad_clearance(pad, code):
+    """Clearance required between a foreign net `code` and pad `pad`."""
+    need = max(net_clearance(pad[2]), net_clearance(code))
+    floor = dru_floor().get(pad[0])
+    return need if floor is None else min(need, floor)
+
+
 DROP_MAX_R = 3.0        # mm from pad centre; beyond this the stub is no longer a drop
 DROP_STUB_MAX = 0.5     # stub width ceiling; narrower if the pad is narrower
 
@@ -1475,8 +1523,16 @@ def pads_board(comps, pos, padnet):
             bw, bh = w * cth + h * sth, w * sth + h * cth
             ax, ay = float(at[1]), float(at[2])
             if ox or oy:
-                # the offset is in the pad's own frame, so it turns with the pad, not the part
-                c_, s_ = math.cos(math.radians(pa)), math.sin(math.radians(pa))
+                # The offset is in the pad's own frame, so it turns by the pad's angle -- and
+                # by the pad's angle ALONE.  `pa` is pad + part, and rot_local() below turns
+                # the finished (ax, ay) by the part again, so using `pa` here counted the
+                # part's rotation twice.  On Q11 (a 180 part whose drain tab sits 1.15 mm off
+                # its anchor) that put the tab 2.30 mm west of its real copper, which is a
+                # third of the tab's width; KiCad's own DRC found the SNS track 0.15 mm off a
+                # pad this function had reported as 2.45 mm clear.  Wrong in the optimistic
+                # direction, so nothing here caught it -- only the real DRC did.
+                pl = float(at[3]) if len(at) > 3 else 0.0
+                c_, s_ = math.cos(math.radians(pl)), math.sin(math.radians(pl))
                 ax += ox * c_ + oy * s_
                 ay += -ox * s_ + oy * c_
             dx, dy = rot_local(ax, ay, rot)
@@ -1779,9 +1835,123 @@ def _seg_box(x0, y0, x1, y1, w):
             max(x0, x1) + w / 2, max(y0, y1) + w / 2)
 
 
+def _pt_seg_dist(px, py, x0, y0, x1, y1):
+    dx, dy = x1 - x0, y1 - y0
+    d2 = dx * dx + dy * dy
+    t = 0.0 if d2 == 0.0 else max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / d2))
+    return math.hypot(px - (x0 + t * dx), py - (y0 + t * dy))
+
+
+def _seg_seg_dist(a0, a1, b0, b1):
+    """Distance between two segments; 0.0 if they cross or touch."""
+    def side(p, q, r):
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+
+    d1, d2 = side(a0, a1, b0), side(a0, a1, b1)
+    d3, d4 = side(b0, b1, a0), side(b0, b1, a1)
+    if ((d1 > 0.0) != (d2 > 0.0)) and ((d3 > 0.0) != (d4 > 0.0)):
+        return 0.0
+    # Collinear and touching cases fall through to the endpoint distances, which return
+    # 0.0 for them anyway, so the strict test above does not need to handle them.
+    return min(_pt_seg_dist(b0[0], b0[1], a0[0], a0[1], a1[0], a1[1]),
+               _pt_seg_dist(b1[0], b1[1], a0[0], a0[1], a1[0], a1[1]),
+               _pt_seg_dist(a0[0], a0[1], b0[0], b0[1], b1[0], b1[1]),
+               _pt_seg_dist(a1[0], a1[1], b0[0], b0[1], b1[0], b1[1]))
+
+
+def _seg_rect_gap(p0, p1, w, rect):
+    """Gap between a w-wide track segment and an (x0, y0, x1, y1) rectangle.
+
+    The track is a capsule -- the segment swept by a round w-wide brush -- and not the
+    bounding box of its two endpoints.  For a diagonal run the two differ wildly: the
+    bounding box of a 12 mm 45 degree segment is a 12 mm square, so testing the box
+    reports a clearance violation against every pad inside that square, almost none of
+    which the copper goes anywhere near.  Those false alarms are worse than useless:
+    they bury the real violations in the same list.
+
+    The rectangle stays a rectangle.  Pads are modelled by their bounding box everywhere
+    else in this file -- a round pad included -- and that is the conservative side to err
+    on, so it is left alone.
+    """
+    x0, y0, x1, y1 = rect
+    for (px, py) in (p0, p1):
+        if x0 <= px <= x1 and y0 <= py <= y1:
+            return 0.0
+    c = ((x0, y0), (x1, y0), (x1, y1), (x0, y1))
+    d = min(_seg_seg_dist(p0, p1, c[k], c[(k + 1) % 4]) for k in range(4))
+    return max(0.0, d - w / 2)
+
+
+def _pad_on(p, layer):
+    """Is this pad present on `layer`?
+
+    pads_board() keeps only pads whose layer list names F.Cu or *.Cu, and no footprint on
+    this board sits on B.Cu, so an SMD pad here is an F.Cu pad and everything else is
+    through-hole and reaches every layer.  Without this a route on In2.Cu is measured
+    against every SMD pad on the front -- wrong in both directions at once: it refuses
+    inner-layer lanes that are wide open, and it lets an inner-layer end "anchor" on a
+    front pad it cannot touch without a via.
+    """
+    return (not p[7]) or layer == "F.Cu"
+
+
 def _pad_box(p):
     _ref, _pn, _net, px, py, pw, ph, _smd, _pid = p
     return (px - pw / 2, py - ph / 2, px + pw / 2, py + ph / 2)
+
+
+def check_track_crossings(lo, hi):
+    """Every hand route against every other piece of copper on its layer.
+
+    routes() checks its segments against pads and against vias, which is what it had to do
+    when the hand routes were the only tracks on the board.  They are not any more: there
+    are 142 ground-drop stubs, and the hand routes now cross each other's paths in the
+    eFuse block.  Both gaps were invisible here and both were found by KiCad instead -- a
+    MID tap laid straight across the SNS and OUT sense pair, and a VBAT_F run 0.145 mm off
+    a ground drop, because the width had been widened after the clearance was worked out by
+    hand.  Anything the generator cannot see, it cannot stop me repeating.
+
+    TRACK_LOG[lo:hi] is what routes() emitted; everything else in TRACK_LOG is a drop, a
+    stub, or the autorouter's own work.  Each hand segment is compared against every track
+    on the same layer belonging to another net -- hand routes included, so a pair of them
+    crossing is caught too.  The autorouter's output is compared against but not among
+    itself: it has its own model of the rules and re-litigating it here would only produce
+    noise nobody would read.
+    """
+    close = []
+    for i in range(lo, min(hi, len(TRACK_LOG))):
+        ax0, ay0, ax1, ay1, aw, alay, anet = TRACK_LOG[i]
+        for j, (bx0, by0, bx1, by1, bw, blay, bnet) in enumerate(TRACK_LOG):
+            if j == i or blay != alay or bnet == anet:
+                continue
+            if j >= lo and j < hi and j < i:
+                continue        # hand-vs-hand pair already done in the other order
+            need = max(net_clearance(anet), net_clearance(bnet))
+            gap = _seg_seg_dist((ax0, ay0), (ax1, ay1),
+                                (bx0, by0), (bx1, by1)) - (aw + bw) / 2
+            if gap < need:
+                close.append("%s (%.2f,%.2f)-(%.2f,%.2f) vs %s (%.2f,%.2f)-(%.2f,%.2f) "
+                             "on %s: %.3f < %.3f"
+                             % (NETNAME.get(anet, "?"), ax0, ay0, ax1, ay1,
+                                NETNAME.get(bnet, "?"), bx0, by0, bx1, by1,
+                                alay, gap, need))
+        # Vias, for the same reason.  routes() tests against `placed`, which at that point
+        # holds only the thermal and stitching fields -- every one of the 142 ground drops
+        # is created afterwards and was invisible to it.
+        for vx, vy, vs, _vd, vnet in VIA_LOG:
+            if vnet == anet:
+                continue
+            need = max(net_clearance(anet), net_clearance(vnet))
+            gap = _seg_rect_gap((ax0, ay0), (ax1, ay1), aw,
+                                (vx - vs / 2, vy - vs / 2, vx + vs / 2, vy + vs / 2))
+            if gap < need:
+                close.append("%s (%.2f,%.2f)-(%.2f,%.2f) vs a %s via (%.2f,%.2f): "
+                             "%.3f < %.3f"
+                             % (NETNAME.get(anet, "?"), ax0, ay0, ax1, ay1,
+                                NETNAME.get(vnet, "?"), vx, vy, gap, need))
+    if close:
+        raise SystemExit("hand routes clash with other copper:\n  "
+                         + "\n  ".join(sorted(set(close))))
 
 
 def routes(comps, pos, padnet, netidx, placed):
@@ -1841,15 +2011,26 @@ def routes(comps, pos, padnet, netidx, placed):
         for end, which in ((s["p0"], "start"), (s["p1"], "end")):
             w = s["w"]
             b = (end[0] - w / 2, end[1] - w / 2, end[0] + w / 2, end[1] + w / 2)
-            ok = any(p[2] == s["code"] and _rect_gap(b, _pad_box(p)) <= 0.0
+            ok = any(p[2] == s["code"] and _pad_on(p, s["layer"])
+                     and _rect_gap(b, _pad_box(p)) <= 0.0
                      for p in hash_.near(*b))
             if not ok:
                 ok = any(o is not s and o["code"] == s["code"]
-                         and o["layer"] == s["layer"] and _rect_gap(b, o["box"]) <= 0.0
+                         and o["layer"] == s["layer"]
+                         and _seg_rect_gap(o["p0"], o["p1"], o["w"], b) <= 0.0
                          for o in segs)
             if not ok:
                 ok = any(v["code"] == s["code"] and _rect_gap(b, v["box"]) <= 0.0
                          for v in vias)
+            if not ok:
+                # And a via the GENERATOR placed counts too.  D4's tab carries a 5x5
+                # thermal array on /+24V that goes all the way through the board, so a
+                # track on In2.Cu that ends on one of those vias is connected -- it was
+                # only this check that did not know it.
+                ok = any(vnet == s["code"]
+                         and _rect_gap(b, (vx - vs / 2, vy - vs / 2,
+                                           vx + vs / 2, vy + vs / 2)) <= 0.0
+                         for vx, vy, vs, _vd, vnet in placed)
             if not ok:
                 dangling.append("%s ROUTES[%d] seg %d %s (%.2f, %.2f)"
                                 % (s["name"], s["i"], s["j"], which, end[0], end[1]))
@@ -1857,18 +2038,49 @@ def routes(comps, pos, padnet, netidx, placed):
     # --- check 2: foreign clearance, against the wider of the two nets' class clearances
     close = []
 
-    def check(box, code, what):
+    def check(box, code, what, seg=None, layer=None):
+        # box is the bounding box, and stays the hash prefilter: it is cheap and it never
+        # misses a candidate.  seg, when given, decides -- see _seg_rect_gap.
+        seen = set()
         for p in hash_.near(box[0] - 0.5, box[1] - 0.5, box[2] + 0.5, box[3] + 0.5):
-            if p[2] == code:
+            # A pad wider than the hash bucket comes back once per bucket it spans, and
+            # Q10's 8 x 10 mm drain tab spans six.  Report it once.
+            if p[2] == code or p[8] in seen:
                 continue
-            need = max(net_clearance(p[2]), net_clearance(code))
-            g = _rect_gap(box, _pad_box(p))
+            if layer is not None and not _pad_on(p, layer):
+                continue
+            seen.add(p[8])
+            need = pad_clearance(p, code)
+            g = (_seg_rect_gap(seg[0], seg[1], seg[2], _pad_box(p)) if seg
+                 else _rect_gap(box, _pad_box(p)))
             if g < need:
                 close.append("%s vs %s.%s (%s): %.3f < %.3f"
                              % (what, p[0], p[1], NETNAME.get(p[2], "?"), g, need))
 
+    def via_boxes():
+        """Every via on the board that a hand route has to miss, as (box, net, label)."""
+        for vx, vy, vs, _vd, vnet in placed:
+            yield (vx - vs / 2, vy - vs / 2, vx + vs / 2, vy + vs / 2), vnet, "a via"
+        for v in vias:
+            yield v["box"], v["code"], "ROUTE_VIAS[%d]" % v["i"]
+
     for s in segs:
-        check(s["box"], s["code"], "%s ROUTES[%d] seg %d" % (s["name"], s["i"], s["j"]))
+        what = "%s ROUTES[%d] seg %d" % (s["name"], s["i"], s["j"])
+        check(s["box"], s["code"], what, seg=(s["p0"], s["p1"], s["w"]), layer=s["layer"])
+        # A via reaches every layer, so it is an obstacle for a segment on any of them --
+        # and there are 142 ground drops plus the thermal and stitching fields out there.
+        # Only the ROUTE_VIAS were being tested against them, which left every hand track
+        # free to run straight through a via barrel.  On F.Cu that happened to stay clean;
+        # on In2.Cu, where the ground drops are just as present but none of the SMD pads
+        # are, it would not have.
+        for vb, vnet, label in via_boxes():
+            if vnet == s["code"]:
+                continue
+            need = max(net_clearance(vnet), net_clearance(s["code"]))
+            g = _seg_rect_gap(s["p0"], s["p1"], s["w"], vb)
+            if g < need:
+                close.append("%s vs %s on %s: %.3f < %.3f"
+                             % (what, label, NETNAME.get(vnet, "?"), g, need))
     for v in vias:
         what = "%s ROUTE_VIAS[%d]" % (v["name"], v["i"])
         check(v["box"], v["code"], what)
@@ -3116,10 +3328,15 @@ def main():
     # via: gnd_drops tests every candidate against `placed`, and `placed` has to already hold
     # them for that test to mean anything.
     placed = list(VIA_LOG)
+    _rt_lo = len(TRACK_LOG)
     out += routes(comps, pos, padnet, netidx, placed)
+    _rt_hi = len(TRACK_LOG)
     dv, ds = gnd_drops(comps, pos, padnet, netidx, placed, kos)
     out += dv
     out += ds
+    # Only now does every ground drop exist, so only now can the hand routes be measured
+    # against them.  See check_track_crossings().
+    check_track_crossings(_rt_lo, _rt_hi)
     # The autorouter goes LAST of the copper, so its map sees the hand routes, the thermal and
     # stitching vias, and every ground drop as obstacles it has to work around.  Running it any
     # earlier would let it take the space a drop has no alternative to.
