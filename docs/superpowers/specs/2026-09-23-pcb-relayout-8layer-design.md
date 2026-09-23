@@ -19,9 +19,16 @@ complaint:
    F.Fab and shrank 4 more to the board's own minimum text size, because there was nowhere
    legible to put them. D10, D12, D13, D15, D16, D18, F4, L6, Q3, Q5, Q6 and Q8 have no
    reference on the silkscreen at all.
-2. **The signal side is congested.** `layout_pcb.py`'s own comment records the outputs block
-   at **59 % courtyard fill** and calls that "about twice what a two-layer escape can be
-   routed through". Adding layers twice — 4 → 6 — treated the symptom.
+2. **The signal side is congested.** Measured by `hardware/scripts/check_density.py`
+   (Plan 3 Task 3), the congested region is `input` at **75.8 % courtyard fill** —
+   about twice what a two-layer escape can be routed through. `outputs`, the block
+   everyone had blamed, is only 37.3 %.
+
+   > `layout_pcb.py`'s own comment used to record a fill figure for the outputs block,
+   > written by hand right after the region's own boundary was widened in the same
+   > commit — true of the region for about a minute, and never re-measured after. It was
+   > not wrong when written; it just stopped being about anything, which is the reason
+   > this task adds a gate (`check_density.py`) instead of a comment.
 3. **Routing is hand-work where it should not be.** Four commits of hand-routing
    (`2c74003`, `d2b44b7`, `4989e8a`) went into nets that carry no special requirement,
    because the router had no room to work in.
@@ -46,7 +53,7 @@ constrained by a box — the box follows the board.
 | Outline | 140 × 100 mm | **200 × 140 mm** |
 | Area | 140 cm² | **280 cm²** (+100 %) |
 | Footprints | 238 | 238 (unchanged) |
-| Outputs block fill | 59 % | **~25 %** |
+| Input block fill (worst region) | 75.8 % | **≤ 45 %** |
 | Panel wall for 7 glands | 140 mm (needs 143) | **200 mm** |
 | Heat-spreader plate | ~137 cm² → 61 °C | **~272 cm²** |
 
@@ -163,7 +170,8 @@ Each region declares a maximum courtyard fill fraction. A new
 above the declared figure.
 
 This turns the lesson already written in `layout_pcb.py`'s comments into something
-enforced. The target that matters is outputs at ~25 %, down from 59 %.
+enforced. The target that matters is `input` at ≤ 45 %, down from the 75.8 % measured
+on the un-widened board — not outputs, which was never the congested region.
 
 ### 4.3 The thermal group relaxes
 
@@ -386,5 +394,5 @@ These predate this design and are unaffected by it, but should not be lost in th
 | 8 layers at 280 cm² costs materially more than 6 at 140 cm² | Accepted deliberately. The board is a one-off, and two respins of a cramped board cost more |
 | A 200 × 140 mm enclosure is awkward to mount | Flagged as an open item (§11) before any enclosure is ordered |
 | Removing silk's fallbacks makes the build unbuildable if placement is tight | That is the intent. The failure is loud and early, and the area exists to satisfy it |
-| Channels consume area that placement then wants back | Budgets (§4.2) make the trade visible; outputs at ~25 % has substantial headroom |
-| The router still falls short of 100 % | It has four layers and ~25 % fill rather than two and 59 %. Residual shortfall is hand-finished, as it was before, but from a much shorter list |
+| Channels consume area that placement then wants back | Budgets (§4.2) make the trade visible; `input`, the worst region, still has headroom to its ≤ 45 % budget |
+| The router still falls short of 100 % | It has four layers and ≤ 45 % worst-region fill rather than two and 75.8 %. Residual shortfall is hand-finished, as it was before, but from a much shorter list |

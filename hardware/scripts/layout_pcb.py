@@ -387,6 +387,13 @@ NUDGE = {
 # is that most of that clearance is off the board.
 OFFBOARD_OK = {"U5"}
 
+# ------------------------------------------------------------------ density budget
+# region -> maximum courtyard fill fraction, checked by check_density.py.  A region absent
+# here is unconstrained.  `input` is the real Task 4 constraint (see the Task 3 plan step),
+# applied now, to the un-widened board, so the gate is proven red before Task 4 makes it
+# green.
+BUDGET = {"input": 0.45}
+
 # ------------------------------------------------------------------ board text
 NOTES = [
     # (text, x, y, layer, size)
