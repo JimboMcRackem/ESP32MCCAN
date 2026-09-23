@@ -931,7 +931,10 @@ def rail_island(net, comps, pos, padnet, halo=3.0):
     """
     xs, ys = [], []
     for pd in pads_board(comps, pos, padnet):
-        if pd[2] != net:
+        # pads_board's `net` field is a CODE, not a name -- comparing it against the net
+        # name string can never match, and the island comes out empty, which silently
+        # leaves VBAT filling all of In4.Cu unsplit.  Resolve through NETNAME.
+        if NETNAME.get(pd[2]) != net:
             continue
         cx, cy, w, h = pd[3], pd[4], pd[5], pd[6]
         xs += [cx - w / 2.0, cx + w / 2.0]
