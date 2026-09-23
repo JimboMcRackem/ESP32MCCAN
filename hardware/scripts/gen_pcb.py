@@ -1042,8 +1042,10 @@ LAYERS = """	(layers
 		(0 "F.Cu" signal)
 		(4 "In1.Cu" power "GND")
 		(6 "In2.Cu" signal)
-		(8 "In3.Cu" power "PWR")
-		(10 "In4.Cu" signal)
+		(8 "In3.Cu" power "GND")
+		(10 "In4.Cu" power "PWR")
+		(12 "In5.Cu" signal)
+		(14 "In6.Cu" power "GND")
 		(2 "B.Cu" signal)
 		(9 "F.Adhes" user "F.Adhesive")
 		(11 "B.Adhes" user "B.Adhesive")
@@ -1071,56 +1073,67 @@ LAYERS = """	(layers
 # route_external.py hands them to KiCadRoutingTools, and both would otherwise have to repeat
 # the list and drift from it.
 #
-# AR_LAYERS, further down, is a SUBSET of this and deliberately so.  gen_pcb's own router
-# carries a two-layer occupancy grid -- core, halo and vhalo are pairs, and a via is modelled
-# as crossing "both" layers -- so widening it to six is a rewrite of the grid rather than a
-# change to a constant.  It is the fallback path now that routes_signal.json exists, so it
+# AR_LAYERS, further down, is a SUBSET of SIGNAL_LAYERS and deliberately so.  gen_pcb's own
+# router carries a two-layer occupancy grid, so widening it is a rewrite of the grid rather
+# than a change to a constant.  It is the fallback now that routes_signal.json exists, so it
 # keeps the two layers it understands and the external router gets all four.
-SIGNAL_LAYERS = ("F.Cu", "In2.Cu", "In4.Cu", "B.Cu")
-PLANE_LAYERS = ("In1.Cu", "In3.Cu")
+SIGNAL_LAYERS = ("F.Cu", "In2.Cu", "In5.Cu", "B.Cu")
+PLANE_LAYERS = ("In1.Cu", "In3.Cu", "In4.Cu", "In6.Cu")
 
-# 6-layer, 1.6 mm, 1 oz throughout.
+# 8-layer, 1.6 mm, 1 oz throughout (2026-09-23).  Was six.
 #
-#   F.Cu   signal
-#   In1.Cu GND, solid and unbroken -- the reference plane spec 10 asks for
-#   In2.Cu signal
-#   In3.Cu VBAT, the 7.0 A feed
-#   In4.Cu signal
-#   B.Cu   signal
+#   F.Cu   signal -- component escapes, short runs
+#   In1.Cu GND, solid
+#   In2.Cu signal -- the CAN pair lives here
+#   In3.Cu GND, solid
+#   In4.Cu POWER, split: VBAT | +24V | +5V | VLOGIC_IN
+#   In5.Cu signal -- bulk routing
+#   In6.Cu GND, solid
+#   B.Cu   signal -- short runs, plate side
 #
-# Why six and not the five that was asked for (2026-09-22): a five-layer board is laminated
-# out of a six-layer stack with one copper layer left unused, so it costs the same money, and
-# an odd stack is asymmetric, so it warps more in reflow.  Six buys two routing layers instead
-# of one for that money and puts a reference plane next to every signal layer.
+# Four routing layers, three ground planes, one power layer.
 #
-# Why six at all: F.Cu and B.Cu alone did not close the board.  The external router settled at
-# about 100 of 139 signal nets with the rest failing for want of a channel, and the failures
-# were not clustered -- they were one pad here and one pad there across forty nets, which is
-# what running out of layer looks like rather than what a bad net order looks like.
+# WHAT THIS FIXES THAT SIX DID NOT.  The six-layer stack was
+# F sig / GND / sig / VBAT / sig / B sig, in which B.Cu is a signal layer whose only
+# neighbour is another signal layer.  Bottom-side traces had no adjacent reference plane and
+# so no defined return path -- the B.Cu GND pour is on the SAME layer as those traces, which
+# is not the same thing as a plane beneath them.  Here every signal layer has a solid GND
+# plane on at least one face, and In2.Cu has one on both.
 #
-# Why 1 oz on the INNER layers, where this board used to carry 2 oz:
+# WHY CAN GOES ON In2.Cu.  Between two solid planes it is a buried stripline, so "CAN
+# segregated from the high-current and boost nets" is satisfied by construction rather than
+# by a keep-away rule that nothing enforces -- the pair is physically enclosed in copper.  It
+# is also off the two layers where the feed pours and the switch node live.
 #
-#   1. In2.Cu and In4.Cu now carry tracks, and at 2 oz PCBWay cannot etch them to this
-#      board's rules.  Their inner-layer minimum is 4/4 mil at 1 oz but 6/8 mil at 2 oz, and
-#      8 mil is 0.203 mm -- ABOVE the 0.20 mm clearance every net class here declares.  A
-#      fab's inner copper weight is one selector for all inner layers unless you pay for a
-#      custom stackup, so the signal layers decide it for the planes too.
+# WHY In4.Cu IS SPLIT, AND THE RISK.  VLOGIC_IN, +24V and +5V were POWER-class 2.0 mm
+# tracks; as zones they cost no routing effort at all and carry far more than the 0.5 A the
+# largest of them (the boost output) needs.  The cost is that VBAT no longer owns a whole
+# layer.  check_plane_width.py measured the old VBAT pour's worst cut at 71 mm against the
+# 11.44 mm IPC-2221 asks for 7.0 A at a 10 K rise on 1 oz internal copper -- a 6.1x margin --
+# and sharing the layer three ways eats into that.  The margin is large but it is no longer
+# free, so the check stops being a formality and becomes the thing that decides whether the
+# split was affordable.  It runs on every build and it fails the board.
 #
-#   2. The 2 oz was bought for the VBAT plane, on the argument that IPC-2221 wants 11.44 mm
-#      of internal width for 7.0 A at a 10 K rise at 1 oz against 5.72 mm at 2 oz.  That
-#      argument was never measured, and it is wrong by a wide margin: scripts/check_plane_width.py
-#      rasterises the pour, punches all 1190 via and through-hole antipads out of it, and cuts
-#      it in both directions.  The worst cut carries 71 mm of copper.  That is 6.1x what 1 oz
-#      needs, so the weight was never what made the feed work -- having a whole layer was.
+# Return paths under the split are sound: In5.Cu is the only signal layer adjacent to In4.Cu
+# and it has solid In6.Cu GND on its other face.
 #
-# The OUTER copper stays 1 oz for the reason it always did: 2 oz etching cannot hold the
-# 0.15 mm pad-to-pad U10's land pattern needs, nor reliably the 0.20 mm the QFN/VSON parts
-# need, and every land pattern lives on an outer layer.
+# AR_LAYERS, further down, is a SUBSET of SIGNAL_LAYERS and deliberately so.  gen_pcb's own
+# router carries a two-layer occupancy grid, so widening it is a rewrite of the grid rather
+# than a change to a constant.  It is the fallback now that routes_signal.json exists, so it
+# keeps the two layers it understands and the external router gets all four.
 #
-# The dielectrics are a foil lamination -- two cores (In1/In2 and In3/In4) bonded by three
-# prepregs, with F.Cu and B.Cu as foil on the outside.  It is symmetric about the middle
-# prepreg, which is what keeps the panel flat.  The sub-thicknesses are nominal; the fab
-# adjusts them to hit 1.6 mm.
+# DIELECTRICS.  Foil lamination: three cores (In1/In2, In3/In4, In5/In6) bonded by four
+# prepregs, with F.Cu and B.Cu as foil outside.  Symmetric about the middle prepreg, which is
+# what keeps the panel flat.  Copper 8 x 0.035 = 0.28; dielectric 1.2908; total 1.5708 mm,
+# exactly as the six-layer stack summed to.  Sub-thicknesses are nominal -- the fab adjusts
+# them to hit 1.6 mm.
+#
+#   F.Cu  --0.100 prepreg-- In1 --0.200 core-- In2 --0.2454 prepreg-- In3
+#         --0.200 core-- In4 --0.2454 prepreg-- In5 --0.200 core-- In6
+#         --0.100 prepreg-- B.Cu
+#
+# The 0.1 mm outer prepregs put F.Cu and B.Cu tight against their GND planes, which is what
+# makes an outer-layer escape's return path short.
 STACKUP = """	(setup
 		(stackup
 			(layer "F.SilkS" (type "Top Silk Screen"))
@@ -1131,11 +1144,15 @@ STACKUP = """	(setup
 			(layer "In1.Cu" (type "copper") (thickness 0.035))
 			(layer "dielectric 2" (type "core") (thickness 0.2) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
 			(layer "In2.Cu" (type "copper") (thickness 0.035))
-			(layer "dielectric 3" (type "prepreg") (thickness 0.7608) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "dielectric 3" (type "prepreg") (thickness 0.2454) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
 			(layer "In3.Cu" (type "copper") (thickness 0.035))
 			(layer "dielectric 4" (type "core") (thickness 0.2) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
 			(layer "In4.Cu" (type "copper") (thickness 0.035))
-			(layer "dielectric 5" (type "prepreg") (thickness 0.1) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "dielectric 5" (type "prepreg") (thickness 0.2454) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "In5.Cu" (type "copper") (thickness 0.035))
+			(layer "dielectric 6" (type "core") (thickness 0.2) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+			(layer "In6.Cu" (type "copper") (thickness 0.035))
+			(layer "dielectric 7" (type "prepreg") (thickness 0.1) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
 			(layer "B.Cu" (type "copper") (thickness 0.035))
 			(layer "B.Mask" (type "Bottom Solder Mask") (thickness 0.01))
 			(layer "B.Paste" (type "Bottom Solder Paste"))
@@ -1239,30 +1256,59 @@ def tim_areas():
     return out
 
 
-def zones(netidx):
+def rail_island(net, comps, pos, padnet, halo=3.0):
+    """A rectangle on In4.Cu covering every pad of `net`, plus a halo.
+
+    Computed rather than drawn.  The six-layer board's power plane was split down a
+    hand-chosen vertical line, and the line was wrong in both directions -- seven of the
+    eleven +24V pads were on the far side of it.  The two nets interleave across the whole
+    board, so no straight line separates them and no cleverer line would have.  A bounding
+    box around the pads that actually exist cannot be wrong that way: if the parts move, so
+    does the island.
+    """
+    xs, ys = [], []
+    for pd in pads_board(comps, pos, padnet):
+        # pads_board's `net` field is a CODE (padnet maps (ref, pin) -> code, same as every
+        # other caller of pads_board treats it), so it is compared here by name through
+        # NETNAME, the module's established code -> name lookup -- not by equality with the
+        # net name string directly.
+        if NETNAME.get(pd[2]) != net:
+            continue
+        cx, cy, w, h = pd[3], pd[4], pd[5], pd[6]
+        xs += [cx - w / 2.0, cx + w / 2.0]
+        ys += [cy - h / 2.0, cy + h / 2.0]
+    if not xs:
+        print("  WARN: rail_island found no pads on %s" % net)
+        return []
+    x0, y0 = min(xs) - halo, min(ys) - halo
+    x1, y1 = max(xs) + halo, max(ys) + halo
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+
+
+def zones(netidx, comps, pos, padnet):
     """Copper pours.
 
-    In1.Cu  -- solid GND, the unbroken reference plane spec 10 asks for.
-    In2.Cu  -- nothing.  It is a signal layer and the router owns it; see SIGNAL_LAYERS.
-    In3.Cu  -- VBAT, end to end.  It used to be split down x = 105 with +24V on the right, and
-               that split was wrong in both directions: seven of the eleven +24V pads are LEFT
-               of it (D4, C61, C20, C21, C22, R12) and two of the fifteen VBAT pads are RIGHT
-               of it (C45, C46).  The two nets interleave across the whole board, so no
-               straight line separates them -- the vertical split was not a lobe short of D4,
-               it was the wrong model.
+    In1.Cu, In3.Cu, In6.Cu -- solid GND, the unbroken reference planes spec 10 asks for.
+               In1 references F.Cu and In2; In3 references In2 and In4; In6 references In5
+               and B.Cu -- every signal layer has a plane on at least one face.
+    In2.Cu, In5.Cu -- nothing.  They are signal layers and the router owns them; see
+               SIGNAL_LAYERS.
+    In4.Cu  -- POWER, split by zone priority rather than by a drawn line.  VBAT fills the
+               whole layer at priority 0; the three logic rails (+24V, +5V, VLOGIC_IN) are
+               islands at priority 1, computed from their own pads by rail_island(), so KiCad
+               fills them first and VBAT keeps clear around them.
 
-               The way out is not a cleverer split but the current figures.  VBAT is the 7.0 A
-               feed and wants every millimetre of plane it can get; +24V is the boost output at
-               0.5 A (spec 6), against 3.94 A of capability on a 2.0 mm POWER track at 1 oz.
-               Giving half the power plane to the rail that needs it least starved the one that
-               needs it most.  So In3.Cu is VBAT alone, and +24V is routed as POWER tracks --
-               which is exactly what its net class was already sized for.
+               It used to be a whole layer split down x = 105 with +24V on the right, and
+               that split was wrong in both directions: seven of the eleven +24V pads were
+               LEFT of it and two of the VBAT pads were RIGHT of it. The two nets interleave
+               across the whole board, so no straight line separates them -- the vertical
+               split was not a lobe short of D4, it was the wrong model. A bounding box
+               around the pads that actually exist cannot be wrong that way.
 
-               It carried 2 oz until the board went to six layers.  It does not need to:
-               scripts/check_plane_width.py measures the worst cut across this pour, with
-               every antipad punched out of it, at 71 mm against the 11.44 mm IPC-2221 asks
-               of 1 oz.  What carries the feed is having a layer, not having thick copper.
-    In4.Cu  -- nothing, for the same reason as In2.Cu.
+               scripts/check_plane_width.py measures the worst cut across the VBAT pour, with
+               every antipad and every rail island punched out of it, against the 11.44 mm
+               IPC-2221 asks of 1 oz internal copper for 7.0 A at a 10 K rise. It runs on
+               every build and fails the board if the margin is gone.
     B.Cu    -- GND, plus one small +24V island under D4's tab; see L.D4_24V_ISLAND.
     F.Cu    -- a local GND_IN island over the eFuse and the wire-exit corner.  GND_IN is a
                SEPARATE net from GND and meets it only through L2 winding B; giving it its own
@@ -1298,11 +1344,25 @@ def zones(netidx):
                 "%s\n\t)" % (code, q(net), lay, U("zone_" + tag), q(tag), prio, poly(pts)))
 
     full = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
-    out.append(zone("GND", ["In1.Cu"], full, "GND_INNER"))
+
+    # Three solid ground planes.  In1 references F.Cu and In2; In3 references In2 and In4;
+    # In6 references In5 and B.Cu.  Every signal layer is covered.
+    out.append(zone("GND", ["In1.Cu"], full, "GND_IN1"))
+    out.append(zone("GND", ["In3.Cu"], full, "GND_IN3"))
+    out.append(zone("GND", ["In6.Cu"], full, "GND_IN6"))
     out.append(zone("GND", ["B.Cu"], full, "GND_BOT"))
-    out.append(zone("/VBAT", ["In3.Cu"], full, "VBAT_IN3"))
-    # D4's tab needs somewhere for its thermal array to land now that +24V has no plane.
-    # Priority 2 so it wins against the B.Cu ground pour, which notches around it.
+
+    # In4.Cu, the power layer.  VBAT is the whole layer at priority 0; the three logic rails
+    # are islands at priority 1, so KiCad fills THEM first and VBAT keeps clear around them.
+    # That is why no partition has to be drawn: the carve-out is the fill rule, not geometry.
+    out.append(zone("/VBAT", ["In4.Cu"], full, "VBAT_IN4", prio=0))
+    for net, tag in (("/+24V", "24V_IN4"), ("/+5V", "5V_IN4"),
+                     ("/VLOGIC_IN", "VLOGIC_IN4")):
+        pts = rail_island(net, comps, pos, padnet)
+        if pts:
+            out.append(zone(net, ["In4.Cu"], pts, tag, prio=1))
+
+    # D4's tab still needs somewhere for its thermal array to land on the bottom side.
     out.append(zone("/+24V", ["B.Cu"], L.D4_24V_ISLAND, "24V_D4", prio=2))
     # The GND_IN island.  Its shape is dictated by where the input ground actually is, and it
     # is checked against the pads by scripts/check_grounds.py -- every GND_IN pad must sit in
@@ -3384,7 +3444,7 @@ def main():
     out.append('\t(paper "A3")')
     out.append('\t(title_block\n\t\t(title "MCCAN Lighting Controller")\n'
                '\t\t(comment 1 "GENERATED by scripts/gen_pcb.py -- do not edit in pcbnew")\n'
-               '\t\t(comment 2 "Board 140 x 100 mm, 6 layer, 1 oz copper on all layers")\n'
+               '\t\t(comment 2 "Board 200 x 140 mm, 8 layer, 1 oz copper on all layers")\n'
                '\t)')
     out.append(LAYERS)
     out.append(STACKUP)
@@ -3430,7 +3490,7 @@ def main():
         out += frozen_routes(netidx)
     else:
         out += autoroute(comps, pos, padnet, netidx, placed, kos)
-    out += zones(netidx)
+    out += zones(netidx, comps, pos, padnet)
     out.append('\t(embedded_fonts no)')
     out.append(")")
 
