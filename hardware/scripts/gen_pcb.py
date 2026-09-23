@@ -1105,14 +1105,17 @@ PLANE_LAYERS = ("In1.Cu", "In3.Cu", "In4.Cu", "In6.Cu")
 # by a keep-away rule that nothing enforces -- the pair is physically enclosed in copper.  It
 # is also off the two layers where the feed pours and the switch node live.
 #
-# WHY In4.Cu IS SPLIT, AND THE RISK.  VLOGIC_IN, +24V and +5V were POWER-class 2.0 mm
-# tracks; as zones they cost no routing effort at all and carry far more than the 0.5 A the
-# largest of them (the boost output) needs.  The cost is that VBAT no longer owns a whole
-# layer.  check_plane_width.py measured the old VBAT pour's worst cut at 71 mm against the
-# 11.44 mm IPC-2221 asks for 7.0 A at a 10 K rise on 1 oz internal copper -- a 6.1x margin --
-# and sharing the layer three ways eats into that.  The margin is large but it is no longer
-# free, so the check stops being a formality and becomes the thing that decides whether the
-# split was affordable.  It runs on every build and it fails the board.
+# WHY In4.Cu IS VBAT ALONE.  VLOGIC_IN, +24V and +5V were POWER-class 2.0 mm tracks; as
+# pad-bounded island zones at priority 1 they would have cost no routing effort at all, and
+# spec 3.2 took that trade.  Measured on this placement it does not hold: a rail's island is
+# a bounding box over every one of its pads, and the rails interleave with VBAT and with each
+# other across the whole board.  /+24V's eleven pads alone span x 83.38..174.58, an island
+# that swallows five /VBAT pads -- the boost input caps and the boost inductor, the highest-
+# current taps on the layer.  So the rails are routed instead (see route_external.HANDS_OFF)
+# and In4.Cu carries VBAT and nothing else.  check_plane_width.py measured the old VBAT
+# pour's worst cut at 71 mm against the 11.44 mm IPC-2221 asks for 7.0 A at a 10 K rise on
+# 1 oz internal copper -- a 6.1x margin -- and it runs on every build and fails the board if
+# that margin is gone.
 #
 # Return paths under the split are sound: In5.Cu is the only signal layer adjacent to In4.Cu
 # and it has solid In6.Cu GND on its other face.
@@ -1123,7 +1126,7 @@ PLANE_LAYERS = ("In1.Cu", "In3.Cu", "In4.Cu", "In6.Cu")
 # keeps the two layers it understands and the external router gets all four.
 #
 # DIELECTRICS.  Foil lamination: three cores (In1/In2, In3/In4, In5/In6) bonded by four
-# prepregs, with F.Cu and B.Cu as foil outside.  Symmetric about the middle prepreg, which is
+# prepregs, with F.Cu and B.Cu as foil outside.  Symmetric about the middle core, which is
 # what keeps the panel flat.  Copper 8 x 0.035 = 0.28; dielectric 1.2908; total 1.5708 mm,
 # exactly as the six-layer stack summed to.  Sub-thicknesses are nominal -- the fab adjusts
 # them to hit 1.6 mm.
@@ -1256,35 +1259,6 @@ def tim_areas():
     return out
 
 
-def rail_island(net, comps, pos, padnet, halo=3.0):
-    """A rectangle on In4.Cu covering every pad of `net`, plus a halo.
-
-    Computed rather than drawn.  The six-layer board's power plane was split down a
-    hand-chosen vertical line, and the line was wrong in both directions -- seven of the
-    eleven +24V pads were on the far side of it.  The two nets interleave across the whole
-    board, so no straight line separates them and no cleverer line would have.  A bounding
-    box around the pads that actually exist cannot be wrong that way: if the parts move, so
-    does the island.
-    """
-    xs, ys = [], []
-    for pd in pads_board(comps, pos, padnet):
-        # pads_board's `net` field is a CODE (padnet maps (ref, pin) -> code, same as every
-        # other caller of pads_board treats it), so it is compared here by name through
-        # NETNAME, the module's established code -> name lookup -- not by equality with the
-        # net name string directly.
-        if NETNAME.get(pd[2]) != net:
-            continue
-        cx, cy, w, h = pd[3], pd[4], pd[5], pd[6]
-        xs += [cx - w / 2.0, cx + w / 2.0]
-        ys += [cy - h / 2.0, cy + h / 2.0]
-    if not xs:
-        print("  WARN: rail_island found no pads on %s" % net)
-        return []
-    x0, y0 = min(xs) - halo, min(ys) - halo
-    x1, y1 = max(xs) + halo, max(ys) + halo
-    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
-
-
 def zones(netidx, comps, pos, padnet):
     """Copper pours.
 
@@ -1293,22 +1267,28 @@ def zones(netidx, comps, pos, padnet):
                and B.Cu -- every signal layer has a plane on at least one face.
     In2.Cu, In5.Cu -- nothing.  They are signal layers and the router owns them; see
                SIGNAL_LAYERS.
-    In4.Cu  -- POWER, split by zone priority rather than by a drawn line.  VBAT fills the
-               whole layer at priority 0; the three logic rails (+24V, +5V, VLOGIC_IN) are
-               islands at priority 1, computed from their own pads by rail_island(), so KiCad
-               fills them first and VBAT keeps clear around them.
+    In4.Cu  -- POWER.  VBAT fills the whole layer at priority 0.  Nothing else is on it.
 
                It used to be a whole layer split down x = 105 with +24V on the right, and
                that split was wrong in both directions: seven of the eleven +24V pads were
                LEFT of it and two of the VBAT pads were RIGHT of it. The two nets interleave
                across the whole board, so no straight line separates them -- the vertical
-               split was not a lobe short of D4, it was the wrong model. A bounding box
-               around the pads that actually exist cannot be wrong that way.
+               split was not a lobe short of D4, it was the wrong model.
+
+               The next attempt replaced the line with a bounding box per rail, computed from
+               each net's own pads.  That failed too, for the same reason one level up: /+24V's
+               eleven pads span x 83.38..174.58, so its box is 98.4 x 20.0 mm and swallows five
+               /VBAT pads -- C18.1, C19.1, C45.1, L3.1, R16.1, the boost input caps and the
+               boost inductor.  All three rails hold pads of the other two as well.  A rail
+               zone only replaces routing if it is continuous, so it has to cross whatever
+               lies between its own pads, and for another rail or for VBAT's taps that crossing
+               costs the loser its copper.  So In4.Cu carries VBAT alone and the three rails
+               are routed like any other net; see route_external.HANDS_OFF.
 
                scripts/check_plane_width.py measures the worst cut across the VBAT pour, with
-               every antipad and every rail island punched out of it, against the 11.44 mm
-               IPC-2221 asks of 1 oz internal copper for 7.0 A at a 10 K rise. It runs on
-               every build and fails the board if the margin is gone.
+               every antipad punched out of it, against the 11.44 mm IPC-2221 asks of 1 oz
+               internal copper for 7.0 A at a 10 K rise. It runs on every build and fails the
+               board if the margin is gone.
     B.Cu    -- GND, plus one small +24V island under D4's tab; see L.D4_24V_ISLAND.
     F.Cu    -- a local GND_IN island over the eFuse and the wire-exit corner.  GND_IN is a
                SEPARATE net from GND and meets it only through L2 winding B; giving it its own
@@ -1352,15 +1332,27 @@ def zones(netidx, comps, pos, padnet):
     out.append(zone("GND", ["In6.Cu"], full, "GND_IN6"))
     out.append(zone("GND", ["B.Cu"], full, "GND_BOT"))
 
-    # In4.Cu, the power layer.  VBAT is the whole layer at priority 0; the three logic rails
-    # are islands at priority 1, so KiCad fills THEM first and VBAT keeps clear around them.
-    # That is why no partition has to be drawn: the carve-out is the fill rule, not geometry.
+    # In4.Cu, the power layer.  VBAT and nothing else.
+    #
+    # It briefly carried +24V, +5V and VLOGIC_IN as pad-bounded islands at priority 1, on the
+    # reasoning in spec 3.2: they are POWER-class 2.0 mm tracks, a 2.0 mm track is awkward to
+    # route, and as zones they cost no routing effort.  Measured on this placement that does
+    # not work, and for the same reason the x = 105 split below did not: the four nets
+    # interleave.  /+24V's eleven pads span x 83.38..174.58 -- C20-C22 and D4 at the boost,
+    # F2-F5 at the fuses -- so its bounding box is 98.4 x 20.0 mm and swallows five /VBAT
+    # pads (C18.1, C19.1, C45.1, L3.1, R16.1: the boost input caps and the boost inductor,
+    # the highest-current taps on the layer).  Every rail likewise holds pads of the other
+    # two: 6 and 7 of /+24V's eleven, 4 of /+5V's seven, 4 of /VLOGIC_IN's six.  A rail zone
+    # only replaces routing if it is CONTINUOUS, so it must span its own pads, so it must
+    # cross whatever lies between them.  Crossing GND is free -- three other planes -- and
+    # crossing a signal net is free, but crossing another rail orphans that rail's pads, and
+    # crossing VBAT's taps starves the feed.  No priority ordering fixes it; it only decides
+    # which net loses.
+    #
+    # So the rails go back to being routed.  They are 11-, 7- and 6-pad nets: the 2.0 mm
+    # WIDTH was the objection, never the count.  route_external.HANDS_OFF no longer holds the
+    # POWER class, so the external router lays them on four signal layers.
     out.append(zone("/VBAT", ["In4.Cu"], full, "VBAT_IN4", prio=0))
-    for net, tag in (("/+24V", "24V_IN4"), ("/+5V", "5V_IN4"),
-                     ("/VLOGIC_IN", "VLOGIC_IN4")):
-        pts = rail_island(net, comps, pos, padnet)
-        if pts:
-            out.append(zone(net, ["In4.Cu"], pts, tag, prio=1))
 
     # D4's tab still needs somewhere for its thermal array to land on the bottom side.
     out.append(zone("/+24V", ["B.Cu"], L.D4_24V_ISLAND, "24V_D4", prio=2))

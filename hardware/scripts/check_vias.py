@@ -96,9 +96,23 @@ def in_pad(pad, vx, vy, r):
 
 
 def touches_pad(pad, vx, vy, r):
+    """Does a via of radius r touch `pad`?  Exact: a via is a CIRCLE.
+
+    This was `abs(ux) < w / 2 + r and abs(uy) < h / 2 + r`, which is the same test for a
+    SQUARE via and over-reports by up to r * (sqrt(2) - 1) -- 0.124 mm on a 0.6 mm via --
+    in the quadrant off a pad's corner.  It failed the build on the GND drop via at
+    (110.77, 80.17), whose copper is 0.0393 mm clear of U4.6; 137 of the board's 141 drop
+    vias sit 0.0500 mm from their own pad by construction (gen_pcb.py:1882), and that one
+    reads differently only because its escape is oblique rather than axis-aligned, so the
+    pad's corner is what the square test caught.  gen_pcb decides where drops go with an
+    exact test; a gate that grades them with a looser one reports the generator obeying its
+    own rule as a fault.
+    """
     _ref, _pn, cx, cy, w, h, ang, _net = pad
     ux, uy = rot(vx - cx, vy - cy, -ang)
-    return abs(ux) < w / 2.0 + r and abs(uy) < h / 2.0 + r
+    dx = max(abs(ux) - w / 2.0, 0.0)
+    dy = max(abs(uy) - h / 2.0, 0.0)
+    return math.hypot(dx, dy) < r
 
 
 def main():

@@ -15,9 +15,11 @@ that part and nothing else.
 What this does NOT do
 ---------------------
 It does not route, move or even look at the copper this repo decided by hand.  Every net in
-the FEED, POWER and CAN classes is excluded by name, and so is GND -- the same set
-gen_pcb.AR_SKIP_CLASSES skips -- so the boost stage, the feed, the plane taps and the CAN
-pair go through the external router untouched, as obstacles it has to work around.  The
+the FEED and CAN classes is excluded by name, and so is GND.  POWER is NOT in that list --
+this is no longer the set gen_pcb.AR_SKIP_CLASSES skips, because +24V, +5V and VLOGIC_IN
+stopped being In4.Cu zones and became nets like any other, with nobody but this router left
+to lay them.  So the boost stage, the feed and the CAN pair go through untouched, as
+obstacles it has to work around, while the three rails go through as nets it routes.  The
 exclusion list is built from layout_pcb.NETCLASSES rather than typed out here, so moving a
 net into a class automatically keeps it out of the external router's hands.
 
@@ -83,10 +85,14 @@ UNROUTED = os.path.join(WORK, "unrouted.kicad_pcb")
 ROUTED = os.path.join(WORK, "routed.kicad_pcb")
 SUMMARY = os.path.join(WORK, "routed-summary.json")
 
-# The classes gen_pcb's own router refuses to touch, for the same reason: they are hand
-# routed, or plane copper, or wider than a signal track because their width is a decision
-# about current rather than the result of a search.
-HANDS_OFF = G.AR_SKIP_CLASSES
+# The classes no router may touch.  FEED is hand-routed in Task 7 and CAN in Task 8, both
+# because their geometry is the point: the feed is poured to a width, and the CAN pair has
+# to stay a pair.  POWER used to be here too, back when +24V, +5V and VLOGIC_IN were zones
+# on In4.Cu -- they are not, so somebody has to route them, and at 11, 7 and 6 pads on four
+# signal layers that somebody is the external router.  This is deliberately NOT
+# G.AR_SKIP_CLASSES any more: gen_pcb's own fallback router carries a two-layer occupancy
+# grid and keeps its POWER skip.
+HANDS_OFF = ("FEED", "CAN")
 
 
 def krt_home():
