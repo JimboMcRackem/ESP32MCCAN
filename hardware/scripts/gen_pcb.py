@@ -1086,7 +1086,7 @@ PLANE_LAYERS = ("In1.Cu", "In3.Cu", "In4.Cu", "In6.Cu")
 #   In1.Cu GND, solid
 #   In2.Cu signal -- the CAN pair lives here
 #   In3.Cu GND, solid
-#   In4.Cu POWER, split: VBAT | +24V | +5V | VLOGIC_IN
+#   In4.Cu POWER -- VBAT, solid
 #   In5.Cu signal -- bulk routing
 #   In6.Cu GND, solid
 #   B.Cu   signal -- short runs, plate side
@@ -1259,7 +1259,7 @@ def tim_areas():
     return out
 
 
-def zones(netidx, comps, pos, padnet):
+def zones(netidx):
     """Copper pours.
 
     In1.Cu, In3.Cu, In6.Cu -- solid GND, the unbroken reference planes spec 10 asks for.
@@ -1288,7 +1288,9 @@ def zones(netidx, comps, pos, padnet):
                scripts/check_plane_width.py measures the worst cut across the VBAT pour, with
                every antipad punched out of it, against the 11.44 mm IPC-2221 asks of 1 oz
                internal copper for 7.0 A at a 10 K rise. It runs on every build and fails the
-               board if the margin is gone.
+               board if the margin is gone.  It also refuses outright if any other zone shares
+               In4.Cu: its raster subtracts barrels, not neighbouring pours, so on a split layer
+               the width it printed was a fiction rather than a pessimistic answer.
     B.Cu    -- GND, plus one small +24V island under D4's tab; see L.D4_24V_ISLAND.
     F.Cu    -- a local GND_IN island over the eFuse and the wire-exit corner.  GND_IN is a
                SEPARATE net from GND and meets it only through L2 winding B; giving it its own
@@ -3482,7 +3484,7 @@ def main():
         out += frozen_routes(netidx)
     else:
         out += autoroute(comps, pos, padnet, netidx, placed, kos)
-    out += zones(netidx, comps, pos, padnet)
+    out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")
 
