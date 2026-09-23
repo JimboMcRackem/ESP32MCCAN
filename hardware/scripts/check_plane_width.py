@@ -95,6 +95,29 @@ def plane(doc, names):
     return None, None, None
 
 
+def rivals(doc, layer):
+    """Zones of another net sharing the plane's layer, as [(net_name, zone_name), ...].
+
+    This raster measures the plane's OUTLINE polygon minus barrels.  It does not do polygon
+    arithmetic against other zones, so a second zone on the same layer -- which KiCad will
+    carve out of this one if it has the higher priority -- is copper this check still counts.
+    That blindness is the whole reason for this guard: a split power layer would read as a
+    solid one and the number printed below would be a fiction.  Refuse to measure instead.
+    """
+    out = []
+    for z in G.find_all(doc, "zone"):
+        lay = G.find(z, "layer") or G.find(z, "layers")
+        if not lay or G.unq(lay[1]) != layer:
+            continue
+        nn = G.find(z, "net_name")
+        nm = G.unq(nn[1]) if nn else ""
+        if nm == NET:
+            continue
+        zn = G.find(z, "name")
+        out.append((nm or "<none>", G.unq(zn[1]) if zn else "?"))
+    return out
+
+
 def holes(doc, names):
     """Every barrel that punches this plane, as (x, y, radius) before clearance.
 
@@ -197,6 +220,18 @@ def main():
     if not pts:
         print("FAIL: no zone pours %s on %s" % (NET, os.path.basename(BOARD)))
         return 2
+    share = rivals(doc, layer)
+    if share:
+        print("FAIL: %s is not alone on %s -- %d other zone(s) share the layer:"
+              % (NET, layer, len(share)))
+        for nm, zn in share:
+            print("    %-24s %s" % (nm, zn))
+        print("This check rasterises the plane's outline and subtracts barrels; it does no")
+        print("polygon arithmetic against other zones.  A higher-priority neighbour eats")
+        print("copper this raster would still count, so any width it printed would be a")
+        print("fiction.  Give the plane its layer, or teach this check to subtract zones.")
+        return 2
+
     bores = holes(doc, names)
     m, w, h = raster(pts, bores)
 
