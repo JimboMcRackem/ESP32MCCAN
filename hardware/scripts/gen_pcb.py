@@ -772,6 +772,22 @@ def place(comps):
         grid.mark(cx + ox - w / 2, cy + oy - h / 2, cx + ox + w / 2, cy + oy + h / 2)
         if rgn != region:
             print("  NOTE: %s spilled out of '%s' into '%s'" % (c["ref"], region, rgn))
+
+    # A NUDGE moves an AUTO-placed part after the packer has finished, without changing
+    # where the packer put anything else.  Pinning the part in PLACE instead would lift it
+    # out of the flow order, and every part that packs after it slides into the hole --
+    # which silently invalidates every hand route in ROUTES that names a coordinate.  A
+    # nudge is the smaller hammer.  The grid never learns about it, so nothing here proves
+    # the result is legal: check_geometry is what does that, and it runs on every build.
+    for ref, (dx, dy) in L.NUDGE.items():
+        if ref not in pos:
+            print("  WARN: NUDGE has %s, which is not auto-placed" % ref)
+            continue
+        if ref in L.PLACE:
+            print("  WARN: NUDGE and PLACE both name %s; edit PLACE instead" % ref)
+            continue
+        x, y, rot = pos[ref]
+        pos[ref] = (x + dx, y + dy, rot)
     return pos, unplaced, grid
 
 
@@ -1737,13 +1753,28 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
                 return False
         return True
 
-    # Ground pads that still need one: SMD, and with no via already inside them.
+    # Ground copper a hand route has already laid on F.Cu.  A pad one of these covers is
+    # grounded by it, and giving it a drop as well would be worse than pointless: the route
+    # is there precisely BECAUSE the placer could not go where it needed to.  U4 pad 4 is the
+    # case that forced this.  A drop stub is one straight segment from the pad centre, and at
+    # 0.5 mm pitch the only straight line out of that pad which clears its neighbours is due
+    # west -- 0.10 mm short of the clearance SR's escape needs.  A route with a 0.15 mm
+    # dogleg fits where no straight line does, so layout_pcb.ROUTES draws it and this reads
+    # it.  Snapshot it before the loop: the stubs laid below are ground copper too.
+    hand = [t for t in TRACK_LOG if t[6] == gnd and t[5] == "F.Cu"]
+
+    # Ground pads that still need one: SMD, with no via already inside them and no hand route
+    # across them.
     todo = []
     for ref, pn, net, px, py, pw, ph, smd, pid in allpads:
         if net != gnd or not smd:
             continue
         if any(abs(vx - px) <= pw / 2 and abs(vy - py) <= ph / 2
                for vx, vy, _s, _d, _n in placed):
+            continue
+        if any(_seg_rect(tx0, ty0, tx1, ty1, px - pw / 2, py - ph / 2,
+                         px + pw / 2, py + ph / 2) < tw / 2
+               for tx0, ty0, tx1, ty1, tw, _tl, _tn in hand):
             continue
         todo.append((ref, pn, px, py, pw, ph, pid))
 

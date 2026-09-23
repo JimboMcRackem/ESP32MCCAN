@@ -11,6 +11,12 @@ it a connection rather than a fault.  So both directions are checked here:
       and that pad must belong to the part the via was generated for;
     * every GND stitching via must lie inside NO pad at all -- it is meant to tie the planes
       together in free space, not to land on a component terminal;
+    * a via of a POWER net is graded by neither rule.  gen_pcb places 0.8 mm vias on VBAT,
+      +5V and the other power nets wherever a hand route in ROUTES changes layer, and half
+      of those are dropped deliberately on the terminal of the cap they feed -- which is
+      what you want there, and indistinguishable by diameter from a stitching via.  They
+      are counted and the pad-landings named, so a new one is visible, but only a landing
+      in a pad of ANOTHER net is a failure;
     * every footprint that gen_pcb classed as having an exposed paddle must actually have
       vias in it, so a placement change that pushes a part off the board cannot quietly take
       its thermal path with it.
@@ -140,8 +146,13 @@ def main():
         print("routes_signal.json: grading %d via(s), ignoring %d frozen from the router"
               % (len(vias), skipped))
 
+    gnd = set(c for c, n in netname.items() if n == "GND")
     therm = [v for v in vias if v[2] < 0.6]
-    stitch = [v for v in vias if v[2] >= 0.6]
+    # Diameter says what a via is for only on GND.  A 0.8 mm via on VBAT is a hand route
+    # changing layer, and it lands on its own pad about as often as not; grading it by the
+    # stitching rule reports the router doing its job as a fault.
+    stitch = [v for v in vias if v[2] >= 0.6 and v[4] in gnd]
+    power = [v for v in vias if v[2] >= 0.6 and v[4] not in gnd]
 
     bad = []
     hosts = {}
@@ -164,9 +175,27 @@ def main():
             bad.append("stitching via at (%.2f, %.2f) sits on %s.%s (%s)"
                        % (vx, vy, hit[0][0], hit[0][1], netname.get(hit[0][7], "?")))
 
-    print("vias: %d thermal (< 0.6 mm), %d stitching" % (len(therm), len(stitch)))
+    landed = []
+    for vx, vy, size, _drill, net in power:
+        r = size / 2.0
+        hit = [p for p in pads if touches_pad(p, vx, vy, r)]
+        foreign = [p for p in hit if p[7] != net]
+        if foreign:
+            bad.append("%s via at (%.2f, %.2f) sits on %s.%s, which is %s"
+                       % (netname.get(net, "?"), vx, vy, foreign[0][0], foreign[0][1],
+                          netname.get(foreign[0][7], "?")))
+        elif hit:
+            landed.append("%s via at (%.2f, %.2f) on %s.%s"
+                          % (netname.get(net, "?"), vx, vy, hit[0][0], hit[0][1]))
+
+    print("vias: %d thermal (< 0.6 mm), %d GND stitching, %d power/route"
+          % (len(therm), len(stitch), len(power)))
     for (ref, pn), n in sorted(hosts.items()):
         print("  %s pad %s: %d thermal vias" % (ref, pn, n))
+    if landed:
+        print("  %d power via(s) land on a pad of their own net (deliberate):" % len(landed))
+        for s in landed:
+            print("    " + s)
     for b in bad:
         print("  FAIL " + b)
     if bad:

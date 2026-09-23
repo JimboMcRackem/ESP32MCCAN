@@ -248,6 +248,140 @@ PLACE = {
 # Nothing is auto-flowed within this radius of it.
 KEEPCLEAR = {"R100": 4.0}
 
+# A nudge is an offset applied to an AUTO-placed part after the packer has run.  It moves
+# that one part and nothing else -- unlike a PLACE entry, which takes the part out of the
+# flow order and lets everything packed after it slide into the hole.  On a board this far
+# into routing that difference matters: the hand routes in ROUTES name absolute
+# coordinates, so a reshuffled region is a rewritten file.
+#
+# U4 is the 3V3_SW load switch.  Where the packer put it, its west face sat 1.0 mm from the
+# VBAT_PROT feed bus, and the ~0.7 mm pocket between them holds exactly two 0.6 mm ground
+# vias in a single column -- which is precisely what its two GND pads (4 and 6) need.  That
+# left pin 2 (EN_3V3SW) and pin 5 (SR) with no escape at all: pin 4's drop is pinned within
+# 0.2 mm of pin 3's pad and cannot move, SR's escape wants 0.625 mm of it and has 0.500,
+# and /IGN_IN crosses the pocket on In4.Cu at y 60.2.  Not a routing problem -- a placement
+# one.  Moving U4 east widens that pocket into two via columns instead of one, so the
+# drops and the escapes stop competing for the same one.
+#
+# 0.65 mm and not more, and the wall is the COURTYARD, not the copper.  East of U4 sit C6
+# and C7, and C6 cannot follow it: C6 pad 1 IS the VLOGIC_IN bus's bulk cap, so moving C6
+# moves the bus.  On copper the budget looked like 0.925 mm -- U4's pads 8-12 end at
+# x 68.225, C6 pad 1 begins at 69.450, and the two nets want 0.3 mm apart -- and 0.9 mm was
+# taken on that arithmetic.  It regenerated clean, passed all four guards, and routed; then
+# KiCad's DRC reported two courtyards_overlap ERRORS, because U4's courtyard reaches
+# 0.275 mm past its own pads and C6's and C7's reach 0.250 mm past theirs.  Courtyard to
+# courtyard the gap is 0.700 mm, not 0.925.  Nothing in this repo checks courtyards; DRC is
+# the only thing that does, which is exactly the hole the loop comment above warns about.
+#
+# 0.65 mm leaves 0.05 mm of courtyard gap and is still enough for what the move was for.  It
+# puts U4's west pads at x 65.125, so the pocket between the VBAT_PROT feed bus (east edge
+# x 63.45) and the package runs 1.675 mm where it ran 1.025: room for the two ground drops
+# and an escape lane side by side instead of one or the other.  /EN_3V3SW, which no router
+# had ever closed, closes at this width; Net-(U4-SR) is hand-routed through the same pocket.
+#
+# Q4..Q7 are four of the six RGB low-side driver packages, packed on a 3.5 mm pitch with
+# 2.700 mm of pads: 0.800 mm between neighbours.  Each package is two columns of three, and
+# the outer pins of a column (1, 3, 4, 6) can leave their pad due NORTH or SOUTH into the
+# open bands above and below the row.  The middle pins -- 2 and 5 -- cannot: their own
+# neighbours are 0.30 mm away on both sides, so the only way off the pad is sideways, into
+# that 0.800 mm channel.  A 0.20 mm track with 0.20 mm either side needs 0.600 of it, and
+# two need 1.000.  The channel passes ONE.
+#
+# That is not a guess.  Of the eight PWM nets left open by the last router run, every single
+# one is a pin 2 or a pin 5, and every channel closed exactly one of the pair facing across
+# it -- Q4.5, Q5.5, Q8.2 and Q9.5 got through, Q4.2, Q5.2, Q6.2, Q6.5, Q7.2 and Q7.5 did
+# not.  The router's own verdict on all of them was "no rippable blockers found", which is
+# what it says when the obstruction is a pad and not another net's copper.  A router cannot
+# trade its way out of a channel that is too narrow; only the placer can.
+#
+# 0.800 -> 1.600 mm, which is the width that carries a 0.6 mm via (1.000 with clearance)
+# AND a track past it (0.600), so a trapped pin can either run the channel to a via band or
+# drop where it stands.  Widening in x only, and only eastward: Q4 stays, so everything
+# already routed west of it -- the U7 fan-out, R47 and the Q8 pair -- keeps its geometry.
+# Q7 ends at x 130.300, and nothing on this board lies east of it in its own y band at all
+# -- R41 and R95 are in other rows and the next part is U5 at x 134.500.  The move only
+# loosens: check_courtyards.py reports the Q-to-Q courtyard gap going 0.600 -> 1.400 mm
+# and the tightest neighbour any of the four has, Q7 to R95 at 0.740 mm, is a row-to-row
+# spacing that none of this touches.
+#
+# Q9 is the odd one out: its middle pins are fine, but pin 4 sits 0.955 mm from C41 with
+# R42 0.330 mm below it, and SENSE_RR_B has nowhere to go.  West of Q9 the board is empty
+# to x 88.4, so it is the one part here that can afford to move away from its neighbours
+# rather than push them along.
+# R42..R87 are the RGB channels' series and sense resistors, and the packer laid them out as
+# seven rows on a 1.0 mm pitch -- of parts 0.95 mm tall.  That leaves 0.050 mm between one
+# row and the next, which is not a lane, it is a weld: on F.Cu the whole grid is one solid
+# obstacle 7 mm deep and 34 mm wide, and it sits directly between the six driver packages
+# and the four output connectors every RET_* net has to reach.
+#
+# The rows do have gaps ACROSS them -- each bank repeats the same x positions row after row,
+# so the 1.05 mm spaces between neighbouring resistors line up into vertical corridors, three
+# through the middle bank and four through the outer one.  A corridor that wide passes one
+# 0.25 mm track, or one 0.6 mm via with 0.025 mm to spare.  Seven of them, for the two dozen
+# nets that need to cross.  And with 0.050 mm between rows, a net that arrives at the wrong
+# corridor cannot move sideways to find a better one: there is nowhere to go but back.
+#
+# So the rows are pushed apart 1.2 mm at a time, which puts 1.25 mm between one row and the
+# next.  The rows alternate between two banks that do not share an x range, though, so the
+# gap that a track actually sees -- between one row and the next row ABOVE ITS OWN COLUMN --
+# comes out at 3.450 mm.  Crossed with the corridors that already exist, the wall becomes an
+# actual grid.
+#
+# The room is free.  South of the grid, x 93..132 and y 65..99, this board carries exactly
+# one part (J5, at y 99.5) across 39 x 34 mm -- the packer flowed the whole outputs block
+# into the top of a region that already runs to y 94 and left the bottom third empty.  The
+# last row lands at y 71.6, still 28 mm clear of the connectors, and every row that moves
+# moves TOWARDS the connectors its nets are going to.
+#
+# Why NUDGE and not a wider gutter on the region: the outputs block also holds U8, C45, C46
+# and the +24V taps up at y 24..45, and ROUTES hand-routes twenty coordinates among them.
+# Repacking the block to spread its southern half would move its northern half too, and
+# every one of those routes names an absolute coordinate.
+NUDGE = {
+    "U4": (0.65, 0.0),
+    "Q5": (0.8, 0.0),
+    "Q6": (1.6, 0.0),
+    "Q7": (2.4, 0.0),
+    "Q9": (-1.0, 0.0),
+
+    # row 2, +1.2 mm
+    "R46": (0.0, 1.2),
+    "R47": (0.0, 1.2),
+    "R48": (0.0, 1.2),
+    "R49": (0.0, 1.2),
+    "R50": (0.0, 1.2),
+    "R51": (0.0, 1.2),
+    # row 3, +2.4 mm
+    "R64": (0.0, 2.4),
+    "R65": (0.0, 2.4),
+    "R66": (0.0, 2.4),
+    "R67": (0.0, 2.4),
+    # row 4, +3.6 mm
+    "R68": (0.0, 3.6),
+    "R69": (0.0, 3.6),
+    "R70": (0.0, 3.6),
+    "R71": (0.0, 3.6),
+    "R72": (0.0, 3.6),
+    "R73": (0.0, 3.6),
+    # row 5, +4.8 mm
+    "R74": (0.0, 4.8),
+    "R75": (0.0, 4.8),
+    "R76": (0.0, 4.8),
+    "R77": (0.0, 4.8),
+    # row 6, +6.0 mm
+    "R78": (0.0, 6.0),
+    "R79": (0.0, 6.0),
+    "R80": (0.0, 6.0),
+    "R81": (0.0, 6.0),
+    "R82": (0.0, 6.0),
+    "R83": (0.0, 6.0),
+    # row 7, +7.2 mm
+    "R84": (0.0, 7.2),
+    "R85": (0.0, 7.2),
+    "R86": (0.0, 7.2),
+    "R87": (0.0, 7.2),
+}
+
 # Parts whose courtyard is allowed to leave the board outline.  U5's courtyard carries
 # Espressif's 15 mm antenna clearance, and the whole point of putting the module on this edge
 # is that most of that clearance is off the board.
@@ -625,6 +759,22 @@ ROUTES = [
     # out and 0.3 mm is the only width that fits -- 0.18 mm to each neighbour.  It widens
     # to 0.5 mm the moment it is clear of the land pattern.
     ("SNS", "F.Cu", 0.3, [(36.50, 74.50), (35.50, 74.50)]),
+
+    # U10_GATE: pin 3, the pin between them, and the one net here the external router could
+    # never close.  Its trouble is not the land pattern -- 0.175 mm to pins 2 and 4 is the
+    # same exemption SNS uses -- it is that west, the way every other pin on this face
+    # leaves, is already spent.  SNS turns south at x 35.50 and its 0.5 mm leg stands from
+    # y 74.25 down; a gate track crossing above it clears by 0.10 mm where FEED wants 0.30,
+    # and there is no lane between the two that both nets can hold.
+    #
+    # So this one goes the other way, EAST, under the package.  U10 is an MSOP-10 with no
+    # exposed pad, so the 2.70 mm between its two pad columns is bare laminate -- the widest
+    # clear copper anywhere near the part, and show_room puts 0.93 mm of slack on a 0.6 mm
+    # via at x 39.00 against every layer.  The gate is a 240k-class bias node carrying
+    # microamps, so a via under the body costs it nothing, and what the via buys is a start
+    # on In2/In4 where the router has the whole quadrant to work with instead of the 0.16 mm
+    # slots either side of pin 3.
+    ("U10_GATE", "F.Cu", 0.2, [(36.90, 74.00), (39.00, 74.00)]),
     ("SNS", "F.Cu", 0.5, [(35.50, 74.50), (35.50, 80.30),
                           (53.60, 80.30), (53.60, 87.00)]),
 
@@ -1067,6 +1217,113 @@ ROUTES = [
     ("/EN_BOOST", "F.Cu", 0.20, [(73.750, 33.456), (73.750, 34.600),
                                  (74.000, 34.850), (74.000, 38.200),
                                  (71.500, 38.200)]),
+    #
+    # -- U4's west face: one via column for four nets.
+    #
+    #    U4 is a 0.5 mm pitch load switch with six pads down its west face, and the only
+    #    thing west of them is the 3.5 mm VBAT_PROT feed bus.  Pads 2 (EN_3V3SW) and 5 (SR)
+    #    have to escape; pads 4 and 6 are GND and need a via down to the plane.  Before the
+    #    NUDGE above the pocket was 1.025 mm wide and no router this repo has run -- its own
+    #    or KiCadRoutingTools -- ever closed either escape.
+    #
+    #    The nudge makes the pocket 1.675 mm, and the thing worth understanding about that
+    #    number is what it does NOT buy.  Tracks there are cheap: at 0.20 mm wide with
+    #    0.20 mm between them, three fit abreast between the feed bus and the pad column.
+    #    Vias are not.  A 0.6 mm via wants 0.3 mm to the bus (it is POWER class) and 0.2 mm
+    #    to everything else, which is 1.6 mm of the 1.675 for a single barrel: the pocket
+    #    holds exactly ONE via column, at x 64.40.  Every arrangement that gives the escapes
+    #    one column and the ground drops another dies on that, and so does the drop placer,
+    #    which searches radially outward from the pad and cannot step around what it finds.
+    #
+    #    So all four nets share the column, stacked in y at 0.85-0.95 mm centres -- the
+    #    closest two 0.6 mm vias may sit and still keep 0.2 mm between their copper:
+    #
+    #        EN_3V3SW   y 60.250   straight west out of pad 2
+    #        GND        y 61.100   west out of pad 4, then 0.15 mm north to clear SR
+    #        SR         y 62.050   west out of pad 5, then 0.30 mm south to clear GND
+    #        (pad 6)               no via here at all -- it drops south, see below
+    #
+    #    The two doglegs are what make it fit, and they are also why pad 4's ground is
+    #    written here instead of being left to gnd_drops().  A drop stub is ONE straight
+    #    segment from the pad centre.  At 0.5 mm pitch the only straight line out of pad 4
+    #    that keeps 0.35 mm from pads 3 and 5 is due west along y 61.250 -- and that puts
+    #    its via 0.500 mm from SR's escape where the rules want 0.600.  Tilt it to gain that
+    #    and the stub clips pad 3 instead.  Bending 0.15 mm north AFTER leaving the pad costs
+    #    nothing and buys 0.25 mm of clearance at both ends; a straight line cannot do it,
+    #    and a straight line is all the placer has.  gnd_drops() now looks for hand-routed
+    #    ground copper on a pad before it searches, and finds this.
+    #
+    #    Pad 6 is deliberately NOT here.  Its escape is not west: the band y 62.8..63.7
+    #    below U4 is empty (C14's courtyard starts at 63.700), and a straight stub due south
+    #    out of the pad reaches it.  Due south is a direction the placer's fan already tries,
+    #    so it finds that on its own -- and a via down there is a via that is not competing
+    #    for the column.
+    #
+    #    Where EN_3V3SW and SR go after their vias is the router's problem and not a hard
+    #    one: In2.Cu under U4 is empty from x 65.2 east for 3 mm in every direction.  The
+    #    pocket was the whole difficulty, and it is what these lines spend.
+    ("/EN_3V3SW", "F.Cu", 0.20, [(65.450, 60.250), (64.400, 60.250)]),
+    ("GND", "F.Cu", 0.25, [(65.450, 61.250), (64.400, 61.250),
+                           (64.400, 61.100)]),
+    ("Net-(U4-SR)", "F.Cu", 0.20, [(65.450, 61.750), (64.400, 61.750),
+                                   (64.400, 62.050)]),
+
+    # -- Task 9: seven escapes out of the RGB driver row --------------------------------
+    #
+    # These do not route anything.  Each one is a stub of 0.4 to 0.95 mm from a pad centre to
+    # a via, and the whole point is WHEN it is laid rather than where it goes.
+    #
+    # Spreading the driver packages and the resistor grid took the board from 269 connected
+    # pad pairs to 276, and the eight that stayed open were reported boxed_in_static -- the
+    # router's verdict for "no rippable blockers", which means the obstruction is copper it
+    # is not allowed to move.  For the pin-2/pin-5 trap that was true and the answer was to
+    # move the parts.  Here it is not.  show_room on the BARE board finds 1125 legal via
+    # positions in a 9 x 6 mm window around Q4 and 0.662 mm of slack at the roomiest of
+    # them, 1.5 mm from the stranded pad.  The room is there.  What is not there by the time
+    # these nets are attempted is a lane to reach it: the router takes the nets in its own
+    # order, the band north and south of the Q row is the only F.Cu thoroughfare across this
+    # corner, and the last arrivals find it full.  That is congestion, not geometry, and a
+    # placement change cannot fix it -- run 4 proved that, closing six nets and opening six
+    # others somewhere else.
+    #
+    # gen_pcb lays ROUTES before it autoroutes, so a ROUTES entry is simply a net that goes
+    # first.  Seven stubs are enough because one via apiece is enough: In2.Cu and In4.Cu
+    # carry no zones and no SMD pads, so under this row they are all but empty, and once a
+    # stranded pin is ON one of them it is no longer competing for the crowded band at all.
+    # Where each net goes after its via stays the router's problem, which is the right place
+    # for it.
+    #
+    # The directions are not arbitrary and they say something about the package.  Each
+    # SOT-23-6-class driver is two columns of three pads 1.676 mm apart.  The four middle
+    # pins -- Q4.2, Q4.5, Q5.5, Q6.5, Q8.5 -- have their own neighbours 0.65 mm away north
+    # and south, so their only way out is sideways, and every one of them takes a 0.950 mm
+    # stub straight out of its own column: west for a west-column pin, east for an east-
+    # column one.  The two outer pins here, Q4.1 and Q4.4, are not trapped that way and go
+    # the short way instead, 0.400 mm due north and due south into the open bands.
+    #
+    # Every position was swept rather than chosen: for each pad, the nearest point at least
+    # 0.4 mm away where a 0.6 mm through via clears every layer AND the straight 0.25 mm
+    # stub to it clears F.Cu, checked against output/router/unrouted.kicad_pcb, which is the
+    # board a ROUTES entry actually has to fit through.  Each via also keeps 0.2 mm from the
+    # others, so the seven do not foul each other.
+    #
+    # 0.950 and not 0.400 for the middle pins, and the difference is the via MODEL.  A via
+    # clears its diagonal neighbour as a disc at 0.40 mm out; routes() measures it as a
+    # SQUARE, box to box, and a box gap is the LARGER of the two axis separations -- so an
+    # x overlap of any size leaves the y separation standing alone, and at 0.40 mm that is
+    # 0.175 mm where the rule wants 0.200.  Pushing the via clear of the pad column in x
+    # is what fixes it, which is not the axis the shortfall was reported on.  The first
+    # sweep here used discs, produced five positions that all failed by exactly 0.025 mm,
+    # and the second was rewritten to call gen_pcb's own _rect_gap and _seg_rect_gap so
+    # that the two cannot disagree again.  show_inner.py's docstring warns about precisely
+    # this; the warning is worth more than it looks.
+    ("/outputs/SENSE_FL_R", "F.Cu", 0.25, [(115.812, 53.650), (115.812, 53.250)]),
+    ("/outputs/PWM_FL_R",   "F.Cu", 0.25, [(115.812, 54.300), (114.862, 54.300)]),
+    ("/outputs/SENSE_FL_G", "F.Cu", 0.25, [(117.488, 54.950), (117.488, 55.350)]),
+    ("/outputs/PWM_FL_G",   "F.Cu", 0.25, [(117.488, 54.300), (118.438, 54.300)]),
+    ("/outputs/PWM_FR_R",   "F.Cu", 0.25, [(121.788, 54.300), (122.738, 54.300)]),
+    ("/outputs/PWM_FR_B",   "F.Cu", 0.25, [(126.088, 54.300), (127.038, 54.300)]),
+    ("/outputs/PWM_RR_R",   "F.Cu", 0.25, [(112.488, 55.300), (113.438, 55.300)]),
  ]
 
 ROUTE_VIAS = [
@@ -1095,6 +1352,17 @@ ROUTE_VIAS = [
     ("VBAT", 73.95, 62.00, 0.8, 0.4),       # C13
     ("VBAT", 82.09, 58.27, 0.8, 0.4),       # U2
     ("VBAT", 113.03, 26.45, 0.8, 0.4),      # C45
+
+    # The seven RGB-row escapes -- see the stubs at the end of ROUTES.  0.6 / 0.3 is the
+    # Default class via, which is what these signal nets rate; the drivers' gates carry
+    # milliamps and the sense nets microamps, so one via apiece is not a current question.
+    ("/outputs/SENSE_FL_R", 115.812, 53.250, 0.6, 0.3),   # Q4.1
+    ("/outputs/PWM_FL_R",   114.862, 54.300, 0.6, 0.3),   # Q4.2
+    ("/outputs/SENSE_FL_G", 117.488, 55.350, 0.6, 0.3),   # Q4.4
+    ("/outputs/PWM_FL_G",   118.438, 54.300, 0.6, 0.3),   # Q4.5
+    ("/outputs/PWM_FR_R",   122.738, 54.300, 0.6, 0.3),   # Q5.5
+    ("/outputs/PWM_FR_B",   127.038, 54.300, 0.6, 0.3),   # Q6.5
+    ("/outputs/PWM_RR_R",   113.438, 55.300, 0.6, 0.3),   # Q8.5
     ("VBAT", 127.95, 43.30, 0.8, 0.4),      # C46
 
     # VLOGIC_IN's In2.Cu haul -- see the routes above.  0.8/0.4 at 0.65 A worst case.
@@ -1140,6 +1408,16 @@ ROUTE_VIAS = [
     ("VBAT", 38.95, 50.00, 0.8, 0.4),
     ("VBAT", 37.75, 51.15, 0.8, 0.4),
     ("VBAT", 38.95, 51.15, 0.8, 0.4),
+
+    # U10 pin 3's gate escape, under the package -- see the ROUTES entry above.
+    ("U10_GATE", 39.000, 74.000, 0.6, 0.3),
+
+    # U4's west-face column -- see the ROUTES entries above.  Three vias, 0.85 and
+    # 0.95 mm apart, in the only column the pocket has room for.  Through vias: what is
+    # on the far side is the router's choice for the two escapes, and the plane for GND.
+    ("/EN_3V3SW", 64.400, 60.250, 0.6, 0.3),
+    ("GND", 64.400, 61.100, 0.6, 0.3),
+    ("Net-(U4-SR)", 64.400, 62.050, 0.6, 0.3),
 
     # U3's fringe -- see the MODE / SS routes above for why each of these is where it is.
     ("Net-(U3-MODE)", 76.800, 31.250, 0.6, 0.3),

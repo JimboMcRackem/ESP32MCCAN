@@ -56,6 +56,9 @@ python scripts/route_external.py
 
 That is the whole thing. It:
 
+0. runs `check_courtyards.py` over the placement — a courtyard overlap is caught only by KiCad's
+   DRC, which in this chain runs *after* the router, so it is checked here for a second instead of
+   discovered twenty minutes later (see §6);
 1. runs `gen_pcb.py` with **`AR_SKIP=1`** and **`PCB_OUT=output/router/unrouted.kicad_pcb`**, so the
    input board is everything this repo generates *minus* the signal copper — hand routes, thermal
    and stitching vias, ground drops and pours all present. `mccan.kicad_pcb` is not touched;
@@ -256,12 +259,104 @@ congested run.** The lever that worked was the stackup.
   `rules.min_*`, on a track on a plane layer and on zero-length junk, and merely *reports* legal
   necking. It runs first in the chain, and it is the gate on whether a run is freezable at all.
 
+- **A router cannot widen a channel, and this one says so plainly.** When a net comes back with
+  `Re-route FAILED: no rippable blockers found`, the thing in the way is a *pad*, not another
+  net's copper, and no amount of rip-up authority will move it. That message means go and look at
+  the placement. It is what the RGB driver row turned out to be: Q4..Q7 on a 3.5 mm pitch with
+  2.700 mm of pads left 0.800 mm between packages, which passes one 0.20 mm track, and the two
+  middle pins of each package -- boxed in by their own neighbours on both sides -- have nowhere
+  else to go. Every PWM net the run left open was a pin 2 or a pin 5, and each channel closed
+  exactly one of the pair facing across it. The fix was 0.8 mm of `layout_pcb.NUDGE`, not a
+  router flag.
+
+- **`boxed_in_static` means two different things, and only one of them is placement.** The
+  bullet above is the first: no lane exists, so build one. The second looks identical in the
+  summary and has the opposite fix. After the driver row and the resistor grid were spread the
+  run went 269 -> 276 connected pairs, and eight nets stayed open with the same verdict -- but
+  `show_room` on the **bare** board found **1125 legal via positions** in a 9 x 6 mm window
+  around the worst of them and 0.662 mm of slack 1.5 mm from the stranded pad. The room was
+  there all along. What was missing by the time those nets were attempted was a *lane to reach
+  it*: the router takes nets in its own order, and the last arrivals find the one F.Cu
+  thoroughfare across that corner already full.
+
+  So the test is: run `show_room` against `output/router/unrouted.kicad_pcb`, not against the
+  routed board. Room on the bare board and none on the routed one is congestion; none on either
+  is geometry. Only the second wants a placement change — and a placement change aimed at the
+  first actively misleads you, because it closes some nets and opens others somewhere else,
+  which is exactly what the run before this did.
+
+  The fix for congestion is to make the net go **first**. `gen_pcb` lays `ROUTES` before it
+  autoroutes, so a `ROUTES` entry is simply a net that is not competing. It does not have to be
+  the whole route: a stub of half a millimetre from the pad to a via is enough, because
+  `In2.Cu` and `In4.Cu` carry no zones and no SMD pads and are all but empty under most of this
+  board. Once a stranded pin is on an inner layer it has left the contested band entirely, and
+  where it goes next is the router's problem again. Seven such stubs, none longer than 0.95 mm,
+  are what the RGB row needed after the parts had been moved.
+
+  **`scripts/find_escape.py`** finds them. Name the stranded pads and it sweeps outward from
+  each for the nearest point where a through via clears every layer *and* the straight stub to
+  it clears F.Cu, keeps the escapes in one invocation clear of each other, and prints the
+  `ROUTES` and `ROUTE_VIAS` lines to paste:
+
+  ```
+  python scripts/find_escape.py Q4.5 Q5.5 Q6.5 Q8.5 --dir E
+  ```
+
+  `--dir` is worth giving when you know the answer: the middle pin of a two-column package can
+  only leave sideways, and an unconstrained sweep just finds a nearer point that is no use.
+
+- **A via is a square when `routes()` measures it.** `gen_pcb.routes()` compares bounding boxes,
+  and a box gap is the **larger** of the two axis separations — so overlapping in x by any
+  amount at all leaves the y separation standing alone as the answer. A via 0.40 mm from its
+  own pad's diagonal neighbour clears it as a *disc* and fails as a *box*, by 0.025 mm, and the
+  shortfall is reported on the axis you cannot fix: the cure is to push the via clear in **x**,
+  the axis the message never mentions. Five candidate positions were generated against a disc
+  model here and all five failed that way. If you are sweeping for via positions, call
+  `gen_pcb._rect_gap` and `_seg_rect_gap` directly rather than reimplementing them —
+  `show_room.py` uses discs by design, and `show_inner.py`'s docstring says so.
+
+- **Check the courtyards before you spend twenty minutes routing.** KiCad's DRC is the only thing
+  that checks courtyard overlap, and in this workflow DRC runs *after* the router — so a placement
+  change can regenerate clean, pass every guard, route for twenty minutes and only then be
+  rejected. U4's nudge was taken at 0.9 mm on copper arithmetic and lost exactly that way: its
+  courtyard reaches 0.275 mm past its pads and C6's 0.250 mm past its own, so the real gap was
+  0.700 mm and not the 0.925 mm the pads showed. **`scripts/check_courtyards.py`** is the cheap
+  half of that DRC run and answers from the netlist and the placer in about a second, before any
+  regenerate:
+
+  ```
+  python scripts/check_courtyards.py --near 0.35   # overlaps, plus near misses
+  ```
+
+  Run it after every edit to `PLACE` or `NUDGE`. `--near` is the one that matters when you are
+  about to move something: it prints the budget you actually have.
+
 - **`--keep-input-copper` does not stop `--rip-existing-nets`; the two compose.** The first
   reads as "the input board's copper is read-only", and what it actually does is narrower: it
   disables the late orphan sweep and the strip pass. A net named on the rip list is still
   rippable with it on. What protected `/rails/SW_BOOST` on the rip run was not the flag, it was
   that the list was filtered against `unrouted.kicad_pcb` first -- and then the router ripped it
   anyway and restored it. Filter the list; do not trust the flag to do it.
+
+- **`--nets` exclusions say what may not be ROUTED, not what may not be RIPPED.** They keep a
+  net out of the routing queue and nothing more. `route.py`'s later salvage stages build their
+  own rip-eligibility list from the board, and run 6 printed `5 pre-existing net(s) eligible
+  for rip-up: /+5V, /CANH, /CANL, /VLOGIC_IN, /outputs/PWM_RR_R` -- four of them nets this
+  repo had just excluded by name. It then ripped `/+5V` to clear a tap route for `/+3V3_SW`,
+  failed to put it back ("original corridor taken"), and the improvement gate kept the run
+  because it had gained thirty nets and lost one. What shipped was a board with the entire
+  hand-routed +5V distribution gone -- 21 segments and 4 vias, U2's output to U6 -- and only
+  `freeze_routes.py`'s additive contract caught it, twenty minutes after the fact.
+
+  The cure is `route.py`'s own protection map (issue #521): a `protected_nets` object in the
+  sibling `.kicad_pro`, which every rip channel consults -- the pre-run `--rip-existing-nets`
+  expansion, all six in-run rip ladders via `filter_rippable_blockers`, and the octolinear
+  smoothing pass. `route_external.protect()` writes it from `excluded_nets()` after
+  regenerating, so the two lists cannot drift. Protection lifts only for a net named EXACTLY,
+  with no glob, in `--nets` or `--rip-existing-nets`; `!*/+5V` carries a `*` and `!GND` is not
+  the string `GND`, so nothing this repo passes lifts it by accident. The reason string is
+  free text (`hand-routed` here); only the literal `locked` is special, and that one can never
+  be overridden.
 
 - **Git Bash mangles every rip-list argument silently.** MSYS path conversion rewrites any
   argument starting with `/` into a Windows path, so `/outputs/PWM_FL_B` arrives at route.py as

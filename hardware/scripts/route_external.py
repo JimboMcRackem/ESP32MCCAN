@@ -23,6 +23,8 @@ net into a class automatically keeps it out of the external router's hands.
 
 The chain
 ---------
+    0. check_courtyards.py over the placement, because a courtyard overlap is only caught by
+       KiCad's DRC, which in this chain runs after the router does.
     1. gen_pcb.py with AR_SKIP=1 and PCB_OUT pointed at output/router/, so the input board is
        everything this repo generates MINUS the signal copper.  mccan.kicad_pcb is not
        touched, and neither is mccan.kicad_pro -- route.py writes DRC settings back into the
@@ -59,10 +61,15 @@ Environment:
                 (default: the .venv under KRT_HOME)
 """
 
+import fnmatch
+import io
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import layout_pcb as L  # noqa: E402
@@ -133,6 +140,18 @@ def regenerate():
     env["AR_SKIP"] = "1"
     env["PCB_OUT"] = UNROUTED
     env["PYTHONIOENCODING"] = "utf-8"
+    # Courtyards first, because this is the one failure that costs a whole run.  KiCad's DRC
+    # is the only thing that checks courtyard overlap and it runs at the END of this chain --
+    # after twenty minutes of routing.  U4's nudge was taken on copper arithmetic, regenerated
+    # clean, passed every guard, routed, and only then came back with two courtyards_overlap
+    # ERRORS.  The check costs a second and reads the placer, not the board, so it can run
+    # before anything is generated at all.
+    print("=== checking the placement")
+    rc = subprocess.call([sys.executable, "-u", os.path.join(HERE, "check_courtyards.py")],
+                         env=env)
+    if rc:
+        return rc
+
     print("=== generating the unrouted input board")
     rc = subprocess.call([sys.executable, "-u", os.path.join(HERE, "gen_pcb.py")], env=env)
     if rc:
@@ -144,7 +163,76 @@ def regenerate():
         src = os.path.join(HW, "mccan" + ext)
         if os.path.exists(src):
             shutil.copyfile(src, os.path.join(WORK, "unrouted" + ext))
+    return protect()
+
+
+def protect():
+    """Tell route.py which nets it may not RIP, as distinct from may not ROUTE.
+
+    --nets exclusions only keep a net out of the routing queue.  They say nothing about the
+    rip-up ladder, and route.py's later salvage stages build their own rip-eligibility list
+    from the board: run 6 printed "5 pre-existing net(s) eligible for rip-up: /+5V, /CANH,
+    /CANL, /VLOGIC_IN, /outputs/PWM_RR_R" -- every one of them a net this script had just
+    excluded.  It then ripped /+5V to clear a tap route for /+3V3_SW, could not put it back
+    ("original corridor taken"), and shipped the board with the whole hand-routed +5V
+    distribution gone: 21 segments and 4 vias, from the U2 output all the way to U6.  The
+    improvement gate weighed one lost net against thirty gained and kept the result, which is
+    the right call for a net the router owns and the wrong one for a net it does not.
+    freeze_routes.py caught it, because that chain is additive by contract, but only after the
+    run.
+
+    route.py has a mechanism for exactly this: a protection map in the sibling .kicad_pro
+    (issue #521, "routed invariants that later chain steps must not rip").  Every rip channel
+    consults it -- the pre-run --rip-existing-nets expansion, all six in-run rip ladders
+    through filter_rippable_blockers, and the octolinear smoothing pass.  Protection lifts
+    only for a net named EXACTLY, with no glob, in --nets or --rip-existing-nets; "!*/+5V"
+    carries a "*" and "!GND" is not the string "GND", so nothing this script passes can lift
+    it by accident.
+
+    The list is derived from excluded_nets() rather than restated, so the two cannot drift:
+    same patterns, matched against the board's own net names the way route.py matches them.
+    """
+    text = io.open(UNROUTED, encoding="utf-8").read()
+    names = [m.group(1) for m in re.finditer(r'\(net \d+ "([^"]+)"\)', text)]
+    pats = [p.lstrip("!") for p in excluded_nets()]
+    keep = sorted(set(n for n in names if any(fnmatch.fnmatch(n, p) for p in pats)))
+
+    pro = os.path.join(WORK, "unrouted.kicad_pro")
+    if not os.path.exists(pro):
+        sys.stderr.write("no unrouted.kicad_pro to write protection into\n")
+        return 1
+    proj = json.load(io.open(pro, encoding="utf-8"))
+    ns = proj.setdefault("kicad_routing_tools", {})
+    ns["protected_nets"] = dict((n, "hand-routed") for n in keep)
+    with io.open(pro, "w", encoding="utf-8") as f:
+        f.write(json.dumps(proj, indent=2))
+    print("    %d net(s) marked unrippable in unrouted.kicad_pro" % len(keep))
     return 0
+
+
+def archive():
+    """Keep every routed board, filed under the score it got.
+
+    Each run overwrites routed.kicad_pcb, and the runs are not monotonic -- they are a
+    sequence of experiments whose results wander.  Run 4 of this board scored 276 connected
+    pad pairs, run 5 scored 274, and run 4's copper was gone before anyone knew that, which
+    means the best result the board had produced could not be frozen, compared against, or
+    even looked at.  Copying costs 1.7 MB and a moment; output/router/ is gitignored, so it
+    costs the repository nothing at all.
+    """
+    try:
+        s = json.load(io.open(SUMMARY, encoding="utf-8"))
+        tag = "%03d-of-%03d" % (s.get("pad_pairs_connected", 0), s.get("pad_pairs_total", 0))
+    except Exception:
+        tag = "unknown"
+    keep = os.path.join(WORK, "runs")
+    if not os.path.isdir(keep):
+        os.makedirs(keep)
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    for src, ext in ((ROUTED, ".kicad_pcb"), (SUMMARY, ".json")):
+        if os.path.exists(src):
+            shutil.copy2(src, os.path.join(keep, "%s-%s%s" % (stamp, tag, ext)))
+    print("    kept as output/router/runs/%s-%s.*" % (stamp, tag))
 
 
 def main(argv):
@@ -182,7 +270,19 @@ def main(argv):
     cmd += ["--via-size", str(G.AR_VIA), "--via-drill", str(G.AR_VIA_DRILL)]
     cmd += ["--grid-step", str(G.AR_GRID)]
     cmd += ["--board-edge-clearance", str(G.AR_EDGE)]
-    cmd += ["--via-cost", str(G.AR_VIA_COST)]
+    # 10, not gen_pcb's AR_VIA_COST of 35.  That 35 was chosen for a TWO layer board, where a
+    # via really does cost you the other side; this board has four signal layers.  Measured
+    # back to back with everything else identical, 35 scored 274 connected pad pairs and 10
+    # scored 276, so it is worth keeping -- but not for the reason it was tried.  The theory
+    # was that a high via cost makes the router hoard F.Cu, which is the one layer carrying
+    # every SMD pad on the board.  It does not: the layer split barely moved (F.Cu 34.5% of
+    # track length at 35, 35.3% at 10), because the distribution is pinned by the fact that
+    # every net starts and ends on F.Cu whatever it does in between.  What the lower cost
+    # actually buys is permission to hop more often -- 629 vias became 937 -- which is worth
+    # about two pad pairs at the margin and nothing at all to the layer balance.
+    #
+    # VIA_COST in the environment overrides it, which is how those two runs were compared.
+    cmd += ["--via-cost", os.environ.get("VIA_COST", "10")]
     # A hard fab floor.  Left to itself the router escalates to the "advanced" tier when a net
     # will not otherwise close -- a preview run took U8 pad 21's plane tap down to a 0.25/0.15
     # via -- and says so in a warning that is easy to lose in 70 000 lines of log.  This board
@@ -224,6 +324,7 @@ def main(argv):
     print("    exit %d" % rc)
     if rc or preview:
         return rc
+    archive()
 
     # Geometry first, because it is the one that decides whether the rest is worth reading.
     # A board with copper under its own floors cannot be frozen however well it grades on
