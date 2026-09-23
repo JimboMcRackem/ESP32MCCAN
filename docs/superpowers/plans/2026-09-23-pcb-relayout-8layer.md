@@ -496,18 +496,21 @@ Record the whole table in the commit message — it is the "before" measurement,
 Temporarily add to `layout_pcb.py`:
 
 ```python
-BUDGET = {"outputs": 0.25}
+BUDGET = {"input": 0.45}
 ```
 
-Then:
+0.45 is the budget `input` will really carry in Task 4, so this is not a throwaway value —
+it is the real constraint, applied to a board that cannot yet meet it.
 
 ```bash
 python scripts/check_density.py; echo "exit=$?"
 ```
 
-Expected: `FAIL: region 'outputs' is 59.x% full against a 25% budget` and `exit=1`.
+Expected: `FAIL: region 'input' is 75.8% full against a 45% budget` and `exit=1`.
 
-Leave `BUDGET` in place with that one entry — Task 4 fills in the rest.
+Leave `BUDGET` in place with that one entry. **Task 3 therefore ends with a failing gate, and
+that is deliberate** — it is the red half of red/green, and Task 4 is what turns it green. Say
+so in the commit message so nobody "fixes" it by raising the budget.
 
 - [ ] **Step 4: Correct the spec, which repeats the stale figure**
 
