@@ -61,8 +61,20 @@ def main():
             homeless.append(c["ref"])
 
     budget = getattr(L, "BUDGET", {})
+
+    # A BUDGET key that names no REGIONS entry is silently ignored by the loop below --
+    # no row, no warning, no effect on the exit code -- which is exactly the kind of
+    # stale, no-longer-about-anything number this gate exists to catch. Task 4 rewrites
+    # both REGIONS and BUDGET, so a budget naming a region that no longer exists is a
+    # budget nobody is enforcing, and that has to fail loudly rather than vanish.
+    stray = set(budget) - set(L.REGIONS)
+    if stray:
+        print("ERROR: BUDGET names region(s) not in REGIONS: %s"
+              % ", ".join(sorted(stray)))
+        return 1
+
     bad = []
-    print("%-10s %9s %9s %7s %7s" % ("region", "region", "parts", "fill", "budget"))
+    print("%-10s %9s %9s %7s %7s" % ("region", "rgn mm2", "used mm2", "fill", "budget"))
     for r in sorted(L.REGIONS):
         rx0, ry0, rx1, ry1 = L.REGIONS[r]
         ra = (rx1 - rx0) * (ry1 - ry0)
