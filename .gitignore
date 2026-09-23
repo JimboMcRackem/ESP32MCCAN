@@ -6,3 +6,6 @@
 
 # The external router works here; its boards are regenerable, not source.
 hardware/output/router/
+
+# subagent-driven-development scratch (ledger, briefs, review packages)
+.superpowers/
