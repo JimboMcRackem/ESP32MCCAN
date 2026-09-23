@@ -710,6 +710,14 @@ def place(comps):
                                  mx + ox + w / 2, my + oy + h / 2)
         grid.mark(mx - 3.5, my - 3.5, mx + 3.5, my + 3.5)
 
+    # Channels are part-free by construction: marking them on the grid is all it takes,
+    # because the grid is what steers the auto-flow.  They are NOT added to `hand`, because
+    # `hand` is the hand-placement overlap check and a channel is not a part -- a hand
+    # placement that lands in a channel is a deliberate act and is caught by the explicit
+    # test below instead, which names the channel.
+    for i, (cx0, cy0, cx1, cy1) in enumerate(L.CHANNELS):
+        grid.mark(cx0, cy0, cx1, cy1)
+
     for ref, (x, y, rot) in L.PLACE.items():
         c = by_ref.get(ref)
         if c is None:
@@ -724,6 +732,10 @@ def place(comps):
                 bx0 < L.X0 or by0 < L.Y0 or bx1 > L.X1 or by1 > L.Y1):
             print("  ERROR: %s courtyard %.2f..%.2f x %.2f..%.2f leaves the board"
                   % (ref, bx0, bx1, by0, by1))
+        for i, (cx0, cy0, cx1, cy1) in enumerate(L.CHANNELS):
+            if bx0 < cx1 and cx0 < bx1 and by0 < cy1 and cy0 < by1:
+                print("  ERROR: hand placement %s sits in channel %d (%.1f..%.1f x %.1f..%.1f)"
+                      % (ref, i, cx0, cx1, cy0, cy1))
         hand[ref] = (bx0, by0, bx1, by1)
         pos[ref] = (x, y, rot)
         grid.mark(bx0 - halo, by0 - halo, bx1 + halo, by1 + halo)
@@ -1294,22 +1306,24 @@ def zones(netidx):
     out.append(zone("/+24V", ["B.Cu"], L.D4_24V_ISLAND, "24V_D4", prio=2))
     # The GND_IN island.  Its shape is dictated by where the input ground actually is, and it
     # is checked against the pads by scripts/check_grounds.py -- every GND_IN pad must sit in
-    # it and no GND pad may.  Three features are deliberate:
+    # it and no GND pad may.  Rescaled for the 200 x 140 outline on 2026-09-23 (was 140 x 100);
+    # three features are deliberate:
     #
-    #   * the body, x 22..62 y 53.5..94, covers the whole eFuse column -- U10, Q10/Q11, R100,
-    #     the sense path and D2/R3.  The east edge was 66 until 2026-09-21, which put it 1.2 mm
-    #     INSIDE the rails block (x 64..93) and wrapped input ground around the west pad column
-    #     of U4, C14, C31, R8 and L4 -- two of U4's pads are GND, so check_grounds.py failed the
-    #     moment U4 got a footprint, and L4 pad 1 is the 3V3 switch node, which wants input
-    #     ground nowhere near it.  62 keeps 3 mm past the easternmost GND_IN pad (D2 at x 59)
-    #     and clears the rails column by 2.8 mm;
+    #   * the body, x 22..71 y 75.5..116, covers the whole eFuse column -- U10, Q10/Q11, R100,
+    #     the sense path and D2/R3.  The east edge tracked D2 on the old, narrower board (D2 at
+    #     x 59, edge at 62); on the wider region D2 repacked to the far west (x 29) instead, and
+    #     the pad that now sets the edge is C64.2 at x 67.35, so it is 71: 3.65 mm past C64 and
+    #     5.0 mm clear of the rails region at x 76 (it lands 1 mm inside the 70..76 channel,
+    #     which is fine -- a channel excludes parts, not copper);
     #   * a narrow SPUR, x 42..48 up to y 36, reaches L2 pad 2 (GND_IN, at 44.75, 38) and
     #     nothing else.  L2's OUTPUT pads are at y 27.3, so the spur stops well short of them
     #     and the post-choke pi filter (C1, C2, C3, L1) stays outside the pour entirely.  A
     #     rectangle up to the choke would have wrapped GND_IN copper around post-choke ground
-    #     pads, coupling across the very component that separates them;
-    #   * below y 94 the island narrows to x 22..46, which takes in J1 (GND_IN at x 42.85)
-    #     and stops short of J7's GND pad at x 60.55.
+    #     pads, coupling across the very component that separates them.  L2 did not move, so
+    #     the spur's top does not either; its bottom now runs all the way down to the body at
+    #     y 75.5, crossing the 70..76 y-channel between the input/boost and efuse/rails rows;
+    #   * below y 116 the island narrows to x 22..46, which takes in J1 (GND_IN at x 42.85)
+    #     and stops short of J7's GND pad at x 61.35.
     out.append(zone("/power_input/GND_IN", ["F.Cu"], L.GND_IN_ISLAND, "GNDIN_F", prio=1))
 
     return out

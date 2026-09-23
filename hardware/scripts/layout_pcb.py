@@ -56,8 +56,22 @@ in the eFuse island next to U10, and it gets no thermal vias down to the plate.
 """
 
 # ------------------------------------------------------------------ board outline
+# 200 x 140 mm (2026-09-23).  Was 140 x 100.
+#
+# The area doubles, and that is the whole point: the six-layer board reached 0 DRC errors
+# at 76 % courtyard fill in the input block, with 12 designators demoted off the
+# silkscreen for want of anywhere to print them.  Every one of that board's complaints was
+# density.  See docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md.
+#
+# It also clears a defect logged in docs/enclosure.md section 2 item 5: seven cable glands
+# need about 143 mm of wall and would not fit a 140 mm one.  200 mm fits them comfortably.
+#
+# Thermally it is free -- better than free.  The heat-spreader plate is the base and tracks
+# the board footprint, so it goes from ~137 cm2 (61 C at 40 C ambient, against a 65 C
+# target) to ~272 cm2, against the 150 cm2 enclosure.md section 1 asks for.  The plate stops
+# being a design driver, which is why the thermal group no longer gets to veto placement.
 X0, Y0 = 20.0, 20.0
-X1, Y1 = 160.0, 120.0
+X1, Y1 = 220.0, 160.0
 EDGE_R = 3.0          # corner radius, drawn as four arcs
 MOUNT_INSET = 5.0     # M3 mounting holes, centre inset from each corner
 MOUNT_DRILL = 3.2
@@ -70,28 +84,86 @@ MOUNT_PAD = 6.0
 # is drawn as a keep-out for the part of it that is not.
 ANT_W, ANT_D = 18.0, 6.19
 
-# ------------------------------------------------------------------ regions
-# (x0, y0, x1, y1) in board coordinates.  Parts not named in PLACE are auto-flowed into their
-# block's region on a courtyard-sized grid, in reference order.
+# ------------------------------------------------------------------ regions and channels
+# (x0, y0, x1, y1) in board coordinates.  Parts not named in PLACE are auto-flowed into
+# their block's region on a courtyard-sized grid, largest first.
 #
-# The left band runs the 7 A feed in ONE direction only -- J1 at the bottom, up through the
-# eFuse, up through L2 and the pi filter, out of the top right of "input".  Nothing doubles back.
+# The 200 x 140 map, laid out as four columns over a full-width wire-exit field, with a
+# 6 mm CHANNEL between every pair of neighbours:
+#
+#     x:  23          70 76        117 123        181 187   217
+#         +------------+ +---------+ +---------+ +-------+   y 23
+#         |   input    | |  boost  | |         | |  mcu  |
+#         |            | |         | |         | +-------+   y 60
+#         +------------+ +---------+ |         |             y 70
+#         ~~~~~~~~~~~~~~~~~~~~~~~~~~ | outputs |             y 70..76 channel
+#         +------------+ +---------+ |         |             y 76
+#         |   efuse    | |  rails  | |         |
+#         |            | | profet  | |         |
+#         +------------+ +---------+ +---------+             y 119
+#         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   y 119..125 channel
+#         | wire-exit field, full width                  |   y 125
+#         +----------------------------------------------+   y 156
+#
+# The left band still runs the 7 A feed in ONE direction only -- J1 at the bottom, up
+# through the eFuse, up through L2 and the pi filter, out of the top of "input".  Nothing
+# doubles back.
+#
+# THE LEFT COLUMN IS THE WIDE ONE, and that is the correction this map exists to make.  The
+# comments on the old board worried about the outputs block, but measured, outputs was at
+# 37 % and `input` was at **75.8 %** -- the worst region on the board by a wide margin.  It
+# holds L2 (a large through-hole choke), D2, L1, D3, R2/R3 and C1-C5 in 1131 mm2.  Scaling
+# every region by the same factor would have left it the worst region still, so the left
+# column gets 47 x 47 mm against outputs' 58 x 96, and input lands at 38.8 %.
+#
+# Outputs was never the problem, so it is not given the lion's share: 5568 mm2 takes its
+# ~105 auto-flowed parts to 17 %, which is as much room as its escapes can use.
 REGIONS = {
-    "input":   (23.0,  23.0,  62.0,  52.0),   # D2, L2, R2/R3, C1-C4, L1, D3, C5
-    "efuse":   (23.0,  54.0,  62.0,  94.0),   # U10, Q10, Q11, R100, C65 and the gate network
-    # The output block is by far the biggest -- 105 auto-flowed parts -- and at the original
-    # 102..131 it packed them to 59 % courtyard fill, which is about twice what a two-layer
-    # escape can be routed through: the autorouter left 60 nets unrouted and the occupancy
-    # map showed 13..28 % free copper per 10 mm tile across the whole block, against 85..100 %
-    # over the empty left half of the board.  So the block is given the 95..102 column as
-    # well, and the rails block takes the southern half of its own column back from profet
-    # (which holds no auto-flowed parts at all -- U9 is placed by hand) to pay for it.
-    "boost":   (64.0,  23.0,  93.0,  48.0),   # U3, L3, D4, C61 and their passives
-    "rails":   (64.0,  50.0,  93.0,  94.0),   # U1 buck, U2 5 V, U4, decoupling
-    "profet":  (64.0,  82.0,  93.0,  94.0),   # U9 and its passives, inside the rails column
-    "outputs": (95.0,  23.0, 131.0,  94.0),   # 12 RGB channels, U7, U8, F2-F5
-    "mcu":     (133.0, 23.0, 158.0,  46.0),   # U6 and the CAN front end, above U5's courtyard
-    "wire":    (23.0,  95.0, 158.0, 119.0),   # the wire-exit field
+    "input":   (23.0,   23.0,  70.0,  70.0),
+    "efuse":   (23.0,   76.0,  70.0, 119.0),
+    "boost":   (76.0,   23.0, 117.0,  70.0),
+    "rails":   (76.0,   76.0, 117.0, 119.0),
+    "profet":  (76.0,  104.0, 117.0, 119.0),   # nested inside rails; U9 is hand-placed
+    "outputs": (123.0,  23.0, 181.0, 119.0),
+    "mcu":     (187.0,  23.0, 217.0,  60.0),   # U5's antenna points off the x = 217 edge
+    "wire":    (23.0,  125.0, 217.0, 156.0),
+}
+
+# Part-free lanes.  The packer may not enter one; the router may, and that is the entire
+# point -- on the old board the space between regions was whatever the packer happened not
+# to fill, which is not a routing budget anyone can reason about.
+#
+# At 0.20 mm track on a 0.40 mm pitch a 6 mm channel carries about 15 tracks per layer,
+# 60 across the four signal layers.  3456 mm2 in total, about 12 % of the board.
+CHANNELS = [
+    (70.0,   23.0,  76.0, 119.0),    # input/efuse  |  boost/rails
+    (117.0,  23.0, 123.0, 119.0),    # boost/rails  |  outputs
+    (181.0,  23.0, 187.0, 119.0),    # outputs      |  mcu
+    (23.0,   70.0, 117.0,  76.0),    # input/boost  |  efuse/rails
+    (23.0,  119.0, 217.0, 125.0),    # everything   |  the wire-exit field
+]
+
+# Maximum courtyard fill per region, enforced by scripts/check_density.py.  A region absent
+# here is unconstrained -- "wire" is, because every part in it is hand-placed against the
+# gland row and a budget would only restate the placement.
+#
+# These are NOT set to whatever the first passing run produced: a budget that exactly matches
+# reality fails the moment anyone adds a part.  Each is the measured figure with headroom.
+#
+#             measured  budget
+#   input       38.8 %    45 %   <- the tight one, and the reason the left column got wider
+#   efuse       28.3 %    35 %
+#   boost       10.5 %    30 %
+#   rails       23.7 %    30 %
+#   outputs     17.1 %    25 %
+#   mcu         27.8 %    35 %
+BUDGET = {
+    "input":   0.45,
+    "efuse":   0.35,
+    "boost":   0.30,
+    "rails":   0.30,
+    "outputs": 0.25,
+    "mcu":     0.35,
 }
 
 # Which region each sheet's leftovers flow into.  Parts whose block differs from their sheet
@@ -153,40 +225,45 @@ PLACE = {
     #    are not the boxes: the box each one occupies is in the trailing comment.  J1 and J2
     #    sit at opposite ends, which is plan Task 8's "high-current separated from CAN"
     #    expressed as a distance.  J3-J6 stay adjacent, as enclosure.md section 4 requires.
-    #    The wire-exit row is pitched to fit BETWEEN the two lower mounting holes.  H3 and H4
-    #    are at x 25 and 155 with a 6 mm pad, so their courtyards own x 21.75..28.25 and
-    #    151.75..158.25 at connector height -- leaving 123.0 mm of usable row.  The eight
-    #    courtyards total 114.34 mm, so the gaps are 1.2 mm, not the 2.0 mm used elsewhere.
+    #    H3 and H4 are still at x 25 and x 215 (X0/MOUNT_INSET did not move), so the row still
+    #    starts clear of H3 at the same x it always did.  What changed is the room past it:
+    #    194 mm now, against 123 mm before, so the row is re-pitched at the 2.0 mm gap used
+    #    everywhere else on the board instead of the 1.2 mm the old row was squeezed to.
     #    These are courtyards, which already carry their own clearance, and nothing is routed
-    #    between them: the row is pads and wire, so 1.2 mm is a real gap, not a shaved one.
-    "J1":  (30.85, 97.91, 0),    # box x  28.60.. 45.10  y 95.84..118.16
-    "J7":  (48.55, 97.91, 0),    # box x  46.30.. 62.80  y 95.84..118.16
-    "J8":  (65.80, 100.59, 0),   # box x  64.00.. 72.20  y 99.01..114.99
-    "J3":  (75.20, 100.59, 0),   # box x  73.40.. 90.80  y 99.01..114.99
-    "J4":  (93.80, 100.59, 0),   # box x  92.00..109.40  y 99.01..114.99
-    "J5":  (112.40, 100.59, 0),  # box x 110.60..128.00  y 99.01..114.99
-    "J6":  (131.00, 100.59, 0),  # box x 129.20..146.60  y 99.01..114.99
-    "J2":  (149.57, 100.65, 0),  # box x 147.80..151.34  y 98.88..115.12
+    #    between them: the row is pads and wire, so the gap is a real one, not a shaved one.
+    #    Translated +30 in y with the wire region (95 -> 125); the eight courtyards still
+    #    total 114.34 mm, so with seven 2.0 mm gaps the row now spans 128.34 mm, well inside
+    #    the 194 mm on offer.
+    "J1":  (30.85, 127.91, 0),   # box x  28.60.. 45.10  y 125.84..148.16
+    "J7":  (49.35, 127.91, 0),   # box x  47.10.. 63.60  y 125.84..148.16
+    "J8":  (67.40, 130.59, 0),   # box x  65.60.. 73.80  y 129.01..144.99
+    "J3":  (77.60, 130.59, 0),   # box x  75.80.. 93.20  y 129.01..144.99
+    "J4":  (97.00, 130.59, 0),   # box x  95.20..112.60  y 129.01..144.99
+    "J5":  (116.40, 130.59, 0),  # box x 114.60..132.00  y 129.01..144.99
+    "J6":  (135.80, 130.59, 0),  # box x 134.00..151.40  y 129.01..144.99
+    "J2":  (155.17, 130.65, 0),  # box x 153.40..156.94  y 128.88..145.12
 
     # -- the input filter.  Current arrives from the eFuse below and leaves at the top right.
+    #    The input region's origin (23, 23) did not move, so this cluster is untouched.
     #    L2's origin is on pad 1 and sits +3.75, -5.03 off its box centre, so (37.25, 38.0)
     #    puts the box at x 28.50..53.50, y 23.15..42.80 -- clear of H1's pad at x 25, y 25.
     "L2":  (37.25, 38.0, 0),     # CM choke: placed FIRST. 25.0 x 19.65 mm, ~24 mm tall, THT
     "L1":  (31.0, 50.0, 0),      # pi-filter inductor, 0.28 W
     "C3":  (46.0, 50.0, 0),      # 220 uF bulk, at L1's output
 
-    # -- the eFuse island.  Bottom row is nearest J1, so the 7 A path runs strictly upward:
+    # -- the eFuse island.  Translated +22 in y with the efuse region's origin (54 -> 76); x
+    #    is unchanged.  Bottom row is nearest J1, so the 7 A path runs strictly upward:
     #    J1 -> Q10 -> Q11 -> R100 -> up to U10 and C65 -> out of the top into L2.
     #    Q11 is mirrored so the back-to-back pair meets drain-to-drain.  At a common 0
     #    rotation Q10's drain tab faces Q11's SOURCE, and both MID and SNS have to climb
     #    over a pad of the wrong net: 21.3 mm and 21.1 mm of detour measured against the
     #    bare board, versus 7.4 mm and 3.8 mm mirrored.  That is ~31 mm of 7 A copper,
     #    ~0.2 W, and it also frees the y 93.7 and y 80.5 corridors for the router.
-    "Q10": (31.0, 87.0, 0),
-    "Q11": (46.0, 87.0, 180),
-    "R100": (57.0, 87.0, 90),    # own copper, Kelvin tap -- see KEEPCLEAR
-    "U10": (39.0, 74.0, 0),
-    "C65": (54.0, 76.0, 0),      # at U10 pin 5, not merely on the net
+    "Q10": (31.0, 109.0, 0),
+    "Q11": (46.0, 109.0, 180),
+    "R100": (57.0, 109.0, 90),   # own copper, Kelvin tap -- see KEEPCLEAR
+    "U10": (39.0, 96.0, 0),
+    "C65": (54.0, 98.0, 0),      # at U10 pin 5, not merely on the net
 
     # -- the boost.  Laid out around U3's pinout rather than as a row, because the pinout is
     #    what decides where each network can go: SW on the RIGHT and TOP edges (pins 12, 13,
@@ -202,46 +279,54 @@ PLACE = {
     #    VBAT does NOT need to reach L3 as a track.  In2.Cu is a VBAT plane end to end now, so
     #    L3 pad 1 and C18/C19 reach it with a via each, which is why L3 can sit on the far side
     #    of U3 from the input without a 20 mm run to get there.
-    "U3":  (74.0, 32.0, 0),      # LM51571-Q1
-    "D4":  (75.3, 25.6, 180),    # catch diode, tab up, anode down at U3's SW pins 13/14
-    "L3":  (81.0, 28.6, 180),    # boost inductor, SW pad facing U3
-    "C20": (69.9, 23.6, 180),    # +24V output caps, a 1206 column against D4's cathode tab:
-    "C21": (69.9, 26.0, 180),    # +24V pad inboard at the tab, GND pad outboard where the
-    "C22": (69.9, 28.4, 180),    # drop vias reach the plane.  This is the commutation loop.
-    "C18": (86.2, 28.6, 0),      # VBAT input caps at L3 pad 1; VBAT arrives from the In2.Cu
-    "C19": (86.2, 32.2, 0),      # plane underneath, by via, not by a track across the board
+    #
+    #    Translated +12 in x with the boost region's origin (64 -> 76); y is unchanged.  Every
+    #    part here keeps its exact relative geometry, D4 across U3 pins 13/14 included -- see
+    #    plan Task 9 Step 1.
+    "U3":  (86.0, 32.0, 0),      # LM51571-Q1
+    "D4":  (87.3, 25.6, 180),    # catch diode, tab up, anode down at U3's SW pins 13/14
+    "L3":  (93.0, 28.6, 180),    # boost inductor, SW pad facing U3
+    "C20": (81.9, 23.6, 180),    # +24V output caps, a 1206 column against D4's cathode tab:
+    "C21": (81.9, 26.0, 180),    # +24V pad inboard at the tab, GND pad outboard where the
+    "C22": (81.9, 28.4, 180),    # drop vias reach the plane.  This is the commutation loop.
+    "C18": (98.2, 28.6, 0),      # VBAT input caps at L3 pad 1; VBAT arrives from the In2.Cu
+    "C19": (98.2, 32.2, 0),      # plane underneath, by via, not by a track across the board
     # right of U3: FB (pin 9), the highest-impedance node after COMP, as a short vertical rail
-    "R12": (79.0, 32.2, 180),    # FB divider top, 576k -- FB pad faces U3
-    "C61": (79.0, 34.0, 180),    # feedforward across R12 (DNP)
-    "R13": (79.0, 35.8, 0),      # FB divider bottom, 24.9k -- GND pad outboard
+    "R12": (91.0, 32.2, 180),    # FB divider top, 576k -- FB pad faces U3
+    "C61": (91.0, 34.0, 180),    # feedforward across R12 (DNP)
+    "R13": (91.0, 35.8, 0),      # FB divider bottom, 24.9k -- GND pad outboard
     # below U3: COMP (pin 8), RT (5), EN (6) all live on the bottom edge
-    "R14": (74.0, 35.4, 180),    # COMP series 2.61k, straight down from pin 8
-    "C23": (74.0, 37.2, 0),      # COMP series 10nF, straight down from R14
-    "C24": (76.55, 35.8, 270),   # COMP parallel 100pF
-    "R10": (70.6, 36.4, 180),    # RT 9.09k
-    "R20": (70.6, 38.2, 180),    # EN pulldown 100k
+    "R14": (86.0, 35.4, 180),    # COMP series 2.61k, straight down from pin 8
+    "C23": (86.0, 37.2, 0),      # COMP series 10nF, straight down from R14
+    "C24": (88.55, 35.8, 270),   # COMP parallel 100pF
+    "R10": (82.6, 36.4, 180),    # RT 9.09k
+    "R20": (82.6, 38.2, 180),    # EN pulldown 100k
     # left of U3: VCC (pin 2) and BIAS (pin 3) and their bypasses, off the switch node entirely
-    "R15": (70.0, 30.6, 180),    # VCC 5.1R
-    "C26": (66.6, 30.6, 180),    # VCC 1uF
-    "R16": (70.0, 32.4, 0),      # BIAS 0R from VBAT -- VBAT pad outboard, to the plane
-    "C27": (70.0, 34.2, 180),    # BIAS 100nF
-    "R11": (74.0, 39.0, 180),    # MODE 37.4k -- a static level, so it takes the long stub
-    "C25": (77.3, 39.0, 0),    # soft start 22nF -- a slow ramp, likewise
-    "U9":  (76.0, 88.0, 0),      # PROFET, the shortest run to J7's Denali pads
+    "R15": (82.0, 30.6, 180),    # VCC 5.1R
+    "C26": (78.6, 30.6, 180),    # VCC 1uF
+    "R16": (82.0, 32.4, 0),      # BIAS 0R from VBAT -- VBAT pad outboard, to the plane
+    "C27": (82.0, 34.2, 180),    # BIAS 100nF
+    "R11": (86.0, 39.0, 180),    # MODE 37.4k -- a static level, so it takes the long stub
+    "C25": (89.3, 39.0, 0),    # soft start 22nF -- a slow ramp, likewise
+    # U9: translated with the profet region's origin, +12 in x (64 -> 76), +22 in y (82 -> 104).
+    "U9":  (88.0, 110.0, 0),     # PROFET, the shortest run to J7's Denali pads
 
     # -- the antenna edge.  Rotated 270 so the antenna points +X (verified against the
     #    footprint: its keep-out sits at local -Y, and 270 maps -Y to +X).
-    #    The module END FACE is flush with X1 = 160: not cantilevered off the edge, but with
-    #    the whole of the footprint's own all-layer keep-out zone left bare.
+    #    The module END FACE is flush with X1 = 220.0: not cantilevered off the edge, but with
+    #    the whole of the footprint's own all-layer keep-out zone left bare.  Translated +60
+    #    in x with the board edge (X1 160 -> 220); y is unchanged, since U5 is placed against
+    #    the board edge, not against a region -- it is not a member of any REGIONS box (see
+    #    OFFBOARD_OK and check_density.py's "outside every region" list).
     #
     #    U5 sits LOW, not centred on the right edge, and that costs real estate on purpose.
     #    The stock footprint's courtyard is 48.5 x 41.5 mm because it carries Espressif's
     #    15 mm antenna clearance, and its embedded keep-out zone bans copper, vias and
     #    footprints over 48 x 21.2 mm of it.  Honouring that is not optional -- DRC enforces
     #    the keep-out, and the clearance is the whole reason the module is on this edge.
-    #    Dropped to y = 72 the courtyard spans y 47.8..96.2, which clears the wire-exit field
-    #    below and leaves the top right (y 23..46) usable for the MCU block.
-    "U5":  (147.0, 72.0, 270),
+    #    At y = 72 the courtyard spans y 47.8..96.2, which clears the wire-exit field below
+    #    (now starting at y 125) and leaves the top right (y 23..60) usable for the MCU block.
+    "U5":  (207.0, 72.0, 270),
 }
 
 # R100's surrounding copper is part of the current MEASUREMENT, not just cooling (spec 4.2).
@@ -250,158 +335,38 @@ KEEPCLEAR = {"R100": 4.0}
 
 # A nudge is an offset applied to an AUTO-placed part after the packer has run.  It moves
 # that one part and nothing else -- unlike a PLACE entry, which takes the part out of the
-# flow order and lets everything packed after it slide into the hole.  On a board this far
-# into routing that difference matters: the hand routes in ROUTES name absolute
-# coordinates, so a reshuffled region is a rewritten file.
+# flow order and lets everything packed after it slide into the hole.
 #
-# U4 is the 3V3_SW load switch.  Where the packer put it, its west face sat 1.0 mm from the
-# VBAT_PROT feed bus, and the ~0.7 mm pocket between them holds exactly two 0.6 mm ground
-# vias in a single column -- which is precisely what its two GND pads (4 and 6) need.  That
-# left pin 2 (EN_3V3SW) and pin 5 (SR) with no escape at all: pin 4's drop is pinned within
-# 0.2 mm of pin 3's pad and cannot move, SR's escape wants 0.625 mm of it and has 0.500,
-# and /IGN_IN crosses the pocket on In4.Cu at y 60.2.  Not a routing problem -- a placement
-# one.  Moving U4 east widens that pocket into two via columns instead of one, so the
-# drops and the escapes stop competing for the same one.
+# EMPTIED 2026-09-23 for the 200 x 140 re-layout.  Every offset here was measured against
+# the 95 x 36 mm "outputs" region -- specific pixels of a specific packing (Q7 ends at
+# x 130.300, the last resistor row lands at y 71.6, and so on) that no longer exists.  The
+# region this task hands "outputs" is 58 x 96 mm, more than double the area, and the auto-flow
+# is a first-fit packer that repacks from scratch: reapplying the old deltas blind would nudge
+# parts by amounts sized for a room that is not the one they are in now, which is exactly how
+# a stale nudge creates the overlap it was meant to prevent.
 #
-# 0.65 mm and not more, and the wall is the COURTYARD, not the copper.  East of U4 sit C6
-# and C7, and C6 cannot follow it: C6 pad 1 IS the VLOGIC_IN bus's bulk cap, so moving C6
-# moves the bus.  On copper the budget looked like 0.925 mm -- U4's pads 8-12 end at
-# x 68.225, C6 pad 1 begins at 69.450, and the two nets want 0.3 mm apart -- and 0.9 mm was
-# taken on that arithmetic.  It regenerated clean, passed all four guards, and routed; then
-# KiCad's DRC reported two courtyards_overlap ERRORS, because U4's courtyard reaches
-# 0.275 mm past its own pads and C6's and C7's reach 0.250 mm past theirs.  Courtyard to
-# courtyard the gap is 0.700 mm, not 0.925.  Nothing in this repo checks courtyards; DRC is
-# the only thing that does, which is exactly the hole the loop comment above warns about.
-#
-# 0.65 mm leaves 0.05 mm of courtyard gap and is still enough for what the move was for.  It
-# puts U4's west pads at x 65.125, so the pocket between the VBAT_PROT feed bus (east edge
-# x 63.45) and the package runs 1.675 mm where it ran 1.025: room for the two ground drops
-# and an escape lane side by side instead of one or the other.  /EN_3V3SW, which no router
-# had ever closed, closes at this width; Net-(U4-SR) is hand-routed through the same pocket.
-#
-# Q4..Q7 are four of the six RGB low-side driver packages, packed on a 3.5 mm pitch with
-# 2.700 mm of pads: 0.800 mm between neighbours.  Each package is two columns of three, and
-# the outer pins of a column (1, 3, 4, 6) can leave their pad due NORTH or SOUTH into the
-# open bands above and below the row.  The middle pins -- 2 and 5 -- cannot: their own
-# neighbours are 0.30 mm away on both sides, so the only way off the pad is sideways, into
-# that 0.800 mm channel.  A 0.20 mm track with 0.20 mm either side needs 0.600 of it, and
-# two need 1.000.  The channel passes ONE.
-#
-# That is not a guess.  Of the eight PWM nets left open by the last router run, every single
-# one is a pin 2 or a pin 5, and every channel closed exactly one of the pair facing across
-# it -- Q4.5, Q5.5, Q8.2 and Q9.5 got through, Q4.2, Q5.2, Q6.2, Q6.5, Q7.2 and Q7.5 did
-# not.  The router's own verdict on all of them was "no rippable blockers found", which is
-# what it says when the obstruction is a pad and not another net's copper.  A router cannot
-# trade its way out of a channel that is too narrow; only the placer can.
-#
-# 0.800 -> 1.600 mm, which is the width that carries a 0.6 mm via (1.000 with clearance)
-# AND a track past it (0.600), so a trapped pin can either run the channel to a via band or
-# drop where it stands.  Widening in x only, and only eastward: Q4 stays, so everything
-# already routed west of it -- the U7 fan-out, R47 and the Q8 pair -- keeps its geometry.
-# Q7 ends at x 130.300, and nothing on this board lies east of it in its own y band at all
-# -- R41 and R95 are in other rows and the next part is U5 at x 134.500.  The move only
-# loosens: check_courtyards.py reports the Q-to-Q courtyard gap going 0.600 -> 1.400 mm
-# and the tightest neighbour any of the four has, Q7 to R95 at 0.740 mm, is a row-to-row
-# spacing that none of this touches.
-#
-# Q9 is the odd one out: its middle pins are fine, but pin 4 sits 0.955 mm from C41 with
-# R42 0.330 mm below it, and SENSE_RR_B has nowhere to go.  West of Q9 the board is empty
-# to x 88.4, so it is the one part here that can afford to move away from its neighbours
-# rather than push them along.
-# R42..R87 are the RGB channels' series and sense resistors, and the packer laid them out as
-# seven rows on a 1.0 mm pitch -- of parts 0.95 mm tall.  That leaves 0.050 mm between one
-# row and the next, which is not a lane, it is a weld: on F.Cu the whole grid is one solid
-# obstacle 7 mm deep and 34 mm wide, and it sits directly between the six driver packages
-# and the four output connectors every RET_* net has to reach.
-#
-# The rows do have gaps ACROSS them -- each bank repeats the same x positions row after row,
-# so the 1.05 mm spaces between neighbouring resistors line up into vertical corridors, three
-# through the middle bank and four through the outer one.  A corridor that wide passes one
-# 0.25 mm track, or one 0.6 mm via with 0.025 mm to spare.  Seven of them, for the two dozen
-# nets that need to cross.  And with 0.050 mm between rows, a net that arrives at the wrong
-# corridor cannot move sideways to find a better one: there is nowhere to go but back.
-#
-# So the rows are pushed apart 1.2 mm at a time, which puts 1.25 mm between one row and the
-# next.  The rows alternate between two banks that do not share an x range, though, so the
-# gap that a track actually sees -- between one row and the next row ABOVE ITS OWN COLUMN --
-# comes out at 3.450 mm.  Crossed with the corridors that already exist, the wall becomes an
-# actual grid.
-#
-# The room is free.  South of the grid, x 93..132 and y 65..99, this board carries exactly
-# one part (J5, at y 99.5) across 39 x 34 mm -- the packer flowed the whole outputs block
-# into the top of a region that already runs to y 94 and left the bottom third empty.  The
-# last row lands at y 71.6, still 28 mm clear of the connectors, and every row that moves
-# moves TOWARDS the connectors its nets are going to.
-#
-# Why NUDGE and not a wider gutter on the region: the outputs block also holds U8, C45, C46
-# and the +24V taps up at y 24..45, and ROUTES hand-routes twenty coordinates among them.
-# Repacking the block to spread its southern half would move its northern half too, and
-# every one of those routes names an absolute coordinate.
-NUDGE = {
-    "U4": (0.65, 0.0),
-    "Q5": (0.8, 0.0),
-    "Q6": (1.6, 0.0),
-    "Q7": (2.4, 0.0),
-    "Q9": (-1.0, 0.0),
-
-    # row 2, +1.2 mm
-    "R46": (0.0, 1.2),
-    "R47": (0.0, 1.2),
-    "R48": (0.0, 1.2),
-    "R49": (0.0, 1.2),
-    "R50": (0.0, 1.2),
-    "R51": (0.0, 1.2),
-    # row 3, +2.4 mm
-    "R64": (0.0, 2.4),
-    "R65": (0.0, 2.4),
-    "R66": (0.0, 2.4),
-    "R67": (0.0, 2.4),
-    # row 4, +3.6 mm
-    "R68": (0.0, 3.6),
-    "R69": (0.0, 3.6),
-    "R70": (0.0, 3.6),
-    "R71": (0.0, 3.6),
-    "R72": (0.0, 3.6),
-    "R73": (0.0, 3.6),
-    # row 5, +4.8 mm
-    "R74": (0.0, 4.8),
-    "R75": (0.0, 4.8),
-    "R76": (0.0, 4.8),
-    "R77": (0.0, 4.8),
-    # row 6, +6.0 mm
-    "R78": (0.0, 6.0),
-    "R79": (0.0, 6.0),
-    "R80": (0.0, 6.0),
-    "R81": (0.0, 6.0),
-    "R82": (0.0, 6.0),
-    "R83": (0.0, 6.0),
-    # row 7, +7.2 mm
-    "R84": (0.0, 7.2),
-    "R85": (0.0, 7.2),
-    "R86": (0.0, 7.2),
-    "R87": (0.0, 7.2),
-}
+# What the nudges were FOR -- a 0.8 mm channel between two driver pins being one pad-width
+# too narrow for two tracks, a 0.05 mm gap between resistor rows being no lane at all -- was a
+# ROUTABILITY problem, not a courtyard-overlap one: the packer's own grid-occupancy search
+# already guarantees no two courtyards overlap (see the module docstring), nudge or no nudge.
+# check_courtyards.py confirms that still holds with NUDGE empty. Routability at the new,
+# much lower "outputs" fill (target 17 %, against the 59 % that produced these nudges in the
+# first place) is Task 9's question to re-ask once there is real copper to measure it against;
+# an empty NUDGE is not a lost fix, it is a stale one taken out rather than miscopied.
+NUDGE = {}
 
 # Parts whose courtyard is allowed to leave the board outline.  U5's courtyard carries
 # Espressif's 15 mm antenna clearance, and the whole point of putting the module on this edge
 # is that most of that clearance is off the board.
 OFFBOARD_OK = {"U5"}
 
-# ------------------------------------------------------------------ density budget
-# region -> maximum courtyard fill fraction, checked by check_density.py.  A region absent
-# here is unconstrained.  `input` is the real Task 4 constraint (see the Task 3 plan step),
-# applied now, to the un-widened board, so the gate is proven red before Task 4 makes it
-# green.
-BUDGET = {"input": 0.45}
-
 # ------------------------------------------------------------------ board text
 NOTES = [
     # (text, x, y, layer, size)
-    ("LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10 / plan Task 8)\n"
-     "6 layers: F.Cu sig, In1.Cu GND solid and unbroken, In2.Cu sig, In3.Cu VBAT,\n"
-     "In4.Cu sig, B.Cu sig. COPPER: 1 oz (35 um) on ALL SIX. 1 oz outer is what holds\n"
-     "U10's 0.15 mm land pattern; 1 oz inner is what lets In2/In4 be etched to the\n"
-     "0.20 mm clearance this board declares -- a 2 oz inner layer cannot hold it.\n"
+    ("LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10 / plan Task 8), 200 x 140 mm, 8 layers\n"
+     "Was 140 x 100 mm / 6 layers until 2026-09-23 (see board outline block, layout_pcb.py).\n"
+     "Full 8-layer stackup (layer names, copper weights) lands in plan Task 5 -- this line\n"
+     "only stops the count being wrong; do not infer stackup detail from its absence here.\n"
      "Assembly is SINGLE SIDED -- nothing on B.Cu.\n"
      "FEED path (7.0 A cont, 7.8 A transient): the In3.Cu polygon, measured at 71 mm on\n"
      "its worst cut against the 11.44 mm IPC-2221 asks (10 C rise, internal, 1 oz) --\n"
@@ -506,9 +471,36 @@ NETCLASSES = [
 # zones() because two other things need the same polygon: the stitching-via generator, which
 # must not drop a GND via inside it, and scripts/check_grounds.py, which reads it back off the
 # board.  Shape reasoning is in zones().
+#
+# Rescaled for the 200 x 140 outline by moving each of the three features (see zones()) by
+# the translation of the cluster it tracks, not by a single board-wide delta:
+#   * the spur's top corners (36) sit on L2, which is in the "input" cluster and did not
+#     move (dx = dy = 0) -- unchanged.
+#   * the body (was y 53.5..94) tracks the "efuse" cluster, dy = +22, dx = 0 -- 75.5..116.
+#     The spur's left edge (x 42) now runs the full 36..75.5 to reach it, crossing the
+#     70..76 y-channel between the input/boost row and the efuse/rails row; that is exactly
+#     what a channel is for -- it excludes parts, not copper.
+#   * the strip's bottom corners (was Y1 - 0.5 = 119.5, which only equalled "just past J1"
+#     because the old board's connector row sat hard against the old Y1) now track the wire
+#     field instead, dy = +30 -- 149.5, which is J1's new box bottom (148.16) plus the same
+#     1.34 mm the old board left below J1 (119.5 - 118.16).  Written as a literal because the
+#     coincidence with the board edge that let it be `Y1 - 0.5` no longer holds: the wire
+#     field stops 4 mm short of Y1.
+#   * every x value is unchanged: none of the three clusters this polygon tracks (input,
+#     efuse, wire) moved in x.
+#
+# The body's east edge does NOT carry over unchanged: D2 is auto-flowed, not hand-placed,
+# and the efuse region is 8 mm wider than before (62 -> 70), so its packed position is not
+# a translation of the old one. Regenerating and reading the actual pads back off the board
+# (scripts/check_grounds.py, then a direct pad dump) showed the real easternmost GND_IN pad
+# in this region is C64.2 at x 67.35 -- not D2, which repacked to the far west (x 29) -- so
+# the east edge is 71.0: 3.65 mm past C64, and still 5.0 mm clear of the rails region at
+# x 76 (more than the old edge's 2.8 mm, because rails moved right by 12 mm while this edge
+# only moved out by 9). It sits 1.0 mm into the 70..76 channel, which is fine -- a channel
+# keeps parts out, not copper.
 GND_IN_ISLAND = [
-    (42.0, 36.0), (48.0, 36.0), (48.0, 53.5), (62.0, 53.5), (62.0, 94.0),
-    (46.0, 94.0), (46.0, Y1 - 0.5), (22.0, Y1 - 0.5), (22.0, 53.5), (42.0, 53.5),
+    (42.0, 36.0), (48.0, 36.0), (48.0, 75.5), (71.0, 75.5), (71.0, 116.0),
+    (46.0, 116.0), (46.0, 149.5), (22.0, 149.5), (22.0, 75.5), (42.0, 75.5),
 ]
 
 
@@ -579,11 +571,30 @@ def in_gnd_in_island(x, y, halo=0.0):
 # because B.Cu is not the reference plane -- In1.Cu is, and In1.Cu stays unbroken.  Against the
 # enclosure it is +24 V separated from the plate by the gap pad alone, which is an insulator
 # rated in kilovolts; note it on the fab drawing all the same.
-D4_24V_ISLAND = [(72.4, 21.7), (78.2, 21.7), (78.2, 27.4), (72.4, 27.4)]
+# D4 moved with the rest of the boost cluster, dx = +12, dy = 0 (boost's new origin is
+# (76, 23) against the old (64, 23); see PLACE).  The island is not centred on D4's own
+# origin -- it is sized to the physical tab -- so it translates by the same delta, not by
+# recomputing from D4's coordinate.
+D4_24V_ISLAND = [(84.4, 21.7), (90.2, 21.7), (90.2, 27.4), (84.4, 27.4)]
 
+# TIM-A spans the boost/rails column, both of which share dx = +12 (boost's origin moved
+# 64 -> 76, rails' moved 64 -> 76 too), so the x edges translate by +12: 64->76, 98->110 --
+# and that carries over unchanged, since it already covered D4's tab, U3's paddle (pin 17,
+# at 86.0, 32.0) and L3.
+#
+# The y edges do NOT carry over: the old bottom (58) was sized against the auto-flowed
+# U1.9/U2.9 paddles wherever the OLD, much smaller rails region (y 50..94) put them, and
+# U1/U2 are not hand-placed, so that number is not a translation of anything. Reading the
+# regenerated board (Step 5) back, U1.9 and U2.9 are both 2.62 x 3.51 mm pads centred at
+# (98.40, 79.40) and (106.40, 79.40) -- box y 77.65..81.16, well inside the new x 76..110 --
+# so the bottom edge is 82.0, half a millimetre past that, and the top stays at boost's own
+# y0 (dy = 0: 23 -> 23).
+#
+# TIM-B tracks U9, which moved dx = +12, dy = +22 with the rest of the profet region (old
+# origin (64, 82) -> new (76, 104)).
 TIM_PADS = [
-    ("TIM-A", 64.0, 23.0, 98.0, 58.0),
-    ("TIM-B", 69.0, 82.0, 83.0, 94.0),
+    ("TIM-A", 76.0, 23.0, 110.0, 82.0),
+    ("TIM-B", 81.0, 104.0, 95.0, 116.0),
 ]
 
 
