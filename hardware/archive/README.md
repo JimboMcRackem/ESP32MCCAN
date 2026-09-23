@@ -48,3 +48,12 @@ another signal layer, so bottom-side traces had no adjacent reference plane.
 git checkout board/v2-6layer -- hardware/scripts hardware/mccan.kicad_pro
 cd hardware && python scripts/gen_pcb.py
 ```
+
+## Limitation: the DRC reports are stale
+
+`v1-4layer/drc.rpt` and `v2-6layer/drc.rpt` are byte-identical. Both were last
+written at commit `7c4bf0d`, before the four-to-six-layer transition, so neither
+report describes the board it is archived with. In particular, the v2-6layer
+board has no DRC report of its own — the one sitting beside it is a leftover
+from the four-layer board. Treat both as absent rather than as evidence about
+either board's DRC status.
