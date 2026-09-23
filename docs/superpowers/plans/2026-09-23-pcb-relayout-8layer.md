@@ -329,7 +329,10 @@ Expected: all three pass. `check_geometry.py` in particular must be clean — wi
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/layout_pcb.py scripts/routes_signal.json mccan.kicad_pcb
+# routes_signal.json is NOT listed here: Step 3's `git rm` already staged its
+# deletion, and `git add` validates every pathspec before staging any of them,
+# so naming a path that no longer exists makes the whole command stage nothing.
+git add scripts/layout_pcb.py mccan.kicad_pcb
 git commit -m "hw(pcb): tear out the old copper, which the re-layout invalidates
 
 Every hand route named absolute coordinates against a placement that is about to
