@@ -305,28 +305,6 @@ worth probing.
 SILK_REF_GAP = 0.15
 """Clearance, mm, between a designator this moves and whatever it was moved off."""
 
-SILK_REF_MIN_H = 0.8
-SILK_REF_MIN_T = 0.08
-"""The smallest a designator is allowed to get, mm.
-
-These are the board's OWN minimums -- mccan.kicad_pro carries min_text_height 0.8 and
-min_text_thickness 0.08 -- so shrinking to exactly them is the most room this can buy without
-trading a silkscreen warning for a text_height one, which is not a trade."""
-
-
-def _font_set(prop, sx, sy, tw):
-    """Set a property's font size and stroke, in place."""
-    eff = find(prop, "effects")
-    fnt = find(eff, "font") if eff is not None else None
-    if fnt is None:
-        return
-    sz = find(fnt, "size")
-    if sz is not None:
-        sz[1], sz[2] = num(sx), num(sy)
-    th = find(fnt, "thickness")
-    if th is not None:
-        th[1] = num(tw)
-
 
 def _font(prop):
     """(size_x, size_y, thickness) of a property's text, with KiCad's defaults."""
@@ -410,8 +388,9 @@ def silk_refs(built, comps, pos, padnet):
     SILK_REF_KEEP already took this from 398 to 68 by moving every other prefix to F.Fab.
     Moving the rest there too would leave a board whose semiconductors cannot be identified
     by eye, which is the opposite of what silkscreen is for.  So each survivor is tried where
-    the library put it, then at the four sides of its own body at increasing distance, and
-    only demoted to F.Fab if the part is boxed in on every side.
+    the library put it, then at the four sides of its own body at increasing distance.  A
+    designator that fits nowhere fails the build -- placement is the placer's job, not
+    silkscreen's.
 
     Boxes are axis-aligned and deliberately a little generous: over-reporting costs a nudge,
     under-reporting costs a DRC warning.  A designator is tested against every OTHER
@@ -433,7 +412,7 @@ def silk_refs(built, comps, pos, padnet):
         obstacles.append((ref,) + box)
         own.setdefault(ref, []).append(box)
 
-    moved = kept = shrunk = 0
+    moved = kept = 0
     gone = []
     for ref, fx, fy, rot, fp in sorted(built, key=lambda b: natkey(b[0])):
         if ref.rstrip("0123456789") not in SILK_REF_KEEP:
@@ -460,41 +439,29 @@ def silk_refs(built, comps, pos, padnet):
         b0 = (min(m[0] for m in mine), min(m[1] for m in mine),
               max(m[2] for m in mine), max(m[3] for m in mine))
         mx, my = (b0[0] + b0[2]) / 2.0, (b0[1] + b0[3]) / 2.0
-        for push in (0.0, 0.3, 0.6, 0.9, 1.4):
+        # Four sides first, then the four diagonals, then further out.  The diagonals matter
+        # for a part hemmed in on all four axes by its own circuit -- U3's designator has no
+        # side to take, because the boost commutation loop is deliberately tight and D4, R14,
+        # R15/R16 and R12 sit inside 1.4 mm of every edge.  A corner is still full-size text
+        # beside its own part, which is the whole requirement; it is only the axis midpoint
+        # that was ever special.
+        for push in (0.0, 0.3, 0.6, 0.9, 1.4, 2.0, 2.8):
             d = SILK_REF_GAP + push
             cands += [(mx, b0[1] - d - h / 2.0), (mx, b0[3] + d + h / 2.0),
                       (b0[0] - d - w / 2.0, my), (b0[2] + d + w / 2.0, my)]
+            cands += [(b0[0] - d - w / 2.0, b0[1] - d - h / 2.0),
+                      (b0[2] + d + w / 2.0, b0[1] - d - h / 2.0),
+                      (b0[0] - d - w / 2.0, b0[3] + d + h / 2.0),
+                      (b0[2] + d + w / 2.0, b0[3] + d + h / 2.0)]
 
-        put, small = None, False
+        put = None
         for cx, cy in cands:
             if not _hits(box_at(cx, cy), obstacles, ref):
                 put = (cx, cy)
                 break
         if put is None:
-            # Nothing fits at the library's text size.  Shrinking the designator is a smaller
-            # loss than not printing it: SILK_REF_SHRINK still clears the 0.15 mm silkscreen
-            # minimum most fabs quote, and a part whose label is small is more use than a part
-            # with no label at all.
-            sx, sy, tw = _font(prop)
-            if sy > SILK_REF_MIN_H:
-                k = SILK_REF_MIN_H / sy
-                _font_set(prop, sx * k, SILK_REF_MIN_H, max(SILK_REF_MIN_T, tw * k))
-                w, h = _text_wh(ref, prop)
-                for cx, cy in cands:
-                    if not _hits(box_at(cx, cy), obstacles, ref):
-                        put, small = (cx, cy), True
-                        break
-                if put is None:
-                    _font_set(prop, sx, sy, tw)
-        if put is None:
-            # Boxed in on every side even shrunk.  Value already lives on F.Fab, so the
-            # assembly drawing still names the part; what is lost is reading it off the
-            # bare board.
-            lay[1] = q(unq(lay[1])[:2] + "Fab")
             gone.append(ref)
             continue
-        if small:
-            shrunk += 1
         obstacles.append((ref,) + box_at(put[0], put[1]))
         if abs(put[0] - (fx + bx)) < 1e-6 and abs(put[1] - (fy + by)) < 1e-6:
             kept += 1
@@ -502,10 +469,16 @@ def silk_refs(built, comps, pos, padnet):
         lx, ly = rot_local(put[0] - fx, put[1] - fy, -rot)
         at[1], at[2] = num(lx), num(ly)
         moved += 1
-    print("silk references: %d left alone, %d moved, %d shrunk, %d demoted to F.Fab"
-          % (kept, moved, shrunk, len(gone)))
+    print("silk references: %d left alone, %d moved" % (kept, moved))
     if gone:
-        print("  no silkscreen room for: %s" % ", ".join(gone))
+        raise SystemExit(
+            "FAIL: %d reference designator(s) have nowhere legible to print:\n"
+            "  %s\n"
+            "This is a PLACEMENT failure, not a silkscreen one.  The old board answered it\n"
+            "by shrinking the text and then demoting it to F.Fab, which left twelve parts\n"
+            "unidentifiable on the bare board -- the opposite of what silkscreen is for.\n"
+            "Give the part more room in scripts/layout_pcb.py, or nudge its neighbours."
+            % (len(gone), ", ".join(gone)))
 
 
 def build_footprint(c, x, y, rot, padnet):
@@ -622,7 +595,7 @@ def build_footprint(c, x, y, rot, padnet):
 
 # --------------------------------------------------------------------------- placement
 RES = 0.5          # occupancy grid pitch, mm
-GUT = 0.4          # gutter between auto-flowed courtyards, mm
+GUT = 1.2          # gutter between auto-flowed courtyards, mm
 
 
 class Grid(object):
