@@ -1402,6 +1402,78 @@ unnamed nets and must be written out in full as **`Net-(U3-COMP)`** (C24 R14 U3)
 - **`Net-(U3-COMP)` is the highest-impedance node in the converter** — the error amplifier's output. Keep it and its network short and away from `SW`. A 35 mm compensation trace running beside the switch node is how a boost oscillates.
 - **Take the `FB_24V` tap from the far end of the output capacitor**, not from the switch-node end.
 
+**Measured geometry** (taken by the controller from `mccan.kicad_pcb` at `f1fcd93` --
+use these, do not re-derive, and do not move any footprint). All pads are F.Cu SMD;
+`x a..b` is the pad's actual extent, not its centre:
+
+| Pad | Net | x | y |
+|---|---|---|---|
+| U3.12 | `SW_BOOST` | 87.037..87.875 | 31.125..31.375 |
+| U3.13 | `SW_BOOST` | 86.625..86.875 | 30.125..30.962 |
+| U3.14 | `SW_BOOST` | 86.125..86.375 | 30.125..30.962 |
+| U3.15 | NC | 85.625..85.875 | 30.125..30.962 |
+| U3.11 | MODE | 87.037..87.875 | 31.625..31.875 |
+| U3.17 | GND paddle | 85.162..86.838 | 31.163..32.837 |
+| U3.8 | `Net-(U3-COMP)` | 86.625..86.875 | 33.037..33.875 |
+| U3.9 | `FB_24V` | 87.037..87.875 | 32.625..32.875 |
+| U3.10 | `Net-(U3-SS)` | 87.037..87.875 | 32.125..32.375 |
+| D4.2 (anode) | `SW_BOOST` | 85.560..86.960 | 27.730..29.000 |
+| D4.1 | `+24V` | 87.640..89.040 | 27.730..29.000 |
+| D4.3 (tab) | `+24V` | 84.900..89.700 | 22.200..26.920 |
+| L3.2 | `SW_BOOST` | 91.325..92.305 | 26.900..30.300 |
+| C20.1 / C21.1 / C22.1 | `+24V` | 82.800..83.950 | 22.700..24.500 / 25.100..26.900 / 27.500..29.300 |
+| C24.1 | `Net-(U3-COMP)` | 88.100..89.000 | 34.550..35.500 |
+| R14.1 | `Net-(U3-COMP)` | 86.425..87.225 | 34.925..35.875 |
+| C25.1 | `Net-(U3-SS)` | 88.075..88.975 | 38.525..39.475 |
+| R12.2 / C61.2 / R13.1 | `FB_24V` | 89.775..90.675 | 31.725..32.675 / 33.525..34.475 / 35.325..36.275 |
+| R12.1 / C61.1 | `+24V` | 91.325..92.225 | 31.725..32.675 / 33.525..34.475 |
+
+Four numbers fall out of that table, and they are the same relationships the six-layer
+board reasoned to — the block was re-placed, not redesigned:
+
+- **The SW column is 0.75 mm centred at x 86.5**, spanning 86.125..86.875: exactly the
+  outer edges of pins 13 and 14 together, clearing pin 15 (NC, right edge 85.875) by
+  **0.25 mm**. D4.2 spans x 85.560..86.960, so the same column runs straight up into it
+  **with no bend** — that is what D4's placement is for.
+- **It must stop at y 30.55 or above.** U3's GND paddle starts at y 31.163 and a 0.75 mm
+  track's end cap reaches 0.375 mm past its endpoint, so the endpoint may not exceed
+  y 30.588 at 0.20 mm clearance. At 30.55 the copper ends at 30.925, clearing the paddle
+  by 0.238 mm while still covering pins 13/14 over 0.80 of their 0.837 mm length.
+- **L3 joins along y 29.70 at 0.75 mm**, spanning 29.325..30.075, which clears D4.1
+  (a foreign net, `+24V`, bottom edge y 29.000) by **0.325 mm** and stays above U3's
+  top-edge pads (y 30.125).
+- **Pin 12 gets a 0.30 mm tie, not a share of the current.** Centred on its own y 31.250
+  the copper reaches 31.400 and clears pin 11 (MODE, top edge 31.625) by **0.225 mm**.
+  0.30 mm is the widest track that does.
+
+**What is already in that window**, and this is the part Task 8 learned the hard way —
+`gen_pcb.py` checks hand copper against pads *and vias*, and refuses to write the board
+when anything is short:
+
+- **`/+24V` already has a `B.Cu` pour**, and D4.3's tab carries a **5 x 5 grid of 25
+  thermal vias** at 0.55/0.25 covering x 85.325..89.275, y 22.625..26.495. So `+24V`
+  leaves the boost downward, not along `F.Cu`. C20/C21/C22's `+24V` pads have **no vias**
+  — the `F.Cu` column and rung this task lays are their only connection to anything.
+- U3.17's paddle carries four GND thermal vias at (85.588 / 86.412, 31.587 / 32.413).
+- **A GND via at (86.250, 34.225)**, 0.60/0.30, fed by a 0.25 mm segment from U3.7. Its
+  right edge is x 86.525. A `COMP` track leaving pin 8 straight down the pin's own centre
+  (x 86.750, 0.25 mm wide, left edge 86.625) clears it by **0.10 mm and fails**. R14.1
+  spans x 86.425..87.225, so entering nearer x 87.0 clears by 0.35 mm.
+- Other GND drops already placed nearby: (85.250, 29.775), (83.775, 31.250),
+  (86.775, 36.375), (87.725, 36.575), (85.175, 39.825), (90.075, 39.825),
+  (91.825, 36.625), plus GND stitching at (91.000, 23.000), (94.000, 23.000),
+  (92.359, 22.000) and a 3 mm perimeter grid from y 35 down.
+- `/VBAT` risers already exist at (94.185, 28.600) and (81.175, 32.400), both 0.80/0.40.
+
+`Ruling: the FB_24V tap reads through the +24V pour, not along F.Cu.` D4.3's 25 vias put
+`+24V` on `B.Cu` immediately, and R12.1/C61.1 sit 8 mm east of the output caps with U3 in
+between; an `F.Cu` haul from C20.1 round to R12.1 would be long, would run beside `SW`,
+and would carry no current worth the copper. Drop R12.1/C61.1 to the pour instead. The
+"far end of the output capacitor" requirement survives it: the sense point is downstream
+of the caps either way, which is what the rule is protecting. Cost if wrong: the divider
+sees the pour's IR drop rather than the cap's terminal, worth single-digit millivolts on
+a 24 V rail.
+
 - [ ] **Step 1: Re-read how the old board did it**
 
 ```bash
