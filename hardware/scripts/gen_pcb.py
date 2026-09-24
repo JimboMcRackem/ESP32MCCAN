@@ -439,20 +439,16 @@ def silk_refs(built, comps, pos, padnet):
         b0 = (min(m[0] for m in mine), min(m[1] for m in mine),
               max(m[2] for m in mine), max(m[3] for m in mine))
         mx, my = (b0[0] + b0[2]) / 2.0, (b0[1] + b0[3]) / 2.0
-        # Four sides first, then the four diagonals, then further out.  The diagonals matter
-        # for a part hemmed in on all four axes by its own circuit -- U3's designator has no
-        # side to take, because the boost commutation loop is deliberately tight and D4, R14,
-        # R15/R16 and R12 sit inside 1.4 mm of every edge.  A corner is still full-size text
-        # beside its own part, which is the whole requirement; it is only the axis midpoint
-        # that was ever special.
+        # The ladder used to stop at 1.4 mm, which was enough only because anything it could
+        # not place got shrunk and then demoted.  With those gone it has to reach: U3 is
+        # placed rather than auto-flowed and the boost commutation loop around it is tight on
+        # purpose -- D4, R14, R15/R16 and R12 all sit inside 1.4 mm of an edge -- so its
+        # designator lands on the left at d = 2.95, and nothing shorter works.  Measured: at
+        # 2.0 the build fails on U3 and on U3 alone.
         for push in (0.0, 0.3, 0.6, 0.9, 1.4, 2.0, 2.8):
             d = SILK_REF_GAP + push
             cands += [(mx, b0[1] - d - h / 2.0), (mx, b0[3] + d + h / 2.0),
                       (b0[0] - d - w / 2.0, my), (b0[2] + d + w / 2.0, my)]
-            cands += [(b0[0] - d - w / 2.0, b0[1] - d - h / 2.0),
-                      (b0[2] + d + w / 2.0, b0[1] - d - h / 2.0),
-                      (b0[0] - d - w / 2.0, b0[3] + d + h / 2.0),
-                      (b0[2] + d + w / 2.0, b0[3] + d + h / 2.0)]
 
         put = None
         for cx, cy in cands:
