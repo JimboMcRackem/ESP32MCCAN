@@ -883,6 +883,148 @@ ROUTES = [
                                 (62.3, 25.53), (61.3925, 25.53)]),
     ("VBAT_F", "In5.Cu", 0.5, [(61.3925, 25.53), (61.0, 25.53), (61.0, 29.3),
                                 (34.0, 29.3), (34.0, 27.3)]),
+
+    # ===================== Task 8: CAN pair, buried stripline on In2.Cu =====================
+    # Four nets -- the choke L6 splits each side in half -- routed as a chain: J8 -> D6 (ESD) ->
+    # R26 (split termination) -> L6 -> U6 (transceiver), CANH and CANL run in parallel the whole
+    # way.  All twelve pad coordinates are the brief's measured figures, used verbatim.
+    #
+    # In2.Cu is empty apart from via barrels, so the only geometry problem is spacing, not
+    # obstacles.  Every pad here (D6/R26/L6/U6) is SMD F.Cu-only -- J8 is the sole through-hole
+    # pad, so it is the only one that reaches In2.Cu without a via, per ROUTE_VIAS below.
+    #
+    # J8 -> L6 ("/CANH", "/CANL"): the long haul. Landing on L6.4/L6.3 instead of D6.1/D6.2 is
+    # the fix-round-1 finding: all four pads on each of CANH/CANL are the same net (J8, D6, R26,
+    # L6 for CANH; same set for CANL), so which of them the haul lands on is a free choice, and
+    # D6 stays reached through the CANH_main/CANL_main hop below either way. Landing on L6
+    # instead of D6 keeps the 160 mm haul away from the D6/Q2/R26 cluster entirely, which is
+    # where fix round 1 found the haul crossing CANL_main (a -0.300 mm overlap) and clipping
+    # L6.3's own via (0.000 mm).
+    #
+    # A single straight J8->L6 segment clears that cluster but grazes several ground-drop vias
+    # that a straight line happens to pass near mid-board (this board has 141 of them, placed
+    # without knowledge of hand-route geometry). For CANH: one near 111.9,96.4, a denser run of
+    # them spanning roughly 148,64 to 163,53 (a stitching field, not a single obstacle -- see
+    # below), one near 175.8,46.1, and L6.2's own via right at the L6 approach -- and the L6.2
+    # via sits on the *other* side of the baseline from the rest, so no single global offset
+    # clears everything (shifting toward the others worsens L6.2). CANL grazes one, near
+    # 167.4,55.5. Verified clear of the full gen_pcb.py clearance gate -- see task-8-report.md
+    # for that run's output.
+    #
+    # The 148,64 - 163,53 stretch is not one via to bow around but a field of ground-drop vias
+    # spaced 1.5-4 mm apart (the generator's own placement, not something this file controls),
+    # so a single symmetric bump kept re-clipping whichever via ended up nearest its new
+    # position -- each retry moved the offending via too, since gnd_drops() places every via at
+    # the closest still-legal spot to its own pad given whatever the current hand route excludes,
+    # so nudging the track just re-hugs the same ~0.1 mm short. Solved by treating it as a
+    # corridor problem instead of a tuning problem: a script in the task's scratchpad dumped the
+    # real via list gen_pcb.py places against this file's current track (importing gen_pcb.py
+    # and calling its own pipeline up through gnd_drops(), the same functions the real gate
+    # uses), then searched that obstacle field for a legal path with a Dijkstra search over a
+    # fine grid along the corridor, and simplified the result to the fewest straight segments
+    # that stay clear. The three-segment result below threads between the via rows with 0.36 mm
+    # of clearance at its tightest point against the 0.20 mm the CAN netclass needs -- comfortably
+    # past the ~0.1 mm the circle-vs-box placement/validation mismatch above can cost.
+    #
+    # The J8 breakout no longer converges the pair between J8's own pads either (fix round 1's
+    # second finding, the 0.047/0.000 mm clashes against J8.2): heading for L6 from J8.1 leaves
+    # J8.2 clear immediately (the line's slope carries it well north of J8.2 by the time it
+    # reaches J8.2's own x), and the same holds in reverse for CANL against J8.1.
+    ("CANH", "In2.Cu", 0.3, [(67.400, 130.590),
+                              (108.4799, 97.2453), (113.5269, 93.2737),
+                              (149.4137, 66.0515),
+                              (154.3646, 62.1555),
+                              (162.5813, 54.1626),
+                              (167.0782, 52.1509),
+                              (172.4254, 46.9251), (177.4724, 42.9535),
+                              (187.5212, 37.0818), (192.5682, 33.1102),
+                              (193.575, 31.300)]),
+    ("CANL", "In2.Cu", 0.3, [(72.000, 130.590),
+                              (164.0568, 56.2779), (168.9198, 52.4063),
+                              (193.575, 33.800)]),
+
+    # D6 -> R26 -> L6 cluster ("/CANH", "/CANL"): NOT routed as a literal D6->R26->L6 chain.
+    # A first attempt at that (each hop a straight offset-parallel pair, as the J8->D6 haul
+    # above is built) fails geometrically, not from a tuning mistake: D6's and L6's pad pairs
+    # are north/south of each other (D6.1/L6.4 north, D6.2/L6.3 south) while R26's pad pair is
+    # west/east of each other (R26.1 west, R26.2 east) -- a 90-degree mismatch in pair
+    # orientation.  An exhaustive grid search over every candidate single-bend point for a
+    # D6->R26 hop (scratchpad can_route6.py) found none that keep CANH and CANL from crossing
+    # once the R26->L6 hop is added back in -- the chain reading of the brief's pad table
+    # is geometrically unroutable on one layer as a plain 3-node chain.
+    #
+    # gen_mcu_can.py resolves this: R26 is a DNP 120-ohm bus terminator wired as a shunt
+    # directly across the CANH and CANL labels (`w((284.48,109.22),(284.48,114.3)); lab("CANH",..)`
+    # ... `vpart("R26",...,dnp=True)` ... `w(b,(284.48,127.0)); lab("CANL",..)`), not an inline
+    # series element in either leg. Electrically the only copper that has to be continuous is
+    # D6.1-L6.4 (CANH) and D6.2-L6.3 (CANL); R26's pads are branch stubs off that copper, not
+    # waypoints on it. So each net is routed as a short direct D6->L6 main line plus a stub off
+    # D6's pad down to R26 -- this does not move or re-place anything (Ruling 2's "route it as
+    # placed" is about footprints, none of which move here), it only changes which pad-to-pad
+    # copper path realises the same three pads.
+    #
+    # CANH_main (D6.1 -> L6.4) and CANL_main (D6.2 -> L6.3): the direct hop, unaffected by R26.
+    ("CANH", "In2.Cu", 0.3, [(197.093, 31.350), (193.575, 31.300)]),
+    ("CANL", "In2.Cu", 0.3, [(197.093, 33.250), (193.575, 33.800)]),
+
+    # CANH_stub (D6.1 -> R26.1): fix round 1 found the predecessor's direct-ish two-bend detour
+    # clashing four ways -- both of CANL_stub's own duck-under vias (0.165, 0.134) and two
+    # pre-existing GND vias (0.136, 0.081) -- because it was checked against CANL_stub's and
+    # CANH_main's segments but never against vias. Re-routed as a wide loop instead of a tight
+    # weave: any path threading directly between D6/Q2 and R26 has to cross either CANL_stub's
+    # D6.2->via_in leg or CANL_main (D6.2->L6.3) -- both start at D6.2 and fan out south/west,
+    # boxing in the direct gap -- so this stub goes the other way: north over the D6/Q2 row,
+    # east past R26.2, then south and back west underneath the whole R26 row to reach R26.1 from
+    # the south. The first attempt at the north leg (y=29.5) ran into the L6->U6 hop's own
+    # Net-(U6-CANH) lane below, which also passes over this row at y=29.55 -- moved to y=30.3,
+    # the gap between that lane and Q2's own pads. Verified clear of D6.2/D6.3, all three Q2
+    # pads, R26.2, CANL_stub's two vias and In2.Cu segments, CANL_main, both Net-(U6-...) lanes,
+    # and the two GND vias named in the fix-round-1 report, by the full gen_pcb.py clearance
+    # gate -- see task-8-report.md for that run's output.
+    ("CANH", "In2.Cu", 0.3, [(197.093, 31.350), (197.093, 30.300),
+                              (209.800, 30.300), (209.800, 45.900),
+                              (206.755, 45.900), (206.755, 43.330)]),
+
+    # CANL_stub (D6.2 -> R26.2): a direct In2.Cu line from D6.2 to R26.2 threads the same narrow
+    # D6/Q2/GND-via gap that CANH_stub's original (pre-fix-round-1) shape ran through, so this
+    # stub ducks under that gap on In5.Cu for its middle third instead -- the same one-net
+    # layer-hop pattern already used for SNS elsewhere in this file. In5.Cu is empty in this
+    # region (confirmed directly from the board and with show_room.py). CANH_stub itself was
+    # rerouted around the outside of this cluster in fix round 1 and no longer runs near here at
+    # all, so this duck-under is no longer load-bearing against CANH_stub specifically, but it is
+    # still what gets D6.2 -> R26.2 past D6.3, Q2 and the GND via, so it stays. A straight
+    # via_in->via_out run on In5.Cu still clipped that GND via by 0.083 mm (its position on this
+    # layer is the same barrel as on In2.Cu, since these are through vias) -- bowed 0.5 mm off
+    # the straight line for the two waypoints nearest the via to clear it. Verified clear of
+    # D6.3, Q2.1-3, the GND via, CANH_main and the rerouted CANH_stub by the full gen_pcb.py
+    # clearance gate -- see task-8-report.md for that run's output.
+    ("CANL", "In2.Cu", 0.3, [(197.093, 33.250), (201.7965, 37.4413)]),
+    ("CANL", "In5.Cu", 0.3, [(201.7965, 37.4413),
+                              (203.5759, 39.0268), (204.6297, 39.2962),
+                              (205.0183, 40.3122), (206.6046, 41.7257)]),
+    ("CANL", "In2.Cu", 0.3, [(206.6046, 41.7257), (208.405, 43.330)]),
+
+    # L6 -> U6 ("Net-(U6-CANH)", "Net-(U6-CANL)"): the transceiver side, L6 pins 1/2 to U6's
+    # CANH/CANL pins. L6.1/L6.2 sit at very nearly the same y as D6.1/D6.2 (the CANH_main/
+    # CANL_main hop above), so a path that runs alongside that hop east would thread directly
+    # through D6's own pads (including D6.3) and Q2 -- the same cluster the D6/R26/L6 stubs
+    # above already have to route around. Instead this hop goes north of the whole D6/Q2/R26
+    # cluster and the SW1/SW2 button footprints (whose pads run up to y=28.2), then drops down
+    # into U6.7/U6.6 from the east side of the U6 footprint, which is clear. Net-(U6-CANH) and
+    # Net-(U6-CANL) bend together (both turn at the lane transitions) and are held 0.7 mm apart
+    # centre-to-centre through the detour, wider than the CAN class's own 0.6 mm pair spacing,
+    # because the longer parallel run here needs the extra margin to also clear L6.1's own pad
+    # on the way up. Fix round 1 found the CANL lane (originally x=217.300) only 0.15 mm clear of
+    # a GND via at (218.00, 32.07) -- 0.7 mm off a via that needs 0.2 mm clearance plus its own
+    # and the track's half-widths. Both lanes are shifted 0.7 mm west (216.600 -> 215.900 for
+    # CANH, 217.300 -> 216.600 for CANL) so the pair spacing is unchanged and the CANL lane clears
+    # that via by a further 1.4 mm.
+    ("Net-(U6-CANH)", "In2.Cu", 0.3, [(189.025, 31.300), (189.025, 29.550),
+                                       (215.900, 29.550), (215.900, 31.665),
+                                       (213.275, 31.665)]),
+    ("Net-(U6-CANL)", "In2.Cu", 0.3, [(189.025, 33.800), (187.700, 33.800),
+                                       (187.700, 28.900), (216.600, 28.900),
+                                       (216.600, 32.935), (213.275, 32.935)]),
 ]
 
 # Hand vias: (net, x, y, diameter_mm, drill_mm).  Emptied with ROUTES -- see above.
@@ -939,6 +1081,35 @@ ROUTE_VIAS = [
     ("VBAT", 108.925, 85.25, 0.8, 0.4),  # C12.1
     ("VBAT", 142.85, 50.58, 0.8, 0.4),   # C46.1
     ("VBAT", 160.925, 25.2, 0.8, 0.4),   # C45.1
+
+    # Task 8: CAN pair F.Cu -> In2.Cu transitions.  Every SMD pad on the chain (D6, R26, L6,
+    # U6 -- J8 is through-hole and needs none) gets one via dropped exactly at the pad's own
+    # centre, the same "no F.Cu stub" technique as the VBAT decoupling caps above: via-on-own-
+    # pad has no clearance issue with that pad, and it is what "drop to In2.Cu as soon as it
+    # leaves its pad" means when the pad is the top of the via.  0.8/0.4 mm throughout, per the
+    # signal-via size used for the feed's own risers -- the CAN netclass's own default via
+    # (0.6/0.3) is left as the interactive-routing default only, same as every hand via on this
+    # board.  The tightest neighbour on any of these footprints is U6.6/U6.7 against U6's own
+    # pins 5/8: 1.27 mm pad-centre pitch against a 0.4 mm via radius and a 0.3 mm pad
+    # half-height. Verified clear of every same-footprint neighbour (D6.3, R26's own opposite
+    # pad, L6's other three pads, U6's pins 5/8) by the full gen_pcb.py clearance gate -- see
+    # task-8-report.md for that run's output.
+    ("CANH", 197.093, 31.350, 0.8, 0.4),               # D6.1
+    ("CANL", 197.093, 33.250, 0.8, 0.4),               # D6.2
+    ("CANH", 206.755, 43.330, 0.8, 0.4),               # R26.1
+    ("CANL", 208.405, 43.330, 0.8, 0.4),               # R26.2
+    ("CANH", 193.575, 31.300, 0.8, 0.4),               # L6.4
+    ("CANL", 193.575, 33.800, 0.8, 0.4),               # L6.3
+    ("Net-(U6-CANH)", 189.025, 31.300, 0.8, 0.4),      # L6.1
+    ("Net-(U6-CANL)", 189.025, 33.800, 0.8, 0.4),      # L6.2
+    ("Net-(U6-CANH)", 213.275, 31.665, 0.8, 0.4),      # U6.7
+    ("Net-(U6-CANL)", 213.275, 32.935, 0.8, 0.4),      # U6.6
+
+    # CANL_stub's In5.Cu duck-under (see the ROUTES comment above the D6/R26/L6 cluster): the
+    # two layer-transition vias that bracket the stretch of CANL_stub where a direct D6.2->R26.2
+    # line would clip D6.3, Q2 or the GND via.  Also 0.8/0.4 mm, same as every other hand via here.
+    ("CANL", 201.7965, 37.4413, 0.8, 0.4),             # CANL_stub via_in  (In2.Cu -> In5.Cu)
+    ("CANL", 206.6046, 41.7257, 0.8, 0.4),             # CANL_stub via_out (In5.Cu -> In2.Cu)
 ]
 
 

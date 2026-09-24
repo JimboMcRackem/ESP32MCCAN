@@ -1,10 +1,10 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-24T19:47:06 **
+** Created on 2026-09-24T23:53:03 **
 ** Report includes: Errors **
 
 ** Found 0 DRC violations **
 
-** Found 320 unconnected pads **
+** Found 312 unconnected pads **
 [unconnected_items]: Missing connection between items
     Local override; error
     @(79.3550 mm, 91.3300 mm): Pad 2 [/+3V3_ALW] of C28 on F.Cu
@@ -257,30 +257,6 @@
     Local override; error
     @(148.9800 mm, 40.2300 mm): Pad 1 [/+24V] of F4 on F.Cu
     @(154.9800 mm, 40.2300 mm): Pad 1 [/+24V] of F5 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(193.5750 mm, 31.3000 mm): Pad 4 [/CANH] of L6 on F.Cu
-    @(67.4000 mm, 130.5900 mm): PTH pad 1 [/CANH] of J8
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(197.0925 mm, 31.3500 mm): Pad 1 [/CANH] of D6 on F.Cu
-    @(193.5750 mm, 31.3000 mm): Pad 4 [/CANH] of L6 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(206.7550 mm, 43.3300 mm): Pad 1 [/CANH] of R26 on F.Cu
-    @(197.0925 mm, 31.3500 mm): Pad 1 [/CANH] of D6 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(193.5750 mm, 33.8000 mm): Pad 3 [/CANL] of L6 on F.Cu
-    @(72.0000 mm, 130.5900 mm): PTH pad 2 [/CANL] of J8
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(197.0925 mm, 33.2500 mm): Pad 2 [/CANL] of D6 on F.Cu
-    @(193.5750 mm, 33.8000 mm): Pad 3 [/CANL] of L6 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(208.4050 mm, 43.3300 mm): Pad 2 [/CANL] of R26 on F.Cu
-    @(197.0925 mm, 33.2500 mm): Pad 2 [/CANL] of D6 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
     @(188.7550 mm, 52.8300 mm): Pad 1 [/DEN_DSEL] of R34 on F.Cu
@@ -1241,14 +1217,6 @@
     Local override; error
     @(96.7000 mm, 86.6500 mm): Pad 5 [Net-(U4-SR)] of U4 on F.Cu
     @(110.3050 mm, 91.8300 mm): Pad 1 [Net-(U4-SR)] of C32 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(189.0250 mm, 31.3000 mm): Pad 1 [Net-(U6-CANH)] of L6 on F.Cu
-    @(213.2750 mm, 31.6650 mm): Pad 7 [Net-(U6-CANH)] of U6 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(189.0250 mm, 33.8000 mm): Pad 2 [Net-(U6-CANL)] of L6 on F.Cu
-    @(213.2750 mm, 32.9350 mm): Pad 6 [Net-(U6-CANL)] of U6 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
     @(194.9050 mm, 41.3300 mm): Pad 2 [Net-(U6-TXD)] of R23 on F.Cu
