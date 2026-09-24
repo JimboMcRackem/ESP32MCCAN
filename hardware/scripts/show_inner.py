@@ -3,11 +3,13 @@
 
 Why this exists
 ---------------
-Hand-routing on this board moved to the inner signal layers (In2.Cu and In4.Cu) once it went
-to six layers, and the reason it works there is worth stating: those two layers carry no
-zones and no SMD pads.  An SMD pad exists on F.Cu only; a zone exists where gen_pcb puts
-one, and neither In2 nor In4 gets one.  So the ONLY things a track on an inner layer can hit
-are vias and through-hole pads -- typically twenty of them where F.Cu has three hundred.
+Hand-routing on this board moved to the inner signal layers (In2.Cu and In5.Cu, the two inner
+entries of gen_pcb.SIGNAL_LAYERS) once it went to six layers, and the reason it works there is
+worth stating: those two layers carry no zones and no SMD pads.  An SMD pad exists on F.Cu
+only; a zone exists where gen_pcb puts one, and neither In2 nor In5 gets one -- In4.Cu does
+(the solid /VBAT plane), which is exactly why it is not one of these two (fault 7, fix
+round 2).  So the ONLY things a track on an inner layer can hit are vias and through-hole
+pads -- typically twenty of them where F.Cu has three hundred.
 
 That is a completely different picture from the one you get by looking at the board, and it
 is the picture you need before choosing a lane.  This prints it.

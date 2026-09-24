@@ -10,10 +10,11 @@ boxed_in_static, but they want opposite fixes -- the first wants the parts moved
 wants the net to go first, and a placement change aimed at the second makes things worse.
 
 The fix for the second is a ROUTES stub from the pad to a via.  gen_pcb lays ROUTES before it
-autoroutes, so that stub is simply a net that is not competing; and In2.Cu and In4.Cu carry
-no zones and no SMD pads, so once a pin is on one of them it has left the contested band
-entirely.  The stub does not need to be long.  It needs to be LEGAL, which is the part that
-is tedious by hand and the part this does.
+autoroutes, so that stub is simply a net that is not competing; and In2.Cu and In5.Cu -- the
+two inner layers of gen_pcb.SIGNAL_LAYERS -- carry no zones and no SMD pads, so once a pin is
+on one of them it has left the contested band entirely.  In4.Cu is not one of them: it is the
+solid /VBAT plane, not a routing layer (fault 7, fix round 2).  The stub does not need to be
+long.  It needs to be LEGAL, which is the part that is tedious by hand and the part this does.
 
     python scripts/find_escape.py Q4.2 Q4.5 Q8.5
     python scripts/find_escape.py U8.10 --dir W --max 2.0

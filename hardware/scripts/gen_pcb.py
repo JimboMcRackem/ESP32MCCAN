@@ -1737,9 +1737,13 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
                        (DROP_VIA + ps) / 2.0 + (0.0 if pnet == gnd else DROP_CLEAR)):
                 return False
         for tx0, ty0, tx1, ty1, tw, _tlay, tnet in foreign:
-            # A via crosses every layer, so every layer's copper is in its way.
+            # A via crosses every layer, so every layer's copper is in its way.  The via is a
+            # box here, not a circle, because check_track_crossings() -- the gate that fails the
+            # build -- models it as one, and a guard looser than its gate lets a drop land where
+            # the gate will then blame the hand route for it.
             need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
-            if _pt_seg_dist(vx, vy, tx0, ty0, tx1, ty1) < r + tw / 2.0 + need:
+            if _seg_rect_gap((tx0, ty0), (tx1, ty1), tw,
+                             (vx - r, vy - r, vx + r, vy + r)) < need:
                 return False
         near = hash_.near(vx - r - DROP_CLEAR, vy - r - DROP_CLEAR,
                           vx + r + DROP_CLEAR, vy + r + DROP_CLEAR)

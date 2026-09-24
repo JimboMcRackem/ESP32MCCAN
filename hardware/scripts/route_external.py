@@ -32,8 +32,9 @@ The chain
        touched, and neither is mccan.kicad_pro -- route.py writes DRC settings back into the
        sibling project, so it is given a copy.
     2. KiCadRoutingTools route.py over the signal nets only, on gen_pcb.SIGNAL_LAYERS --
-       F.Cu, In2.Cu, In4.Cu and B.Cu.  In1.Cu is the ground plane and In3.Cu the VBAT
-       plane; a track on either is a slot cut through a reference, so neither is offered.
+       F.Cu, In2.Cu, In5.Cu and B.Cu.  In1.Cu, In3.Cu and In6.Cu are the three GND planes
+       and In4.Cu the solid VBAT plane (gen_pcb.PLANE_LAYERS); a track on any of them is a
+       slot cut through a reference, so none of the four is offered.
     3. this repo's check_geometry, then the tool's own check_connected / check_drc /
        check_weird, then this repo's check_vias and check_grounds.
 
@@ -114,18 +115,31 @@ def krt_python(home):
 def excluded_nets():
     """Every net the external router must not touch, as route.py --nets exclusion patterns.
 
-    NETCLASSES names nets by their SHORT name; the board names them hierarchically, so
-    VBAT_PROT has to be matched as "*/VBAT_PROT".  Every net on this board starts with "/",
-    so that one pattern covers both "/VBAT" and "/power_input/VBAT_PROT" -- and, deliberately,
-    does NOT cover "/outputs/+24V_FL", which is a Default-class corner feed and is the
-    external router's to lay.  GND is in no class at all, being the plane, so it goes in by
-    hand.
+    NETCLASSES names nets by their SHORT name, and this has to match the board's actual net
+    names the same two ways gen_netclasses.resolve() does: `n == short` for a net named
+    literally, or `n.rsplit("/", 1)[-1] == short` for one named hierarchically.  So each short
+    name gets BOTH an exact pattern and a "*/"-prefixed one, rather than picking one form and
+    guessing which nets need it.
+
+    Most nets on this board are hierarchical -- VBAT_PROT has to be matched as "*/VBAT_PROT",
+    which covers both "/VBAT" and "/power_input/VBAT_PROT", and, deliberately, does NOT cover
+    "/outputs/+24V_FL", a Default-class corner feed that is the external router's to lay.  But
+    Net-(U6-CANH) and Net-(U6-CANL), the transceiver-side halves of the CAN pair, are named
+    literally with no "/" in them at all (fault 2, fix round 2): "*/" + n requires a "/" to
+    appear before the match, so that pattern alone silently excluded nothing for these two, and
+    the external router was free to hand-route over Task 8's own copper.  Emitting the exact
+    pattern too closes that gap without having to special-case which nets are which -- the
+    pattern that does not apply to a given net (e.g. plain "!CANH", when the board only ever
+    calls it "/CANH") simply never matches anything.
+
+    GND is in no class at all, being the plane, so it goes in by hand.
     """
     out = ["!GND"]
     for cname, _tw, _cl, _vs, _vd, nets in L.NETCLASSES:
         if cname not in HANDS_OFF:
             continue
         for n in nets:
+            out.append("!" + n)
             out.append("!*/" + n)
     return out
 

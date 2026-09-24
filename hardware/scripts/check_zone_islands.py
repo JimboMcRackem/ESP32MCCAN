@@ -10,7 +10,7 @@ board shipped through every check this repo had:
       against pad centres; the polygon was never wrong, the copper that filled inside it was.
 
 What the DRC report shows that neither check does is the unconnected-item body itself.  A split
-fill produces an `[unconnected_items]` block whose two anchors are BOTH the same zone, at the
+fill produces an `[unconnected_items]` block with two of its anchors BOTH the same zone, at the
 same point -- KiCad reporting the zone as unconnected to itself:
 
     [unconnected_items]: Missing connection between items
@@ -18,13 +18,17 @@ same point -- KiCad reporting the zone as unconnected to itself:
         @(42.0000 mm, 36.0000 mm): Zone 'GNDIN_F' [/power_input/GND_IN] on F.Cu, priority 1
         @(42.0000 mm, 36.0000 mm): Zone 'GNDIN_F' [/power_input/GND_IN] on F.Cu, priority 1
 
-That is what this parses `output/drc.rpt` for.  It deliberately does NOT fire on a block where a
-zone appears against a PAD -- a pad on the zone's net that failed to connect to it is a
-different fault (a routing miss), already visible in the unconnected-pad count, not a split
-fill.  Gating on "a zone appears in an unconnected item" would fire on that pad case too;
-gating on "a zone is paired with itself" does not.  This board currently has no zone-vs-pad
-case at all -- `grep -c "Zone " output/drc.rpt` is 0 today -- so the exclusion is here to keep
-the signature specific if one ever appears, not because one has been observed.
+That is what this parses `output/drc.rpt` for.  A block is not always two anchors -- KiCad emits
+one line per item in the unconnected group, and a group can have three or more when a zone and
+several pads all miss each other at one point -- so every anchor in a block is parsed and
+classified, not just the first two (round 2 of Task 8 found a two-anchor-only parse skipping a
+block whose first anchor was a pad and the split was in anchors two and three).  This deliberately
+does NOT fire on a zone paired only with a PAD -- a pad on the zone's net that failed to connect
+to it is a different fault (a routing miss), already visible in the unconnected-pad count, not a
+split fill.  Gating on "a zone appears in an unconnected item" would fire on that pad case too;
+gating on "two of a block's anchors name the same zone" does not.  This board currently has no
+zone-vs-pad case at all -- `grep -c "Zone " output/drc.rpt` is 0 today -- so the exclusion is here
+to keep the signature specific if one ever appears, not because one has been observed.
 
 Run after `kicad-cli.exe pcb drc --refill-zones` has written `output/drc.rpt`.  Exit status is
 non-zero if any zone shows the self-paired signature, or if the report cannot be trusted (it is
@@ -44,25 +48,59 @@ HW = os.path.dirname(HERE)
 REPORT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HW, "output", "drc.rpt")
 PCB = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HW, "mccan.kicad_pcb")
 
-# Each block is exactly four lines: the header, a severity line, and two anchors.  Both anchors
-# are captured whole and classified afterward -- a pad anchor and a zone anchor share no useful
-# structure, so there is nothing to gain from parsing them with one pattern.
+# A block is a header line, one severity line, then a run of one or more anchor lines -- KiCad
+# emits one anchor per item in the unconnected group, and round 2 of Task 8 found a real block
+# with three (a pad, then two anchors of the same zone -- the split).  Fault 5: the previous
+# version of this file matched exactly two anchors with one combined regex, so a block whose
+# FIRST anchor was a pad but whose second and third were the same zone never matched at all --
+# `ZONE_RE.match` failed on the pad anchor in "both anchors" position 1, the whole block was
+# skipped, and the split it contained was never looked at.  Anchor count is now unbounded and
+# every anchor is classified on its own, so which position the zone anchors land in cannot hide
+# them.
 #
-# The severity line is deliberately NOT pinned to the literal "Local override; error" text.
-# Every block in both reports this gate has ever been run against carries exactly that string --
-# confirmed on the current report and on 9f6d3a6's -- but that is a fact about the two boards
-# examined, not a guarantee about what KiCad can emit.  Pinning to it would mean a block at a
-# different severity fails to match, drops silently out of `blocks`, and the gate prints OK
-# having never looked at it -- the exact "checks ran and returned 0" failure this file exists to
-# prevent.  The header-count guard below is what makes that loosening safe: a block whose shape
-# still doesn't match this pattern is no longer silent, it fails the whole run.
-BLOCK_RE = re.compile(
-    r'\[unconnected_items\]:[^\n]*\n'
-    r'[ \t]*[^\n]+\n'
-    r'[ \t]*@\(([-\d.]+) mm, ([-\d.]+) mm\): ([^\n]+)\n'
-    r'[ \t]*@\(([-\d.]+) mm, ([-\d.]+) mm\): ([^\n]+)')
+# The severity line is deliberately NOT pinned to the literal "Local override; error" text, for
+# the same reason as before this fault was fixed: every block in every report this gate has been
+# run against carries exactly that string, but that is a fact about the boards examined, not a
+# guarantee about what KiCad can emit.  It is consumed as a single unexamined line between the
+# header and the anchor run.
+HEADER_RE = re.compile(r'^\[unconnected_items\]:')
+ANCHOR_RE = re.compile(r'^[ \t]*@\(([-\d.]+) mm, ([-\d.]+) mm\): (.+)$')
 
 ZONE_RE = re.compile(r"^Zone '([^']+)' \[([^\]]*)\] on ([^,\n]+)")
+
+
+def parse_blocks(text):
+    """Split `text` into unconnected-item blocks, each a list of (x, y, description) anchors.
+
+    One entry per `[unconnected_items]:` header, always -- a header with no severity line, or
+    with fewer than two anchors after it, still produces a (possibly short) list rather than
+    being dropped, so a malformed block cannot silently vanish from the count the way the old
+    fixed-shape regex could.  The caller is what decides a short block is fatal.
+    """
+    lines = text.split("\n")
+    blocks = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        if not HEADER_RE.match(lines[i]):
+            i += 1
+            continue
+        j = i + 1
+        # The severity line is any single line, consumed unexamined -- unless the header is
+        # immediately followed by another header, in which case there is no severity line and no
+        # anchors, and this block is short (empty) rather than eating the next block's header.
+        if j < n and not HEADER_RE.match(lines[j]):
+            j += 1
+        anchors = []
+        while j < n:
+            m = ANCHOR_RE.match(lines[j])
+            if not m:
+                break
+            anchors.append((m.group(1), m.group(2), m.group(3)))
+            j += 1
+        blocks.append(anchors)
+        i = j
+    return blocks
 
 
 def main():
@@ -86,33 +124,48 @@ def main():
         return 2
 
     text = io.open(REPORT, encoding="utf-8").read()
-    blocks = BLOCK_RE.findall(text)
+    blocks = parse_blocks(text)
 
-    # A header this gate could not turn into a full block is a shape it does not recognise --
-    # possibly the same "different severity line" case the loosened match above exists for,
-    # taken further than this pattern accounts for.  Parsing FEWER blocks than there are
-    # headers can hide a split fill and report clean, so it is fatal.
-    #
-    # It is a one-directional check, deliberately.  A block carrying a THIRD anchor line would
-    # still parse from its first two, the counts would still agree, and the extra line would be
-    # dropped without a word -- verified by injecting one.  That is tolerable where a short
-    # block is not: the worst it can do is under-report, naming one split zone where the report
-    # named two, and the gate still exits non-zero.  A short block makes the gate say OK.
+    # `parse_blocks` emits exactly one entry per header, so this equality is now true by
+    # construction rather than by the parser getting lucky on every block's shape -- it is kept
+    # as an explicit check anyway, because a header string that turns up somewhere `parse_blocks`
+    # does not treat as a header (inside a description, say) would make `text.count` and the loop
+    # disagree, and that disagreement is exactly the "this report has a shape this gate does not
+    # recognise" case the guard exists to catch.
     n_headers = text.count("[unconnected_items]:")
     if n_headers != len(blocks):
-        print("FAIL: %d '[unconnected_items]' header(s) in %s but only %d parsed as full "
-              "blocks -- this report has a shape this gate does not recognise and cannot be "
-              "trusted" % (n_headers, REPORT, len(blocks)))
+        print("FAIL: %d '[unconnected_items]' header(s) in %s but %d block(s) parsed -- "
+              "this report has a shape this gate does not recognise and cannot be trusted"
+              % (n_headers, REPORT, len(blocks)))
         return 2
 
+    # A block with fewer than two anchors cannot name a split (a split needs two zone anchors
+    # naming the same zone) and is not a shape this gate expects to see in a real report -- a
+    # header with no severity line and no anchors, or with exactly one anchor, is fatal rather
+    # than silently treated as "no split found here".
+    short = [i for i, b in enumerate(blocks) if len(b) < 2]
+    if short:
+        print("FAIL: %d block(s) in %s have fewer than 2 anchors -- malformed or unrecognised "
+              "shape, cannot be trusted" % (len(short), REPORT))
+        return 2
+
+    # Every anchor in a block is classified, not just the first two (fault 5): a block can carry
+    # any number of anchors, and the split -- two zone anchors naming the same zone -- can be in
+    # any pair of positions, including the second and third when the first anchor is a pad.  A
+    # block with three or more anchors and no zone anchor at all (an all-pad group) simply
+    # contributes no split, the same as a two-anchor all-pad block always has.
     splits = []
-    for x1, y1, d1, x2, y2, d2 in blocks:
-        m1, m2 = ZONE_RE.match(d1), ZONE_RE.match(d2)
-        if not m1 or not m2:
-            continue
-        if m1.group(1) != m2.group(1):
-            continue
-        splits.append((m1.group(1), m1.group(2), m1.group(3), float(x1), float(y1)))
+    for anchors in blocks:
+        seen = {}
+        for x, y, desc in anchors:
+            m = ZONE_RE.match(desc)
+            if not m:
+                continue
+            name = m.group(1)
+            if name in seen:
+                splits.append((name, m.group(2), m.group(3), float(x), float(y)))
+            else:
+                seen[name] = (x, y, desc)
 
     print("%s: %d unconnected-item block(s) parsed" % (os.path.basename(REPORT), len(blocks)))
     if splits:

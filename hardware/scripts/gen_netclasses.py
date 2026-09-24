@@ -12,7 +12,9 @@ The constraints are set for **1 oz (35 um) copper on all six layers**, decided 2
 Spec 10 originally asked for 2 oz outer; it could not survive contact with the land patterns,
 because 2 oz etching cannot hold the 0.15 mm pad-to-pad U10 needs or reliably the 0.20 mm the
 QFN/VSON parts need, and outer copper is where every land pattern lives.  The inner layers
-then ran at 2 oz until the board went to six: In2.Cu and In4.Cu carry tracks now, and PCBWay
+then ran at 2 oz until the board went to six: In2.Cu and In5.Cu carry tracks now (the two
+inner entries of gen_pcb.SIGNAL_LAYERS; In4.Cu is the solid /VBAT plane, not a track layer --
+fault 7, fix round 2), and PCBWay
 etches inner layers to 4/4 mil at 1 oz but only 6/8 mil at 2 oz -- and 8 mil is 0.203 mm,
 above the 0.20 mm clearance declared below.  The 7.0 A feed is unaffected either way; see
 the measurement in scripts/check_plane_width.py.
