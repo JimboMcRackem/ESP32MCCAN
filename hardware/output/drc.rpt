@@ -1,10 +1,10 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-24T03:41:45 **
+** Created on 2026-09-24T19:47:06 **
 ** Report includes: Errors **
 
 ** Found 0 DRC violations **
 
-** Found 321 unconnected pads **
+** Found 320 unconnected pads **
 [unconnected_items]: Missing connection between items
     Local override; error
     @(79.3550 mm, 91.3300 mm): Pad 2 [/+3V3_ALW] of C28 on F.Cu
@@ -949,10 +949,6 @@
     Local override; error
     @(177.3875 mm, 51.8500 mm): Pad 4 [/outputs/SENSE_RR_R] of Q8 on F.Cu
     @(166.9175 mm, 44.2300 mm): Pad 1 [/outputs/SENSE_RR_R] of R61 on F.Cu
-[unconnected_items]: Missing connection between items
-    Local override; error
-    @(42.0000 mm, 36.0000 mm): Zone 'GNDIN_F' [/power_input/GND_IN] on F.Cu, priority 1
-    @(42.0000 mm, 36.0000 mm): Zone 'GNDIN_F' [/power_input/GND_IN] on F.Cu, priority 1
 [unconnected_items]: Missing connection between items
     Local override; error
     @(44.4675 mm, 78.8000 mm): Pad 3 [/power_input/Q10_G] of Q12 on F.Cu

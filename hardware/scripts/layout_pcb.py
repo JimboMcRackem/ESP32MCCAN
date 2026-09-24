@@ -698,16 +698,29 @@ ROUTES = [
                                  (37.25, 33.0), (37.25, 38.0)]),
 
     # --- VBAT_F trunk: L2.4 (pi-filter output winding) to L1.1 (second-stage choke) ---
-    # x=31.0 column swept clear for the full y 27.3-50.0 span; the only obstacle in that
-    # corridor is L2 itself, which this leg starts and ends clear of by routing around
-    # its south side rather than under the body.  L1's two pads are only 9 mm apart
-    # (26.49 and 35.51), and the VBAT link below is also 4.5 mm wide, so a 4.5 mm
-    # VBAT_F track riding all the way to y=50 has a rounded end-cap that reaches the
-    # link's own end-cap with only 0.008 mm to spare -- caught by gen_pcb's crossing
-    # check.  Narrowing the last 3 mm (the short-hop floor width is exactly for this)
-    # before the turn opens that back up past 0.3 mm.
-    ("VBAT_F", "F.Cu", 4.5, [(37.25, 27.3), (31.0, 27.3), (31.0, 47.0)]),
-    ("VBAT_F", "F.Cu", 3.5, [(31.0, 47.0), (31.0, 50.0), (26.4915, 50.0)]),
+    # This carries the full 7.0 A continuous / 7.8 A transient the whole way -- VBAT_F
+    # never drops to In4.Cu (that plane is /VBAT, a different net), so unlike every
+    # other hop on this trunk there is no plane behind it.  It stays >= 4.5 mm for its
+    # entire length; the fix below moves the ROUTE, not the width.
+    #
+    # The x=31.0 column (first tried) swept clear for the full y 27.3-50.0 span against
+    # every *pad*, but gen_pcb's crossing check caught a track-vs-track conflict a pad
+    # sweep can't see: L1's two pads are only 9 mm apart (26.4915 and 35.5085), the VBAT
+    # link below is also 4.5 mm wide, and a 4.5 mm VBAT_F track turning at x=31.0 has a
+    # rounded end-cap reaching to x=31.0+2.25=33.25 -- only 0.0085 mm short of the link's
+    # own end-cap at x=35.5085-2.25=33.2585, well inside the 0.3 mm clearance floor
+    # (reported: 0.008 < 0.300 mm).  Narrowing the copper there is what a first attempt
+    # did, but that "short hop" turned out to be 7.5 mm of full-current trunk at 3.5 mm
+    # -- a real run, not the brief's few-mm exception.
+    #
+    # Fixed instead by moving the turn 0.5 mm further from the link: at x=30.5 the same
+    # 4.5 mm track's end-cap reaches only to 30.5+2.25=32.75, clearing the link's cap
+    # edge (33.2585) by 0.5085 mm -- 0.2085 mm of margin past the 0.3 mm floor, the same
+    # margin the narrowed version had, but now with full 4.5 mm copper end to end.  The
+    # x=30.5 column was checked against every pad in the x 20-35 / y 25-52 window (L1.1
+    # and C5 are the only two there): C5.2, the nearest, sits 4.25 mm away in x -- clear
+    # by a wide margin, so the sweep result for x=31.0 still holds one column over.
+    ("VBAT_F", "F.Cu", 4.5, [(37.25, 27.3), (30.5, 27.3), (30.5, 50.0), (26.4915, 50.0)]),
 
     # --- VBAT link: L1.2 to C3.1, then onto the In4.Cu plane via the array below ---
     # Last F.Cu hop before the feed goes onto the plane for good.  Short (6.3 mm), no
@@ -759,8 +772,49 @@ ROUTES = [
     # width floor) for the first hop so the two tracks' end-caps clear each other by
     # exactly 0.3 mm instead of colliding.
     ("VBAT_PROT", "F.Cu", 0.2, [(36.9, 97.0), (36.9, 97.6)]),
-    # Widen once south of pin 4's row -- nothing else is close here.
-    ("VBAT_PROT", "F.Cu", 0.5, [(36.9, 97.6), (36.9, 99.5)]),
+    # This short riser used to stay on F.Cu (widening to 0.5 mm at y=97.6, straight down
+    # to y=99.5).  Measured with pcbnew's own zone filler (KiCad's bundled python,
+    # ZONE_FILLER on the refilled board) that this is exactly what split GNDIN_F: with
+    # this riser plus the y=99.5 jog below plus SNS's y=93 crossbar (ROUTES entries
+    # 7/11/12) all present, the filler reported a second, orphaned island at bbox
+    # x=[37.450,47.749] y=[93.550,98.950] -- 2700 vs 188 points, i.e. a real disconnected
+    # pocket, not a rounding artefact.  Every one of those four bbox edges lands exactly
+    # on a hand-track clearance offset (track edge + 0.3 mm): 93.55 = SNS's y=93 line +
+    # 0.55, 47.75 = SNS's x=48.3 line - 0.55, 37.45 = this riser's x=36.9 line + 0.55,
+    # 98.95 = the y=99.5 jog below - 0.55.  U10's own pads close the pocket's fourth
+    # (west) side between SNS's escape (y=96.5) and this riser's start (y=97.6) -- U10
+    # is fixed, not ours to move -- so SNS's crossbar (top+right) and this riser plus the
+    # jog below (bottom+left) are the only two hand-routed sides of a closed ring around
+    # that pocket, which is why removing any *one* of ROUTES 7/11/12 alone reopened it in
+    # ablation but sliding any of the three sideways within the same F.Cu did not: the
+    # ring just moved, it didn't open.  (Confirmed both directions per the review's
+    # instruction: deleting all three or moving VBAT_PROT's own trunk joint at line ~696
+    # left the split in place until this riser specifically was touched; restoring the
+    # riser to F.Cu brought the second island straight back.)
+    #
+    # Fix: take this riser off F.Cu instead, so it can no longer form one wall of the
+    # ring.  Two vias (0.8/0.4 mm, matching every other F.Cu<->In5.Cu hop on this net)
+    # drop it to In5.Cu for the same x/y run -- clear there: FEED_P's In5.Cu columns are
+    # at x=24/41/59.5, MID's B.Cu jog is at x=43.35, SNS's own In5.Cu duck-under is at
+    # x=48.3, none of them x=36.9.  Re-verified with the same pcbnew filler: 1 island,
+    # bbox x=[22,71] y=[36,149.5] -- the whole zone, GNDIN_F whole again.
+    #
+    # This also answers the review's Important-3 concern (SNS pin 4's 0.2 mm escape vs
+    # this pin's own 0.2 mm hop above, stacking both the width and clearance floors at
+    # once): moving pin 5 to an inner-layer via sooner, as the review suggested, was
+    # tried and measured worse, not better.  The two 0.2 mm hops' own end-caps (fixed by
+    # U10's 0.5 mm pin pitch, at 36.9/96.5 and 36.9/97.0-97.6) are unreachable by any
+    # layer choice downstream -- both leave F.Cu straight off their pads before a via is
+    # legal, and stadium-distance between them is exactly 0.500 mm centre-to-centre,
+    # 0.300 mm edge-to-edge against a 0.300 mm floor: zero slack either way.  Pulling
+    # *this* via closer to pin 5 (shrinking the 0.2 mm hop above instead of this 0.5 mm
+    # one) does not help either -- a 0.8/0.4 mm via's radius (0.4 mm) needs more clearance
+    # from SNS's crossbar than the 0.2 mm track it replaces (0.1 mm half-width) would, so
+    # the via fight starts *before* the track fight does: y=97.2 fails gen_pcb's own
+    # clearance check outright (0.200 < 0.300, SNS ROUTES[6] vs this via), y=97.4 and
+    # above pass.  y=97.6 (here) already clears that floor by 0.2 mm; there is nothing
+    # left to recover by moving the via closer, so the 0.2 mm escape stays as authored.
+    ("VBAT_PROT", "In5.Cu", 0.5, [(36.9, 97.6), (36.9, 99.5)]),
     # East to C65.1 -- this is the mandatory bypass stop, reached before the trunk.
     ("VBAT_PROT", "F.Cu", 0.5, [(36.9, 99.5), (51.3, 99.5), (51.3, 98.0)]),
     # From C65.1 on to the trunk start (R100.2 / VBAT_PROT trunk's own origin point).
@@ -853,6 +907,11 @@ ROUTE_VIAS = [
     # ROUTES above) -- netclass default via since this is a sense line, not a trunk
     # current path.
     ("SNS", 48.3, 98.5, 0.8, 0.4), ("SNS", 48.3, 100.5, 0.8, 0.4),
+
+    # VBAT_PROT pin 5's own short riser (x=36.9, y=97.6-99.5) taken to In5.Cu -- see the
+    # comment on that ROUTES entry above for why (it closed one side of the ring that
+    # split the GNDIN_F zone fill). Netclass default via, same size as SNS's pair above.
+    ("VBAT_PROT", 36.9, 97.6, 0.8, 0.4), ("VBAT_PROT", 36.9, 99.5, 0.8, 0.4),
 
     # Gate-drive / bias taps: single via each, F.Cu <-> In5.Cu.
     ("FEED_P", 24.0, 86.0, 0.8, 0.4), ("FEED_P", 25.75, 114.0, 0.8, 0.4),
