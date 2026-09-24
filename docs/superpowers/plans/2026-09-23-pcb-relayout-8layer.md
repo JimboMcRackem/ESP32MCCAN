@@ -1194,7 +1194,7 @@ python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
   --refill-zones -o output/drc.rpt mccan.kicad_pcb
-grep -i "unconnected" output/drc.rpt | grep -iE "VBAT|FEED_P|MID|SNS|GND_IN"
+grep -n -A3 "\[unconnected_items\]" output/drc.rpt | grep -iE "VBAT|FEED_P|MID|SNS|GND_IN"
 ```
 
 Expected: `check_plane_width.py` still passes; the grep returns nothing.
@@ -1290,7 +1290,7 @@ There is no length-matching requirement to hit for CAN at this data rate over a 
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
   --refill-zones -o output/drc.rpt mccan.kicad_pcb
-grep -i "unconnected" output/drc.rpt | grep -iE "CANH|CANL"   # all four nets
+grep -n -A3 "\[unconnected_items\]" output/drc.rpt | grep -iE "CANH|CANL"   # all four nets
 ```
 
 Expected: nothing.
