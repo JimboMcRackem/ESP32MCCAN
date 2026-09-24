@@ -1243,7 +1243,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 Route all four. Routing only the first row leaves the transceiver unconnected, and nothing but DRC's unconnected count will say so.
 
-**On segregation.** The board-edge distance between the CAN connector and the power connector is **not** what separates them here -- J8 sits third in the gland row, about 35 mm from J1 (`enclosure.md` section 4 fixes that order and it is not a free variable). What separates them is the layer: the pair runs as a buried stripline on `In2.Cu`, enclosed by the `In1.Cu` and `In3.Cu` ground planes, while the feed pours on `In4.Cu` and `F.Cu` and the switch node is on `F.Cu`. There is a ground plane between the pair and every aggressor on this board.
+**On segregation.** The board-edge distance between the CAN connector and the power connector is **not** what separates them here -- J8 sits third in the gland row, 36.55 mm from J1 (measured, gland row: J1 30.85, J7 49.35, J8 67.40) (`enclosure.md` section 4 fixes that order and it is not a free variable). What separates them is the layer: the pair runs as a buried stripline on `In2.Cu`, enclosed by the `In1.Cu` and `In3.Cu` ground planes, while the feed pours on `In4.Cu` and `F.Cu` and the switch node is on `F.Cu`. There is a ground plane between the pair and every aggressor on this board.
 
 - [ ] **Step 1: Route the pair**
 
@@ -1310,7 +1310,7 @@ Between the In1.Cu and In3.Cu ground planes, so segregation from the feed and th
 switch node is structural -- the pair is physically enclosed in copper -- rather than
 a keep-away rule nothing enforces. There is a ground plane between the
 pair and every aggressor on the board, which matters more than connector spacing: J8 is
-third in the gland row and about 35 mm from J1, and that order is fixed by the enclosure.
+third in the gland row and 36.55 mm from J1, and that order is fixed by the enclosure.
 
 Four nets, not two -- the choke splits each side, and Net-(U6-CANH/L) is the half that
 reaches the transceiver.
