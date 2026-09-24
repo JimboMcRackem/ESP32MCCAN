@@ -1252,7 +1252,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 Route all four. Routing only the first row leaves the transceiver unconnected, and nothing but DRC's unconnected count will say so.
 
-**R26 is not a link in that chain.** `gen_mcu_can.py:345-351` wires it as a DNP
+**R26 is not a link in that chain.** `gen_mcu_can.py:341-350` wires it as a DNP
 120R bus terminator shunted straight across the `CANH` and `CANL` labels --
 `vpart("R26", "Device:R", "120R", ..., dnp=True)` between `lab("CANH", ...)` and
 `lab("CANL", ...)` -- while `w(L6["4"], D6["1"])` and `w(L6["3"], D6["2"])` wire D6
@@ -1453,7 +1453,10 @@ board reasoned to — the block was re-placed, not redesigned:
   top-edge pads (y 30.125).
 - **Pin 12 gets a 0.30 mm tie, not a share of the current.** Centred on its own y 31.250
   the copper reaches 31.400 and clears pin 11 (MODE, top edge 31.625) by **0.225 mm**.
-  0.30 mm is the widest track that does.
+  0.34 mm is in fact the widest that still clears it, at 0.205 mm; 0.30 mm is the
+  prescription anyway, because it carries 0.025 mm of margin against the 0.20 mm floor
+  where 0.34 carries 0.005 mm, and 0.35 mm misses by a floating-point last bit
+  (31.625 - 31.425 computes as 0.19999999999999929, just under the floor).
 
 **What is already in that window**, and this is the part Task 8 learned the hard way —
 `gen_pcb.py` checks hand copper against pads *and vias*, and refuses to write the board
