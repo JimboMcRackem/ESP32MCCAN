@@ -87,13 +87,22 @@ python scripts/check_density.py            # created in Task 3
 python scripts/check_geometry.py
 python scripts/check_vias.py
 python scripts/check_grounds.py
-python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
+MSYS_NO_PATHCONV=1 python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 
 # DRC (must exit 0; unconnected nets are reported separately from errors)
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
   --refill-zones -o output/drc.rpt mccan.kicad_pcb
 ```
+
+**`MSYS_NO_PATHCONV=1` on the plane-width gate is not decoration.** `/VBAT` is a net name,
+but Git Bash cannot tell a net name from a POSIX path and rewrites any bare argument
+starting with `/` into a Windows path before Python ever sees it. Without the prefix the
+gate is handed `C:/Program Files/Git/VBAT` and fails with `no zone pours
+C:/Program Files/Git/VBAT` -- which reads exactly like the VBAT plane having been lost,
+and is not. It has already cost this project one false alarm during Task 8. With the
+prefix the same board passes with 9.5x margin. The trap is the shell, not the board, and
+it applies to every `/`-prefixed net name passed on a command line, not just this gate.
 
 ---
 
@@ -1009,7 +1018,7 @@ Expected: `8`.
 - [ ] **Step 7: Measure the feed — this is the step that decides whether the split was affordable**
 
 ```bash
-python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
+MSYS_NO_PATHCONV=1 python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 ```
 
 Expected: PASS, with a worst cut comfortably above **11.44 mm**.
@@ -1190,7 +1199,7 @@ python scripts/check_vias.py
 - [ ] **Step 4: Confirm the feed nets are connected and the plane still carries it**
 
 ```bash
-python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
+MSYS_NO_PATHCONV=1 python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
   --refill-zones -o output/drc.rpt mccan.kicad_pcb
@@ -1512,7 +1521,7 @@ python scripts/check_density.py
 python scripts/check_geometry.py
 python scripts/check_vias.py
 python scripts/check_grounds.py
-python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
+MSYS_NO_PATHCONV=1 python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
@@ -1610,7 +1619,7 @@ python scripts/check_density.py
 python scripts/check_geometry.py
 python scripts/check_vias.py
 python scripts/check_grounds.py
-python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
+MSYS_NO_PATHCONV=1 python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
