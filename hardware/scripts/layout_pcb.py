@@ -637,10 +637,250 @@ TIM_PADS = [
 #
 # Refilled by Tasks 7-9: the feed chain, the CAN pair, the boost switch node.  Everything
 # else on this board is the external router's -- see docs/routing-tool.md.
-ROUTES = []
+#
+# Task 7 -- the 7 A feed chain, one direction only: J1 (bottom of the wire field) up
+# through the eFuse (Q10/Q11 + U10), up through L2 and the pi filter (C65/L2/C3/L1),
+# out the top of `input`.  Nothing doubles back.
+#
+# "Poured, never tracked": FEED's netclass width (3.5 mm) is a 20 C-rise floor sized for
+# a hop of a few mm, not for a real run.  Every segment that actually carries the 7.0 A /
+# 7.8 A trunk current is either >= 4.5 mm on F.Cu, or is a short stub into a FEED-class
+# via (0.8/0.4 mm) that drops onto the solid In4.Cu VBAT plane -- the plane is what
+# carries the bulk of the current, not the copper width of any one hand-drawn track.
+# Bias/sense/gate-drive taps that do not carry trunk current (SNS, U10's gate, the
+# VBAT_PROT/VBAT_F branches into R2/C1/D2) stay narrow -- 0.3-0.5 mm -- because widening
+# them buys nothing and only adds clearance risk in the crowded U10 column.
+#
+# All geometry below was walked with show_room.py against the real DRU (FEED clearance
+# 0.3 mm, FEED via 0.8/0.4) before being written here; the slack numbers quoted in each
+# comment are show_room's own "tightest neighbour" figures, not eyeballed.
+
+ROUTES = [
+    # --- FEED_P trunk: J1.2 (+12V IGN-switched feed) down to Q10.2 (eFuse source) ---
+    # J1's three pads sit on a 6 mm pitch at y=127.91; the only way out of the middle
+    # pad (FEED_P) without touching IGN_IN (pad 1, west) or GND_IN (pad 3, east) is
+    # straight down.  show_room at 4.5 mm confirms the column at x=36.85 stays legal
+    # (>=2.6 mm slack to J1.1/J1.3) all the way to y=123, where the row opens up fully
+    # across the whole 22-40 mm window -- that is where the trunk turns west to line up
+    # with Q10's column at x=25.75.  25.75/109.6-123 was swept solid at 4.5 mm too.
+    ("FEED_P", "F.Cu", 4.5, [(36.85, 127.91), (36.85, 123.0),
+                              (25.75, 123.0), (25.75, 109.6)]),
+
+    # --- MID bridge: Q10.3 (eFuse drain / half-bridge midpoint) to Q11.3 (same net) ---
+    # Both pads are the same 8x10.1 mm DPAK-class tab, 1.7 mm apart edge to edge at
+    # y=109.  A short, wide bridge at the netclass floor's *3.3x* (8 mm) rather than a
+    # thin track: this is the highest-current single hop in the eFuse (all 7 A crosses
+    # here), and there is nothing else nearby to clear -- copper is free when there is
+    # nothing to avoid.  Endpoints sit 0.85 mm inside each pad's facing edge so the
+    # track fully overlaps both pads' copper, not just their centrelines.
+    ("MID", "F.Cu", 8.0, [(36.80, 109.0), (40.20, 109.0)]),
+
+    # --- SNS trunk: Q11.2 (current-sense Kelvin tap) to R100.1 (sense resistor) ---
+    # Low-current Kelvin line, stays at the netclass default.  y=109.5 was the first
+    # try (north of Q11.1's gate pad) but gen_pcb's crossing check caught it: the
+    # VBAT_PROT trunk is 4.5 mm wide and centred at y=106.0375, so its own copper
+    # already reaches down to y=108.29 before any clearance is added, and 3.5 mm SNS
+    # at 109.5 doesn't clear that by the required 0.3 mm once both half-widths are
+    # counted.  y=110.7 puts SNS's near edge at 108.95 -- clear of the trunk by 0.66 mm.
+    ("SNS", "F.Cu", 3.5, [(51.25, 108.4), (51.25, 110.7),
+                           (57.0, 110.7), (57.0, 111.9625)]),
+
+    # --- VBAT_PROT trunk: R100.2 (post-sense rail) to L2.1 (pi-filter input winding) ---
+    # The one long haul on the board, and it cannot go straight: a single y for the
+    # whole horizontal leg is impossible.  Crossing the GND_IN island's spur (x 42-48,
+    # which starts at y=36) needs y <= 33.75; clearing D3.pad1/C1.pad1 over x 54-68
+    # needs y >= ~34.6.  First attempt used one y=33.0 leg across the full x range and
+    # show_room caught it colliding with both D3 and C1 -- so the leg is split in two:
+    # y=33.0 while crossing the spur's x-range (37.25-48.5), y=35.5 once east of it,
+    # where a fine sweep (0.25 mm step, x 48-74) came back 100% legal at 4.5 mm.
+    ("VBAT_PROT", "F.Cu", 4.5, [(57.0, 106.0375), (73.0, 106.0375), (73.0, 35.5),
+                                 (48.5, 35.5), (48.5, 33.0),
+                                 (37.25, 33.0), (37.25, 38.0)]),
+
+    # --- VBAT_F trunk: L2.4 (pi-filter output winding) to L1.1 (second-stage choke) ---
+    # x=31.0 column swept clear for the full y 27.3-50.0 span; the only obstacle in that
+    # corridor is L2 itself, which this leg starts and ends clear of by routing around
+    # its south side rather than under the body.  L1's two pads are only 9 mm apart
+    # (26.49 and 35.51), and the VBAT link below is also 4.5 mm wide, so a 4.5 mm
+    # VBAT_F track riding all the way to y=50 has a rounded end-cap that reaches the
+    # link's own end-cap with only 0.008 mm to spare -- caught by gen_pcb's crossing
+    # check.  Narrowing the last 3 mm (the short-hop floor width is exactly for this)
+    # before the turn opens that back up past 0.3 mm.
+    ("VBAT_F", "F.Cu", 4.5, [(37.25, 27.3), (31.0, 27.3), (31.0, 47.0)]),
+    ("VBAT_F", "F.Cu", 3.5, [(31.0, 47.0), (31.0, 50.0), (26.4915, 50.0)]),
+
+    # --- VBAT link: L1.2 to C3.1, then onto the In4.Cu plane via the array below ---
+    # Last F.Cu hop before the feed goes onto the plane for good.  Short (6.3 mm), no
+    # obstacles between the two pads at y=50.
+    ("VBAT", "F.Cu", 4.5, [(35.5085, 50.0), (41.8, 50.0)]),
+
+    # ===================== U10 Kelvin pair (SNS pin 4, VBAT_PROT pin 5) =====================
+    # U10 is a 10-pad, 0.5 mm pitch part -- gen_pcb's dru_floor() relaxes clearance
+    # between a hand track and a U10 *pad* to 0.18-0.2 mm for exactly this reason, but it
+    # does NOT relax clearance between two hand tracks that both happen to be near U10.
+    # The old 6-layer board's fix (board/v2-6layer) was to send the two pins out in
+    # different directions so their escapes never run parallel: pin 5 is the south
+    # corner of the column and escapes straight into open space below the part; pin 4
+    # is the interior pin between pins 3 and 5, and only has a way out to the west,
+    # inside the exemption band, before turning.  Both must reach C65.1 (the mandatory
+    # output-bypass cap) before continuing on to the trunk -- notes_power_input.py is
+    # explicit that neither line may hang a spur off the sense run instead.
+
+    # SNS / pin 4: 0.3 mm reached only 0.075 mm clear of U10.1-3's pads once the
+    # exemption's own floor (0.12 mm) is applied, and even inside the exemption the
+    # round end-cap of pin 5's escape (0.5 mm pitch away) came out only 0.1 mm clear
+    # of THIS track -- track-vs-track is never exempted.  The board's own track-width
+    # floor is 0.2 mm, so that -- not 0.15 mm -- is as narrow as this hop can go:
+    # at 0.2 mm the two pads' end-caps are exactly 0.5 - 0.2 = 0.3 mm apart, clearing
+    # each other with nothing to spare, which is why this hop is kept as short as
+    # possible (35.5-36.9) before widening.
+    ("SNS", "F.Cu", 0.2, [(36.9, 96.5), (35.5, 96.5)]),
+    # Widen to 0.5 mm only once the U10.1-3 column (west edge x=36.15) is behind by
+    # >=0.3 mm even accounting for the wider cap -- the transition sits at x=35.5 so
+    # the cap's east reach (35.5+0.25=35.75) still clears x=36.15 by 0.4 mm.
+    # Route east at y=93 -- north of Q10.3/Q11.3/the MID bridge (all top out at
+    # y=103.95-105) -- to x=48.3, which clears Q11.3's east edge (47.35) by 0.7 mm and
+    # C65's west edge (49.55) by over 1 mm.  x=59.5 and x=54 (the two other gaps
+    # available further east) were tried first and both failed: x=59.5 sits inside the
+    # VBAT_PROT trunk's own 4.5 mm copper (x=57-73), and x=54 sits inside VBAT_PROT's
+    # C65-to-trunk jog (x=51.3-57 at y=103.5).
+    ("SNS", "F.Cu", 0.5, [(35.5, 96.5), (35.5, 93.0), (48.3, 93.0), (48.3, 98.5)]),
+    # x=48.3 also crosses VBAT_PROT's OTHER jog -- pin 5's run from its own escape to
+    # C65 sits at y=99.5, spanning x=36.9-51.3, which x=48.3 is inside.  SNS carries no
+    # real current, so a two-via hop to duck under it on In5.Cu (clear here -- the
+    # FEED_P taps' In5.Cu columns are at x=24/41/59.5, none of them 48.3) is cheaper
+    # than hunting for a third F.Cu gap.
+    ("SNS", "In5.Cu", 0.5, [(48.3, 98.5), (48.3, 100.5)]),
+    ("SNS", "F.Cu", 0.5, [(48.3, 100.5), (48.3, 109.0), (57.0, 109.0), (57.0, 111.9625)]),
+
+    # VBAT_PROT / pin 5: straight south into open space below the part.  The corner
+    # pin has no U10 neighbour on that side, but pin 4's escape (above) starts only
+    # 0.5 mm away at the shared column x=36.9 -- same fix, 0.2 mm (the board's track-
+    # width floor) for the first hop so the two tracks' end-caps clear each other by
+    # exactly 0.3 mm instead of colliding.
+    ("VBAT_PROT", "F.Cu", 0.2, [(36.9, 97.0), (36.9, 97.6)]),
+    # Widen once south of pin 4's row -- nothing else is close here.
+    ("VBAT_PROT", "F.Cu", 0.5, [(36.9, 97.6), (36.9, 99.5)]),
+    # East to C65.1 -- this is the mandatory bypass stop, reached before the trunk.
+    ("VBAT_PROT", "F.Cu", 0.5, [(36.9, 99.5), (51.3, 99.5), (51.3, 98.0)]),
+    # From C65.1 on to the trunk start (R100.2 / VBAT_PROT trunk's own origin point).
+    ("VBAT_PROT", "F.Cu", 0.5, [(51.3, 98.0), (51.3, 103.5),
+                                 (57.0, 103.5), (57.0, 106.0375)]),
+
+    # ===================== Gate-drive / bias taps off the FEED_P trunk =====================
+    # Same technique for all three: a short F.Cu stub to clear the part's own
+    # neighbours, a FEED via down to In5.Cu (the spare signal layer not claimed by
+    # In4.Cu's VBAT pour or In2.Cu's Task-8 CAN pair), a haul at a dedicated y-lane so
+    # the three taps can't foul each other, and a second via landing back on the F.Cu
+    # trunk.  Each tap lands on its own y (114/116/118 mm) at the trunk's x=25.75
+    # column, 2 mm apart -- same net, so no via-via clearance is even required, but
+    # keeping them apart avoids three vias trying to share one drill spot.
+
+    # R104.1 (FEED_P into the VCC10 bias divider): stub clear of R106 (the other pad
+    # on this footprint's row, 4.5 mm away) then to the via.
+    ("FEED_P", "F.Cu", 0.5, [(24.255, 83.83), (24.0, 83.83), (24.0, 86.0)]),
+    ("FEED_P", "In5.Cu", 0.5, [(24.0, 86.0), (24.0, 114.0), (25.75, 114.0)]),
+
+    # Q12.2 (FEED_P into the gate-drive PNP emitter): stub south from the pad, clear of
+    # Q12's own pad 3 (Q10_G) 1.9 mm to the east.
+    ("FEED_P", "F.Cu", 0.5, [(42.5925, 79.75), (42.5925, 81.0), (41.0, 81.0)]),
+    ("FEED_P", "In5.Cu", 0.5, [(41.0, 81.0), (41.0, 116.0), (25.75, 116.0)]),
+
+    # R105.1 (FEED_P into the second bias divider): stub clear of D22 (Net-D22-A,
+    # 1.05 mm south-east) before dropping.
+    ("FEED_P", "F.Cu", 0.5, [(59.9175, 78.23), (59.5, 79.0), (59.5, 80.0)]),
+    ("FEED_P", "In5.Cu", 0.5, [(59.5, 80.0), (59.5, 118.0), (25.75, 118.0)]),
+
+    # R101.1 (MID sense-divider tap): on B.Cu, not In5.Cu -- a separate layer from the
+    # three FEED_P taps above means this haul never needs checking against them for
+    # crossings.  Via sits directly on Q11.3's own MID pad (no F.Cu stub needed there);
+    # the far via lands directly on R101.1's pad.
+    ("MID", "B.Cu", 0.5, [(43.35, 109.0), (43.35, 90.5), (53.9175, 90.5), (53.9175, 78.23)]),
+
+    # D2.1 (VBAT_PROT into the input clamp diode): In5.Cu again, but routed south to
+    # y=121 -- below all three FEED_P taps' lowest lane (118) -- before crossing east,
+    # so it can never touch them even though it shares their layer and is a foreign net
+    # there.  Final vertical at x=65 lands on the VBAT_PROT trunk's y=106.0375 leg.
+    ("VBAT_PROT", "F.Cu", 0.5, [(25.1, 79.35), (22.5, 79.35)]),
+    ("VBAT_PROT", "In5.Cu", 0.5, [(22.5, 79.35), (22.5, 121.0),
+                                   (65.0, 121.0), (65.0, 106.0375)]),
+
+    # ===================== VBAT_F / VBAT_PROT bias taps near L2/L1 =====================
+    # R2 bridges VBAT_PROT to VBAT_F (bias divider across the eFuse's pi-filter choke);
+    # C1 filters VBAT_F.
+
+    # R2.1 (VBAT_PROT): the direct In5.Cu hop straight to the trunk's y=35.5 leg would
+    # cross R2.2/C1.1's own In5.Cu haul below at x=55.4675 (both nets share that x on
+    # the same layer) -- gen_pcb's crossing check caught it.  B.Cu is otherwise unused
+    # in this x/y region (the only other B.Cu run, R101's MID tap, stays south of
+    # y=78), so R2.1 moves there instead of adding a detour.
+    ("VBAT_PROT", "B.Cu", 0.5, [(55.4675, 25.53), (55.4675, 35.5)]),
+
+    # R2.2 and C1.1 (both VBAT_F): the first attempt hauled each straight north to
+    # y=27.3 and west to the trunk -- but L2.3 (GND, a foreign net) sits at
+    # (44.75, 27.3), directly in that path, and C1.1's own straight run north also
+    # grazed the VBAT (/VBAT) via dropped for C2.1 four columns over.  Merged instead:
+    # C1.1 jogs 1.5 mm west (clearing D3.2's via by >=0.7 mm) before turning north,
+    # landing directly on R2.2's own pad (same net) rather than routing them in
+    # parallel.  From R2.2, a single haul at y=29.3 clears D3.2 (its near edge is
+    # 29.95, giving 0.4 mm) and L2.3 (0.775 mm) on the way to x=34.0, which lands on
+    # the VBAT_F trunk's own y=27.3 leg (inside its x 31.0-37.25 span).
+    ("VBAT_F", "In5.Cu", 0.5, [(63.805, 31.83), (62.3, 31.83),
+                                (62.3, 25.53), (61.3925, 25.53)]),
+    ("VBAT_F", "In5.Cu", 0.5, [(61.3925, 25.53), (61.0, 25.53), (61.0, 29.3),
+                                (34.0, 29.3), (34.0, 27.3)]),
+]
 
 # Hand vias: (net, x, y, diameter_mm, drill_mm).  Emptied with ROUTES -- see above.
-ROUTE_VIAS = []
+#
+# FEED class via = 0.8 mm / 0.4 mm throughout (netclass default).  Rule of thumb from
+# the brief: one 0.8/0.4 via is good for roughly 1-2 A, so anywhere the full 7 A
+# transitions between F.Cu and the In4.Cu plane gets 6 vias in parallel (comfortably
+# covers 7.8 A transient even assuming the low end of that per-via figure); taps that
+# carry only a fraction of the trunk current (bias/gate-drive/sense) get a single via.
+ROUTE_VIAS = [
+    # VBAT link array: 6 vias in parallel for the full 7 A F.Cu-to-plane transition,
+    # in the open pocket between L1.2 (east edge x=37.10) and C3.1 (west edge x=39.60).
+    # Two x-columns (37.9, 38.85) each clear their neighbour's pad by >=0.35 mm; three
+    # y-rows (48.7/50.0/51.3) straddling the link track's own y=50 -- all same net, so
+    # no via-via clearance applies, the spacing is only to avoid drilling on top of
+    # each other.
+    ("VBAT", 37.9, 48.7, 0.8, 0.4), ("VBAT", 38.85, 48.7, 0.8, 0.4),
+    ("VBAT", 37.9, 50.0, 0.8, 0.4), ("VBAT", 38.85, 50.0, 0.8, 0.4),
+    ("VBAT", 37.9, 51.3, 0.8, 0.4), ("VBAT", 38.85, 51.3, 0.8, 0.4),
+
+    # SNS's local In5.Cu duck under VBAT_PROT's pin-5-to-C65 jog at x=48.3/y=99.5 (see
+    # ROUTES above) -- netclass default via since this is a sense line, not a trunk
+    # current path.
+    ("SNS", 48.3, 98.5, 0.8, 0.4), ("SNS", 48.3, 100.5, 0.8, 0.4),
+
+    # Gate-drive / bias taps: single via each, F.Cu <-> In5.Cu.
+    ("FEED_P", 24.0, 86.0, 0.8, 0.4), ("FEED_P", 25.75, 114.0, 0.8, 0.4),
+    ("FEED_P", 41.0, 81.0, 0.8, 0.4), ("FEED_P", 25.75, 116.0, 0.8, 0.4),
+    ("FEED_P", 59.5, 80.0, 0.8, 0.4), ("FEED_P", 25.75, 118.0, 0.8, 0.4),
+    ("MID", 43.35, 109.0, 0.8, 0.4), ("MID", 53.9175, 78.23, 0.8, 0.4),
+    ("VBAT_PROT", 22.5, 79.35, 0.8, 0.4), ("VBAT_PROT", 65.0, 106.0375, 0.8, 0.4),
+    ("VBAT_PROT", 55.4675, 25.53, 0.8, 0.4), ("VBAT_PROT", 55.4675, 35.5, 0.8, 0.4),
+    ("VBAT_F", 63.805, 31.83, 0.8, 0.4), ("VBAT_F", 34.0, 27.3, 0.8, 0.4),
+    ("VBAT_F", 61.3925, 25.53, 0.8, 0.4),
+
+    # VBAT decoupling caps scattered across the board: each just needs its own
+    # single via, dropped exactly at the pad's own centre so there is no F.Cu stub at
+    # all (via-on-own-pad has no clearance issue with that pad).  Checked against each
+    # part's own neighbour pad by margin arithmetic -- all clear.
+    ("VBAT", 60.1, 30.85, 0.8, 0.4),     # D3.2
+    ("VBAT", 64.35, 28.58, 0.8, 0.4),    # C2.1
+    ("VBAT", 64.425, 24.75, 0.8, 0.4),   # C4.1
+    ("VBAT", 81.175, 32.4, 0.8, 0.4),    # R16.1
+    ("VBAT", 82.85, 88.08, 0.8, 0.4),    # C13.1
+    ("VBAT", 106.32, 79.165, 0.8, 0.4),  # U2.2
+    ("VBAT", 94.185, 28.6, 0.8, 0.4),    # L3.1
+    ("VBAT", 96.725, 28.6, 0.8, 0.4),    # C18.1
+    ("VBAT", 96.725, 32.2, 0.8, 0.4),    # C19.1
+    ("VBAT", 108.925, 85.25, 0.8, 0.4),  # C12.1
+    ("VBAT", 142.85, 50.58, 0.8, 0.4),   # C46.1
+    ("VBAT", 160.925, 25.2, 0.8, 0.4),   # C45.1
+]
 
 
 # Nets whose frozen router copper is thrown away, so that ROUTES above is their only source.
