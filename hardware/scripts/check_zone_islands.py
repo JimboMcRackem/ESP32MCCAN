@@ -20,10 +20,11 @@ same point -- KiCad reporting the zone as unconnected to itself:
 
 That is what this parses `output/drc.rpt` for.  It deliberately does NOT fire on a block where a
 zone appears against a PAD -- a pad on the zone's net that failed to connect to it is a
-different fault (a routing miss), already visible in the unconnected-pad count, and this board
-carries one of those unrelated to any split fill: U4.4 has "no room for a drop" and shows up
-paired with a pad, never with itself. Gating on "a zone appears in an unconnected item" would
-also fire on that pad-only case; gating on "a zone is paired with itself" does not.
+different fault (a routing miss), already visible in the unconnected-pad count, not a split
+fill.  Gating on "a zone appears in an unconnected item" would fire on that pad case too;
+gating on "a zone is paired with itself" does not.  This board currently has no zone-vs-pad
+case at all -- `grep -c "Zone " output/drc.rpt` is 0 today -- so the exclusion is here to keep
+the signature specific if one ever appears, not because one has been observed.
 
 Run after `kicad-cli.exe pcb drc --refill-zones` has written `output/drc.rpt`.  Exit status is
 non-zero if any zone shows the self-paired signature, or if the report cannot be trusted (it is
@@ -43,12 +44,21 @@ HW = os.path.dirname(HERE)
 REPORT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HW, "output", "drc.rpt")
 PCB = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HW, "mccan.kicad_pcb")
 
-# Each block is exactly four lines: the header, "Local override; error", and two anchors.  Both
-# anchors are captured whole and classified afterward -- a pad anchor and a zone anchor share no
-# useful structure, so there is nothing to gain from parsing them with one pattern.
+# Each block is exactly four lines: the header, a severity line, and two anchors.  Both anchors
+# are captured whole and classified afterward -- a pad anchor and a zone anchor share no useful
+# structure, so there is nothing to gain from parsing them with one pattern.
+#
+# The severity line is deliberately NOT pinned to the literal "Local override; error" text.
+# Every block in both reports this gate has ever been run against carries exactly that string --
+# confirmed on the current report and on 9f6d3a6's -- but that is a fact about the two boards
+# examined, not a guarantee about what KiCad can emit.  Pinning to it would mean a block at a
+# different severity fails to match, drops silently out of `blocks`, and the gate prints OK
+# having never looked at it -- the exact "checks ran and returned 0" failure this file exists to
+# prevent.  The header-count guard below is what makes that loosening safe: a block whose shape
+# still doesn't match this pattern is no longer silent, it fails the whole run.
 BLOCK_RE = re.compile(
     r'\[unconnected_items\]:[^\n]*\n'
-    r'[ \t]*Local override; error\n'
+    r'[ \t]*[^\n]+\n'
     r'[ \t]*@\(([-\d.]+) mm, ([-\d.]+) mm\): ([^\n]+)\n'
     r'[ \t]*@\(([-\d.]+) mm, ([-\d.]+) mm\): ([^\n]+)')
 
@@ -64,7 +74,12 @@ def main():
         return 2
     # A stale report describes a board that no longer exists.  Silently trusting one is exactly
     # how the split fill this file exists to catch shipped in the first place: three checks ran
-    # and returned 0 without any of them looking at current copper.
+    # and returned 0 without any of them looking at current copper.  This comparison can in
+    # principle misfire -- a checkout or git operation that restores mccan.kicad_pcb after
+    # output/drc.rpt would make a genuinely fresh report look stale by a few seconds -- but the
+    # trade is the right one either direction.  A false exit 2 costs the seconds it takes to
+    # re-run DRC and look at why; trusting an mtime that lies costs a silent pass on a board that
+    # was never actually checked, which is the failure this whole file exists to close off.
     if os.path.getmtime(REPORT) < os.path.getmtime(PCB):
         print("FAIL: %s is older than %s -- refill and re-run DRC before trusting this report"
               % (REPORT, PCB))
@@ -72,6 +87,17 @@ def main():
 
     text = io.open(REPORT, encoding="utf-8").read()
     blocks = BLOCK_RE.findall(text)
+
+    # A header this gate could not turn into a full block is a shape it does not recognise --
+    # possibly the same "different severity line" case the loosened match above exists for,
+    # taken further than this pattern accounts for.  Silently parsing fewer blocks than there
+    # are headers is the one failure mode this file cannot tolerate in itself, so it is fatal.
+    n_headers = text.count("[unconnected_items]:")
+    if n_headers != len(blocks):
+        print("FAIL: %d '[unconnected_items]' header(s) in %s but only %d parsed as full "
+              "blocks -- this report has a shape this gate does not recognise and cannot be "
+              "trusted" % (n_headers, REPORT, len(blocks)))
+        return 2
 
     splits = []
     for x1, y1, d1, x2, y2, d2 in blocks:
