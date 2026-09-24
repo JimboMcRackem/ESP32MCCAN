@@ -1245,6 +1245,41 @@ Route all four. Routing only the first row leaves the transceiver unconnected, a
 
 **On segregation.** The board-edge distance between the CAN connector and the power connector is **not** what separates them here -- J8 sits third in the gland row, 36.55 mm from J1 (measured, gland row: J1 30.85, J7 49.35, J8 67.40) (`enclosure.md` section 4 fixes that order and it is not a free variable). What separates them is the layer: the pair runs as a buried stripline on `In2.Cu`, enclosed by the `In1.Cu` and `In3.Cu` ground planes, while the feed pours on `In4.Cu` and `F.Cu` and the switch node is on `F.Cu`. There is a ground plane between the pair and every aggressor on this board.
 
+**Measured pad geometry** (taken by the controller from `mccan.kicad_pcb` at `76a3984`, the last commit that touched the board --
+use these, do not re-derive, and do not move any footprint):
+
+| Net | Pads, absolute mm |
+|---|---|
+| `/CANH` | J8.1 (67.400, 130.590) - D6.1 (197.093, 31.350) - R26.1 (206.755, 43.330) - L6.4 (193.575, 31.300) |
+| `/CANL` | J8.2 (72.000, 130.590) - D6.2 (197.093, 33.250) - R26.2 (208.405, 43.330) - L6.3 (193.575, 33.800) |
+| `Net-(U6-CANH)` | L6.1 (189.025, 31.300) - U6.7 (213.275, 31.665) |
+| `Net-(U6-CANL)` | L6.2 (189.025, 33.800) - U6.6 (213.275, 32.935) |
+
+Board outline is x 20..220, y 20..160.
+
+Two things follow that the rest of this brief does not say, and both are rulings -- implement
+them, do not re-open them:
+
+1. **The haul is long: about 163 mm from J8 to D6** (dx 130, dy 99), because J8 is in the gland
+   row along the bottom edge and the transceiver cluster is in the top-right corner. That is
+   the board being 200 x 140 mm rather than anything being wrong. Take it diagonally on
+   `In2.Cu` if the corridor allows; `show_room.py` will show you what is already there.
+
+2. **The cluster's physical order is not its electrical order.** West to east the parts sit
+   L6 (189-194), D6 (197), R26 (207-208), U6 (213), while the chain runs D6 -> R26 -> L6 -> U6.
+   So the pair doubles back west and then east again inside about 24 mm, and the two pairs run
+   alongside each other over that stretch. `Ruling: route it as placed. The doubling back costs
+   roughly 50 mm on a 160 mm run, and CAN at this data rate over a run this short does not care;
+   moving L6 would re-open a placement that Task 6 closed and re-flow its neighbours through
+   the courtyard gutter, invalidating the silk and courtyard gates for no electrical gain.`
+   The two pairs running side by side is not a coupling problem -- they are the same signal
+   either side of the choke.
+
+**Spacing is constant along the haul, not at the pads.** J8's own pitch is 4.6 mm, D6's is
+1.9 mm and L6's is 2.5 mm, so the pair necks at each breakout by construction. Pick one
+centre-to-centre gap, hold it for the length of the run, and let the last millimetre or two at
+each end fan to the pad pitch.
+
 - [ ] **Step 1: Route the pair**
 
 The chain runs J8 -> D6 -> R26 -> L6 -> U6, with the net changing name at L6. Drop to `In2.Cu` as soon as each leaves its pad — the whole point of this task is that the pair spends its length as a buried stripline, not on an outer layer.
