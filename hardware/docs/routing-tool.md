@@ -383,6 +383,12 @@ congested run.** The lever that worked was the stackup.
   y 36..119.5), as do all twelve GND_IN pads. There is simply no copper there yet for it to trace.
   The authority on plane connectivity is KiCad's own DRC with `--refill-zones`; `check_grounds.py`
   is the authority on the GND / GND_IN split.
+
+  DRC's own authority has a gap, though: a zone that fills as two disconnected islands is an
+  *unconnected item*, not a violation, so `--exit-code-violations` reports 0 either way. It shows
+  up in the report body as an `[unconnected_items]` block whose two anchors are the same zone
+  paired with itself — `check_zone_islands.py` parses `output/drc.rpt` for exactly that signature
+  and fails the build on it. Run it after `kicad-cli.exe pcb drc --refill-zones`.
 - **The two repo guards are not optional.** GND and GND\_IN are separate nets that meet at exactly
   two places (L2 winding B, and R3). Nothing in DRC enforces that, because a pour never shorts to a
   foreign net — `check_grounds.py` is what catches it, and the wrapper runs it on the router's
