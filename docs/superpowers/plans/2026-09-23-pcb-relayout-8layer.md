@@ -1238,10 +1238,24 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 | Segment | CANH | CANL |
 |---|---|---|
-| J8 -> D6 (ESD) -> R26 (split termination) -> L6 | `/CANH` | `/CANL` |
+| J8 -> D6 (ESD) -> L6, with R26 a stub off it | `/CANH` | `/CANL` |
 | L6 -> U6 (transceiver) | `Net-(U6-CANH)` | `Net-(U6-CANL)` |
 
 Route all four. Routing only the first row leaves the transceiver unconnected, and nothing but DRC's unconnected count will say so.
+
+**R26 is not a link in that chain.** `gen_mcu_can.py:345-351` wires it as a DNP
+120R bus terminator shunted straight across the `CANH` and `CANL` labels --
+`vpart("R26", "Device:R", "120R", ..., dnp=True)` between `lab("CANH", ...)` and
+`lab("CANL", ...)` -- while `w(L6["4"], D6["1"])` and `w(L6["3"], D6["2"])` wire D6
+directly to L6. So the continuous copper each net needs is D6<->L6, and R26's pads
+are branch stubs off it. Earlier drafts of this task called the run a
+`D6 -> R26 -> L6` chain; that was wrong, and routing it as a literal chain does not
+close on one layer, because D6's and L6's pad pairs are oriented north/south while
+R26's are west/east.
+
+All four pads on each long net are **one net** (`/CANH` is J8.1 + D6.1 + R26.1 +
+L6.4), so which of them the long haul from J8 lands on is a free choice: same-net
+copper has no clearance rule against itself.
 
 **On segregation.** The board-edge distance between the CAN connector and the power connector is **not** what separates them here -- J8 sits third in the gland row, 36.55 mm from J1 (measured, gland row: J1 30.85, J7 49.35, J8 67.40) (`enclosure.md` section 4 fixes that order and it is not a free variable). What separates them is the layer: the pair runs as a buried stripline on `In2.Cu`, enclosed by the `In1.Cu` and `In3.Cu` ground planes, while the feed pours on `In4.Cu` and `F.Cu` and the switch node is on `F.Cu`. There is a ground plane between the pair and every aggressor on this board.
 
@@ -1266,7 +1280,7 @@ them, do not re-open them:
    `In2.Cu` if the corridor allows; `show_room.py` will show you what is already there.
 
 2. **The cluster's physical order is not its electrical order.** West to east the parts sit
-   L6 (189-194), D6 (197), R26 (207-208), U6 (213), while the chain runs D6 -> R26 -> L6 -> U6.
+   L6 (189-194), D6 (197), R26 (207-208), U6 (213), while the copper runs D6 -> L6 -> U6.
    So the pair doubles back west and then east again inside about 24 mm, and the two pairs run
    alongside each other over that stretch. `Ruling: route it as placed. The doubling back costs
    roughly 50 mm on a 160 mm run, and CAN at this data rate over a run this short does not care;
@@ -1288,7 +1302,8 @@ are on F.Cu, In1, In3, In4, In6 and B.Cu.)
 
 - [ ] **Step 1: Route the pair**
 
-The chain runs J8 -> D6 -> R26 -> L6 -> U6, with the net changing name at L6. Drop to `In2.Cu` as soon as each leaves its pad — the whole point of this task is that the pair spends its length as a buried stripline, not on an outer layer.
+The copper runs J8 -> D6 -> L6 -> U6, with the net changing name at L6, and R26's two
+pads hanging off it as stubs. Drop to `In2.Cu` as soon as each leaves its pad — the whole point of this task is that the pair spends its length as a buried stripline, not on an outer layer.
 
 Keep the two tracks at a constant centre-to-centre gap for their whole length, and turn them together: where one bends, the other bends at the same place. Match their lengths. Both are ordinary care rather than anything this board makes hard, because at 200 × 140 mm the pair has room to be routed deliberately.
 
