@@ -90,8 +90,14 @@ def main():
 
     # A header this gate could not turn into a full block is a shape it does not recognise --
     # possibly the same "different severity line" case the loosened match above exists for,
-    # taken further than this pattern accounts for.  Silently parsing fewer blocks than there
-    # are headers is the one failure mode this file cannot tolerate in itself, so it is fatal.
+    # taken further than this pattern accounts for.  Parsing FEWER blocks than there are
+    # headers can hide a split fill and report clean, so it is fatal.
+    #
+    # It is a one-directional check, deliberately.  A block carrying a THIRD anchor line would
+    # still parse from its first two, the counts would still agree, and the extra line would be
+    # dropped without a word -- verified by injecting one.  That is tolerable where a short
+    # block is not: the worst it can do is under-report, naming one split zone where the report
+    # named two, and the gate still exits non-zero.  A short block makes the gate say OK.
     n_headers = text.count("[unconnected_items]:")
     if n_headers != len(blocks):
         print("FAIL: %d '[unconnected_items]' header(s) in %s but only %d parsed as full "
