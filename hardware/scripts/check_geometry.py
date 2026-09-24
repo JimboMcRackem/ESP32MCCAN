@@ -24,9 +24,13 @@ FAIL, meaning the copper must not be frozen:
     an annulus under rules.min_via_annular_width or a drill under
     rules.min_through_hole_diameter -- all read from the board's OWN project file, not
     typed here;
-  * a track on a layer that is not a routing layer.  In1.Cu is the GND plane and In3.Cu the
-    VBAT plane; a track there is a slot cut through a reference plane, which is exactly the
-    thing this stackup exists to avoid.  In2.Cu and In4.Cu are signal layers and are fine;
+  * a track on a layer that is not a routing layer.  On the eight-layer board the planes are
+    In1.Cu, In3.Cu and In6.Cu (GND) and In4.Cu (VBAT); a track on any of them is a slot cut
+    through a reference plane, which is exactly the thing this stackup exists to avoid.  The
+    routing layers are F.Cu, In2.Cu, In5.Cu and B.Cu.  The list is not typed here -- it is
+    gen_pcb.SIGNAL_LAYERS, read at import, so it cannot drift from the board the way this
+    sentence did: it said In4.Cu was a signal layer for the whole of the six-to-eight-layer
+    move, during which In4.Cu became the solid VBAT plane;
   * a segment shorter than a tenth of the router grid.  Harmless on its own, but it is junk
     the diff would freeze into a generated board forever.
 
@@ -59,7 +63,7 @@ WANT_VIA, WANT_DRILL = G.AR_VIA, G.AR_VIA_DRILL
 # Every layer a track may legally sit on -- SIGNAL_LAYERS, not AR_LAYERS.  Those two used to
 # be the same set and are not since the board went to six layers: AR_LAYERS is the two that
 # gen_pcb's own two-layer router understands, and grading a four-layer result against it
-# would fail every track the external router laid on In2.Cu or In4.Cu.
+# would fail every track the external router laid on In2.Cu or In5.Cu.
 ROUTING_LAYERS = set(G.SIGNAL_LAYERS)
 # A tenth of the routing grid.  Anything at or under this is a nub, not a track: the two the
 # external router left behind were 10 um stubs hanging off the end of a real track and joining
