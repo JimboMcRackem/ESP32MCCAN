@@ -1291,9 +1291,14 @@ There is no length-matching requirement to hit for CAN at this data rate over a 
   --severity-error --schematic-parity --exit-code-violations \
   --refill-zones -o output/drc.rpt mccan.kicad_pcb
 grep -n -A3 "\[unconnected_items\]" output/drc.rpt | grep -iE "CANH|CANL"   # all four nets
+
+python scripts/check_zone_islands.py   # parses the report DRC just wrote; must run after it
 ```
 
-Expected: nothing.
+Expected: the grep returns nothing, and the zone-island gate exits 0 with
+`OK: no zone is unconnected to itself`. Task 7 pinched a ground pour into two
+disconnected islands with a hand route and DRC still reported 0 violations; this task
+lays hand copper past the same pours, so the gate runs here too.
 
 - [ ] **Step 5: Commit**
 
@@ -1384,6 +1389,8 @@ python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
   --refill-zones -o output/drc.rpt mccan.kicad_pcb
+
+python scripts/check_zone_islands.py   # parses the report DRC just wrote; must run after it
 ```
 
 Expected: all gates pass, DRC 0 errors, 0 parity issues. Unconnected is still large — the router has not run.
@@ -1480,6 +1487,8 @@ python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
   --severity-error --schematic-parity --exit-code-violations \
   --refill-zones -o output/drc.rpt mccan.kicad_pcb
+
+python scripts/check_zone_islands.py   # parses the report DRC just wrote; must run after it
 ```
 
 Expected: every gate passes, DRC 0 errors and 0 parity issues, and **unconnected dramatically lower than the 105 the six-layer board finished at**.
