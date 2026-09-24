@@ -1280,6 +1280,12 @@ them, do not re-open them:
 centre-to-centre gap, hold it for the length of the run, and let the last millimetre or two at
 each end fan to the pad pitch.
 
+**`In2.Cu` is completely empty** -- no segments and no zone, on the board at `76a3984`. The
+whole layer is yours. Its only obstacles are the 509 via barrels that pass through it, and the
+straight line from J8 to D6 is 160.9 mm with just **15 vias within 5 mm of that centreline**, so
+the corridor is open. (Current copper lives on F.Cu 178 segments, In5.Cu 18, B.Cu 4; the pours
+are on F.Cu, In1, In3, In4, In6 and B.Cu.)
+
 - [ ] **Step 1: Route the pair**
 
 The chain runs J8 -> D6 -> R26 -> L6 -> U6, with the net changing name at L6. Drop to `In2.Cu` as soon as each leaves its pad — the whole point of this task is that the pair spends its length as a buried stripline, not on an outer layer.
