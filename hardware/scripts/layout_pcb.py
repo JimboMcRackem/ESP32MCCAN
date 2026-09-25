@@ -1176,19 +1176,150 @@ ROUTES = [
 
     # Net-(U3-SS): boxed in at pin 10 -- MODE (pin 11) north, the GND paddle west, the
     # FB_24V hop directly south at y=32.75 (same corridor SS has to cross to reach C25).
-    # Runs east along pin 10's own row (clears pin 9, foreign, by 0.25 mm; clears pin 11,
-    # foreign, by 0.25 mm) into the open pocket east of U3's pins and west of the FB_24V
-    # trunk, then ducks to In5.Cu (empty in this area, confirmed against every pad/via
-    # this task's own coordinate dump found nearby) to pass underneath the FB_24V hop
-    # entirely on a different layer -- SMD pads have no copper off F.Cu, so this also
-    # clears C24 and R14 without needing to thread the narrow corridor between them.
-    # Comes back to F.Cu south of C24 and runs straight down into C25.1. Duck-under via
-    # (see ROUTE_VIAS) clears pin 9 by 0.460 mm, pin 11 by 0.325 mm and the FB_24V hop
-    # by 0.325 mm; the return via clears C24.2 (GND) by 0.475 mm; the final run into
-    # C25.1 clears C25.2 (GND) by 0.975 mm and C24.2 (GND) by 0.650 mm.
-    ("Net-(U3-SS)", "F.Cu", 0.25, [(87.4562, 32.250), (88.5, 32.250), (88.5, 32.0)]),
-    ("Net-(U3-SS)", "In5.Cu", 0.25, [(88.5, 32.0), (88.525, 37.8)]),
+    # Runs east along pin 10's own row into the open pocket east of U3's pins and west of
+    # the FB_24V trunk, then ducks to In5.Cu to pass underneath the FB_24V hop entirely on
+    # a different layer -- SMD pads have no copper off F.Cu, so this also clears C24 and
+    # R14 without needing to thread the narrow corridor between them. Comes back to F.Cu
+    # south of C24 and runs straight down into C25.1.
+    #
+    # The duck-under via sat at x=88.500 until Step 6.1 and now sits at 88.600. It was the
+    # single obstacle that sealed pin 11 (MODE) into a pocket with no exit: pin 11 can only
+    # leave its pad eastward, and the gate between pin 12's pad corner (87.875, 31.375) and
+    # that via measured 0.884 mm where a 0.20 mm centreline needs 0.900 (0.300 to the pad,
+    # 0.600 to the 0.60 mm via disc). 0.100 mm east makes the gate 0.957 mm and MODE routes;
+    # see Net-(U3-MODE) below. Measured after the move, tightest neighbour per leg:
+    #   pin-10 row       0.250 mm to pin 11, to pin 9 and to the FB_24V hop (need 0.200)
+    #   jog south        0.250 mm to the FB_24V hop
+    #   In5.Cu run       0.391 mm to the GND drop via at (87.725, 36.575)
+    #   run into C25.1   0.650 mm to C24.2 (GND)
+    #   via_in  0.60 mm  0.325 mm to the FB_24V hop, 0.436 mm to pin 11, 0.657 to pin 12
+    #   via_out 0.60 mm  0.475 mm to C24.2 (GND)
+    # Worst slack over the whole net is +0.050 mm on a 0.200 mm class limit.
+    ("Net-(U3-SS)", "F.Cu", 0.25, [(87.4562, 32.250), (88.600, 32.250), (88.600, 32.000)]),
+    ("Net-(U3-SS)", "In5.Cu", 0.25, [(88.600, 32.000), (88.525, 37.8)]),
     ("Net-(U3-SS)", "F.Cu", 0.25, [(88.525, 37.8), (88.525, 39.000)]),
+
+    # ---------------------------------------------------------------------------------
+    # Step 6.1: the nets the external router left open. Each one was planned on a 0.05 mm
+    # clearance grid over the frozen router copper, then measured against that copper with
+    # gen_pcb's own gap functions -- pads as bounding boxes, vias as discs, tracks as
+    # capsules -- and the tightest neighbour of every leg is quoted below. "Slack" is the
+    # measured gap less the binding netclass clearance, so +0.000 would be exactly at the
+    # limit; nothing here is.
+    # ---------------------------------------------------------------------------------
+
+    # Net-(U3-MODE): U3 pin 11 out to R11.1. Pin 11's only escape is east, through the
+    # 0.957 mm gate between pin 12's pad and the relocated SS via (see above) -- with the
+    # via at its old 88.500 this net had no route at all, on any layer, and no legal via
+    # site anywhere in the pocket. East out of the pad, diagonally past pin 12's corner,
+    # then down to In2.Cu and south past U3 to R11 at y=39. Tightest per leg:
+    #   east out of pad  0.250 mm to the SW_BOOST hop, 0.275 mm to pin 10's pad
+    #   diagonal         0.218 mm to pin 12's pad (the binding measurement on this net)
+    #   In2.Cu south     0.272-0.410 mm to the GND drop via at (87.725, 36.575) and to
+    #                    the SS duck-under via at (88.525, 37.800)
+    #   via down 0.60    0.225 mm to pin 12's pad, 0.262 mm to the SW_BOOST hop
+    #   via up   0.60    0.925 mm to R11.2 (GND)
+    # Worst slack +0.018 mm on a 0.200 mm limit.
+    ("Net-(U3-MODE)", "F.Cu", 0.20, [(87.456, 31.750), (87.950, 31.750), (88.250, 31.450),
+                                     (88.400, 31.200)]),
+    ("Net-(U3-MODE)", "In2.Cu", 0.20, [(88.400, 31.200), (88.050, 31.600), (87.950, 31.750),
+                                       (87.900, 35.800), (88.250, 36.150), (88.400, 36.400),
+                                       (88.400, 37.000), (87.900, 37.500), (86.800, 39.000)]),
+    ("Net-(U3-MODE)", "F.Cu", 0.20, [(86.800, 39.000), (86.825, 39.000)]),
+
+    # Net-(U3-VCC): U3 pin 2 out to R15.1, west along the pin row and then down. Pin 2 was
+    # also sealed until Step 6.1, by pin 1's ground drop sitting at (83.775, 31.250); that
+    # drop is placed by gen_pcb.gnd_drops AFTER routes(), and its own via_ok refuses any
+    # site a hand route already occupies, so drawing this route is what moves it. Tightest:
+    #   west out of pad  0.275 mm to pin 1 (GND) and to pin 3 (BIAS), both foreign
+    #   diagonal to R15  0.287 mm to pin 1, 0.300 mm to the BIAS run at y=32.250
+    # Worst slack +0.075 mm on a 0.200 mm limit. No via: the whole net is one F.Cu run.
+    ("Net-(U3-VCC)", "F.Cu", 0.20, [(84.544, 31.750), (83.950, 31.750), (82.825, 30.600)]),
+
+    # GND at U4 pin 6 -- a ground drop placed here rather than by gen_pcb.gnd_drops, and
+    # deliberately dog-legged AWAY from the site the placer would pick.
+    #
+    # U4's two ground pins, 4 and 6, sit either side of pin 5 (Net-(U4-SR)) on a 0.5 mm
+    # pitch, and the only copper any of the three can escape into is a pocket about 1 mm
+    # across, south-west of the part. Measured with gen_pcb's own gap functions, sweeping
+    # every 0.05 mm site within 2.5 mm of each pad:
+    #   pin 4   0 legal drop sites, with or without SR drawn (Step 6's gap 14, pre-existing)
+    #   pin 6   67 legal drop sites, every one of them inside the box
+    #           x 96.05..96.45, y 87.35..88.00 -- which is the pocket
+    # and flooding pin 5's own F.Cu pocket gives 9044 cells with pin 6's drop absent but
+    # 350 cells and ZERO legal via sites with it present, at every via size down to the
+    # board minimum 0.50/0.20. Pin 5's escape leaves the pad westward, runs south down a
+    # channel at x 95.25..96.05 and turns back east through a doorway 0.10 mm tall at
+    # y 87.65..87.75; any 0.60 mm via in the box shuts that doorway. So a straight drop for
+    # pin 6 and a route for pin 5 cannot both exist, and since pin 4 has no site either,
+    # letting the placer have the pocket would leave U4 with no ground connection at all.
+    #
+    # A drop stub is a single straight segment, so gnd_drops has no way out of the pocket.
+    # A route does: this one leaves the pad east-south-east, squeezes between pin 6's own
+    # pad and the /+3V3_ALW paddle (pin 13), and vias down 1.38 mm away at (97.750, 88.050),
+    # clear of the box entirely. Re-flooding pin 5's pocket with it in place gives 8526
+    # cells and 306 legal via sites, so both pins get served. Tightest per leg, all against
+    # the 0.200 mm Default clearance:
+    #   (96.700,87.150)-(96.900,87.350)   0.226 to pin 13's paddle, 0.250 to pin 5's pad
+    #   (96.900,87.350)-(96.900,87.450)   0.226 to pin 13's paddle
+    #   (96.900,87.450)-(96.950,87.500)   0.223 to pin 13's paddle
+    #   (96.950,87.500)-(97.000,87.550)   0.215 to pin 13's paddle  <- binding
+    #   (97.000,87.550)-(97.050,87.600)   0.215 to pin 13's paddle
+    #   (97.050,87.600)-(97.100,87.650)   0.222 to pin 13's paddle
+    #   (97.100,87.650)-(97.750,88.050)   0.244 to pin 13's paddle
+    #   via 0.60/0.30                     0.225 to the +24V_FL run on In5.Cu,
+    #                                     0.226 to the two /EN_3V3SW runs on In2.Cu
+    # Worst slack +0.015 mm. The width is 0.20, not the 0.25 the other hand routes use:
+    # 0.25 puts three of those legs 0.010 mm inside the paddle's clearance, and a ground
+    # drop carries no current that needs the extra copper.
+    ("GND", "F.Cu", 0.20, [(96.700, 87.150), (96.900, 87.350), (96.900, 87.450),
+                           (96.950, 87.500), (97.000, 87.550), (97.050, 87.600),
+                           (97.100, 87.650), (97.750, 88.050)]),
+
+    # Net-(U4-SR): U4 pin 5 out to C32.1, a 17 mm haul, planned against the dogleg above.
+    # West out of the pad between pins 4 and 6, south down the channel and back east through
+    # the doorway to a via at (96.400, 87.850) -- inside the box pin 6's drop used to own --
+    # then north-east on In2.Cu between the FB_5V vias to the south-west of C32, and up to
+    # In5.Cu for the last 2 mm because F.Cu there is full of the RET_FL_G return. Tightest
+    # per leg, all against 0.200 mm:
+    #   F.Cu escape      0.236 to pin 6's pad, 0.240 to it again on the south leg,
+    #                    0.250 to pin 4's pad, 0.240 to the dogleg's own F.Cu
+    #   In2.Cu haul      0.254 to the FB_5V via at (105.600, 93.000); the four FB_5V vias
+    #                    at (99.100,88.800), (100.500,90.200), (104.000,91.400) and
+    #                    (105.600,93.000) are what sets this leg's slack, 0.254..0.280
+    #   In5.Cu hop       1.181 to the GND via at (107.355, 92.655)
+    #   via (96.400,87.850)   0.240 to the dogleg's F.Cu legs
+    #   via (108.750,93.400)  0.225 to the RET_FL_G run on F.Cu  <- binding
+    #   via (110.300,91.850)  0.388 to the /+3V3_ALW run on In2.Cu
+    # Worst slack +0.025 mm.
+    ("Net-(U4-SR)", "F.Cu", 0.20, [(96.700, 86.650), (96.250, 86.650), (96.000, 86.900),
+                                   (96.050, 87.500), (96.400, 87.850)]),
+    ("Net-(U4-SR)", "In2.Cu", 0.20, [(96.400, 87.850), (97.350, 88.600), (97.500, 88.700),
+                                     (98.100, 88.750), (100.100, 90.750), (100.250, 90.850),
+                                     (102.550, 90.900), (105.200, 93.550), (105.350, 93.650),
+                                     (108.450, 93.700), (108.750, 93.400)]),
+    ("Net-(U4-SR)", "In5.Cu", 0.20, [(108.750, 93.400), (110.300, 91.850)]),
+    ("Net-(U4-SR)", "F.Cu", 0.20, [(110.300, 91.850), (110.305, 91.830)]),
+
+    # /EN_BOOST: U3 pin 6 down to R20.1. This is the tightest net in this batch and the
+    # only one planned to the class limit itself rather than with the 0.005 mm planning
+    # margin the others carry: pin 6's sole escape is the channel between pin 5's pad
+    # corner (85.375, 33.875) and pin 7's ground drop via at (86.250, 34.225), and that
+    # channel leaves 0.202 mm to pin 5 at its narrowest -- 2 um over the 0.200 mm floor.
+    # Widening it would mean displacing a third ground drop, which buys nothing the rule
+    # does not already allow. Tightest per leg:
+    #   south out of pad 0.202 mm to pin 5 (RT, foreign) at the pinch, 0.213 mm to the
+    #                    pin 7 ground drop via -- the whole escape is those two numbers
+    #   In2.Cu run       0.419 mm to that same ground drop via
+    #   via down 0.60    0.219 mm to the ground drop via, 0.225 mm to R14.2
+    #   via up   0.60    0.925 mm to R20.2 (GND)
+    # Worst slack +0.002 mm on a 0.200 mm limit. There is nothing left to give here: any
+    # future change near U3 pins 5-7 has to re-plan this net, not nudge it.
+    ("/EN_BOOST", "F.Cu", 0.20, [(85.750, 33.456), (85.700, 33.850), (85.700, 33.950),
+                                 (85.650, 34.000), (85.650, 34.100), (85.550, 34.200),
+                                 (85.450, 34.400)]),
+    ("/EN_BOOST", "In2.Cu", 0.20, [(85.450, 34.400), (83.400, 38.200)]),
+    ("/EN_BOOST", "F.Cu", 0.20, [(83.400, 38.200), (83.425, 38.200)]),
 ]
 
 # Hand vias: (net, x, y, diameter_mm, drill_mm).  Emptied with ROUTES -- see above.
@@ -1295,8 +1426,21 @@ ROUTE_VIAS = [
     # C24/R14 pair -- see the ROUTES comment above. Netclass default via size, same
     # as the sense/bias taps elsewhere in this file (this is a soft-start line, no
     # meaningful current).
-    ("Net-(U3-SS)", 88.5, 32.0, 0.6, 0.3),     # via_in  (F.Cu -> In5.Cu)
+    ("Net-(U3-SS)", 88.600, 32.0, 0.6, 0.3),   # via_in  (F.Cu -> In5.Cu), moved east 0.100
     ("Net-(U3-SS)", 88.525, 37.8, 0.6, 0.3),   # via_out (In5.Cu -> F.Cu)
+
+    # Step 6.1 vias. Sizes are the netclass default 0.6/0.3 -- every one of these is a
+    # signal line with no current worth a bigger barrel, and on this board a 0.6 mm via is
+    # already the widest obstacle most of these corridors can absorb. Clearances for each
+    # are quoted in that net's ROUTES comment above.
+    ("Net-(U3-MODE)", 88.400, 31.200, 0.6, 0.3),   # F.Cu -> In2.Cu, east of pin 12
+    ("Net-(U3-MODE)", 86.800, 39.000, 0.6, 0.3),   # In2.Cu -> F.Cu at R11.1
+    ("GND", 97.750, 88.050, 0.6, 0.3),             # U4 pin 6's ground drop, see ROUTES
+    ("Net-(U4-SR)", 96.400, 87.850, 0.6, 0.3),     # F.Cu -> In2.Cu, the pocket's own site
+    ("Net-(U4-SR)", 108.750, 93.400, 0.6, 0.3),    # In2.Cu -> In5.Cu, clear of RET_FL_G
+    ("Net-(U4-SR)", 110.300, 91.850, 0.6, 0.3),    # In5.Cu -> F.Cu at C32.1
+    ("/EN_BOOST", 85.450, 34.400, 0.6, 0.3),       # F.Cu -> In2.Cu below U3 pin 6
+    ("/EN_BOOST", 83.400, 38.200, 0.6, 0.3),       # In2.Cu -> F.Cu at R20.1
 ]
 
 
@@ -1309,6 +1453,10 @@ ROUTE_VIAS = [
 # a net here makes gen_pcb.py skip every frozen segment and via on it, so what this file says
 # about that net is what the board has.
 #
-# EMPTIED 2026-09-23 with ROUTES -- see above.  routes_signal.json itself is deleted, so there
-# is no frozen copper left for this to act on.
+# Empty, and deliberately so.  scripts/routes_signal.json exists and is the board's main
+# source of copper (4692 segments, 857 vias, 136 nets), so this tuple DOES have frozen copper
+# to act on -- naming a net here would throw that net's router copper away.  As of Step 6.1 no
+# net needs that: every hand route added above goes to a pad the router left open, and none of
+# them collides with a frozen stub.  An earlier comment here claimed routes_signal.json had
+# been deleted; it had not.
 FROZEN_DROP = ()

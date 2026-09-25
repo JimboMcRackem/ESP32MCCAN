@@ -1799,12 +1799,21 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
 
     # Ground copper a hand route has already laid on F.Cu.  A pad one of these covers is
     # grounded by it, and giving it a drop as well would be worse than pointless: the route
-    # is there precisely BECAUSE the placer could not go where it needed to.  U4 pad 4 is the
-    # case that forced this.  A drop stub is one straight segment from the pad centre, and at
-    # 0.5 mm pitch the only straight line out of that pad which clears its neighbours is due
-    # west -- 0.10 mm short of the clearance SR's escape needs.  A route with a 0.15 mm
-    # dogleg fits where no straight line does, so layout_pcb.ROUTES draws it and this reads
-    # it.  Snapshot it before the loop: the stubs laid below are ground copper too.
+    # is there precisely BECAUSE the placer could not go where it needed to.
+    #
+    # U4 pad 6 is the case that forced this, and the reason is not that no straight stub
+    # fits -- 67 of them do -- but that every one of those 67 sites lies in the same 1 mm
+    # pocket south-west of U4, and pad 5 (Net-(U4-SR)) needs a via in that pocket to escape
+    # at all.  Measured: with a drop at any of the 67, flooding pad 5's F.Cu pocket gives
+    # 350 cells and zero legal via sites, at every via size down to the board minimum.  A
+    # stub is one straight segment and cannot leave the pocket; a route can, so
+    # layout_pcb.ROUTES draws pad 6's ground as a dogleg out to (97.750, 88.050) and this
+    # reads it.  See that table's own note for the per-leg figures.
+    #
+    # Pad 4 is NOT this case: it has zero legal drop sites within 2.5 mm whether or not SR
+    # is drawn, so it is reported by the WARN below and left open (Step 6's gap 14).
+    #
+    # Snapshot it before the loop: the stubs laid below are ground copper too.
     hand = [t for t in TRACK_LOG if t[6] == gnd and t[5] == "F.Cu"]
 
     # Ground pads that still need one: SMD, with no via already inside them and no hand route
