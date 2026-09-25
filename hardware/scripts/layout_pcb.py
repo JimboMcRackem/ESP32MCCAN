@@ -1072,10 +1072,11 @@ ROUTES = [
     # gap is NOT the same measure and understates any diagonal segment badly -- the
     # COMP jog below measures 0.125 mm that way against 0.350 mm of actual copper --
     # so nothing in this block is quoted that way.  Clearances use whichever netclass
-    # genuinely applies to the pair (SW_BOOST, +24V,
-    # Net-(U3-COMP), FB_24V and Net-(U3-SS) all match no NETCLASSES entry, so all five
-    # sit on the 0.20 mm board default; +24V's *foreign* neighbours that are POWER-class
-    # -- D4.1 -- need 0.30 mm, the max of the two clearances, not 0.20).
+    # genuinely applies to the pair.  SW_BOOST, Net-(U3-COMP), FB_24V and Net-(U3-SS)
+    # match no NETCLASSES entry and sit on the 0.20 mm board default.  +24V does NOT --
+    # it is in POWER (see NETCLASSES above), so it and every +24V pad, D4.1 included,
+    # carry 0.30 mm.  Where a 0.20 mm net runs beside +24V copper the larger of the two
+    # applies, which is 0.30 mm, not 0.20.
 
     # SW column: 0.75 mm centred at x=86.5 (outer edges of U3 pins 13/14 together),
     # straight into D4.2 with no bend (D4.2 spans x 85.560-86.960, fully containing the
@@ -1100,9 +1101,10 @@ ROUTES = [
     # another SW pin). Starts at pin 12's own centre, clears MODE (pin 11, foreign,
     # top edge y=31.625) by 0.225 mm at that start point -- the brief's own number,
     # used verbatim -- then bends to land on the L3 rung's own copper (T-junction) at
-    # (88.2, 29.70), which is inside the rung's box (x 86.5-91.815, y 29.325-30.075)
-    # and well clear (>0.6 mm) of the GND paddle and of D4.1 (no y-overlap at all with
-    # either once south of y=30.3).
+    # (88.2, 29.70), which is inside the rung's box (x 86.5-91.815, y 29.325-30.075).
+    # The descending leg clears D4.1 by 0.550 mm -- its copper spans y 29.55-30.45 and
+    # D4.1 ends at y 29.000, so they do not overlap in y at all -- against the 0.30 mm
+    # POWER floor that D4.1's own netclass imposes.
     ("SW_BOOST", "F.Cu", 0.30, [(87.4562, 31.250), (88.2, 30.3), (88.2, 29.70)]),
 
     # +24V column: C20.1/C21.1/C22.1 are collinear at x=83.375 (no vias of their own --
