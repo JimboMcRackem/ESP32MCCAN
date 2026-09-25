@@ -1110,31 +1110,35 @@ ROUTE_VIAS = [
     # U6 -- J8 is through-hole and needs none) gets one via dropped exactly at the pad's own
     # centre, the same "no F.Cu stub" technique as the VBAT decoupling caps above: via-on-own-
     # pad has no clearance issue with that pad, and it is what "drop to In2.Cu as soon as it
-    # leaves its pad" means when the pad is the top of the via.  0.8/0.4 mm throughout, per the
-    # signal-via size used for the feed's own risers -- the CAN netclass's own default via
-    # (0.6/0.3) is left as the interactive-routing default only, same as every hand via on this
-    # board.  The tightest neighbour on any of these footprints is U6.6/U6.7 against U6's own
-    # pins 5/8: 1.27 mm pad-centre pitch against a 0.4 mm via radius and a 0.3 mm pad
+    # leaves its pad" means when the pad is the top of the via.  0.6/0.3 mm throughout, per the
+    # CAN netclass's own via figures (NETCLASSES: ("CAN", 0.3, 0.2, 0.6, 0.3, ...)) -- fix
+    # round 3: gen_pcb.py takes sz/dr straight from this tuple and never consults the netclass
+    # for a hand via, so the class's own via size was inert here until these twelve were changed
+    # by hand to match it. Smaller than the FEED-class 0.8/0.4 used elsewhere on this board, and
+    # it buys clearance room too: a 0.6 mm via needs 0.10 mm less clearance on each side than a
+    # 0.8 mm one. The tightest neighbour on any of these footprints is U6.6/U6.7 against U6's own
+    # pins 5/8: 1.27 mm pad-centre pitch against a 0.3 mm via radius and a 0.3 mm pad
     # half-height. Verified clear of every same-footprint neighbour (D6.3, R26's own opposite
     # pad, L6's other three pads, U6's pins 5/8) by `AR_SKIP=1 python scripts/gen_pcb.py`
     # exiting 0: it checks every hand via against every pad and via with exact rectangle
     # geometry and refuses to write the board if any of these six is actually short.
-    ("CANH", 197.093, 31.350, 0.8, 0.4),               # D6.1
-    ("CANL", 197.093, 33.250, 0.8, 0.4),               # D6.2
-    ("CANH", 206.755, 43.330, 0.8, 0.4),               # R26.1
-    ("CANL", 208.405, 43.330, 0.8, 0.4),               # R26.2
-    ("CANH", 193.575, 31.300, 0.8, 0.4),               # L6.4
-    ("CANL", 193.575, 33.800, 0.8, 0.4),               # L6.3
-    ("Net-(U6-CANH)", 189.025, 31.300, 0.8, 0.4),      # L6.1
-    ("Net-(U6-CANL)", 189.025, 33.800, 0.8, 0.4),      # L6.2
-    ("Net-(U6-CANH)", 213.275, 31.665, 0.8, 0.4),      # U6.7
-    ("Net-(U6-CANL)", 213.275, 32.935, 0.8, 0.4),      # U6.6
+    ("CANH", 197.093, 31.350, 0.6, 0.3),               # D6.1
+    ("CANL", 197.093, 33.250, 0.6, 0.3),               # D6.2
+    ("CANH", 206.755, 43.330, 0.6, 0.3),               # R26.1
+    ("CANL", 208.405, 43.330, 0.6, 0.3),               # R26.2
+    ("CANH", 193.575, 31.300, 0.6, 0.3),               # L6.4
+    ("CANL", 193.575, 33.800, 0.6, 0.3),               # L6.3
+    ("Net-(U6-CANH)", 189.025, 31.300, 0.6, 0.3),      # L6.1
+    ("Net-(U6-CANL)", 189.025, 33.800, 0.6, 0.3),      # L6.2
+    ("Net-(U6-CANH)", 213.275, 31.665, 0.6, 0.3),      # U6.7
+    ("Net-(U6-CANL)", 213.275, 32.935, 0.6, 0.3),      # U6.6
 
     # CANL_stub's In5.Cu duck-under (see the ROUTES comment above the D6/R26/L6 cluster): the
     # two layer-transition vias that bracket the stretch of CANL_stub where a direct D6.2->R26.2
-    # line would clip D6.3, Q2 or the GND via.  Also 0.8/0.4 mm, same as every other hand via here.
-    ("CANL", 201.7965, 37.4413, 0.8, 0.4),             # CANL_stub via_in  (In2.Cu -> In5.Cu)
-    ("CANL", 206.6046, 41.7257, 0.8, 0.4),             # CANL_stub via_out (In5.Cu -> In2.Cu)
+    # line would clip D6.3, Q2 or the GND via.  Also 0.6/0.3 mm now, per the CAN netclass, same
+    # as every other hand via on this net.
+    ("CANL", 201.7965, 37.4413, 0.6, 0.3),             # CANL_stub via_in  (In2.Cu -> In5.Cu)
+    ("CANL", 206.6046, 41.7257, 0.6, 0.3),             # CANL_stub via_out (In5.Cu -> In2.Cu)
 ]
 
 
