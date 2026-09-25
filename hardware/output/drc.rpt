@@ -1,5 +1,5 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-25T04:25:37 **
+** Created on 2026-09-25T04:26:19 **
 ** Report includes: Errors **
 
 ** Found 0 DRC violations **
@@ -1039,8 +1039,8 @@
     @(91.8150 mm, 28.6000 mm): Pad 2 [/rails/SW_BOOST] of L3 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(96.7000 mm, 87.1500 mm): Track [GND] on F.Cu, length 0.6750 mm
     @(96.7000 mm, 86.1500 mm): Pad 4 [GND] of U4 on F.Cu
+    @(96.7000 mm, 87.1500 mm): Track [GND] on F.Cu, length 0.6750 mm
 [unconnected_items]: Missing connection between items
     Local override; error
     @(82.3050 mm, 91.3300 mm): Pad 1 [Net-(C15-Pad2)] of C29 on F.Cu
