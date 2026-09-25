@@ -47,9 +47,22 @@ failed as a box by 0.025 mm, and the cure the box named was to move it in x, whi
 axis the error was really about.  Both models now agree with show_room.py, which had the
 honest picture of copper all along.
 
-The board it reads matters: point --pcb at output/router/unrouted.kicad_pcb (the default),
-because that is the board a ROUTES entry actually has to fit through.  Sweeping against a
-routed board rejects lanes the generator will lay this copper into.
+The board it reads matters, and which board is right changed when the router's copper was
+frozen.  Before the freeze the answer was output/router/unrouted.kicad_pcb: gen_pcb laid
+ROUTES first and then autorouted AROUND them, so autorouted copper was not an obstacle to a
+new ROUTES entry, it was copper that would be re-laid, and sweeping against a routed board
+rejected lanes the generator would have laid this copper into.
+
+Once scripts/routes_signal.json exists that is no longer true.  Frozen copper is data: it is
+emitted verbatim and it does not move for anything, so every one of its 4692 segments and 857
+vias is an obstacle a new ROUTES entry genuinely has to miss.  Sweeping against the unrouted
+board there is actively wrong -- it hands back lanes that are already full, and gen_pcb.py
+rejects the route afterwards.
+
+So the default follows the freeze: mccan.kicad_pcb while routes_signal.json exists, and
+output/router/unrouted.kicad_pcb when it does not.  --pcb overrides either way; the one case
+for forcing the unrouted board while a freeze is in place is planning a route you intend to
+re-run the router after, which discards the freeze.
 """
 
 import io
@@ -62,7 +75,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_pcb as G  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PCB = os.path.join(os.path.dirname(HERE), "output", "router", "unrouted.kicad_pcb")
+# The freeze picks the board -- see the docstring.  G.FROZEN is the same routes_signal.json
+# gen_pcb tests for, so this default and gen_pcb's own branch cannot drift apart.
+PCB = (os.path.join(os.path.dirname(HERE), "mccan.kicad_pcb") if os.path.exists(G.FROZEN)
+       else os.path.join(os.path.dirname(HERE), "output", "router", "unrouted.kicad_pcb"))
 MARGIN = 6.0                       # mm outside a box an obstacle can still reach into it
 DIRS = {"N": (0, -1), "S": (0, 1), "E": (1, 0), "W": (-1, 0)}
 

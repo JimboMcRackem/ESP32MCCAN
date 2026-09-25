@@ -33,12 +33,19 @@ The pads come from the netlist and the placer, so they are right even when mccan
 is stale.  The tracks and vias come from the generated board, so they are only as current as
 the last run of gen_pcb.py -- re-run it before trusting a map.
 
---pcb reads a different board, and there is one case where you MUST.  A hand route belongs
-in layout_pcb.ROUTES, and gen_pcb lays ROUTES BEFORE it autoroutes -- so autorouted copper
-is not an obstacle to it, it is copper that will be re-laid around it.  Planning a ROUTES
-entry against mccan.kicad_pcb therefore rejects lanes that are actually free.  Point it at
-output/router/unrouted.kicad_pcb instead: that is the same board with the signal copper
-left out, which is exactly what a ROUTES entry has to fit through.
+--pcb reads a different board.  Which board a ROUTES entry should be planned against depends
+on whether the router's copper is frozen, and it is not the same answer it used to be.
+
+While there is no scripts/routes_signal.json, gen_pcb lays ROUTES BEFORE it autoroutes, so
+autorouted copper is not an obstacle to a new hand route -- it is copper that will be re-laid
+around it.  Planning against mccan.kicad_pcb then rejects lanes that are actually free, and
+output/router/unrouted.kicad_pcb (the same board with the signal copper left out) is what to
+point --pcb at.
+
+Once routes_signal.json exists that reasoning is void.  Frozen copper is emitted verbatim and
+re-routes for nothing, so it is a real obstacle and mccan.kicad_pcb -- this file's default --
+is the board to plan against.  Sweeping the unrouted board under a freeze returns corridors
+that are already full, and gen_pcb.py then refuses the route.
 """
 
 import io
