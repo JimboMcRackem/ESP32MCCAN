@@ -2012,6 +2012,14 @@ def check_track_crossings(lo, hi):
     crossing is caught too.  The autorouter's output is compared against but not among
     itself: it has its own model of the rules and re-litigating it here would only produce
     noise nobody would read.
+
+    The caller has to run this AFTER the copper it is meant to compare against exists.  It
+    used to be called between gnd_drops() and the router, which meant "every other piece of
+    copper on its layer" was the drops and the other hand routes and nothing else -- the
+    router's several thousand segments and vias were created afterwards and were invisible
+    here, so a hand route could be laid straight through frozen router copper and this
+    function would say nothing.  It is now called after the frozen/autoroute branch, which
+    is still after gnd_drops, so both orderings hold.
     """
     close = []
     for i in range(lo, min(hi, len(TRACK_LOG))):
@@ -3441,9 +3449,6 @@ def main():
     dv, ds = gnd_drops(comps, pos, padnet, netidx, placed, kos)
     out += dv
     out += ds
-    # Only now does every ground drop exist, so only now can the hand routes be measured
-    # against them.  See check_track_crossings().
-    check_track_crossings(_rt_lo, _rt_hi)
     # The autorouter goes LAST of the copper, so its map sees the hand routes, the thermal and
     # stitching vias, and every ground drop as obstacles it has to work around.  Running it any
     # earlier would let it take the space a drop has no alternative to.
@@ -3457,6 +3462,12 @@ def main():
         out += frozen_routes(netidx)
     else:
         out += autoroute(comps, pos, padnet, netidx, placed, kos)
+    # Only now does every other piece of copper exist -- every ground drop AND every segment
+    # and via the router laid -- so only now can the hand routes be measured against all of
+    # it.  The ground-drop ordering this used to sit under is still satisfied (gnd_drops is
+    # above), and the router's copper, which is frozen and will not move for a hand route,
+    # is now in TRACK_LOG and VIA_LOG where check_track_crossings can see it.
+    check_track_crossings(_rt_lo, _rt_hi)
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")
