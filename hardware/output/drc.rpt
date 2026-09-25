@@ -1,5 +1,5 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-25T07:45:40 **
+** Created on 2026-09-25T07:56:24 **
 ** Report includes: Errors **
 
 ** Found 0 DRC violations **
@@ -227,12 +227,12 @@
     @(91.8250 mm, 32.2000 mm): Pad 1 [/+24V] of R12 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(91.7750 mm, 34.0000 mm): Via [/+24V] on F.Cu - B.Cu
+    @(91.7750 mm, 34.0000 mm): Pad 1 [/+24V] of C61 on F.Cu
     @(136.9800 mm, 39.7300 mm): Pad 1 [/+24V] of F2 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
     @(91.8250 mm, 32.2000 mm): Pad 1 [/+24V] of R12 on F.Cu
-    @(91.7750 mm, 34.0000 mm): Via [/+24V] on F.Cu - B.Cu
+    @(91.7750 mm, 34.0000 mm): Pad 1 [/+24V] of C61 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
     @(136.9800 mm, 39.7300 mm): Pad 1 [/+24V] of F2 on F.Cu

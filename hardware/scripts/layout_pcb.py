@@ -1064,9 +1064,15 @@ ROUTES = [
     # Geometry below is the controller's own measured table (mccan.kicad_pcb at f1fcd93)
     # plus every pad this task's own coordinate dump re-derived and cross-checked
     # against that table (U3's 17 pads, D4, L3, C20/C21/C22, R12/C61/R13, C24, R14, C25).
-    # Every clearance figure quoted in these comments is a rectangle-gap computed
-    # directly from the coordinates written here against the actual foreign pad/via
-    # box, using whichever netclass genuinely applies to that pair (SW_BOOST, +24V,
+    # Every clearance figure quoted in these comments is a true copper-to-copper gap
+    # computed directly from the coordinates written here against the actual foreign
+    # pad/via box: the distance from the track centreline to that box, minus half the
+    # track width.  That is the measure gen_pcb.py's own route-clearance gate applies,
+    # so a figure here and a figure from the gate are the same number.  A bounding-box
+    # gap is NOT the same measure and understates any diagonal segment badly -- the
+    # COMP jog below measures 0.125 mm that way against 0.350 mm of actual copper --
+    # so nothing in this block is quoted that way.  Clearances use whichever netclass
+    # genuinely applies to the pair (SW_BOOST, +24V,
     # Net-(U3-COMP), FB_24V and Net-(U3-SS) all match no NETCLASSES entry, so all five
     # sit on the 0.20 mm board default; +24V's *foreign* neighbours that are POWER-class
     # -- D4.1 -- need 0.30 mm, the max of the two clearances, not 0.20).
@@ -1114,15 +1120,15 @@ ROUTES = [
     ("+24V", "F.Cu", 1.5, [(83.375, 24.5), (86.5, 24.5)]),
 
     # Net-(U3-COMP): the highest-impedance node in the converter, kept short and away
-    # from SW per the brief. Pin 8 -> R14.1 -> C24.2 (C24's COMP terminal). Leaves pin 8
+    # from SW per the brief. Pin 8 -> R14.1 -> C24.1 (C24's COMP terminal). Leaves pin 8
     # centre, jogs east to x=87.0 before running south past the GND via at
     # (86.25, 34.225) -- the brief's own warning: straight down pin 8's own centre
     # (x=86.75) clears that via by only 0.10 mm and fails; entering near x=87.0 is what
     # R14.1's own pad width (86.425-87.225) allows. Re-verified here by rectangle gap:
-    # the jog segment clears the via by 0.261 mm and the following vertical run clears
+    # the jog segment clears the via by 0.350 mm and the following vertical run clears
     # it by 0.325 mm (both over the 0.20 mm floor -- the brief's approximate "0.35 mm"
-    # was for the vertical run only, not this jog). Final leg into C24.2 clears C24.1
-    # (GND, same footprint, foreign net) by 0.575 mm and R14's own other pad by 1.125 mm.
+    # turns out to be right for both legs). Final leg into C24.1 clears C24.2
+    # (GND, same footprint, foreign net) by 0.849 mm and R14's own other pad by 1.125 mm.
     ("Net-(U3-COMP)", "F.Cu", 0.25, [(86.750, 33.4562), (87.0, 33.7), (87.0, 34.6),
                                        (86.825, 35.400), (88.550, 35.025)]),
 
@@ -1131,7 +1137,7 @@ ROUTES = [
     # F.Cu run this net needs is pin 9 out to a trunk that ties R12.2/C61.2/R13.1
     # together, which is the far end of the output-cap divider, satisfying "tap the far
     # end" the same way the ruling does for the +24V side. Hop clears pin 10 (SS,
-    # foreign) by 0.25 mm and pin 8 (COMP, foreign) by 0.484 mm. Trunk clears the new
+    # foreign) by 0.25 mm and pin 8 (COMP, foreign) by 0.523 mm. Trunk clears the new
     # R12.1/C61.1 +24V vias by >1.0 mm and R13.2 (GND) by 1.125 mm -- all comfortable;
     # this net has no tight neighbour once past pin 10.
     ("FB_24V", "F.Cu", 0.25, [(87.4562, 32.750), (90.175, 32.750)]),
@@ -1147,8 +1153,8 @@ ROUTES = [
     # clears C24 and R14 without needing to thread the narrow corridor between them.
     # Comes back to F.Cu south of C24 and runs straight down into C25.1. Duck-under via
     # (see ROUTE_VIAS) clears pin 9 by 0.460 mm, pin 11 by 0.325 mm and the FB_24V hop
-    # by 0.325 mm; the return via clears C24.1 (GND) by 0.45 mm; the final run into
-    # C25.1 clears C25.2 (GND) by 0.975 mm and C24.1 by 0.625 mm.
+    # by 0.325 mm; the return via clears C24.2 (GND) by 0.475 mm; the final run into
+    # C25.1 clears C25.2 (GND) by 0.975 mm and C24.2 (GND) by 0.650 mm.
     ("Net-(U3-SS)", "F.Cu", 0.25, [(87.4562, 32.250), (88.5, 32.250), (88.5, 32.0)]),
     ("Net-(U3-SS)", "In5.Cu", 0.25, [(88.5, 32.0), (88.525, 37.8)]),
     ("Net-(U3-SS)", "F.Cu", 0.25, [(88.525, 37.8), (88.525, 39.000)]),
