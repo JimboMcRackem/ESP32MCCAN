@@ -1,5 +1,5 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-25T09:24:14 **
+** Created on 2026-09-25T09:54:16 **
 ** Report includes: Errors **
 
 ** Found 0 DRC violations **
@@ -12,7 +12,7 @@
 [unconnected_items]: Missing connection between items
     Local override; error
     @(157.8125 mm, 30.3250 mm): Pad 19 [/outputs/MUXIN_FL_R] of U8 on F.Cu
-    @(167.7250 mm, 29.4250 mm): Track [/outputs/MUXIN_FL_R] on B.Cu, length 1.1314 mm
+    @(166.9250 mm, 30.2250 mm): Track [/outputs/MUXIN_FL_R] on B.Cu, length 2.1750 mm
 [unconnected_items]: Missing connection between items
     Local override; error
     @(152.0875 mm, 29.6750 mm): Pad 9 [/outputs/MUXIN_RR_G] of U8 on F.Cu
@@ -79,7 +79,7 @@
     @(171.4050 mm, 60.3300 mm): Pad 2 [Net-(U9-IN0)] of R79 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(86.1000 mm, 110.0000 mm): Track [Net-(U9-IS)] on F.Cu, length 0.9500 mm
+    @(86.1000 mm, 110.0000 mm): Track [Net-(U9-IS)] on F.Cu, length 0.2900 mm
     @(133.7550 mm, 62.3300 mm): Pad 1 [Net-(U9-IS)] of R82 on F.Cu
 
 ** Found 0 Footprint errors **

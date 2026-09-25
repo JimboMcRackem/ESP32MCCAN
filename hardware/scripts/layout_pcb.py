@@ -921,15 +921,44 @@ ROUTES = [
     # D6/Q2/R26 cluster entirely.
     #
     # The pair's shared centreline is the straight line J8.1 (67.400, 130.590) ->
-    # L6.4 (193.575, 31.300), 160.557 mm at a bearing of 38.2 deg. Along that line the only
-    # obstacles that cannot move are twelve 0.55 mm /VBAT thermal vias -- a 3-wide by 4-deep
-    # grid at x 87.1/88.0/88.9, y 108.425/109.475/110.525/111.575, landing 27.2-30.6 mm along
-    # the run and offset 1.647..5.236 mm from the centreline. A pair at 0.650 mm centre-to-centre
-    # needs the centreline to stay 0.950 mm clear of a via that size (0.325 pair half +
-    # 0.150 track half + 0.200 CAN clearance + 0.275 via half), so even the closest of the twelve
-    # clears with 0.697 mm to spare and no deviation at all: measured copper-to-copper, CANH
-    # passes it at 0.897 mm and CANL at 1.547 mm. Every ground-drop via near the straight line
-    # moves for the pair anyway (via_ok()).
+    # L6.4 (193.575, 31.300), 160.557 mm at a bearing of 38.2 deg. When this pair was laid, the
+    # only obstacles along that line that could not move were twelve 0.55 mm /VBAT thermal vias
+    # -- a 3-wide by 4-deep grid at x 87.1/88.0/88.9, y 108.425/109.475/110.525/111.575, landing
+    # 27.2-30.6 mm along the run and offset 1.647..5.236 mm from the centreline. A pair at
+    # 0.650 mm centre-to-centre needs the centreline to stay 0.950 mm clear of a via that size
+    # (0.325 pair half + 0.150 track half + 0.200 CAN clearance + 0.275 via half), so even the
+    # closest of the twelve clears with 0.697 mm to spare and no deviation at all: measured
+    # copper-to-copper, CANH passes it at 0.897 mm and CANL at 1.547 mm. Every ground-drop via
+    # near the straight line moves for the pair anyway (via_ok()).
+    #
+    # THAT IS NO LONGER THE BINDING CLEARANCE. Task 10 froze an external router's copper into
+    # scripts/routes_signal.json, and it put 857 vias on the board -- after these two tracks
+    # were placed, and around them, because it treated them as fixed obstacles. Those vias
+    # cannot move either: they are frozen data, not a search. Re-measured against all 857 plus
+    # every generator via -- 13790 track-vs-via measurements for CANH and 13770 for CANL, disc
+    # model, gen_pcb._seg_disc_gap:
+    #
+    #   CANH worst 0.2003 mm -- /+3V3_SW via d=0.60 at (158.100, 57.975), 0.200 mm required
+    #   CANH next  0.2123 mm -- /outputs/MUXIN_FR_R via d=0.60 at (178.000, 42.300)
+    #   CANL worst 0.2036 mm -- Net-(U9-IN1) via d=0.60 at (90.700, 113.500), 0.200 mm required
+    #   CANL next  0.2037 / 0.2047 / 0.2187 mm -- /I2C_SDA (157.225, 61.150),
+    #              /outputs/MUXIN_FL_R (161.325, 57.925), /outputs/MUXIN_FL_G d=0.50
+    #              (163.300, 56.325)
+    #
+    # Nothing is short, and KiCad's DRC agrees (0 violations). But CANH is at the floor with
+    # 0.00032 mm of margin -- 0.32 um on a 0.200 mm class limit -- and five more clearances sit
+    # within 0.019 mm of it. There is nothing left to give anywhere along this pair. Do not tighten
+    # the CAN clearance, do not widen these tracks, and do not nudge either polyline: any of
+    # those makes the board fail, and the failure will name a via you cannot move.
+    #
+    # The ruling (task-10-step6-ruling.md) was to accept 0.2003 mm rather than re-route: the
+    # router placed those vias to the netclass rule, KiCad agrees they are legal, and CAN here
+    # is a terminated differential bus at motorcycle bit rates where a 0.6 mm via at 0.2 mm is
+    # electrically irrelevant. Moving the pair means re-running the router and discarding 4692
+    # frozen segments to buy nothing.
+    #
+    # The VBAT-grid and L6.2 figures below were re-measured under the same disc model and are
+    # unchanged to the digit; they are simply no longer the tightest thing on the run.
     #
     # Each track is offset +-0.325 mm from that centreline (perpendicular to its 38.2 deg
     # bearing), so CANH and CANL hold an exact constant 0.650 mm centre-to-centre and never

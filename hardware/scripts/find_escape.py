@@ -31,13 +31,21 @@ sweep pick freely there just finds a closer point that is no use.
 
 Why this does not use show_room's arithmetic
 --------------------------------------------
-show_room.py models a via as a DISC, which is the honest picture of copper.  gen_pcb.routes()
-models it as a SQUARE and compares bounding boxes, and a box gap is the LARGER of the two
-axis separations -- so an x overlap of any size leaves the y separation standing alone as the
-answer.  A via 0.40 mm from its own pad's diagonal neighbour passes as a disc and fails as a
-box by 0.025 mm, and the cure is to move it in x, which is not the axis the error names.
-This file therefore calls gen_pcb._rect_gap and _seg_rect_gap directly.  If routes() ever
-changes how it measures, this changes with it, which is the whole point.
+This file models an obstacle the way gen_pcb.routes() models it, because a lane it clears has
+to be a lane routes() will admit.  It therefore calls gen_pcb's own helpers directly --
+_rect_gap and _seg_rect_gap for PADS, which routes() still models by their bounding box, and
+_disc_disc_gap and _seg_disc_gap for VIAS, which it no longer does.  If routes() ever changes
+how it measures either of them, this changes with it, which is the whole point.  (The
+track-vs-track test at the bottom is this file's own grown-box approximation and always was;
+it is the cautious direction for a search, and routes() does not have that test at all.)
+
+It used to model a via as a square here too, matching what routes() then did.  Task 10's
+ruling (task-10-step6-ruling.md) found that square the defect and not the caution: a via is
+round, so its bounding box over-reports an off-axis intrusion by (sqrt(2)-1)*s/2 = 0.124 mm
+on a 0.6 mm via.  A via 0.40 mm from its own pad's diagonal neighbour passed as a disc and
+failed as a box by 0.025 mm, and the cure the box named was to move it in x, which is not the
+axis the error was really about.  Both models now agree with show_room.py, which had the
+honest picture of copper all along.
 
 The board it reads matters: point --pcb at output/router/unrouted.kicad_pcb (the default),
 because that is the board a ROUTES entry actually has to fit through.  Sweeping against a
@@ -60,14 +68,14 @@ DIRS = {"N": (0, -1), "S": (0, 1), "E": (1, 0), "W": (-1, 0)}
 
 
 def board(path):
-    """(net codes by name, via boxes, segments) read off a generated board."""
+    """(net codes by name, vias as (x, y, size, net), segments) read off a generated board."""
     text = io.open(path, encoding="utf-8").read()
     codes = dict((b, int(a)) for a, b in re.findall(r'\(net (\d+) "([^"]*)"\)', text))
     vias = []
     for m in re.finditer(r'\(via\s*\(at ([-\d.]+) ([-\d.]+)\)\s*\(size ([-\d.]+)\)\s*'
                          r'\(drill ([-\d.]+)\)\s*\(layers[^)]*\)\s*\(net (\d+)\)', text):
         x, y, sz = float(m.group(1)), float(m.group(2)), float(m.group(3))
-        vias.append((x - sz / 2, y - sz / 2, x + sz / 2, y + sz / 2, int(m.group(5))))
+        vias.append((x, y, sz, int(m.group(5))))
     segs = []
     for m in re.finditer(r'\(segment\s*\(start ([-\d.]+) ([-\d.]+)\)\s*'
                          r'\(end ([-\d.]+) ([-\d.]+)\)\s*\(width ([-\d.]+)\)\s*'
@@ -95,15 +103,23 @@ def clear(box, code, pads, vias, segs, layer=None, seg=None):
         g = (G._seg_rect_gap(seg[0], seg[1], seg[2], b) if seg else G._rect_gap(box, b))
         if g < G.pad_clearance(p, code):
             return False
-    for a, b, c, d, vnet in vias:
+    for vx, vy, vsz, vnet in vias:
         if vnet == code:
             continue
-        if (c < box[0] - MARGIN or a > box[2] + MARGIN
-                or d < box[1] - MARGIN or b > box[3] + MARGIN):
+        # Box arithmetic stays the prefilter -- it is cheap and never misses a candidate --
+        # but the disc decides, the way routes() decides.
+        r = vsz / 2
+        if (vx + r < box[0] - MARGIN or vx - r > box[2] + MARGIN
+                or vy + r < box[1] - MARGIN or vy - r > box[3] + MARGIN):
             continue
         need = max(G.net_clearance(vnet), G.net_clearance(code))
-        g = (G._seg_rect_gap(seg[0], seg[1], seg[2], (a, b, c, d)) if seg
-             else G._rect_gap(box, (a, b, c, d)))
+        if seg:
+            g = G._seg_disc_gap(seg[0], seg[1], seg[2], vx, vy, vsz)
+        else:
+            # No seg means `box` is a candidate VIA's own box, square by construction at
+            # both call sites, so its centre and diameter come straight back out of it.
+            g = G._disc_disc_gap((box[0] + box[2]) / 2, (box[1] + box[3]) / 2,
+                                 box[2] - box[0], vx, vy, vsz)
         if g < need:
             return False
     for ax, ay, bx, by, w, lay, n in segs:
@@ -169,7 +185,11 @@ def main(argv):
                 vb = (vx - via_sz / 2, vy - via_sz / 2, vx + via_sz / 2, vy + via_sz / 2)
                 if not clear(vb, code, pads, bvias, segs):
                     continue
-                if any(G._rect_gap(vb, t) < G.net_clearance(code) for t in taken):
+                # Candidate-vs-candidate is via-vs-via, so both are discs here too.
+                if any(G._disc_disc_gap(vx, vy, via_sz,
+                                        (t[0] + t[2]) / 2, (t[1] + t[3]) / 2,
+                                        t[2] - t[0]) < G.net_clearance(code)
+                       for t in taken):
                     continue
                 sb = (min(px, vx) - trk / 2, min(py, vy) - trk / 2,
                       max(px, vx) + trk / 2, max(py, vy) + trk / 2)

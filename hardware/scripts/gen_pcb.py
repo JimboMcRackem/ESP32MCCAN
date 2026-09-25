@@ -1738,9 +1738,12 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
                 return False
         for tx0, ty0, tx1, ty1, tw, _tlay, tnet in foreign:
             # A via crosses every layer, so every layer's copper is in its way.  The via is a
-            # box here, not a circle, because check_track_crossings() -- the gate that fails the
-            # build -- models it as one, and a guard looser than its gate lets a drop land where
-            # the gate will then blame the hand route for it.
+            # box here and not a disc on purpose: the box encloses the disc, so this guard is
+            # the stricter of the two and a drop it admits is one check_track_crossings() --
+            # the gate that fails the build -- will admit too.  The gate itself models the via
+            # as the disc it is (_seg_disc_gap); keeping the looser model here would let a drop
+            # land where the gate then blames the hand route for it, so it stays a box.  This
+            # also places copper, and relaxing it would move ground drops.
             need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
             if _seg_rect_gap((tx0, ty0), (tx1, ty1), tw,
                              (vx - r, vy - r, vx + r, vy + r)) < need:
@@ -1967,6 +1970,10 @@ def _seg_rect_gap(p0, p1, w, rect):
     The rectangle stays a rectangle.  Pads are modelled by their bounding box everywhere
     else in this file -- a round pad included -- and that is the conservative side to err
     on, so it is left alone.
+
+    Vias are the exception and do not come here: they are discs, and _seg_disc_gap below
+    says why a box is the wrong shape rather than a cautious one.  gnd_drops' via_ok is the
+    one place that still hands this function a via box, deliberately, and says so.
     """
     x0, y0, x1, y1 = rect
     for (px, py) in (p0, p1):
@@ -1975,6 +1982,38 @@ def _seg_rect_gap(p0, p1, w, rect):
     c = ((x0, y0), (x1, y0), (x1, y1), (x0, y1))
     d = min(_seg_seg_dist(p0, p1, c[k], c[(k + 1) % 4]) for k in range(4))
     return max(0.0, d - w / 2)
+
+
+# --- vias are round, and a bounding square is not a conservative approximation of a circle
+#
+# A pad is modelled by its bounding box everywhere in this file, and _seg_rect_gap's docstring
+# argues that is the conservative side to err on.  That argument is about a pad: a pad has an
+# orientation and a shape the box encloses, and erring outward describes copper that might be
+# there.  A via has neither.  It is a disc, always, and its bounding square claims copper at
+# the corners that does not exist -- over-reporting the intrusion by (sqrt(2)-1)*s/2, which is
+# 0.124 mm for a 0.6 mm via and lands in full whenever a track approaches the barrel off-axis.
+#
+# That is not a safety margin, it is a different rule.  It cost this board a real ruling: the
+# 12 findings check_track_crossings raised the first time it ran after the frozen router copper
+# (Task 10 Step 6.0) were every one of them a square-corner artifact -- all 12 clear under the
+# disc, KiCad's own DRC found 0 violations on the same copper, and the model had been 0.124 mm
+# tighter than the rule KiCad enforces since Task 7.  See task-10-step6-ruling.md.
+#
+# So: pads keep the box, vias get these.  Do not "simplify" a via back onto _seg_rect_gap.
+
+def _seg_disc_gap(p0, p1, w, cx, cy, dia):
+    """Gap between a w-wide track segment and a via of diameter `dia` centred (cx, cy).
+
+    Copper to copper: the track is the capsule swept by a round w-wide brush and the via is
+    a disc, so the gap is the centreline-to-centre distance less both radii.  Clamped at 0.0
+    when they overlap, like the rest of the gap helpers here.
+    """
+    return max(0.0, _pt_seg_dist(cx, cy, p0[0], p0[1], p1[0], p1[1]) - dia / 2.0 - w / 2.0)
+
+
+def _disc_disc_gap(ax, ay, adia, bx, by, bdia):
+    """Gap between two vias, both discs.  0.0 if they touch or overlap."""
+    return max(0.0, math.hypot(ax - bx, ay - by) - adia / 2.0 - bdia / 2.0)
 
 
 def _pad_on(p, layer):
@@ -2045,8 +2084,8 @@ def check_track_crossings(lo, hi):
             if vnet == anet:
                 continue
             need = max(net_clearance(anet), net_clearance(vnet))
-            gap = _seg_rect_gap((ax0, ay0), (ax1, ay1), aw,
-                                (vx - vs / 2, vy - vs / 2, vx + vs / 2, vy + vs / 2))
+            # _seg_disc_gap, not _seg_rect_gap: the via is round.  See the note above it.
+            gap = _seg_disc_gap((ax0, ay0), (ax1, ay1), aw, vx, vy, vs)
             if gap < need:
                 close.append("%s (%.2f,%.2f)-(%.2f,%.2f) vs a %s via (%.2f,%.2f): "
                              "%.3f < %.3f"
@@ -2160,12 +2199,17 @@ def routes(comps, pos, padnet, netidx, placed):
                 close.append("%s vs %s.%s (%s): %.3f < %.3f"
                              % (what, p[0], p[1], NETNAME.get(p[2], "?"), g, need))
 
-    def via_boxes():
-        """Every via on the board that a hand route has to miss, as (box, net, label)."""
+    def via_discs():
+        """Every via a hand route has to miss, as (centre x, centre y, diameter, net, label).
+
+        Centre and size rather than a box: a via is a disc and is measured as one (see
+        _seg_disc_gap).  There is no hash prefilter on this path -- the loop below walks
+        `placed` and `vias` in full -- so the box bought nothing here and is not kept.
+        """
         for vx, vy, vs, _vd, vnet in placed:
-            yield (vx - vs / 2, vy - vs / 2, vx + vs / 2, vy + vs / 2), vnet, "a via"
+            yield vx, vy, vs, vnet, "a via"
         for v in vias:
-            yield v["box"], v["code"], "ROUTE_VIAS[%d]" % v["i"]
+            yield v["x"], v["y"], v["sz"], v["code"], "ROUTE_VIAS[%d]" % v["i"]
 
     for s in segs:
         what = "%s ROUTES[%d] seg %d" % (s["name"], s["i"], s["j"])
@@ -2176,11 +2220,11 @@ def routes(comps, pos, padnet, netidx, placed):
         # free to run straight through a via barrel.  On F.Cu that happened to stay clean;
         # on In2.Cu, where the ground drops are just as present but none of the SMD pads
         # are, it would not have.
-        for vb, vnet, label in via_boxes():
+        for vx, vy, vs, vnet, label in via_discs():
             if vnet == s["code"]:
                 continue
             need = max(net_clearance(vnet), net_clearance(s["code"]))
-            g = _seg_rect_gap(s["p0"], s["p1"], s["w"], vb)
+            g = _seg_disc_gap(s["p0"], s["p1"], s["w"], vx, vy, vs)
             if g < need:
                 close.append("%s vs %s on %s: %.3f < %.3f"
                              % (what, label, NETNAME.get(vnet, "?"), g, need))
@@ -2191,7 +2235,8 @@ def routes(comps, pos, padnet, netidx, placed):
             if vnet == v["code"]:
                 continue
             need = max(net_clearance(vnet), net_clearance(v["code"]))
-            g = _rect_gap(v["box"], (vx - vs / 2, vy - vs / 2, vx + vs / 2, vy + vs / 2))
+            # Both objects are round, so neither gets a box.  See the note by _disc_disc_gap.
+            g = _disc_disc_gap(v["x"], v["y"], v["sz"], vx, vy, vs)
             if g < need:
                 close.append("%s vs a via on %s: %.3f < %.3f"
                              % (what, NETNAME.get(vnet, "?"), g, need))
