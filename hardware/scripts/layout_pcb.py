@@ -1059,6 +1059,99 @@ ROUTES = [
     ("Net-(U6-CANL)", "In2.Cu", 0.3, [(189.025, 33.800), (187.700, 33.800),
                                        (187.700, 28.900), (216.600, 28.900),
                                        (216.600, 32.935), (213.275, 32.935)]),
+
+    # --- Task 9: boost switch node (D4 non-synchronous, so it is inside the loop) ---
+    # Geometry below is the controller's own measured table (mccan.kicad_pcb at f1fcd93)
+    # plus every pad this task's own coordinate dump re-derived and cross-checked
+    # against that table (U3's 17 pads, D4, L3, C20/C21/C22, R12/C61/R13, C24, R14, C25).
+    # Every clearance figure quoted in these comments is a rectangle-gap computed
+    # directly from the coordinates written here against the actual foreign pad/via
+    # box, using whichever netclass genuinely applies to that pair (SW_BOOST, +24V,
+    # Net-(U3-COMP), FB_24V and Net-(U3-SS) all match no NETCLASSES entry, so all five
+    # sit on the 0.20 mm board default; +24V's *foreign* neighbours that are POWER-class
+    # -- D4.1 -- need 0.30 mm, the max of the two clearances, not 0.20).
+
+    # SW column: 0.75 mm centred at x=86.5 (outer edges of U3 pins 13/14 together),
+    # straight into D4.2 with no bend (D4.2 spans x 85.560-86.960, fully containing the
+    # column) and stopping at y=30.55 so the end cap (0.375 mm) lands at y=30.925,
+    # 0.238 mm clear of U3's GND paddle (top edge y=31.163) while still covering 0.80 mm
+    # of pins 13/14's 0.837 mm pad length. Both figures are the brief's own derived
+    # numbers, used verbatim. Independently re-verified here by rectangle gap: clears
+    # D4.1 (+24V, foreign, POWER class 0.30 mm floor) by 0.765 mm; clears pin 15 (NC)
+    # by 0.25 mm (0.05 mm over the 0.20 mm floor); clears the GND paddle by 0.2375 mm
+    # (0.0375 mm over the 0.20 mm floor -- thin, but it is what the paddle's position
+    # and the pin-13/14 coverage requirement together allow).
+    ("SW_BOOST", "F.Cu", 0.75, [(86.5, 28.365), (86.5, 30.55)]),
+
+    # L3 rung: 0.75 mm at y=29.70 (spans 29.325-30.075), from L3.2's pad centre in to
+    # the SW column. Clears D4.1 (+24V, foreign, POWER 0.30 mm floor) by 0.325 mm --
+    # 0.025 mm of margin, the brief's own number, used verbatim -- and stays north of
+    # U3's top-edge pads (pins 13/14 are this same net so no clearance applies there;
+    # pins 15/16 sit west of x=86.5 and never enter this rung's x-range at all).
+    ("SW_BOOST", "F.Cu", 0.75, [(91.815, 29.70), (86.5, 29.70)]),
+
+    # Pin-12 tie: 0.30 mm, not a share of the SW current (its neighbour is MODE, not
+    # another SW pin). Starts at pin 12's own centre, clears MODE (pin 11, foreign,
+    # top edge y=31.625) by 0.225 mm at that start point -- the brief's own number,
+    # used verbatim -- then bends to land on the L3 rung's own copper (T-junction) at
+    # (88.2, 29.70), which is inside the rung's box (x 86.5-91.815, y 29.325-30.075)
+    # and well clear (>0.6 mm) of the GND paddle and of D4.1 (no y-overlap at all with
+    # either once south of y=30.3).
+    ("SW_BOOST", "F.Cu", 0.30, [(87.4562, 31.250), (88.2, 30.3), (88.2, 29.70)]),
+
+    # +24V column: C20.1/C21.1/C22.1 are collinear at x=83.375 (no vias of their own --
+    # this column and its rung are their only connection to anything, per the brief).
+    # 1.0 mm, nothing foreign anywhere near this corridor (nearest is the VBAT riser at
+    # (81.175, 32.4), out of this column's y-range entirely and >1.3 mm off in x even
+    # if it weren't).
+    ("+24V", "F.Cu", 1.0, [(83.375, 22.700), (83.375, 29.300)]),
+
+    # +24V rung: 1.5 mm at y=24.5, from the column across into D4.3's tab (the same
+    # net as the tab and its 25-via thermal grid, so no clearance applies there -- it
+    # is meant to land on and feed that grid, which is how +24V actually leaves the
+    # boost, per the controller's ruling: downward into the B.Cu pour under D4.3, not
+    # along F.Cu). Overlaps C21.1's own pad in passing (same net, harmless).
+    ("+24V", "F.Cu", 1.5, [(83.375, 24.5), (86.5, 24.5)]),
+
+    # Net-(U3-COMP): the highest-impedance node in the converter, kept short and away
+    # from SW per the brief. Pin 8 -> R14.1 -> C24.2 (C24's COMP terminal). Leaves pin 8
+    # centre, jogs east to x=87.0 before running south past the GND via at
+    # (86.25, 34.225) -- the brief's own warning: straight down pin 8's own centre
+    # (x=86.75) clears that via by only 0.10 mm and fails; entering near x=87.0 is what
+    # R14.1's own pad width (86.425-87.225) allows. Re-verified here by rectangle gap:
+    # the jog segment clears the via by 0.261 mm and the following vertical run clears
+    # it by 0.325 mm (both over the 0.20 mm floor -- the brief's approximate "0.35 mm"
+    # was for the vertical run only, not this jog). Final leg into C24.2 clears C24.1
+    # (GND, same footprint, foreign net) by 0.575 mm and R14's own other pad by 1.125 mm.
+    ("Net-(U3-COMP)", "F.Cu", 0.25, [(86.750, 33.4562), (87.0, 33.7), (87.0, 34.6),
+                                       (86.825, 35.400), (88.550, 35.025)]),
+
+    # FB_24V: per the controller's ruling, the tap reads through the +24V pour (R12.1/
+    # C61.1 drop straight to it below, see ROUTE_VIAS), not along F.Cu -- so the only
+    # F.Cu run this net needs is pin 9 out to a trunk that ties R12.2/C61.2/R13.1
+    # together, which is the far end of the output-cap divider, satisfying "tap the far
+    # end" the same way the ruling does for the +24V side. Hop clears pin 10 (SS,
+    # foreign) by 0.25 mm and pin 8 (COMP, foreign) by 0.484 mm. Trunk clears the new
+    # R12.1/C61.1 +24V vias by >1.0 mm and R13.2 (GND) by 1.125 mm -- all comfortable;
+    # this net has no tight neighbour once past pin 10.
+    ("FB_24V", "F.Cu", 0.25, [(87.4562, 32.750), (90.175, 32.750)]),
+    ("FB_24V", "F.Cu", 0.25, [(90.175, 32.200), (90.175, 35.800)]),
+
+    # Net-(U3-SS): boxed in at pin 10 -- MODE (pin 11) north, the GND paddle west, the
+    # FB_24V hop directly south at y=32.75 (same corridor SS has to cross to reach C25).
+    # Runs east along pin 10's own row (clears pin 9, foreign, by 0.25 mm; clears pin 11,
+    # foreign, by 0.25 mm) into the open pocket east of U3's pins and west of the FB_24V
+    # trunk, then ducks to In5.Cu (empty in this area, confirmed against every pad/via
+    # this task's own coordinate dump found nearby) to pass underneath the FB_24V hop
+    # entirely on a different layer -- SMD pads have no copper off F.Cu, so this also
+    # clears C24 and R14 without needing to thread the narrow corridor between them.
+    # Comes back to F.Cu south of C24 and runs straight down into C25.1. Duck-under via
+    # (see ROUTE_VIAS) clears pin 9 by 0.460 mm, pin 11 by 0.325 mm and the FB_24V hop
+    # by 0.325 mm; the return via clears C24.1 (GND) by 0.45 mm; the final run into
+    # C25.1 clears C25.2 (GND) by 0.975 mm and C24.1 by 0.625 mm.
+    ("Net-(U3-SS)", "F.Cu", 0.25, [(87.4562, 32.250), (88.5, 32.250), (88.5, 32.0)]),
+    ("Net-(U3-SS)", "In5.Cu", 0.25, [(88.5, 32.0), (88.525, 37.8)]),
+    ("Net-(U3-SS)", "F.Cu", 0.25, [(88.525, 37.8), (88.525, 39.000)]),
 ]
 
 # Hand vias: (net, x, y, diameter_mm, drill_mm).  Emptied with ROUTES -- see above.
@@ -1149,6 +1242,24 @@ ROUTE_VIAS = [
     # as every other hand via on this net.
     ("CANL", 201.7965, 37.4413, 0.6, 0.3),             # CANL_stub via_in  (In2.Cu -> In5.Cu)
     ("CANL", 206.6046, 41.7257, 0.6, 0.3),             # CANL_stub via_out (In5.Cu -> In2.Cu)
+
+    # Task 9: boost switch node.
+    #
+    # R12.1/C61.1 drop straight to the +24V pour on their own pad centres (no F.Cu stub,
+    # same "via-on-own-pad" technique as the VBAT decoupling caps above) -- the
+    # controller's ruling: an F.Cu haul from the output caps round to these pads would
+    # be long, would run beside SW, and would carry no current worth the copper, so
+    # FB_24V's divider reads the pour instead. Netclass default via size (this pair
+    # carries no current worth a bigger via).
+    ("+24V", 91.825, 32.200, 0.8, 0.4),   # R12.1
+    ("+24V", 91.775, 34.000, 0.8, 0.4),   # C61.1
+
+    # Net-(U3-SS)'s F.Cu <-> In5.Cu duck-under, bracketing the FB_24V hop and the
+    # C24/R14 pair -- see the ROUTES comment above. Netclass default via size, same
+    # as the sense/bias taps elsewhere in this file (this is a soft-start line, no
+    # meaningful current).
+    ("Net-(U3-SS)", 88.5, 32.0, 0.6, 0.3),     # via_in  (F.Cu -> In5.Cu)
+    ("Net-(U3-SS)", 88.525, 37.8, 0.6, 0.3),   # via_out (In5.Cu -> F.Cu)
 ]
 
 
