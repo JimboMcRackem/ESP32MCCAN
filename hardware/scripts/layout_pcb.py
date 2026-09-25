@@ -922,12 +922,14 @@ ROUTES = [
     #
     # The pair's shared centreline is the straight line J8.1 (67.400, 130.590) ->
     # L6.4 (193.575, 31.300), 160.557 mm at a bearing of 38.2 deg. Along that line the only
-    # obstacles that cannot move are eight 0.55 mm /VBAT thermal vias at x 87.1..88.9,
-    # y 109.5..111.6 (27.2-30.0 mm along the run), offset 1.647..3.854 mm from the centreline;
-    # a pair at 0.650 mm centre-to-centre needs 1.050 mm of clearance from a via at that size
-    # (0.325 pair half + 0.150 track half + 0.300 FEED clearance + 0.275 via half),
-    # so the closest one clears by 0.597 mm without any deviation at all. Every ground-drop via
-    # near the straight line moves for it (via_ok()).
+    # obstacles that cannot move are twelve 0.55 mm /VBAT thermal vias -- a 3-wide by 4-deep
+    # grid at x 87.1/88.0/88.9, y 108.425/109.475/110.525/111.575, landing 27.2-30.6 mm along
+    # the run and offset 1.647..5.236 mm from the centreline. A pair at 0.650 mm centre-to-centre
+    # needs the centreline to stay 0.950 mm clear of a via that size (0.325 pair half +
+    # 0.150 track half + 0.200 CAN clearance + 0.275 via half), so even the closest of the twelve
+    # clears with 0.697 mm to spare and no deviation at all: measured copper-to-copper, CANH
+    # passes it at 0.897 mm and CANL at 1.547 mm. Every ground-drop via near the straight line
+    # moves for the pair anyway (via_ok()).
     #
     # Each track is offset +-0.325 mm from that centreline (perpendicular to its 38.2 deg
     # bearing), so CANH and CANL hold an exact constant 0.650 mm centre-to-centre and never
@@ -940,20 +942,26 @@ ROUTES = [
     #
     # At the L6 end the centreline model runs into a real fixed obstacle the brief's corridor
     # scan did not name: L6.2's own via (Net-(U6-CANL), (189.025, 33.800), part of the
-    # untouched L6->U6 transceiver leg below, so it cannot move). It sits only 0.849 mm off the
-    # centreline -- inside CANH's own +-0.325 mm offset -- so the offset line clips it by
-    # 0.047 mm at closest approach (155.4 mm along the run, `AR_SKIP=1 python scripts/gen_pcb.py`
-    # caught this as a 0.000 mm short, the clamped floor of a negative/overlapping gap). CANL's
-    # own offset line passes it on the far side with margin (>1 mm) and is untouched.
-    # CANH's matched-pair section is shortened to end at 154 mm (bend point H2, still holding
-    # the mid-run VBAT-via clearance above at 0.970 mm to spare) and the last 9.35 mm to L6.4
-    # threads south of the via and back north through one extra waypoint (H3), each leg keeping
-    # >=0.30 mm clear of L6.1, L6.2 and L6.3's own vias -- a legitimate L6-approach deviation
-    # (the kind the original brief's own measurements already treated as acceptable), not a
-    # ground-drop dodge. CANL keeps a plain single-bend fan (L2 at the matching 154 mm point,
-    # straight to L6.3, 5.27 mm) since nothing blocks its side. Bend counts: CANH 3 (H1, H2,
-    # H3), CANL 2 (L1, L2) -- the extra bend is confined to the last ~9 mm at the L6 end, all
-    # of it inside the deviation the original brief already calls "legitimate."
+    # untouched L6->U6 transceiver leg below, so it cannot move). It sits 0.849 mm off the
+    # centreline, 155.4 mm along the run. That is OUTSIDE CANH's +-0.325 mm offset, so the pure
+    # offset line does not overlap it -- but it does not clear it either: CANH's copper would
+    # span 0.175..0.475 mm off the centreline and the via's spans 0.549..1.149, leaving a
+    # 0.074 mm gap where the CAN netclass requires 0.200. Short by 0.126 mm, which
+    # `AR_SKIP=1 python scripts/gen_pcb.py` refuses to write. CANL's own offset line passes the
+    # via on the far side at 1.112 mm of copper gap and is untouched.
+    #
+    # So CANH's matched-pair section ends at 154.000 mm along the centreline (bend point H2) and
+    # the last 6.600 mm to L6.4 threads south of the via and back north through one extra
+    # waypoint (H3): H2->H3 is 1.494 mm and H3->L6.4 is 5.106 mm. Those two legs clear L6.2's
+    # via by 0.399 mm and 0.428 mm respectively, against the 0.200 mm the CAN class requires --
+    # a legitimate L6-approach deviation, not a ground-drop dodge. Shortening the matched
+    # section costs nothing mid-run: the VBAT grid above is passed at 28-31 mm, far inside the
+    # section that still holds, so its 0.897 mm clearance is unaffected. CANL keeps a plain
+    # single-bend fan (L2, which projects to the same 154.000 mm point at the same 0.325 mm
+    # offset, then straight to L6.3, 5.273 mm) since nothing blocks its side. Bend counts:
+    # CANH 3 (H1, H2, H3), CANL 2 (L1, L2) -- the extra bend is confined to the last 6.6 mm at
+    # the L6 end, and it is forced: without H3 the straight H2->L6.4 leg leaves only 0.145 mm to
+    # that same via.
     ("CANH", "In2.Cu", 0.3, [(67.400, 130.590),
                               (68.7707, 129.0978),
                               (188.2209, 35.0997),
