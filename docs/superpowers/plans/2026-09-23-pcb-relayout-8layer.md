@@ -594,7 +594,10 @@ In `layout_pcb.py`, at the `board outline` block near line 60:
 #
 # Thermally it is free -- better than free.  The heat-spreader plate is the base and tracks
 # the board footprint, so it goes from ~137 cm2 (61 C at 40 C ambient, against a 65 C
-# target) to ~272 cm2, against the 150 cm2 enclosure.md section 1 asks for.  The plate stops
+# target) to ~280 cm2, against the 150 cm2 enclosure.md section 1 asks for.  Measured from
+# Edge.Cuts: four straight sides and four 3 mm corner arcs, 200 x 140 mm less 0.08 cm2 of
+# corner = 279.92 cm2, with NO antenna notch on this board -- the 140 x 100 outline's 3.1 cm2
+# notch is not carried over, which is why this is 280 and not 277.  The plate stops
 # being a design driver, which is why the thermal group no longer gets to veto placement.
 X0, Y0 = 20.0, 20.0
 X1, Y1 = 220.0, 160.0
@@ -1631,7 +1634,12 @@ MSYS_NO_PATHCONV=1 python scripts/check_plane_width.py mccan.kicad_pcb /VBAT
 python scripts/check_zone_islands.py   # parses the report DRC just wrote; must run after it
 ```
 
-Expected: every gate passes, DRC 0 errors and 0 parity issues, and **unconnected dramatically lower than the 105 the six-layer board finished at**.
+Expected: every gate passes, DRC 0 errors and 0 parity issues, and **unconnected dramatically
+lower than the 72 the six-layer board finished at** (`hardware/docs/routing-tool.md` s5.2).
+Do not use 105 as the bar -- that is the earlier TWO-signal-layer column of the same table,
+and the six-layer board already beat it. Note also that 51 of those 72 are nets the router is
+never given (FEED, POWER and CAN are in `AR_SKIP_CLASSES`), so the router-attributable figure
+to beat is 21, and the rest close by hand in Step 6.
 
 - [ ] **Step 6: Close whatever is left, by hand**
 
@@ -1678,7 +1686,15 @@ Replace the stackup paragraph and table with the 8-layer arrangement, keeping th
 
 - [ ] **Step 3: Amend `hardware/docs/enclosure.md`**
 
-Its opening line still says "the board outline is now known — 140 × 100 mm". Update §1 (plate area ~272 cm², and the thermal margin that follows), §2 (the gland row now fits; the box size class has moved), §6 (mounting) and the open-items table.
+Its opening line still says "the board outline is now known — 140 × 100 mm". Update §1, §2 (the gland row now fits; the box size class has moved), §6 (mounting) and the open-items table.
+
+For §1, the plate area is **~280 cm²** and the thermal margin follows from it. That figure is
+measured from `Edge.Cuts`, not assumed: the outline is four straight sides plus four 3 mm corner
+arcs, so 200 × 140 mm less 0.08 cm² of corner is **279.92 cm²**. This board has **no antenna
+notch**, so the old outline's 3.1 cm² deduction does not carry over — which is why the number is
+280 and not 277. Do not write ~272 cm²; that was an arithmetic slip, corrected in the plan too.
+The §1 table's Footprint row still reads "140 × 100 mm, antenna corner notched (3.1 cm²) → ~137 cm²
+of plate", so the notch language has to go, not just the numbers.
 
 - [ ] **Step 4: Amend `hardware/docs/routing-tool.md`**
 
