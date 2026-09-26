@@ -218,15 +218,21 @@ the board note says so in words.
 
 ## 5. Drill schedule
 
+**Re-derived this session directly from `mccan.kicad_pcb`** (every `via` and every `thru_hole` /
+`np_thru_hole` pad, tallied by size) rather than from a generated Excellon file — this task did not
+generate a fabrication package (see §15), so the drill/hit report is not available as an input.
+That means this section is one step further from what the fab will receive than KiCad's own
+Excellon report would be; re-check it against the drill files before an order goes out.
+
 **Plated (PTH + vias):**
 
 | Drill | Pad / via dia. | Count | What |
 |---|---|---|---|
-| 0.20 | 0.60 | 12 | thermal vias inside U5's module land pattern (part of the footprint) |
-| **0.20** | **0.50** | **35** | router under-pad rescue vias in U7/U8's fine-pitch fanout — **at the 0.15 mm annular-ring floor** |
+| 0.20 | 0.60 | 12 | thru-hole pads inside U5's module footprint (its stitched thermal paddle) |
+| **0.20** | **0.50** | **65** | vias at the board's minimum via size — the 0.15 mm annular-ring floor |
 | 0.25 | 0.55 | 65 | **via-in-pad thermal arrays — see §7** |
-| 0.30 | 0.60 | 732 | `CAN`, Default-class and routed signal vias |
-| 0.40 | 0.80 | 136 | `FEED` / `POWER` vias, ground drops, stitching |
+| 0.30 | 0.60 | 968 | `CAN` and unclassified-net routed/stitching vias |
+| 0.40 | 0.80 | 303 | `FEED` / `POWER` vias, ground drops, stitching |
 | 1.00 | — | 6 | connector / discrete leads |
 | 1.15 | — | 18 | connector / discrete leads |
 | 1.30 | — | 4 | connector / discrete leads |
@@ -236,21 +242,28 @@ the board note says so in words.
 
 | Drill | Count | What |
 |---|---|---|
-| 2.60 | 20 | 0.5 mm² solder-wire relief holes (J-connectors) |
+| 2.60 | **18** | 0.5 mm² solder-wire relief holes (J-connectors) |
 | 3.20 | 4 | M3 mounting holes H1–H4 |
 | 3.50 | 6 | 1.5 mm² solder-wire relief holes |
 
-**968 vias in total**, of which 614 came from the router.
+**1401 vias in total.** `scripts/check_vias.py` reports 855 of them as frozen from the external
+router (`routes_signal.json`) and 546 as graded/hand-authored ("ignoring 855 frozen from the
+router" in its own output) — 855 + 546 = 1401, so that is the "came from the router" figure for
+this section, in place of the six-layer board's 968-total/614-router figures, which this board has
+long since exceeded.
 
-The **0.20 mm** plated hole is the binding one, and there are **47** of them. At 1.6 mm finished
-that is an **8:1 aspect ratio**, which is the top of most fabs' standard through-hole plating
-capability. Twelve come from U5's footprint and cannot be relieved by rerouting; the other 35 are
-0.50 / 0.20 mm vias the router shrank to escape U7 and U8's 0.65 mm-pitch land patterns, and they
-sit exactly on this board's 0.15 mm minimum annular ring. **If the fab will not hold 8:1 and a
-0.15 mm ring as standard process, say so before the order** — the 35 can be re-routed at 0.6 / 0.3
-for the cost of some congestion, the 12 cannot.
+The **0.20 mm** plated hole is the binding one, and there are **77** of them (65 vias + 12 of
+U5's footprint pads) — not 47, the six-layer board's figure, and not 66/78, a routing checkpoint
+between here and there. At 1.6 mm finished that is still an **8:1 aspect ratio**, the top of most
+fabs' standard through-hole plating capability. The twelve from U5's footprint cannot be relieved
+by rerouting. **The other 65 sit exactly at this board's 0.15 mm minimum annular ring** (0.50 mm
+via / 0.20 mm drill); *why* the router placed them at the minimum rather than the 0.6/0.3 mm
+default was not re-verified against the current routing this session — treat any claim about which
+fanout forced them as unconfirmed. **If the fab will not hold 8:1 and a 0.15 mm ring as standard
+process, say so before the order** — the 65 can be re-routed at 0.6/0.3 for the cost of some
+congestion, the 12 cannot.
 
-Via totals will grow by a handful as the last hops are hand-routed.
+Total holes on the board: 1401 vias + 46 plated component pads + 28 non-plated holes = 1475.
 
 ---
 
@@ -441,19 +454,18 @@ real circuit requirement, not a style preference.
 ## 14. Text to paste into the order notes
 
 ```
-6-layer FR4, 1.6 mm finished, Tg >= 150 C.
-1 oz (35 um) finished copper on ALL SIX layers -- inner layers must be 1 oz,
+8-layer FR4, 1.6 mm finished, Tg >= 150 C.
+1 oz (35 um) finished copper on ALL EIGHT layers -- inner layers must be 1 oz,
   NOT 2 oz: inner clearance is 0.20 mm and 2 oz inner etch cannot hold it.
 Min track/clearance 0.20/0.20 mm outer AND inner.
-Min plated drill 0.20 mm, 78 holes (aspect ratio 8:1 at 1.6 mm): 66 vias of
-0.50 mm dia plus 12 thermal through-pads of 0.60 mm dia inside footprints.
-Min annular ring 0.15 mm, on those 66 vias of 0.50 mm dia / 0.20 mm drill
-(scripts/check_geometry.py prints that 66 on every build).
+Min plated drill 0.20 mm, 77 holes (aspect ratio 8:1 at 1.6 mm): 65 vias of
+0.50 mm dia plus 12 thermal through-pads of 0.60 mm dia inside U5's footprint.
+Min annular ring 0.15 mm, on those 65 vias of 0.50 mm dia / 0.20 mm drill.
 Surface finish ENIG. Mask both sides, silkscreen both sides.
 
 1. VIA IN PAD, PLUGGED AND CAPPED (IPC-4761 type IV or VI), planarised, BY
    RULE: every via whose centre falls inside a copper pad, wherever on the
-   board it sits. That is 192 vias over 132 pads on the board as generated
+   board it sits. That is 189 vias over 129 pads on the board as generated
    (scripts/check_vias.py recomputes this count on every build and is the
    authority for it going forward; the drill/Excellon files are the
    authority for exactly which holes they are). The default finish is
@@ -464,10 +476,11 @@ Surface finish ENIG. Mask both sides, silkscreen both sides.
    The five largest concentrations are dedicated thermal arrays and want
    filling for that reason too, not only this rule: D4 pad 3, U1 pad 9, U2
    pad 9, U3 pad 17, U9 pad 15 (65 vias, 0.55 mm pad / 0.25 mm drill,
-   0.80 mm pitch). The other 129 vias sit over 127 more pads spread across
-   the board -- wherever a feed via lands on a pad centre by design, or a
-   router via changes layer inside a pad it fanned out to -- and are to be
-   plugged and capped the same as the five.
+   0.80 mm pitch -- exactly the 0.55 mm-diameter subset of the 189). The
+   other 124 vias sit over 124 more pads spread across the board -- wherever
+   a feed via lands on a pad centre by design, or a router via changes layer
+   inside a pad it fanned out to -- and are to be plugged and capped the
+   same as the five.
 
 2. NO SOLDER MASK DAM AT U10. Its leads leave a 0.15 mm gap and a dam that thin
    does not survive the mask process. Run one opening across the leads and let
@@ -483,11 +496,19 @@ Surface finish ENIG. Mask both sides, silkscreen both sides.
    of the outer layers must be kept.
 
 5. ANTENNA KEEP-OUT: no copper, plating, mask, silkscreen or parts on ANY layer
-   in the marked region at the right-hand edge (see Cmts.User).
+   at the right-hand edge, board coordinates x 213.56-234.75, y 48.00-96.00.
+   There is NO marked region for this on Cmts.User today -- only a text note
+   near the top edge with the wrong dimensions -- so these coordinates, taken
+   from U5's own footprint keep-out polygon, are the authority. Ask the fab
+   to confirm receipt of this note in writing; do not rely on a drawing mark
+   that does not yet exist (see Section 3).
 
 6. QUESTION BEFORE BUILD: your 0.30 mm hole-to-hole minimum is quoted against
    "vias <= 0.45 mm". Every via here is 0.50 / 0.55 / 0.60 / 0.80 mm. Does
    0.30 mm still apply? If not, tell us the figure before the order runs.
+
+7. THE BOARD IS NOT YET READY TO ORDER. 11 pads are unconnected (Status,
+   top of this document) -- do not release this package until that is 0.
 
 ASSEMBLY: single sided, top only. Stencil 0.12 mm laser cut, trapezoidal walls,
 electropolished. Reduce large paddle apertures to ~70% area. Do not bridge an
