@@ -1676,33 +1676,551 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: Task 10's routed board
 - Produces: a fabrication package, and documentation that matches the board
 
+**About the line numbers in this brief.** Every `file.md:N` citation into a document was
+resolved against the file and lands on the text it claims — I checked them one by one. Every
+citation into `hardware/scripts/gen_pcb.py` or `hardware/scripts/layout_pcb.py` is
+**approximate**, because Task 10 Step 6 was still adding `ROUTES` entries and `ROUTE_VIAS` to
+those two files when this brief was written, and inserting lines moves everything below them.
+Fourteen of the citations here are into those two files. When one does not land on what this
+brief says it says, the line moved — `grep` for the quoted text, which is stable, and do not
+conclude the brief is describing something that is not there. Do not "fix" a citation by
+editing the source to match it.
+
 - [ ] **Step 1: Amend spec §10**
 
-Replace the stackup paragraph and table with the 8-layer arrangement, keeping the existing revision-note style — the section already carries its own history and the new note should say what changed and why, not overwrite the old reasoning. State: 8 layers, 1 oz throughout, the layer roles, that every signal layer is plane-referenced, that CAN is a stripline on `In2.Cu`, and that `In4.Cu` is split with `check_plane_width.py` as the gate. Record the measured worst cut from Task 5 Step 7.
+Replace the stackup paragraph and table with the 8-layer arrangement, keeping the existing revision-note style — the section already carries its own history and the new note should say what changed and why, not overwrite the old reasoning. State: 8 layers, 1 oz throughout, the layer roles, that every signal layer is plane-referenced, and that CAN is a stripline on `In2.Cu`.
+
+**The plan's next clause — "that `In4.Cu` is split with `check_plane_width.py` as the gate" —
+is false in both halves, and this brief supersedes it.** Task 5 implemented the split and then
+reversed it: the per-net islands were bounding boxes, and on a board where a net's pads span the
+width, a bounding box encloses foreign pads rather than isolating a net. `In4.Cu` is a **solid
+`/VBAT` plane**. And `check_plane_width.py` is not the gate spec §3.2 named, because a check that
+rasterises a zone outline and subtracts via barrels cannot see a neighbouring zone on the same
+layer — it now refuses to measure a layer the plane shares rather than printing a number it
+cannot stand behind. Write the section to match the board: solid `/VBAT` on `In4.Cu`, with a
+revision note recording that §3.2's split was tried and abandoned and why. **Do not transcribe a figure for this — measure it.** The worst cut moves every time a via is
+punched through the plane, so every number written down for it has a shelf life: the ledger's
+is a Task 5 figure taken before the router placed a via, `49b482b` measured 105.30 mm at
+x = 106.0 over 1426 holes, and `26969e1` measures **104.90 mm at x = 97.3, 9.2× the 1 oz
+IPC-2221 requirement** over 1449 holes. All three were right when taken. Run the checker on
+the board you are documenting and quote what it prints:
+
+```bash
+python scripts/check_plane_width.py
+```
+
+**Mind the argument order.** `sys.argv[1]` is the **board path** and `sys.argv[2]` is the net,
+which defaults to `/VBAT`. So `check_plane_width.py /VBAT` reads `/VBAT` as a filename and prints
+`FAIL: /VBAT is missing` — a message that reads like a missing plane and is nothing of the kind.
+The bare form above is correct; to name the net explicitly it is
+`python scripts/check_plane_width.py mccan.kicad_pcb /VBAT`.
+
+**The same correction is needed in three places in this plan's own spec**,
+`docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md`, and none of them is in any
+other step's scope. Do them in this commit:
+
+- **§3.2 "Why the power layer is split, and the risk that creates"** (lines 108-124) is the
+  section that argued for the split. It quotes "**71 mm**" worst cut and a "**6.1×** margin",
+  and closes "This is accepted because the gate already exists … No arithmetic argument is
+  being relied on." Every load-bearing sentence in it is now superseded. Rewrite it the way
+  Step 1 rewrites the old spec's §10 — as a section that records the split was tried, why it
+  could not work (a per-net bounding box is not an island once that net's pads span the board),
+  and what the board does instead. Keep the section number and keep its reasoning visible; a
+  rejected approach with its reason is worth more than a deleted one. Its last paragraph, on
+  return paths under `In5.Cu`, is **still correct** and survives unchanged.
+- **§7's gates table** has a `check_plane_width.py` row reading "the feed's effective poured
+  width … **Load-bearing now** — see §3.2". It is not load-bearing in that sense any more.
+  While you are in that table: it does not list **`check_zone_islands.py`**, which was added
+  later on this branch and catches a zone that filled as two disconnected islands — legal
+  copper on the right net, invisible to every other check here. Add a row for it.
+- **§12's risk table**, first row: "The split power plane starves the `VBAT` feed |
+  `check_plane_width.py` measures it and fails the build (§3.2). Current margin is 6.1×".
+  Both the risk and the figure are stale.
+
+Use the same measured figure in all of them, and take it from one re-run of the checker rather
+than copying it between sections — four copies of a number is four chances for three of them to
+rot.
+
+**And the figure itself is restated in nine more places, five of them in source comments.**
+`71 mm` / `6.1×` was measured on the six-layer board's `In3.Cu`. Run
+
+```bash
+grep -rnE "6\.1 ?[x×]|71 ?mm" --include=*.md --include=*.py docs hardware
+```
+
+and work every hit. They fall into three groups:
+
+- **Correct them** — these describe the board as it is now:
+  `hardware/docs/fabrication.md:92-93`, `hardware/docs/routing-tool.md:75`,
+  `hardware/scripts/gen_netclasses.py:38` and `:103`, `hardware/scripts/gen_pcb.py:1085-1086`,
+  `hardware/scripts/layout_pcb.py:439`. The five in `.py` files are **comments asserting a
+  measurement the artifact no longer produces** — the exact defect class this branch has caught
+  twenty-four of, and the reason this step exists. Scripts must regenerate byte-identical after
+  a comment-only edit.
+- **Leave them** — `docs/superpowers/plans/2026-09-11-esp32-mccan-pcb-hardware.md:186` and
+  `:1100` are a historical plan describing the board that was built. Step 6 marks its Tasks 8
+  and 9 superseded; do not rewrite its body.
+- **Already covered** — `docs/superpowers/specs/2026-09-11-...-design.md:1502` and `:1509` are
+  inside the §10 block this step rewrites.
+
+`fabrication.md:89` and `:92` also still name **`In3.Cu`** as the feed pour. On this board it is
+**`In4.Cu`**. Fix the layer name with the figure; a right number against a wrong layer is not a
+correction.
+
+**Re-measure after the router, not before.** `routing-tool.md:70-73` makes the point itself:
+`check_plane_width.py` is the one gate whose answer the router can make *worse*, because every
+via it places punches another antipad through the plane. Task 10 has run by the time you read
+this, so the ledger's Task 5 figure is an input-board figure. The two differ: 106.50 mm and 9.3×
+before the router, **105.30 mm and 9.2× after it**. Both pass with room to spare, but only the
+second is a measurement of the board being fabricated. Run the checker yourself and use what it
+prints.
+
+**The feed plane also changed layers, and that is a separate sweep.** On the six-layer board
+`In3.Cu` was the `VBAT` feed. On this board **`In3.Cu` is solid GND and the feed is `In4.Cu`**.
+So every sentence naming `In3.Cu` has to be read twice: as GND it is correct and stays, as the
+feed or the power plane it is wrong. Run
+
+```bash
+grep -rn "In3.Cu" --include=*.md --include=*.py docs hardware
+```
+
+and split the hits. **Wrong — `In3.Cu` used as the feed or power plane:**
+`hardware/docs/fabrication.md:63`, `:89`, `:153`, `:350`; `hardware/docs/routing-tool.md:113`
+("In1.Cu is the ground plane and In3.Cu is the VBAT plane"); `hardware/scripts/gen_netclasses.py:37`;
+`hardware/scripts/gen_pcb.py:930` and `:1373`; `hardware/scripts/layout_pcb.py:438` and `:450`.
+**Right — `In3.Cu` as GND, leave alone:** the stackup and zone code in `gen_pcb.py`
+(`:1014`, `:1050`, `:1057`, `:1120`, `:1234`, `:1302`), `check_geometry.py:28`,
+`route_external.py:35`, `layout_pcb.py:369`.
+
+This matters more than a figure does. A comment that names the wrong layer for the 7 A feed is
+the kind a future reader acts on.
 
 - [ ] **Step 2: Amend spec §9.1 and §9.3**
 
 §9.1: the panel now has a 200 mm wall, which resolves the seven-gland problem. §9.3: the enclosure needs a box for 200 × 140 mm plus the service loop, and the part number is still unchosen.
 
+Four things about these two sections that the step above does not say:
+
+**Compute the gland row, do not assert it.** §9.1's ASCII panel sketch draws the seven glands in
+**two rows**, which is what a 140 mm wall forced. The seven are five M12 and two M16 (rows 1-4 are
+M12, Denali and Power are M16, CAN is M12; the eighth penetration is the vent and takes no gland).
+Add up the hex across-flats plus the spacing you are assuming, show the arithmetic in the revision
+note, and only then say the row fits in one line on 200 mm. A claim that something now fits is
+exactly the kind of number this branch keeps finding wrong.
+
+**§9.1 carries the stale outline itself**, at lines 1288-1289, inside its own
+"REVISED 2026-09-20" block: "the plate is therefore the **base**, 140 x 100 mm, with the
+**antenna corner notched out**". This is the only place in the whole spec that says it —
+`grep -n "140 . 100\|notch"` over the spec returns just those two lines — and it must be
+corrected in step with `enclosure.md` (see Step 3, which explains why the notch goes and what
+survives). The *base rather than the wall* half of that revision still stands; only the outline
+and the notch change.
+
+**§9.1 and `enclosure.md` disagree about the plate-area requirement**, and you are editing both.
+§9.1 says an edge wall "would also have to be ~100 mm deep to reach the required **140 cm²**";
+`enclosure.md`'s open-items table says "the **≥ 150 cm²** requirement". This predates the
+re-layout and is not yours to have caused, but do not propagate it: pick the one the thermal
+model actually uses, say which and why, and make both documents agree — or, if you cannot
+establish which is right, record it as an open item in both rather than quietly choosing.
+
+**§9.3 names a box size class that may no longer hold.** It says "Hammond 1554/1555, Fibox,
+Bopla class". Those were chosen around a 140 × 100 mm board. Check whether the named families
+reach 200 × 140 mm plus the service loop at all; if they do not, say so rather than leaving a
+part-number hint that sends someone down a dead end. The part number itself stays unchosen —
+that is still an open item, not something to invent here.
+
 - [ ] **Step 3: Amend `hardware/docs/enclosure.md`**
 
 Its opening line still says "the board outline is now known — 140 × 100 mm". Update §1, §2 (the gland row now fits; the box size class has moved), §6 (mounting) and the open-items table.
 
-For §1, the plate area is **~280 cm²** and the thermal margin follows from it. That figure is
-measured from `Edge.Cuts`, not assumed: the outline is four straight sides plus four 3 mm corner
-arcs, so 200 × 140 mm less 0.08 cm² of corner is **279.92 cm²**. This board has **no antenna
-notch**, so the old outline's 3.1 cm² deduction does not carry over — which is why the number is
-280 and not 277. Do not write ~272 cm²; that was an arithmetic slip, corrected in the plan too.
-The §1 table's Footprint row still reads "140 × 100 mm, antenna corner notched (3.1 cm²) → ~137 cm²
-of plate", so the notch language has to go, not just the numbers.
+**The board outline has no notch. The plate still does. These are two different things, and an
+earlier draft of this step confused them — read this paragraph before you delete anything.**
+
+`Edge.Cuts` is four straight sides plus four 3 mm corner arcs and nothing else (lines 40431-40438
+of `mccan.kicad_pcb`), so the **board** is 200 × 140 mm less 0.08 cm² of corner = **279.92 cm²**,
+un-notched. But U5's footprint still carries its all-layer antenna keep-out, and on this board it
+lands at **x 213.56 … 234.75, y 48 … 96**. The outline stops at x = 220, so **6.44 × 48 mm of that
+keep-out is still over the board** — 309.1 mm², or **3.09 cm²**. A plate coextensive with the
+outline *would* reach under the antenna. The notch survives.
+
+What actually changed is the notch's **position**, not its existence or its size. The old notch
+removed x 153.56–160.00, y 48.00–96.00; the new one removes **x 213.56–220.00, y 48.00–96.00** —
+the same 6.44 × 48 mm rectangle, shifted 60 mm right, which is exactly how far the right edge
+moved. So the numbers to write are:
+
+| | Old | New |
+|---|---|---|
+| Board area | 140 cm² | **279.92 cm²** |
+| Notch | x 153.56–160.00, y 48–96 (3.1 cm²) | **x 213.56–220.00, y 48–96 (3.09 cm²)** |
+| Plate after notching | ~137 cm² | **~276.8 cm²** |
+
+Re-derive all three rather than copying them: the keep-out polygon is in U5's footprint block in
+`mccan.kicad_pcb` (search for the `keepout` token), and the outline is the eight `Edge.Cuts`
+entities.
+
+**~272 cm² is close but is not measured.** It appears in the 2026-09-23 spec's comparison table
+and again in `layout_pcb.py`'s plate comment. The measured figure is 276.8 cm². Correct both to
+the measured value and say it was measured; do not leave an estimate standing beside a board you
+can compute from. (An earlier draft of this step called ~272 an arithmetic slip and told you to
+write 280. Both halves of that were wrong: 280 is the board, not the plate, and ~272 was an
+estimate of the right quantity.)
+
+So the twenty lines carrying "notch" or "~137 cm²" — find them with
+`grep -in "notch\|137 cm\|~137" hardware/docs/enclosure.md`; they sit in §1 (74, 76, 79, 84, 87,
+100, 104, 106, 119, 123, 125-126, 141), §5 (175-176), §6 (239, 241) and the tables at 372, 375
+and 376 — are **mostly re-numbering, not deletion**.
+
+**The `-i` is load-bearing: without it the grep returns eighteen, not twenty.** Line 119 begins
+"Notch inner corners" and line 126 "Notching only the antenna corner", both capitalised, and a
+case-sensitive grep drops both. Line 119 is the one this paragraph goes on to single out for
+recomputation, so running the command without `-i` hides precisely the line you were sent to
+find. Work the list one line at a time and decide
+per line. Line 119 ("Notch inner corners (153.56, 48) and (153.56, 96) | 21.2 mm") is an antenna
+clearance distance and has to be **recomputed** against the new corners, not just re-coordinated.
+Line 125-126's "why notching beats cutting the plate back" argument still holds and keeps its
+shape, but its arithmetic was done on the old plate and needs redoing. The one line that is
+simply false now is the footprint row at 74, and the 241 and 372 restatements of it.
+
+**What survives the edit:** the whole plate-notch decision, with new coordinates. The heading at
+line 84, "Which face the plate is — DECIDED 2026-09-20", is a decision record and **both** halves
+of it still stand — the plate is the base, and it is notched. Amend the coordinates, date the
+amendment, and leave the decision. Espressif's 15 mm in-plane antenna clearance still binds the
+enclosure, and the vertical-clearance open item at line 376 stays open, reworded for the new
+geometry. Do not delete a decision to make a document tidy.
+
+**The plate's argument has, however, genuinely weakened, and that is the real change to record.**
+At ~137 cm² the old plate missed `enclosure.md` §1's ≥ 150 cm² and the thermal group got a veto
+over placement because of it. At ~276.8 cm² the requirement is met most of twice over. The
+2026-09-23 spec §2 says so explicitly ("the plate stops being a design driver") and §4.3 records
+the consequence. That — not the notch — is what changed about the plate.
+
+**Four comments in `hardware/scripts/layout_pcb.py` need attention in the same commit**, and only
+three of them are wrong.
+
+The first is the module's own docstring. **Lines 7-16 still argue for a 140 x 100 mm board**, in
+the present tense and as a decision: "140 x 100 mm, decided here and not guessed", then the
+courtyard sum, then "**140 x 100 = 140 cm2.**" The block that supersedes it is forty lines further
+down at `:58` ("200 x 140 mm (2026-09-23). Was 140 x 100.") and is correct and complete. Nothing
+at the top says it has been superseded, so a reader who starts at the top of the file -- which is
+what a docstring is for -- reads the wrong board size stated as a finding. Do not delete the old
+argument; its courtyard arithmetic is the reasoning the new size was chosen against. Mark it:
+say at its head that it records the **original** sizing and that the board is now 200 x 140, and
+point at the outline block. The same applies to the line inside it about the >= 150 cm2 plate,
+which Step 2 resolves against spec 9.1's 140 cm2.
+
+**Line 35 says the antenna keep-out is "on all six layers".** It is eight. This is the six-layer
+fact surviving in a fifth place; correct it in passing.
+
+Then the two you were already going to look at, one of which is fine. Lines 25-26 say the heat-spreader is the base "with the **antenna corner
+notched out**" and that this supersedes spec §9.1 — that is still **true** and stays. Line 70's
+plate comment says the plate goes "to ~272 cm2, against the 150 cm2 enclosure.md section 1 asks
+for" — the area is the estimate to replace with the measured 276.8 cm², and the 150 cm² there
+disagrees with spec §9.1's "required 140 cm²" (see Step 2, which resolves that). Also check the
+dead constants: `ANT_W, ANT_D = 18.0, 6.19` just below are defined and never read anywhere in
+`hardware/scripts/` — the real keep-out comes from U5's footprint through `fp_keepouts()`. Either
+say in the comment that they document the datasheet figure, or remove them; a constant that looks
+load-bearing and is not is the same defect class in a different costume.
+
+**And one in `hardware/scripts/gen_pcb.py`.** `SILK_REF_KEEP`'s docstring at `:290-301` says
+"That is what **233 parts on 140 x 100 mm** costs". The board is 200 x 140 with **234** parts --
+that is `gen_pcb.py`'s own "parts 234", the netlist component count, which is the same thing
+the old "233" counted. The board carries **238** footprints and 238 reference designators; the
+extra four are H1-H4, the mounting holes, which the generator adds rather than the netlist. `:388` carries the companion figure ("already took this from 398
+to 68"). Both are measurements taken on the old board, sitting inside a rationale for a policy
+that is still in force -- so correct the numbers and say which board they were measured on;
+do not delete the paragraph or restate the policy.
+
+While you are in that docstring: `:443`'s comment is **correct and stays**. "The ladder used to
+stop at 1.4 mm, which was enough only because anything it could not place got shrunk and then
+demoted. With those gone..." -- the shrink-and-demote *fallback* really was removed on this
+branch and silk really is a hard gate now (`raise SystemExit` at `:470`). The blanket
+by-prefix demotion at `:418` and `:508` is a different mechanism and is still there. Two
+mechanisms, one of them gone and one of them live, and the comments about each are right.
+
+**Do not widen `SILK_REF_KEEP`.** 177 of the 238 designators are hidden on `F.Fab` -- every R
+and C, and both switches -- and whether that policy still earns its keep on a board of twice
+the area is a real open question that I am holding for the user, because it goes to why they
+asked for the re-layout. It is not yours, it changes the board, and it would break the
+byte-identical check below. Leave the tuple exactly as it is.
+
+Change comments only — the board must regenerate byte-identical, and `python scripts/gen_pcb.py`
+plus `git diff --stat mccan.kicad_pcb` is how you prove it did.
+
+**One exception to "comments only", and it is the most consequential thing in this task.**
+§14 item 5 of `fabrication.md` tells the fab: "ANTENNA KEEP-OUT: no copper, plating, mask,
+silkscreen or parts on ANY layer in the marked region at the right-hand edge (**see Cmts.User**)."
+There is no such marked region. I checked the artifact:
+
+- The only antenna marking on `Cmts.User` is a free-standing text note, `layout_pcb.py:419`,
+  placed at **(121, 16)** — the top edge of the board, about 90 mm from the region it names.
+- **No rectangle marks the keep-out anywhere.** The board's only two `Cmts.User` rectangles are
+  the TIM gap pads at (76,23)-(110,82) and (81,104)-(95,116), emitted by `tim_areas()` from
+  `TIM_PADS`.
+- The note's own dimensions, "**18.0 x 6.19 mm** from the module end face", are the dead
+  `ANT_W, ANT_D` constants from the paragraph above. The keep-out the board actually enforces is
+  U5's footprint `keepout` polygon at **x 213.56 … 234.75, y 48.00 … 96.00** — 21.19 x 48.00 mm.
+  The note contradicts the thing it describes.
+
+So between §3's coordinates being 60 mm out and this, **the fab has no correct way to learn where
+the keep-out is** — from the document, from the order text, or from the board. This is the one
+defect on the branch that reaches the physical part.
+
+Fix it in this commit:
+
+1. Draw the region. Follow `tim_areas()` in `gen_pcb.py:1215` exactly — a dashed `gr_rect` plus a
+   label on `Cmts.User` — and take the rectangle from U5's footprint keep-out polygon rather
+   than from a constant, so it cannot drift from what the board enforces.
+2. Move the note beside the region it names, and correct its dimensions to the keep-out's own.
+   If you keep the 18.0 x 6.19 datasheet figure, label it as the *antenna element* inside the
+   larger keep-out, which is what it is — do not leave two rectangles stated as one.
+3. Then check §14 item 5 and §3 against what you drew. "Right-hand edge" is correct; make the
+   rest correct too.
+
+This one change makes `mccan.kicad_pcb` differ, which is the point. Everything else in this step
+is still comments-only: after `python scripts/gen_pcb.py`, `git diff mccan.kicad_pcb` must show
+the new rectangle and the moved note **and nothing else**. Read the diff, do not just count it.
+
+**Two more places carry the ~272 cm² estimate or the notch, and they pull in opposite directions.**
+
+`docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md` — this plan's own spec — puts
+"**~272 cm²**" in its §2 comparison table and repeats the plate argument at lines 61 and 68.
+Line 68 ("the plate is still the **base**, still notched at the antenna corner") is **correct**
+and is the sentence that caught the error in the earlier draft of this step; leave it. The
+~272 cm² in the table is the estimate: correct it to the measured 276.8 cm² in the same commit.
+Editing the spec is in scope here because the spec is the authority every later reader argues
+from, and an estimate left standing in the authority is how a wrong number propagates — but say
+in the commit message that you changed it and why.
+
+`hardware/docs/fabrication.md:119` says "heat-spreader plate is notched to clear it — see
+`enclosure.md`". That is **still true** and needs no edit. It is listed here so you do not
+"fix" it on a sweep for the word "notch".
+
+**`enclosure.md`'s resolved-items table (around lines 372-378) has stale rows that have nothing
+to do with the notch**, so the notch grep does not find them. Read the whole table and fix:
+
+- **"~~Layer count~~ RESOLVED 2026-09-22 | 6 layers, 1 oz on all six"** — this board is
+  **8 layers**. The row's reasoning about odd stacks laminating from an even one still holds
+  and is worth keeping; the count and the date do not.
+- **"~~2 oz outer copper vs the land patterns~~ RESOLVED 2026-09-20 | 1 oz outer / 2 oz inner
+  … the In2.Cu feed polygon gained copper"** — wrong twice. This board is **1 oz on all
+  eight**, and the feed polygon is **In4.Cu**.
+- **"~~Board outline~~ RESOLVED 2026-09-20 | 140 × 100 mm, M3 at 5 mm from each corner"** —
+  the outline is **200 × 140 mm**; check the M3 inset against `layout_pcb.py`'s `MOUNT_INSET`
+  rather than assuming it carried over.
+- **"~~Thermal group area~~ RESOLVED 2026-09-20 | 1358 mm² in two patches"** — re-measure or
+  mark it as needing re-measurement; §4.3 of the 2026-09-23 spec relaxed the thermal group.
+
+These are **resolved-item records**, so amend them with a dated supersession the way Step 1
+handles §3.2 — the decision and its reasoning are the value; only the figures are wrong.
+
+**Grep for the coordinates as well as for the words.** The notch grep above keys on "notch" and
+"137", and `enclosure.md` carries the old keep-out rectangle in six further lines that contain
+neither. Run
+
+```bash
+grep -n "153.56\|174.75\|160.00\|136.9" hardware/docs/enclosure.md
+```
+
+**Work the grep's output, not this list.** When I ran it, it returned lines **101, 108, 115,
+119, 176, 192, 242 and 349** — the "14.75 mm beyond the board's own 160 mm edge" sentence, the
+notch-area arithmetic, the antenna-proper rectangle at x 168.56–174.75, the 21.2 mm notch-corner
+clearance, item 3's restatement of the notch rectangle in the box-selection list, the §5
+statement of the absolute keep-out, the §6 restatement, and the conformal-coating row. Eight
+lines, and the enumeration is here to tell you what each one *is*, not to bound the work: if
+your run returns a line this list does not name, the line is in scope and this brief is out of
+date. Each needs the same 60 mm shift, except line 115's antenna-proper rectangle and line 119's
+21.2 mm clearance, which need **recomputing** rather than shifting, because they are distances
+between the notch corners and the antenna rather than the rectangle itself.
+
+**One more file to look at, with a question rather than an instruction.**
+`hardware/scripts/gen_pcb.py:1249` and `:1313` explain why the per-net `/VBAT` island failed,
+using "eleven pads span x 83.38..174.58, so its box is 98.4 x 20.0 mm and swallows five /VBAT
+pads". Those are old-board coordinates. The *argument* is the one Step 1 preserves and is still
+correct; the *numbers* in it may describe a board that no longer exists. Check them against the
+current pad positions. If they are stale, either re-derive them or rewrite the sentence so it
+makes the argument without asserting a measurement — do not leave old coordinates standing as
+though they were measured on this board.
 
 - [ ] **Step 4: Amend `hardware/docs/routing-tool.md`**
 
 Four signal layers rather than two, the new `SIGNAL_LAYERS`, and what the router achieved on the roomier board against its 122 of 139 on the old one.
 
+**§5 is a dated log of runs, not a status page.** It holds §5.1 (two signal layers), §5.2 (the
+six-layer run, committed as `64182bf`) and §5.3 (the rip-authority run, tried and discarded).
+Add a **§5.4 for the eight-layer run** with its date and commit, and leave 5.1–5.3 alone — 5.2
+is the baseline the new figures are compared against, and 5.3 records a thing that was tried
+and did not work, which is worth more than a tidy document. The figure to beat from §5.2 is
+**72 unconnected items**, of which 51 are nets the router never sees (`AR_SKIP_CLASSES`
+covers FEED, POWER and CAN), so **21** is the router-attributable number.
+
+Note that §5.2's own line reads "Four signal layers instead of two (F.Cu, In2.Cu, **In4.Cu**,
+B.Cu)". That was true of the six-layer board. On this board `In4.Cu` is the solid `/VBAT`
+power plane and the fourth signal layer is `In5.Cu`. Do **not** correct §5.2 — it is accurate
+about the run it describes. State the current set in §3 and §5.4, where it belongs.
+
+§3 and its "What it is and is not allowed to touch" subsection describe *current* behaviour
+rather than history, so those are updated in place: the layer list the run is given, and the
+net classes it is not allowed to touch.
+
+**One more line, in §6 and not §3 or §5, so neither grep above finds it.** "Nothing this repo
+writes carries a zone fill" (around `:373`) says `gen_pcb.py` "emits **all six zones** as
+outlines with no `filled_polygon`". The sentence is right about the fill and wrong about the
+count: the board has **seven** zones -- GND on `In1.Cu`, `In3.Cu`, `In6.Cu` and `B.Cu`,
+`/VBAT` on `In4.Cu`, `/+24V` on `B.Cu`, and `/power_input/GND_IN` on `F.Cu`. Correct the count
+and leave the rest of the bullet, including both `--refill-zones` consequences, alone.
+
+This is the same figure `fabrication.md` §12 gets wrong in the other direction (it tables
+five), and Step 5 fixes that one. After this task the two documents must agree with the board
+and with each other -- seven zones, that list. If you change one and not the other you have
+replaced one wrong number with two that disagree, which is worse.
+
 - [ ] **Step 5: Amend `hardware/docs/fabrication.md`**
 
 8 layers, 200 × 140 mm, 1 oz throughout, ENIG. Carry forward the three PCBWay items that still apply: **via-in-pad plugging must be specified on the order**, not implied by the gerbers; U10's 0.15 mm pad gap is under their 8 mil IC mask figure so expect no mask dam there; and their "vias ≤ 0.45 mm" hole-to-hole wording wants a DFM question. Add one new item: confirm PCBWay's standard 8-layer 1.6 mm stackup and whether 1 oz on all eight is standard or a surcharge.
+
+**This is not a headline-facts edit.** `fabrication.md` is 450 hand-maintained lines across
+sixteen sections, and several of them are *derived from the board* — they were computed against a
+six-layer, 140 × 100 board whose routing no longer exists. This is the one document that goes to a
+vendor, so a stale number here is an order placed on a wrong board. These sections must be
+re-derived, not reworded:
+
+- **§5 Drill schedule** — every figure in it. The per-size counts, "**968 vias in total, of which
+  614 came from the router**", "the 0.20 mm plated hole … there are **47** of them", and the
+  8:1-aspect-ratio argument built on those 47, are all functions of the router run that Task 10
+  has just replaced. Re-derive from the **generated Excellon files** in `hardware/output/` — they
+  are what the fab actually receives, and they carry PTH and NPTH separately. That means doing
+  this section **after Step 7**, not before; do the prose parts of Step 5 now and come back.
+  Delete the trailing line "Via totals will grow by a handful as the last hops are hand-routed" —
+  the hand routes are done.
+- **§6 Land-pattern exceptions** — the measured gaps (U10's 0.175 mm track-to-pad, and the
+  "next three gaps" at 0.183 / 0.190 mm) are routing-dependent. Re-measure or, if you cannot,
+  say in the document that they are unverified against the current routing rather than leaving
+  them stated as fact.
+- **§4 design rules**, **§12 copper pours** and **§14 order notes** restate numbers from §2, §5 and
+  §6. Update them from the re-derived values; §14 is pasted verbatim into a vendor order, so a
+  number that survives there survives into the build.
+  **§12 needs more than a number pass.** It opens "Five zones" and tables five. The board has
+  **seven**, and I have taken them from the artifact so you do not have to
+  (`mccan.kicad_pcb:91161` onward):
+
+  | Layer | Net |
+  |---|---|
+  | `In1.Cu` | `GND` |
+  | `In3.Cu` | `GND` |
+  | `In4.Cu` | `/VBAT` |
+  | `In6.Cu` | `GND` |
+  | `B.Cu` | `GND` |
+  | `B.Cu` | `/+24V` |
+  | `F.Cu` | `/power_input/GND_IN` |
+
+  So the count is wrong, the feed is on the wrong layer (`In3.Cu` in the table, `In4.Cu` on the
+  board — the swap again), and two ground planes are missing entirely. `In1.Cu`'s "the reference
+  plane for `F.Cu` and `In2.Cu`" is still correct and stays. The `GND_IN`/`GND` separation
+  paragraph below the table is a circuit requirement, unchanged by any of this — leave it.
+- **§11 Impedance** currently argues "do NOT order controlled impedance" from a six-layer board
+  with CAN on an outer layer. The conclusion may well still hold, but its reasoning does not:
+  CAN is now a stripline on `In2.Cu` between two ground planes. Rewrite the reasoning for the
+  present stackup and restate the conclusion you reach, whichever way it goes.
+
+If any figure cannot be re-derived within the task, write it down as an open item in §16 with the
+reason. An honest gap is fine; a confident stale number is not.
+
+**§7 "Via in pad — the five paddles" is correct and stays.** I counted it on the routed board so
+you do not have to re-derive a section that does not need it: 65 vias at 0.55 mm pad / 0.25 mm
+drill, split `/+24V` 25 (D4's 5 × 5), `GND` 28 (U1 and U2 at 3 × 4, U3 at 2 × 2) and `/VBAT` 12
+(U9's 3 × 4) — exactly the table §7 prints, and exactly the 65 vias §14 item 1 orders plugged
+and capped. Paddle arrays come from the footprints, not from the routing, so they did not move
+when the board did. Leave the section alone.
+
+That is the line to draw when re-deriving: **routing-dependent figures moved, footprint-derived
+figures did not.** For contrast, two §14 figures that did move, because they count vias the
+router placed — "Min plated drill 0.20 mm, **47** holes" and "Min annular ring 0.15 mm, on **35**
+vias of 0.50 mm dia". The board carried 55 vias at 0.50/0.20 when I counted, and hand routing
+may have changed it again since. Both come from §5, which is why §5 and everything restating it
+wait until after Step 7 and are taken from the generated Excellon files.
+
+**Those two counts are not the same count, and 47 was never a via count.** I took the drill
+inventory off the board at `50486be`: 1382 vias, 55 at 0.50/0.20, 65 at 0.55/0.25, 957 at
+0.60/0.30, 305 at 0.80/0.40 — and **twelve further plated 0.20 mm holes that are not vias**.
+They are U5's thermal pad: the `ESP32-WROOM-32E` footprint models its paddle stitching as
+twelve `thru_hole` pads numbered 39, size 0.6 mm, drill 0.2 mm. So the smallest-drill *hole*
+count is vias-plus-those-twelve. The old pair reconciles exactly — 35 + 12 = 47 — which is how
+you can tell the two figures were always coupled. On the board as it stands the pair is
+**55 vias and 67 holes**. If you re-derive "min plated drill, N holes" from the via list alone
+you will write 55 and be twelve holes short, and the fab will be quoted the wrong drill count.
+Take it from the Excellon file after Step 7, which contains both.
+
+**The 0.15 mm annular-ring *value* did not move — only its count.** Three of the four via sizes
+give exactly 0.15 mm of ring (0.50/0.20, 0.55/0.25, 0.60/0.30); the 0.80/0.40 gives 0.20 mm, and
+U5's 0.6/0.2 paddle pads give 0.20 mm. So 0.15 mm is still the minimum. Do not "correct" it.
+
+**Three §14 items are verified correct and are not yours to touch.** A list of things to change
+reads as permission to change anything nearby, so I checked these against the artifact:
+
+- **item 1** (via-in-pad, 65 vias at 0.55 mm pad / 0.25 mm drill, five paddles) — matches the
+  board exactly, and matches §7 above. Footprint-derived.
+- **item 4**'s closing sentence, "Layer ORDER and the 0.1 mm prepreg either side of the outer
+  layers must be kept" — the eight-layer stackup does put 0.1 mm prepreg either side of the
+  outers, so this survives the layer-count change even though the sentence sits in a section
+  whose opening lines do not. Item 4's subject — no controlled impedance ordered — is also
+  still true: nothing on this branch ordered any.
+- **item 6**'s via-diameter list, "0.50 / 0.55 / 0.60 / 0.80 mm" — those are exactly the four
+  diameters on the board and no others. The hole-to-hole DFM question around it stands.
+
+Items 2 (U10's missing mask dam) and 3 (tight land patterns) are footprint-derived like §7 and
+did not move either; carry them forward as they are.
+
+**§3 "Board outline and mechanical" is stale in every line, including the one marked absolute.**
+It says "Rectangle **140.0 × 100.0 mm**", gives mounting holes at (25, 25), (155, 25), (25, 115),
+(155, 115) with "the outline runs x 20…160, y 20…120", and then states the antenna keep-out as
+"**x 153.56 … 174.75, y 48.00 … 96.00** — this one is absolute". Every one of those is the old
+board. Take all of them from the artifact:
+
+- outline and corner radius from the eight `Edge.Cuts` entities (x 20…220, y 20…160, 3 mm arcs);
+- mounting-hole centres from the board, not from `MOUNT_INSET` arithmetic;
+- the keep-out rectangle from U5's footprint `keepout` zone polygon — it is
+  **x 213.56 … 234.75, y 48.00 … 96.00** on this board (see Step 3).
+
+The keep-out is the serious one: §14 item 5 tells the fab "no copper, plating, mask, silkscreen or
+parts on ANY layer in the marked region at the right-hand edge", and §3 is where the region's
+coordinates come from. "Right-hand edge" is still true; the numbers are 60 mm out.
+
+**§1 "The one-screen summary" restates the headline facts** — layer count, size, copper weight,
+finish. Check it against the values you land on; a summary that disagrees with the document under
+it is worse than no summary. Four of its rows are stale and two that look stale are not — I
+checked the generated `(stackup …)` block at `gen_pcb.py:1110` so you do not have to:
+
+- **stale:** "Board size 140.0 × 100.0 mm"; "Layers **6**"; "Inner copper … **all four inner
+  layers**" (there are six now); and, in §2, every row below `In2.Cu`.
+- **correct, leave alone:** "Finished thickness **1.6 mm**" and "Max aspect ratio **8:1**". The
+  eight-layer stackup still sums to 1.59 mm — 8 × 0.035 copper, dielectrics
+  0.1/0.2/0.2454/0.2/0.2454/0.2/0.1, two 0.01 masks — so 1.6 mm and 1.6 ÷ 0.20 = 8:1 both
+  survive the layer-count change. Adding layers did not thicken the board; the dielectrics got
+  thinner. Do not "correct" these to match the new layer count.
+
+**§2 is a six-layer stackup end to end, and §14 orders one.** §2 opens "Six layers, built as a
+foil lamination: two cores bonded by three prepregs" and its table lists `In3.Cu 0.035 VBAT — the
+7 A feed plane`; §14's order text says "**6-layer FR4, 1.6 mm finished**" and "**1 oz (35 um)
+finished copper on ALL SIX layers**". §14 is the block that gets pasted into the PCBWay order, so
+this is the one stale number on the branch that spends money: it would order a six-layer board
+for an eight-layer design. Rebuild §2's stackup table from `gen_pcb.py`'s `(stackup ...)` block
+rather than editing the old one row by row, and rewrite §14's opening lines from it. Line 82's
+"Going to six layers made the 2 oz impossible" is a **historical** sentence about how the copper
+weight was decided and reads correctly in past tense — check it rather than replacing it.
+
+Two more lines in that subsection are not historical and are wrong in the present tense:
+
+- **`:79`, the heading "Why 1 oz on all six"** — it is eight now, and the heading is the label on
+  an argument that still holds.
+- **`:85`, "`In2.Cu` and `In4.Cu` now carry *tracks*"** — present tense, wrong layers. The signal
+  layers are `In2.Cu` and `In5.Cu`; `In4.Cu` is the solid `/VBAT` plane. The argument itself gets
+  **stronger** on this board rather than weaker: two inner signal layers became two inner signal
+  layers out of six inner layers, all of which take one inner-copper selector, so the 6/8 mil
+  etch limit at 2 oz still decides the plane's copper weight. Fix the layer names and keep the
+  reasoning.
+
+This is the In3/In4 swap again, inside a section you are already editing for the layer count —
+exactly the place a partial edit leaves a wrong layer name behind.
 
 - [ ] **Step 6: Mark the old plan's Tasks 8 and 9 as superseded**
 
@@ -1710,23 +2228,71 @@ Add a line at the head of each pointing at this plan and its spec. Do not delete
 
 - [ ] **Step 7: Generate the fabrication outputs**
 
+**The plan named the wrong script here and it has been corrected.** `scripts/gen_outputs.py`
+generates `outputs.kicad_sch` — the *outputs schematic sheet*, the PROFET/PCA9685 page. It is a
+sibling of `gen_rails.py` and `gen_mcu_can.py`, it contains no reference to gerbers, drills or
+`kicad-cli`, and it imports `uuid`, so running it would regenerate a schematic with fresh UUIDs
+and dirty the tree for no reason. **Do not run it.** Nothing in this repo generates a fabrication
+package; `hardware/output/` today holds only DRC/ERC reports, logs and netlists. You are creating
+that package for the first time, with `kicad-cli` directly:
+
 ```bash
 cd /d/projects/ESP32MCCAN/hardware
-python scripts/gen_outputs.py
-ls -la output/
+KC="/c/Program Files/KiCad/10.0/bin/kicad-cli.exe"
+mkdir -p output/gerbers output/drill
+
+# Gerbers, using the plot settings gen_pcb.py already writes into the board
+"$KC" pcb export gerbers --board-plot-params --check-zones -o output/gerbers/ mccan.kicad_pcb
+
+# Drill, PTH and NPTH separate, with the hit report section 5 needs
+"$KC" pcb export drill --format excellon --excellon-separate-th       --generate-map --generate-report --report-path output/drill/drill-report.txt       -o output/drill/ mccan.kicad_pcb
+
+# Placement (CPL) and BOM
+"$KC" pcb export pos --format csv --units mm --side both -o output/mccan-cpl.csv mccan.kicad_pcb
+"$KC" sch export bom -o output/mccan-bom.csv mccan.kicad_sch
+
+ls -la output/ output/gerbers/ output/drill/
 ```
 
-Confirm the gerbers contain **eight copper layers**.
+Confirm the gerber set contains **eight copper layers** — `F.Cu`, `In1.Cu` through `In6.Cu`,
+`B.Cu`. A gerber set with six is the tell that the board file did not regenerate.
+
+`output/drill/drill-report.txt` is the authority for §5 of `fabrication.md`: it is KiCad's own
+count of every hit at every size, PTH and NPTH separately. Re-derive that section from it rather
+than from the board file or by hand.
+
+**§15 of `fabrication.md` lists two outputs these commands do not produce**, and says of the whole
+package "Not yet generated — Task 9 step 7", which is now wrong twice: it is this task, and it is
+generated. Add both exports rather than trimming the list — a schematic PDF and an assembly
+drawing are what an assembler actually reads. Both invocations are checked against
+`kicad-cli 10.0 --help`:
+
+```bash
+"$KC" sch export pdf -o output/mccan-schematic.pdf mccan.kicad_sch
+"$KC" pcb export pdf --mode-multipage --include-border-title \
+      --crossout-DNP-footprints-on-fab-layers \
+      -l F.Fab,B.Fab,F.Silkscreen,Edge.Cuts -o output/ mccan.kicad_pcb
+```
+
+Then update §15 itself: replace "Not yet generated" with what was generated, when, and from which
+commit, and check every row of its table against what is actually in `output/`. A manifest that
+does not match the directory beside it is the same defect as a stale figure.
+
+Note that `--check-zones` refills the zones as it plots. Afterwards, confirm the board file on
+disk has not changed (`git diff --stat mccan.kicad_pcb` is empty); if it has, the committed board
+and the plotted gerbers disagree, and that is the thing to resolve before shipping either.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add -A docs hardware/docs hardware/output
+git add -A docs hardware/docs hardware/output hardware/scripts/layout_pcb.py
 git commit -m "hw(docs): the documents catch up with a 200 x 140 mm, 8-layer board
 
 Spec 9.1, 9.3 and 10; enclosure.md, routing-tool.md and fabrication.md; and the old
 plan's Tasks 8 and 9 marked superseded rather than deleted, since they record how
-the board got here. Plus the fabrication package.
+the board got here. layout_pcb.py's heat-spreader comment no longer claims a notch
+the outline does not have. Plus the fabrication package, generated for the first
+time -- gerbers, drill with its hit report, CPL and BOM.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -1792,11 +2358,13 @@ description: Use when laying out, placing or routing a printed circuit board in 
 
 - [ ] **Step 2: Write `references/placement.md`**
 
-Regions and auto-flow; why largest-first packing beats reference order; part-free channels between regions and how to size one (0.20 mm track on 0.40 mm pitch ≈ 15 tracks per layer in 6 mm); fill budgets and what a realistic target is (under ~40 % routable, ~75 % not); why a budget should have headroom rather than match the current measurement; silk as a hard gate; and the specific observation that every silk violation on a dense board is a designator landing on a neighbour's outline or on a pad, never two real silk graphics — which makes it a text-placement problem, decidable before anything is routed.
+Regions and auto-flow; why largest-first packing beats reference order; part-free channels between regions and how to size one (0.20 mm track on 0.40 mm pitch ≈ 15 tracks per layer in 6 mm); fill budgets and what a realistic target is (under ~40 % routable, ~75 % not); why a budget should have headroom rather than match the current measurement -- note that this board's own budgets run 25 % to 45 %, so do not write that they are all under 40 %; silk as a hard gate; and the specific observation that every silk violation on a dense board is a designator landing on a neighbour's outline or on a pad, never two real silk graphics — which makes it a text-placement problem, decidable before anything is routed.
+
+Then the lesson that cost the most here. The silk placer searched four candidate positions per part — the midpoints of its four sides — and behind that sat a ladder of fallbacks: shrink the text, then demote it to the fab layer. The candidate search was simply broken for any part hemmed in on all four sides, and the ladder hid that perfectly: every part it could not place was quietly degraded, and the gate went green, so nobody ever had to notice. **Removing a fallback is how you find out what it was covering for.** Generalise it: a fallback that fires silently converts a defect into a cosmetic loss, and a cosmetic loss nobody is shown is a defect that never gets fixed. Make the fallback announce itself, or take it out until the thing behind it works.
 
 - [ ] **Step 3: Write `references/stackup.md`**
 
-Every signal layer needs a plane on at least one face — and a pour on the *same* layer is not that. Cheap symmetry rules. Why an odd layer count costs the same as the next even one and warps more. How inner-copper weight is one selector for all inner layers, so a signal layer's etch class decides the plane's weight too — and the trap that follows: 2 oz inner etch at 6/8 mil is 0.203 mm, above a 0.20 mm clearance rule, so thick inner copper can silently make a board unbuildable. Split power planes: compute islands from pad positions, never draw a partition, and use fill priority to carve rather than geometry. Measuring a plane's real current capacity by rasterising the pour and punching the antipads out.
+Every signal layer needs a plane on at least one face — and a pour on the *same* layer is not that. Cheap symmetry rules. Why an odd layer count costs the same as the next even one and warps more. How inner-copper weight is one selector for all inner layers, so a signal layer's etch class decides the plane's weight too — and the trap that follows: 2 oz inner etch at 6/8 mil is 0.203 mm, above a 0.20 mm clearance rule, so thick inner copper can silently make a board unbuildable. Split power planes — and write this one up as a **worked rejected approach**, because that is what it was on this board. The instinct is to compute islands from pad positions and let fill priority carve rather than drawing a partition. The trap is that a per-net bounding box is not an island once that net's pads span the board: the box encloses foreign pads, and the "split" shorts what it was meant to separate. The plane went solid instead. Carry the gate lesson with it: a check that rasterises a zone outline and subtracts via barrels cannot see a neighbouring zone on the same layer, so when the plane stops being alone on its layer that check must **refuse to measure** rather than print a number it cannot stand behind. A gate that degrades quietly into a wrong answer is worse than no gate. Measuring a plane's real current capacity by rasterising the pour and punching the antipads out.
 
 - [ ] **Step 4: Write `references/routing.md`**
 
@@ -1804,11 +2372,72 @@ What earns a hand route: poured current paths, differential pairs, switching loo
 
 - [ ] **Step 5: Write `references/router-traps.md`**
 
-The KiCadRoutingTools specifics — `--escalation board` rather than trusting `--fab-tier`, `--no-bga-zones` because the BGA machinery is really a fine-pitch-grid detector that fires on TSSOP and QFN, `--keep-input-copper`, why `--strict-sizes` is unusable, and the general rule underneath all of them: a tool's own graders passing tells you nothing about whether it honoured your rules.
+The KiCadRoutingTools specifics — `--escalation board` rather than trusting `--fab-tier`, `--no-bga-zones` because the BGA machinery is really a fine-pitch-grid detector that fires on TSSOP and QFN, `--keep-input-copper`, why `--strict-sizes` is unusable, and the general rule underneath all of them: a tool's own graders passing tells you nothing about whether it honoured your rules. Do not reconstruct these rationales from memory: `hardware/docs/routing-tool.md` is the written authority for them, and the comments in `hardware/scripts/route_external.py` beside each flag say why that flag is passed. Generalise from those; do not restate MCCAN's own numbers.
 
 - [ ] **Step 6: Write `references/gates.md`**
 
-Each gate, what it catches, and specifically what it catches that DRC does not: ground-split counting, copper below the board's own minimums, tracks on plane layers, zero-length segments, courtyard overlap before a twenty-minute routing run rather than after, plane current capacity, region density. And the framing that makes them worth writing: a gate exists because someone lost hours to the thing it checks.
+Each gate, what it catches, and specifically what it catches that DRC does not: ground-split counting, copper below the board's own minimums, tracks on plane layers, zero-length segments, courtyard overlap before a twenty-minute routing run rather than after, plane current capacity, region density, and a zone that filled as two disconnected islands - that last one because a pinched pour is legal copper on the right net and shipped through every other check in this repo. Two traps about the gates themselves belong here too: a DRC run that counts unconnected pads in its exit status returns non-zero on a board with zero violations, so the gate is the violation count in the report body and never `$?`; and a gate that parses that report has to run after it, not beside it. And the framing that makes them worth writing: a gate exists because someone lost hours to the thing it checks.
+
+One more belongs in `gates.md` because it is the failure the gates here could not catch at all:
+**the stale-fact sweep, and why grepping for words is half of it.** When a measurement or a
+decision is superseded, it has to be chased through every document and comment that restates it.
+Grepping for the words that name it -- "notch", "split plane", "six layers" -- finds the prose.
+It does not find the copies that travel as bare numbers, because "x 153.56 … 174.75" says
+nothing greppable about what that rectangle is. So a sweep needs two passes: one for the words,
+one for the numbers themselves. On this board the second pass is what found the fabrication
+document telling the vendor an antenna keep-out 60 mm from where it is, and an order block still
+specifying a six-layer stackup for an eight-layer design.
+
+Carry the rule with it: **a ruling recorded is not a ruling delivered.** The moment a decision
+reverses a documented claim, grep for every restatement of that claim -- then, not in the task
+that happens to own one of the sections. A single reversal here had to be chased into a spec
+three times, two other specs, four hand-maintained documents and five source comments, and it
+was found each time by asking "which other file quotes the number I just corrected", never by
+looking somewhere new.
+
+And the sharpest version of it, which cost this branch three more defects after everything
+above was already written: **sweep the source of truth too, and start at the top of the file.**
+Every sweep here pointed outward from the one module that decides the layout, at the documents
+that quote it. That module's own docstring had carried the superseded board size, in the present
+tense and as a decision, since the day it was superseded -- and no sweep looked there, because
+it was the thing the sweeps were checking *against*. The file you trust is the file you stop
+reading, and the summary at the top of a file is the part nobody re-reads after they write it.
+
+One more, about the citations themselves rather than what they point at: **a line number is a
+claim with a shelf life.** Everything above is about text that went stale where it sat. This one
+goes stale without being touched. A brief written for a later task cited fourteen places in two
+source files that a concurrent task was still inserting lines into; every citation was correct
+when written and wrong by the time it was read, offset by however many lines landed above it.
+The failure mode is worse than a dangling reference, because the reader finds *something* at the
+line and has to decide who is wrong — and the cheap resolutions are both bad: skip the finding
+as already fixed, or edit the source until the citation comes true. When you cite into a file
+someone else is editing, cite the quoted text, which is stable, and offer the number as a hint.
+
+Its sibling, and the sharper of the two: **when a handoff document prescribes a command and then
+says what the command returns, run it.** A drifted citation announces itself — the reader finds
+the wrong text at the line and knows something is off. A command that under-returns is silent.
+It hands back a shorter list that looks complete, and nothing distinguishes "the brief listed
+extras" from "my command missed some". Both happened here in one sentence: a grep prescribed
+without `-i`, a prose count taken from that grep, and an enumeration beside it taken by eye —
+two lines apart in the list, and the line the paragraph then singled out for special handling
+was one of the two the command dropped. Prose and command have to come from the same run, or
+they disagree the moment either is edited.
+
+Its corollary is worth its own line: **a stale number inside a live rationale is not a dead
+comment.** The instinct on finding one is to delete the paragraph. Usually the policy it argues
+for is still in force and still correctly described, and only the measurement moved -- so the
+repair is to correct the figure and say which artifact it was measured on, not to remove the
+reasoning. Deleting it costs the next reader the answer to "why is this like this", which is
+the only thing a comment is for.
+
+And its sibling, which the number sweep cannot find: **check that an instruction has a
+referent.** A sweep asks whether a figure is current. It does not ask whether the sentence around
+the figure still points at something. On this board the order text told the fab "no copper in the
+marked region at the right-hand edge (see Cmts.User)" — every word of it current, and nothing
+marked on that layer to see. The test is to read a document as the person who will act on it and
+ask what they would do next, not to read it as a list of values to verify.
+
+Two rules about writing them, both learned the hard way on this board. **A gate that admits or rejects copper should not be written by the agent whose copper it judges** — not because anyone cheats, but because the author's idea of what could go wrong is exactly the blind spot the gate is supposed to cover. And **ablation over argument**: when a change fixes something, do not reason about which part of it did the work — take each part back out and watch. A fix credited to the wrong cause teaches the wrong lesson and leaves the real one live. That happened here, in the very task whose subject was that unverified fallbacks hide defects.
 
 - [ ] **Step 7: Verify the skill loads**
 
