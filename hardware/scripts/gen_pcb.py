@@ -2105,6 +2105,50 @@ def check_track_crossings(lo, hi):
                          + "\n  ".join(sorted(set(close))))
 
 
+def check_drop_via_crossings(glo, ghi):
+    """Every ground-drop via against every track on another net.
+
+    check_track_crossings above is segment-subject: TRACK_LOG[lo:hi] walks, and a via is
+    only ever the thing walked against, never the thing that walks. That is fine for the
+    router's copper -- see that docstring for why re-litigating it here would be noise --
+    but a ground-drop via is not router copper, it is ours, and nothing has ever put it on
+    the walking side. gnd_drops() places it after checking only against `foreign`, which at
+    that point in main() is hand routes and nothing else, because the router has not run
+    yet; router segments come later and a drop via landing on one is invisible to every
+    check that exists before this one. This is the one place a via has to be the subject.
+
+    VIA_LOG[glo:ghi] is the vias gnd_drops() actually placed (a shared drop reuses an
+    existing via and adds nothing here, so it needs no separate check -- the via it shares
+    was already checked when it was placed). Each is compared, against every track on
+    another net regardless of that track's layer, because a via runs the full barrel and
+    every layer it passes through is a layer its copper occupies.
+    """
+    close = []
+    for i in range(glo, min(ghi, len(VIA_LOG))):
+        vx, vy, vs, _vd, vnet = VIA_LOG[i]
+        for tx0, ty0, tx1, ty1, tw, tlay, tnet in TRACK_LOG:
+            if tnet == vnet:
+                continue
+            need = max(net_clearance(vnet), net_clearance(tnet))
+            # _seg_disc_gap, not _seg_rect_gap: the via is round.  See the note above it.
+            gap = _seg_disc_gap((tx0, ty0), (tx1, ty1), tw, vx, vy, vs)
+            # `need - 1e-6`, not `need`: the router targets the clearance floor exactly,
+            # not a margin over it, so the tightest drop-via-to-foreign-track gaps on this
+            # board are exact ties at 0.200 mm. A strict `<` would decide those ties on the
+            # last bit of a double and fail the build on float noise, not a real violation.
+            # One nanometre is three orders below anything a fab can hold and below the
+            # grid KiCad itself writes, so it cannot hide a genuine intrusion.
+            if gap < need - 1e-6:
+                close.append("a %s via (%.2f,%.2f) vs %s (%.2f,%.2f)-(%.2f,%.2f) on %s: "
+                             "%.3f < %.3f"
+                             % (NETNAME.get(vnet, "?"), vx, vy,
+                                NETNAME.get(tnet, "?"), tx0, ty0, tx1, ty1,
+                                tlay, gap, need))
+    if close:
+        raise SystemExit("ground-drop vias clash with other copper:\n  "
+                         + "\n  ".join(sorted(set(close))))
+
+
 def routes(comps, pos, padnet, netidx, placed):
     """Emit ROUTES and ROUTE_VIAS, after checking anchorage and foreign clearance."""
     spec = list(getattr(L, "ROUTES", []))
@@ -3500,7 +3544,9 @@ def main():
     _rt_lo = len(TRACK_LOG)
     out += routes(comps, pos, padnet, netidx, placed)
     _rt_hi = len(TRACK_LOG)
+    _gd_lo = len(VIA_LOG)
     dv, ds = gnd_drops(comps, pos, padnet, netidx, placed, kos)
+    _gd_hi = len(VIA_LOG)
     out += dv
     out += ds
     # The autorouter goes LAST of the copper, so its map sees the hand routes, the thermal and
@@ -3522,6 +3568,10 @@ def main():
     # above), and the router's copper, which is frozen and will not move for a hand route,
     # is now in TRACK_LOG and VIA_LOG where check_track_crossings can see it.
     check_track_crossings(_rt_lo, _rt_hi)
+    # Same reasoning as the call above: only now does the router's copper exist, and a
+    # ground-drop via placed against `foreign` (gnd_drops' hand-routes-only view) has never
+    # been checked against it until this line.
+    check_drop_via_crossings(_gd_lo, _gd_hi)
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")
