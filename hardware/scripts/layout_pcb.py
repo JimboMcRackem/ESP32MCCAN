@@ -1320,6 +1320,107 @@ ROUTES = [
                                  (85.450, 34.400)]),
     ("/EN_BOOST", "In2.Cu", 0.20, [(85.450, 34.400), (83.400, 38.200)]),
     ("/EN_BOOST", "F.Cu", 0.20, [(83.400, 38.200), (83.425, 38.200)]),
+
+    # Step 6.1b. Both routes below were planned by grid search against the FROZEN board
+    # (mccan.kicad_pcb, which under the freeze is what the copper really is), stepping 0.05 mm
+    # on all four signal layers, and every number quoted was then re-measured with gen_pcb's
+    # own gap functions -- _seg_rect_gap for pads, _seg_seg_dist for tracks, _seg_disc_gap for
+    # vias, plus a via sweep against copper on EVERY layer, which routes() itself never does.
+    # Width is 0.20 mm, the board floor, not the router's 0.25: in both corridors below 0.25
+    # loses the lane outright, and neither net carries current worth the copper (one is a
+    # PCA9685 PWM output into a gate resistor, the other a load-switch gate).
+
+    # /power_input/U10_GATE: U10 pin 3 down to R103.1, 14.5 mm, F.Cu -> In5.Cu -> F.Cu. The
+    # easy one in this batch: this is the input-protection cluster, not the output field, and
+    # the channel south at x = 39.20..39.45 was still open.
+    #
+    # The polyline starts at (37.200, 96.000) -- 0.300 mm east of pin 3's pad centre but well
+    # inside the pad, which spans x 36.15..37.65 -- because a leg drawn from the centre itself
+    # meets the end cap of the /power_input/SNS run that turns at (36.900, 96.500) at exactly
+    # 0.200 mm. Zero slack, measured, not guessed. Starting east of that cap costs no copper
+    # and buys 0.057 mm. Tightest per run, all against the 0.200 mm Default clearance:
+    #   F.Cu escape   0.257 then 0.268 to the /power_input/VCC10 run along y = 95.5
+    #   In5.Cu haul   0.246 and 0.241 to the VCC10 via at (38.800, 94.700)  <- binding
+    #                 0.249 to the /power_input/Q10_G via at (38.700, 91.400)
+    #                 0.933 on the last leg into R103
+    #   F.Cu landing  0.518 to a VCC10 via
+    #   via (38.900, 95.550)  0.256 to that same VCC10 via
+    #   via (38.000, 83.850)  0.291 to the VCC10 run on In2.Cu
+    # Worst slack +0.041 mm on a 0.200 mm limit.
+    ("U10_GATE", "F.Cu", 0.20, [(37.200, 96.000), (38.150, 95.950), (38.900, 95.550)]),
+    ("U10_GATE", "In5.Cu", 0.20, [(38.900, 95.550), (39.400, 95.000), (39.450, 94.700),
+                                  (39.200, 86.500), (38.000, 83.850)]),
+    ("U10_GATE", "F.Cu", 0.20, [(38.000, 83.850), (37.755, 83.330)]),
+
+    # /outputs/PWM_FL_R: U7 pin 6 to Q4 pad 2. Pad to pad, so both ends anchor on their own
+    # net's pads and nothing here leans on the anchorage check's blind spot for frozen copper.
+    # 53.8 mm of track and four vias for a 23 mm gap, and the length is the point of the
+    # comment: the direct line is not merely tight, it does not exist.
+    #
+    # Two measurements, both at 0.20 mm width and a 0.005 mm planning margin:
+    #   * U7's pad row cannot be crossed at all. Pitch 0.65 mm, pad height 0.400 mm, so
+    #     adjacent pad edges are 0.25 mm apart; a 0.20 mm track between them needs
+    #     0.10 + 0.200 either side = 0.60 mm. Every escape from this row is off a pad END.
+    #   * Flooding pin 6's escape inside the box x 140..158, y 24..54 reaches 12891 cells on
+    #     F.Cu and stops at y = 39.05; on In2.Cu/In5.Cu/B.Cu it stops at y = 34.55/34.45/34.35.
+    #     The MOSFET row at y = 50.7 is not in the set, on any layer -- the router's copper
+    #     walls that box off across its whole width. That box holds 2401 legal 0.60 mm via
+    #     sites out of 216961, which is the density this batch is working in.
+    # So the route leaves the pad east, vias to B.Cu and runs west-south-west under the MCU
+    # to x = 132, ducks to F.Cu for the 4 mm at y 42..46 where B.Cu is full, then back to B.Cu
+    # south-east and east along the y = 56 lane to x = 146.7, north to Q4 and up to the pad.
+    # Tightest per run, all against the 0.200 mm Default clearance:
+    #   F.Cu escape       0.240 then 0.223 to U7 pin 7's pad (/outputs/PWM_FL_G), then 0.424
+    #                     to the /outputs/PWM_FL_B via once clear of the row
+    #   B.Cu west haul    0.286, 0.251 and 0.252 to the /outputs/MUXIN_RL_B vias; 0.275 to
+    #                     the GND drop via at (142.000, 32.925); 0.352 to the
+    #                     /outputs/PWM_RL_R via on the long diagonal; 0.380 to the GND drop via
+    #                     at (133.875, 37.000); 0.274 then 0.400 to the /outputs/PWM_RR_G via
+    #                     -- and, to the two drop SQUARES rather than their discs (see below),
+    #                     0.275 and 0.280 to (142.000, 32.925), 0.269, 0.260 and 0.280 to
+    #                     (133.875, 37.000)
+    #   F.Cu duck-under   0.224 to the /outputs/SENSE_FR_B via, 0.225 to Net-(C60-Pad1) on F.Cu
+    #   B.Cu south-east   0.230 to the /outputs/+24V_RR via; 0.250 then 0.224 to the
+    #                     /outputs/RET_FR_R vias; 0.224 to the /outputs/SENSE_RL_R via;
+    #                     0.250 to the /outputs/SENSE_FR_B via along the y = 56.05 lane;
+    #                     then 0.236, 0.221, 0.229, 0.225 and 0.730 against
+    #                     /outputs/MUXIN_RR_B's vias and its own B.Cu run  <- 0.221 binding
+    #   F.Cu landing      0.228 then 0.250 to Q4 pad 3 (/outputs/RET_FL_G)
+    #   via (145.100, 29.800)  0.225 to the /outputs/PWM_FL_B via
+    #   via (132.150, 42.000)  0.225 to Net-(C60-Pad1) on F.Cu
+    #   via (132.150, 45.950)  0.225 to Net-(C60-Pad1) on F.Cu
+    #   via (146.650, 51.300)  0.247 to the /outputs/RET_FL_G run on F.Cu
+    # Worst slack +0.021 mm on a 0.200 mm limit, on the y = 55.5..55.8 corner.
+    #
+    # The west haul keeps 0.26-0.28 mm off the enclosing SQUARES of two GND ground-drop vias
+    # where the disc model would have let it sit at 0.225, and that detour is bought for a
+    # reason. gnd_drops.via_ok
+    # models a drop as the SQUARE that encloses it; routes() and the planner behind these
+    # numbers model the same via as the disc it is (the Step 6.0 ruling). The two are equal
+    # against a face and differ at a corner, which is exactly where this haul passes. An
+    # earlier version ran the leg (141.800, 32.300)-(133.450, 36.500) at 0.225/0.231/0.238 mm
+    # from those two drops -- legal discs, passed routes() and check_track_crossings() -- but
+    # 0.145 mm from the square at (142.000, 32.925) and 0.135/0.115 mm from the one at
+    # (133.875, 37.000). via_ok therefore could not keep either site, and gnd_drops re-picked
+    # them at (144.175, 32.925) and (133.875, 37.200). Those two land on the router's frozen
+    # copper, because gnd_drops sees only TRACK_LOG -- the hand routes -- and the frozen
+    # segments are not in it: KiCad reported eight shorting_items between the first and
+    # /outputs/PWM_RL_G's F.Cu tracks, and a 0.275 mm clearance error between the second and
+    # /+5V on In5.Cu. Drawing this haul clear of the squares leaves both drops where the
+    # router's copper already proved them safe. The blind spot in gnd_drops is reported in
+    # the Step 6.1b report, not patched here -- tightening via_ok's obstacle set moves ground
+    # drops board-wide and that is not this step's change to make.
+    ("PWM_FL_R", "F.Cu", 0.20, [(143.087, 27.725), (143.950, 27.850), (144.750, 28.600),
+                                (145.100, 29.800)]),
+    ("PWM_FL_R", "B.Cu", 0.20, [(145.100, 29.800), (145.000, 31.150), (144.750, 31.500),
+                                (143.050, 32.250), (141.600, 32.250), (133.350, 36.400),
+                                (133.200, 36.600), (133.000, 40.150), (132.150, 42.000)]),
+    ("PWM_FL_R", "F.Cu", 0.20, [(132.150, 42.000), (132.350, 43.800), (132.150, 45.950)]),
+    ("PWM_FL_R", "B.Cu", 0.20, [(132.150, 45.950), (136.150, 53.200), (136.150, 54.650),
+                                (136.950, 55.850), (137.250, 56.050), (141.250, 56.050),
+                                (146.100, 55.800), (146.450, 55.500), (146.700, 54.900),
+                                (146.700, 51.350), (146.650, 51.300)]),
+    ("PWM_FL_R", "F.Cu", 0.20, [(146.650, 51.300), (147.050, 50.850), (147.713, 50.700)]),
 ]
 
 # Hand vias: (net, x, y, diameter_mm, drill_mm).  Emptied with ROUTES -- see above.
@@ -1441,6 +1542,16 @@ ROUTE_VIAS = [
     ("Net-(U4-SR)", 110.300, 91.850, 0.6, 0.3),    # In5.Cu -> F.Cu at C32.1
     ("/EN_BOOST", 85.450, 34.400, 0.6, 0.3),       # F.Cu -> In2.Cu below U3 pin 6
     ("/EN_BOOST", 83.400, 38.200, 0.6, 0.3),       # In2.Cu -> F.Cu at R20.1
+
+    # Step 6.1b vias. Same 0.6/0.3 netclass default, same reasoning, and each one was swept
+    # against copper on every layer (routes() does not do that for a hand via) -- clearances
+    # are quoted in the ROUTES comment for the net.
+    ("U10_GATE", 38.900, 95.550, 0.6, 0.3),        # F.Cu -> In5.Cu, east of the VCC10 via
+    ("U10_GATE", 38.000, 83.850, 0.6, 0.3),        # In5.Cu -> F.Cu at R103.1
+    ("PWM_FL_R", 145.100, 29.800, 0.6, 0.3),       # F.Cu -> B.Cu, off U7 pin 6's pad end
+    ("PWM_FL_R", 132.150, 42.000, 0.6, 0.3),       # B.Cu -> F.Cu, duck under the full B.Cu
+    ("PWM_FL_R", 132.150, 45.950, 0.6, 0.3),       # F.Cu -> B.Cu again, south of C60
+    ("PWM_FL_R", 146.650, 51.300, 0.6, 0.3),       # B.Cu -> F.Cu at Q4
 ]
 
 
