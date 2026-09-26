@@ -18,9 +18,24 @@ Every task's requirements implicitly include these. Values are copied verbatim f
 
 - **Outline 200 × 140 mm.** `X0, Y0 = 20.0, 20.0` and `X1, Y1 = 220.0, 160.0`. Four M3 holes 5 mm in from each corner, 3.2 mm drill on a 6.0 mm pad, 3 mm corner radius.
 - **8 layers, 1 oz (35 µm) on all eight, 1.6 mm finished**, foil lamination, symmetric.
-  `F.Cu` sig / `In1.Cu` GND / `In2.Cu` sig / `In3.Cu` GND / `In4.Cu` POWER split / `In5.Cu` sig / `In6.Cu` GND / `B.Cu` sig.
-- **Minimum track and clearance 0.20 mm.** Minimum via **0.50 mm diameter / 0.25 mm drill with a 0.15 mm annular ring**. Through-hole vias only — no blind or buried.
-- **Netclasses:** `FEED` 3.5 mm / 0.3 mm; `POWER` 2.0 mm / 0.3 mm; `CAN` 0.3 mm; `Default` 0.2 mm.
+  `F.Cu` sig / `In1.Cu` GND / `In2.Cu` sig / `In3.Cu` GND / `In4.Cu` POWER / `In5.Cu` sig / `In6.Cu` GND / `B.Cu` sig.
+  **`In4.Cu` is a SOLID `/VBAT` plane, not split.** The spec's split was implemented in Task 5 and
+  reversed: a per-net bounding box is not an island once that net's pads span the board, so the box
+  encloses foreign pads and the "split" shorts what it was meant to separate. Spec §3.2 is
+  superseded and Task 11 rewrites it as a rejected approach. Carried with it: `check_plane_width.py`
+  now **refuses to measure** a layer the plane shares rather than print a number it cannot stand
+  behind, because a check that rasterises a zone outline and subtracts via barrels cannot see a
+  neighbouring zone on the same layer.
+- **Minimum track and clearance 0.20 mm.** Minimum via **0.50 mm diameter with a 0.15 mm annular
+  ring**, which makes the drill **0.20 mm**. Through-hole vias only — no blind or buried.
+  **The spec's "0.50 mm diameter / 0.25 mm drill with a 0.15 mm annular ring" cannot all hold:**
+  0.50/0.25 leaves a 0.125 mm ring. The ring figure is the binding one — it is what the fab quotes
+  and what `check_geometry.py` grades — so the board's smallest via is 0.50/0.20 and the 0.25 mm
+  drill figure is a spec arithmetic error, not a target. Do not "restore" it.
+- **Netclasses:** `FEED` 3.5 mm / 0.3 mm; `POWER` 2.0 mm / 0.3 mm; `CAN` 0.3 mm. There is no
+  explicit `Default` netclass — everything else falls to the board-level `min_track_width` and
+  `min_clearance`, both 0.20 mm in `gen_netclasses.py`. The effective value is the same 0.20 mm; the
+  mechanism is not, which matters to anything that reads netclasses off the board and finds none.
 - **The feed is 7.0 A continuous, 7.8 A transient.** It is poured, never tracked. Any outer-layer run of more than a few millimetres is poured to **≥ 4.5 mm**. IPC-2221 wants **11.44 mm** of effective internal width at 1 oz for a 10 °C rise.
 - **`GND_IN` and `GND` meet at exactly two places** — L2 winding B, and R3. Nothing in DRC enforces this; `check_grounds.py` does.
 - **The board is generated, never hand-edited.** Every change goes into `hardware/scripts/`.
@@ -101,7 +116,9 @@ starting with `/` into a Windows path before Python ever sees it. Without the pr
 gate is handed `C:/Program Files/Git/VBAT` and fails with `no zone pours
 C:/Program Files/Git/VBAT` -- which reads exactly like the VBAT plane having been lost,
 and is not. It has already cost this project one false alarm during Task 8. With the
-prefix the same board passes with 9.5x margin. The trap is the shell, not the board, and
+prefix the same board passes with margin to spare — **run it and quote what it prints rather than
+this sentence; the figure moves every time a via punches another antipad through the plane, and it
+has already read 9.5x, 9.3x and 9.2x at different commits.** The trap is the shell, not the board, and
 it applies to every `/`-prefixed net name passed on a command line, not just this gate.
 
 ---
