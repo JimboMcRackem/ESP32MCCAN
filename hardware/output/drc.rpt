@@ -1,14 +1,8 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-26T19:37:50 **
+** Created on 2026-09-26T19:53:39 **
 ** Report includes: Errors **
 
-** Found 13 DRC violations **
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; error
-    @(91.8250 mm, 32.2000 mm): Via [/+24V] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; error
-    @(91.7750 mm, 34.0000 mm): Via [/+24V] on F.Cu - B.Cu
+** Found 9 DRC violations **
 [via_dangling]: Via is not connected or connected on only one layer
     Local override; error
     @(128.1000 mm, 27.7500 mm): Via [/outputs/MUXIN_FL_B] on F.Cu - B.Cu
@@ -36,12 +30,6 @@
 [via_dangling]: Via is not connected or connected on only one layer
     Local override; error
     @(158.5000 mm, 51.7000 mm): Via [/outputs/PWM_RR_B] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; error
-    @(82.8250 mm, 30.6000 mm): Via [Net-(U3-VCC)] on F.Cu - B.Cu
-[via_dangling]: Via is not connected or connected on only one layer
-    Local override; error
-    @(86.1000 mm, 110.0000 mm): Via [Net-(U9-IS)] on F.Cu - B.Cu
 
 ** Found 11 unconnected pads **
 [unconnected_items]: Missing connection between items
@@ -51,15 +39,15 @@
 [unconnected_items]: Missing connection between items
     Local override; error
     @(152.0875 mm, 29.6750 mm): Pad 9 [/outputs/MUXIN_RR_G] of U8 on F.Cu
-    @(141.1000 mm, 32.8000 mm): Track [/outputs/MUXIN_RR_G] on F.Cu, length 1.8000 mm
+    @(140.1000 mm, 31.8000 mm): Track [/outputs/MUXIN_RR_G] on F.Cu, length 1.4142 mm
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(151.3500 mm, 50.7000 mm): Track [/outputs/PWM_FL_B] on F.Cu, length 0.8630 mm
+    @(152.2000 mm, 50.7000 mm): Track [/outputs/PWM_FL_B] on F.Cu, length 0.0130 mm
     @(165.7550 mm, 54.3300 mm): Pad 1 [/outputs/PWM_FL_B] of R42 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
     @(143.0875 mm, 30.9750 mm): Pad 11 [/outputs/PWM_FR_B] of U7 on F.Cu
-    @(152.7000 mm, 48.4000 mm): Track [/outputs/PWM_FR_B] on B.Cu, length 0.5657 mm
+    @(153.1000 mm, 48.0000 mm): Track [/outputs/PWM_FR_B] on In2.Cu, length 1.4142 mm
 [unconnected_items]: Missing connection between items
     Local override; error
     @(172.8875 mm, 51.2000 mm): Pad 5 [/outputs/PWM_RL_G] of Q7 on F.Cu
@@ -86,7 +74,7 @@
     @(171.4050 mm, 60.3300 mm): Pad 2 [Net-(U9-IN0)] of R79 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(86.1000 mm, 110.0000 mm): Track [Net-(U9-IS)] on F.Cu, length 0.2900 mm
+    @(85.1550 mm, 110.0000 mm): Pad 4 [Net-(U9-IS)] of U9 on F.Cu
     @(133.7550 mm, 62.3300 mm): Pad 1 [Net-(U9-IS)] of R82 on F.Cu
 
 ** Found 0 Footprint errors **

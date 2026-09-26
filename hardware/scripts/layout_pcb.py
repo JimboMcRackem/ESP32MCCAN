@@ -1688,17 +1688,25 @@ ROUTE_VIAS = [
     ("CANL", 201.7965, 37.4413, 0.6, 0.3),             # CANL_stub via_in  (In2.Cu -> In5.Cu)
     ("CANL", 206.6046, 41.7257, 0.6, 0.3),             # CANL_stub via_out (In5.Cu -> In2.Cu)
 
-    # Task 9: boost switch node.
+    # Task 9: boost switch node.  THE TWO VIAS THAT USED TO BE HERE ARE GONE -- do not put
+    # them back without re-reading this.
     #
-    # R12.1/C61.1 drop straight to the +24V pour on their own pad centres (no F.Cu stub,
-    # same "via-on-own-pad" technique as the VBAT decoupling caps above) -- the
-    # controller's ruling: an F.Cu haul from the output caps round to these pads would
-    # be long, would run beside SW, and would carry no current worth the copper, so
-    # FB_24V's divider reads the pour instead. Netclass default via size (this pair
-    # carries no current worth a bigger via).
-    ("+24V", 91.825, 32.200, 0.8, 0.4),   # R12.1
-    ("+24V", 91.775, 34.000, 0.8, 0.4),   # C61.1
-
+    # They were ("+24V", 91.825, 32.200) at R12.1 and ("+24V", 91.775, 34.000) at C61.1,
+    # via-on-own-pad drops whose comment said they "drop straight to the +24V pour" so that
+    # FB_24V's divider could read the pour instead of being hauled round on F.Cu.  On this
+    # board there is no such pour to drop to.  /+24V owns exactly one zone -- 24V_D4, on
+    # B.Cu, x 84.400..90.200, y 21.700..27.400 -- and In4.Cu, the inner plane the six-layer
+    # stackup would have given +24V a piece of, is solid /VBAT here (Task 5 reversed the
+    # split).  The nearest island corner is (90.200, 27.400), which is 5.07 mm from R12.1
+    # and 6.79 mm from C61.1, so both vias landed on bare B.Cu and KiCad reported both as
+    # [via_dangling] once Step 2 took that rule off warning.
+    #
+    # Nothing is lost by deleting them because the frozen router already ties both pads to
+    # the rail on F.Cu: (91.800,34.000)-(91.800,32.200) joins the two pads, (91.800,32.200)-
+    # (90.300,30.700) runs up to the +24V via at (90.300,30.700), and (91.800,34.000)-
+    # (97.500,39.700) carries on east.  R12.1 and C61.1 are not among the 11 unconnected
+    # pads before this change or after it -- the vias were contributing no connection, only
+    # two holes and two annular rings in the middle of the boost node.
     # Net-(U3-SS)'s F.Cu <-> In5.Cu duck-under, bracketing the FB_24V hop and the
     # C24/R14 pair -- see the ROUTES comment above. Netclass default via size, same
     # as the sense/bias taps elsewhere in this file (this is a soft-start line, no
@@ -1756,12 +1764,45 @@ ROUTE_VIAS = [
 # a net here makes gen_pcb.py skip every frozen segment and via on it, so what this file says
 # about that net is what the board has.
 #
-# Empty, and deliberately so.  scripts/routes_signal.json exists and is the board's main
-# source of copper (4692 segments, 857 vias, 136 nets), so this tuple DOES have frozen copper
-# to act on -- naming a net here would throw that net's router copper away.  As of Step 6.1 no
-# net needs that: every hand route added above goes to a pad the router left open, and none of
-# them collides with a frozen stub.  An earlier comment here claimed routes_signal.json had
-# been deleted; it had not.
+# Two entries, and only two.  scripts/routes_signal.json exists and is the board's main source
+# of copper (4692 segments, 857 vias, 136 nets), so this tuple DOES have frozen copper to act
+# on -- naming a net here would throw that net's router copper away.  An earlier comment here
+# claimed routes_signal.json had been deleted; it had not.
+#
+# Net-(U3-VCC) is the first of the two nets where that costs nothing.  Its whole frozen entry is
+#   "Net-(U3-VCC)": {"segments": [], "vias": [[82.825, 30.6, 0.6, 0.3]]}
+# -- zero segments and a single fanout via the router dropped into R15.1's pad and then never
+# laid a track on.  That is the textbook case this tuple was built for, and KiCad reported it
+# as [via_dangling] @(82.825, 30.600) once Step 2 took that rule off warning.  The net itself
+# is closed by hand, by the single F.Cu run in ROUTES above ("No via: the whole net is one
+# F.Cu run"), whose far end is that same (82.825, 30.600); dropping the via therefore removes
+# a hole and an annular ring and severs nothing.  Net-(U3-VCC) is not among the 11 unconnected
+# pads before this entry or after it.
+#
+# Net-(U9-IS) is the second, and it is the same shape with a little more debris:
+#   "Net-(U9-IS)": {"segments": [[86.1, 110.0, 85.15, 110.0, 0.25, "F.Cu"],
+#                                [86.1, 110.0, 85.81, 110.0, 0.25, "F.Cu"]],
+#                   "vias": [[86.1, 110.0, 0.5, 0.2]]}
+# -- a fanout via in U9.4 and two overlapping westward stubs, 0.95 mm and 0.29 mm, that both
+# start on that pad and end in open space.  The net's other pad is R82.1 at (133.755, 62.330),
+# 50 mm away, and the router never went there: the net is open with this copper and open
+# without it, and KiCad already reports the 0.29 mm stub as its own [unconnected_items] item.
+# Nothing is foreclosed by dropping it, and that is measured rather than assumed --
+# `python scripts/show_pocket.py "Net-(U9-IS)" U9.4` reports U9.4's F.Cu pocket as UNBOUNDED
+# (420.86 mm2 inside a +/-32 mm window) with 122152 via sites that clear both the copper rule
+# and the 0.30 mm hole-to-hole floor.  Whoever closes this net can put a via wherever the route
+# wants one.
+#
+# Contrast /outputs/PWM_RR_B, whose frozen entry has the same shape -- zero segments, one via,
+# at (158.500, 51.700) in Q9.5 -- and which is NOT named here.  Step 6.4 measured that pad's
+# pocket as sealed: 7 copper-legal via sites, all 7 failing the hole-to-hole floor against that
+# same frozen drill.  Its via is the only layer change Q9.5 has, so dropping it would trade a
+# dangling-via item for the loss of the net's only escape from F.Cu.  It stays, and stays
+# reported.
+#
+# This does not reopen the Step 6.4 question below.  That question was whether to drop a net
+# that SEALS another net's via pocket, where the copper thrown away is 20-96 mm of real route
+# and the cost is re-authoring it here by hand.  Here there is no route to throw away at all.
 #
 # Step 6.4 measured what naming a net here would buy on the two widest sealed pockets.  Each
 # pocket IS sealed by one identifiable net's frozen copper rather than by geometry, but in every
@@ -1808,4 +1849,7 @@ ROUTE_VIAS = [
 # shortfall is placement in the U7/U8/Q7/Q9 output bank rather than routing, is in
 # .superpowers/sdd/2026-09-23-pcb-relayout-8layer/task-10-step6.4-report.md -- which .gitignore
 # excludes, so it is in the working tree and not in a clone.
-FROZEN_DROP = ()
+FROZEN_DROP = (
+    "Net-(U3-VCC)",     # a lone fanout via in R15.1, no track; the net is hand-routed above
+    "Net-(U9-IS)",      # a fanout via in U9.4 and two stubs to nowhere; the net is open either way
+)
