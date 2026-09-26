@@ -2289,6 +2289,8 @@ def routes(comps, pos, padnet, netidx, placed):
     for name, code in netidx.items():
         short.setdefault(name.rsplit("/", 1)[-1], []).append(name)
 
+    unresolved = []
+
     def resolve(n, what):
         if n in netidx:
             return netidx[n]
@@ -2296,10 +2298,10 @@ def routes(comps, pos, padnet, netidx, placed):
         if len(hits) == 1:
             return netidx[hits[0]]
         if not hits:
-            print("  ERROR: %s names net %r, which is not in the netlist" % (what, n))
+            unresolved.append("%s names net %r, which is not in the netlist" % (what, n))
         else:
-            print("  ERROR: %s names net %r, which is ambiguous: %s"
-                  % (what, n, ", ".join(sorted(hits))))
+            unresolved.append("%s names net %r, which is ambiguous: %s"
+                              % (what, n, ", ".join(sorted(hits))))
         return None
 
     allpads = pads_board(comps, pos, padnet)
@@ -2442,9 +2444,46 @@ def routes(comps, pos, padnet, netidx, placed):
             if g < need - 1e-6:
                 close.append("%s vs a via on %s: %.3f < %.3f"
                              % (what, NETNAME.get(vnet, "?"), g, need))
+        # And against the frozen router's copper -- 4692 segments and 857 vias that nothing
+        # in this generator measured a hand via against.  `placed` above is the thermal and
+        # stitching fields only (the ground drops and frozen_routes() both come later in
+        # main()), check_track_crossings walks hand TRACKS as the subject and never a hand
+        # via, and check_via_holes compares drills rather than copper -- so a ROUTE_VIAS
+        # barrel could sit 0.050 mm from the frozen /+24V via's copper and no check on this
+        # board would say a word.  check_drop_via_crossings' docstring makes exactly this
+        # argument for the ground drops ("nothing has ever put a via on the walking side");
+        # it is just as true of a hand via, so here it is the subject too.
+        #
+        # The frozen view is the same _fz_t / _fz_v that check 1 read, so the obstacle set
+        # and the board cannot disagree, and it is empty under AR_SKIP and AR_ROUTE because
+        # frozen_obstacles() returns nothing there -- no frozen copper, nothing to miss.
+        for fx0, fy0, fx1, fy1, fw, _flay, fnet in _fz_t:
+            if fnet == v["code"]:
+                continue
+            need = max(net_clearance(fnet), net_clearance(v["code"]))
+            # A via runs the whole barrel, so every layer the track could be on is a layer
+            # the via occupies: layer is not compared, exactly as in
+            # check_drop_via_crossings.  Disc against capsule, for the reason above
+            # _seg_disc_gap.
+            g = _seg_disc_gap((fx0, fy0), (fx1, fy1), fw, v["x"], v["y"], v["sz"])
+            if g < need - 1e-6:
+                close.append("%s vs a frozen %s track (%.2f,%.2f)-(%.2f,%.2f): %.3f < %.3f"
+                             % (what, NETNAME.get(fnet, "?"), fx0, fy0, fx1, fy1, g, need))
+        for fx, fy, fs, _fd, fnet in _fz_v:
+            if fnet == v["code"]:
+                continue
+            need = max(net_clearance(fnet), net_clearance(v["code"]))
+            g = _disc_disc_gap(v["x"], v["y"], v["sz"], fx, fy, fs)
+            if g < need - 1e-6:
+                close.append("%s vs a frozen %s via (%.2f,%.2f): %.3f < %.3f"
+                             % (what, NETNAME.get(fnet, "?"), fx, fy, g, need))
 
     print("routes: %d segment(s) on %d net(s), %d via(s)"
           % (len(segs), len(set(s["code"] for s in segs)), len(vias)))
+    if unresolved:
+        print("  ERROR: %d route(s) name a net this board does not have:" % len(unresolved))
+        for u in unresolved:
+            print("      %s" % u)
     if dangling:
         print("  ERROR: %d route end(s) land on no copper of their own net:" % len(dangling))
         for d in dangling:
@@ -2453,6 +2492,22 @@ def routes(comps, pos, padnet, netidx, placed):
         print("  ERROR: %d route clearance(s) short:" % len(close))
         for c in close:
             print("      %s" % c)
+    # And now refuse.  Until this line the three checks above printed "ERROR: ..." and then
+    # this function built the copper and returned it, main() ran on, the board was written
+    # and the process exited 0 -- so every "gen_pcb rc=0" recorded on this branch verified
+    # nothing about route clearance or anchorage, and a reviewer demonstrated a ROUTE_VIAS
+    # entry overlapping pad R88.2 at 0.000 < 0.200 that still wrote a board and returned 0.
+    # check_track_crossings, check_drop_via_crossings and check_via_holes have always raised;
+    # these three had not, and the comments in layout_pcb.py claimed for weeks that they did.
+    #
+    # SystemExit here, before the return, is what leaves the board on disk untouched: main()
+    # accumulates the whole file in `out` and does not open BOARD for writing until its last
+    # two lines, so nothing has been written yet and the previous board survives intact.
+    if unresolved or dangling or close:
+        raise SystemExit("gen_pcb: hand routes refused -- %d unresolved net name(s), "
+                         "%d dangling end(s), %d short clearance(s).  %s not written."
+                         % (len(unresolved), len(dangling), len(close),
+                            os.path.basename(BOARD)))
 
     out = []
     for s in segs:
@@ -3659,7 +3714,13 @@ def main():
 
     pos, unplaced, grid = place(comps)
     if unplaced:
+        # Refuse, for the reason routes() now refuses: a printed ERROR that still writes a
+        # board is a gate that cannot fail, and a board missing parts is not a board.  This
+        # one does not fire today; it is the same defect class in the same file, so it is
+        # closed at the same time rather than left as the next one to be discovered.
         print("  ERROR: %d part(s) would not fit: %s" % (len(unplaced), ", ".join(unplaced)))
+        raise SystemExit("gen_pcb: %d part(s) would not fit.  %s not written."
+                         % (len(unplaced), os.path.basename(BOARD)))
 
     # Footprints stay STRUCTURED until every one of them exists, because silk_refs()
     # has to see the whole board's silkscreen and copper at once to know where a
