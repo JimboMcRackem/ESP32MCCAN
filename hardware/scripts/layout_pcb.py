@@ -1187,14 +1187,19 @@ ROUTES = [
     # leave its pad eastward, and the gate between pin 12's pad corner (87.875, 31.375) and
     # that via measured 0.884 mm where a 0.20 mm centreline needs 0.900 (0.300 to the pad,
     # 0.600 to the 0.60 mm via disc). 0.100 mm east makes the gate 0.957 mm and MODE routes;
-    # see Net-(U3-MODE) below. Measured after the move, tightest neighbour per leg:
-    #   pin-10 row       0.250 mm to pin 11, to pin 9 and to the FB_24V hop (need 0.200)
+    # see Net-(U3-MODE) below. Re-measured against the GENERATED board in Step 6.3, which
+    # is what moved these numbers: the figures here were first written before MODE existed,
+    # and MODE now runs alongside SS for its whole length, so MODE is the tightest neighbour
+    # of three of SS's five features. Tightest neighbour per leg, all on a 0.200 mm limit:
+    #   pin-10 row       0.250 mm to pin 11, to pin 9 and to the FB_24V hop
     #   jog south        0.250 mm to the FB_24V hop
-    #   In5.Cu run       0.391 mm to the GND drop via at (87.725, 36.575)
+    #   In5.Cu run       0.400 mm to MODE's via at (88.400, 31.200), then 0.491 mm to the
+    #                    GND drop via at (87.625, 36.575)
     #   run into C25.1   0.650 mm to C24.2 (GND)
-    #   via_in  0.60 mm  0.325 mm to the FB_24V hop, 0.436 mm to pin 11, 0.657 to pin 12
-    #   via_out 0.60 mm  0.475 mm to C24.2 (GND)
-    # Worst slack over the whole net is +0.050 mm on a 0.200 mm class limit.
+    #   via_in  0.60 mm  0.225 mm to MODE's via, 0.236 and 0.252 mm to MODE's two F.Cu
+    #                    legs, 0.253 mm to MODE's In2.Cu run south  <- binding
+    #   via_out 0.60 mm  0.254 mm to MODE's In2.Cu run into R11, 0.475 mm to C24.2 (GND)
+    # Worst slack over the whole net is +0.025 mm on a 0.200 mm class limit.
     ("Net-(U3-SS)", "F.Cu", 0.25, [(87.4562, 32.250), (88.600, 32.250), (88.600, 32.000)]),
     ("Net-(U3-SS)", "In5.Cu", 0.25, [(88.600, 32.000), (88.525, 37.8)]),
     ("Net-(U3-SS)", "F.Cu", 0.25, [(88.525, 37.8), (88.525, 39.000)]),
@@ -1213,19 +1218,31 @@ ROUTES = [
     # via at its old 88.500 this net had no route at all, on any layer, and no legal via
     # site anywhere in the pocket. East out of the pad, diagonally past pin 12's corner,
     # then down to In2.Cu and south past U3 to R11 at y=39. Tightest per leg:
-    #   east out of pad  0.250 mm to the SW_BOOST hop, 0.275 mm to pin 10's pad
+    #
+    # There is no via at the R11 end. The external router had already dropped a 0.60/0.30
+    # via-in-pad on this net at R11.1 (86.825, 39.000) and left the rest of the net open,
+    # so the In2.Cu run simply ends on that via. A hand via of our own at (86.800, 39.000)
+    # -- which is what this file had until Step 6.3 -- put two 0.30 mm drills 0.025 mm
+    # apart, 0.275 mm INSIDE the 0.300 mm hole-to-hole floor. KiCad's DRC never said a word
+    # because it skips hole-to-hole between two vias on the same net; gen_pcb's
+    # check_via_holes is what found it, and now gates it.
+    #
+    # Tightest neighbour per leg, measured against the generated board:
+    #   east out of pad  0.250 mm to the SW_BOOST hop, 0.275 mm to pin 10's and pin 12's pads
     #   diagonal         0.218 mm to pin 12's pad (the binding measurement on this net)
-    #   In2.Cu south     0.272-0.410 mm to the GND drop via at (87.725, 36.575) and to
-    #                    the SS duck-under via at (88.525, 37.800)
-    #   via down 0.60    0.225 mm to pin 12's pad, 0.262 mm to the SW_BOOST hop
-    #   via up   0.60    0.925 mm to R11.2 (GND)
+    #   jog to the via   0.252 mm to the SS duck-under via at (88.600, 32.000)
+    #   In2.Cu south     0.253 mm to that same SS via on the long leg -- the tightest of the
+    #                    seven In2.Cu legs -- then 0.254 mm to the SS via at (88.525,
+    #                    37.800), 0.277-0.280 mm alongside SS, and 0.342 mm to the GND drop
+    #                    via at (87.625, 36.575)
+    #   via down 0.60    0.225 mm to pin 12's pad and 0.225 mm to the SS via at (88.600,
+    #                    32.000), 0.262 mm to the SW_BOOST hop
     # Worst slack +0.018 mm on a 0.200 mm limit.
     ("Net-(U3-MODE)", "F.Cu", 0.20, [(87.456, 31.750), (87.950, 31.750), (88.250, 31.450),
                                      (88.400, 31.200)]),
     ("Net-(U3-MODE)", "In2.Cu", 0.20, [(88.400, 31.200), (88.050, 31.600), (87.950, 31.750),
                                        (87.900, 35.800), (88.250, 36.150), (88.400, 36.400),
-                                       (88.400, 37.000), (87.900, 37.500), (86.800, 39.000)]),
-    ("Net-(U3-MODE)", "F.Cu", 0.20, [(86.800, 39.000), (86.825, 39.000)]),
+                                       (88.400, 37.000), (87.900, 37.500), (86.825, 39.000)]),
 
     # Net-(U3-VCC): U3 pin 2 out to R15.1, west along the pin row and then down. Pin 2 was
     # also sealed until Step 6.1, by pin 1's ground drop sitting at (83.775, 31.250); that
@@ -1282,24 +1299,30 @@ ROUTES = [
     # then north-east on In2.Cu between the FB_5V vias to the south-west of C32, and up to
     # In5.Cu for the last 2 mm because F.Cu there is full of the RET_FL_G return. Tightest
     # per leg, all against 0.200 mm:
-    #   F.Cu escape      0.236 to pin 6's pad, 0.240 to it again on the south leg,
-    #                    0.250 to pin 4's pad, 0.240 to the dogleg's own F.Cu
-    #   In2.Cu haul      0.254 to the FB_5V via at (105.600, 93.000); the four FB_5V vias
-    #                    at (99.100,88.800), (100.500,90.200), (104.000,91.400) and
-    #                    (105.600,93.000) are what sets this leg's slack, 0.254..0.280
+    #   F.Cu escape      0.236 to pin 6's pad, 0.240 to it again on the south leg, 0.250 to
+    #                    pin 4's pad; 0.300 mm is the closest any of the four F.Cu legs gets
+    #                    to the dogleg's own GND copper
+    #   In2.Cu haul      0.254 to the FB_5V via at (105.600, 93.000) is the tightest of the
+    #                    ten legs; the whole haul sits in 0.254..0.280, set by those FB_5V
+    #                    vias -- (99.100,88.800), (100.500,90.200), (104.000,91.400),
+    #                    (105.600,93.000) -- and, on the first three legs, by the GND drop
+    #                    via at (97.750, 88.050)
     #   In5.Cu hop       1.181 to the GND via at (107.355, 92.655)
-    #   via (96.400,87.850)   0.240 to the dogleg's F.Cu legs
+    #   via (96.400,87.850)   0.240 to the dogleg's F.Cu legs, 0.250 to pin 6's pad
     #   via (108.750,93.400)  0.225 to the RET_FL_G run on F.Cu  <- binding
-    #   via (110.300,91.850)  0.388 to the /+3V3_ALW run on In2.Cu
     # Worst slack +0.025 mm.
+    #
+    # As with Net-(U3-MODE), there is no via at the C32 end: the router's own 0.60/0.30
+    # via-in-pad at C32.1 (110.305, 91.830) is where the In5.Cu hop lands. The hand via this
+    # file used to place at (110.300, 91.850) sat 0.021 mm from it -- 0.279 mm inside the
+    # 0.300 mm hole-to-hole floor, and silent in DRC because the two are the same net.
     ("Net-(U4-SR)", "F.Cu", 0.20, [(96.700, 86.650), (96.250, 86.650), (96.000, 86.900),
                                    (96.050, 87.500), (96.400, 87.850)]),
     ("Net-(U4-SR)", "In2.Cu", 0.20, [(96.400, 87.850), (97.350, 88.600), (97.500, 88.700),
                                      (98.100, 88.750), (100.100, 90.750), (100.250, 90.850),
                                      (102.550, 90.900), (105.200, 93.550), (105.350, 93.650),
                                      (108.450, 93.700), (108.750, 93.400)]),
-    ("Net-(U4-SR)", "In5.Cu", 0.20, [(108.750, 93.400), (110.300, 91.850)]),
-    ("Net-(U4-SR)", "F.Cu", 0.20, [(110.300, 91.850), (110.305, 91.830)]),
+    ("Net-(U4-SR)", "In5.Cu", 0.20, [(108.750, 93.400), (110.305, 91.830)]),
 
     # /EN_BOOST: U3 pin 6 down to R20.1. This is the tightest net in this batch and the
     # only one planned to the class limit itself rather than with the 0.005 mm planning
@@ -1321,106 +1344,190 @@ ROUTES = [
     ("/EN_BOOST", "In2.Cu", 0.20, [(85.450, 34.400), (83.400, 38.200)]),
     ("/EN_BOOST", "F.Cu", 0.20, [(83.400, 38.200), (83.425, 38.200)]),
 
-    # Step 6.1b. Both routes below were planned by grid search against the FROZEN board
+    # Step 6.1b. The route below was planned by grid search against the FROZEN board
     # (mccan.kicad_pcb, which under the freeze is what the copper really is), stepping 0.05 mm
     # on all four signal layers, and every number quoted was then re-measured with gen_pcb's
     # own gap functions -- _seg_rect_gap for pads, _seg_seg_dist for tracks, _seg_disc_gap for
     # vias, plus a via sweep against copper on EVERY layer, which routes() itself never does.
-    # Width is 0.20 mm, the board floor, not the router's 0.25: in both corridors below 0.25
-    # loses the lane outright, and neither net carries current worth the copper (one is a
-    # PCA9685 PWM output into a gate resistor, the other a load-switch gate).
+    # Width is 0.20 mm, the board floor, not the router's 0.25: in this corridor 0.25 loses
+    # the lane outright, and a load-switch gate carries no current worth the copper.
 
-    # /power_input/U10_GATE: U10 pin 3 down to R103.1, 14.5 mm, F.Cu -> In5.Cu -> F.Cu. The
-    # easy one in this batch: this is the input-protection cluster, not the output field, and
-    # the channel south at x = 39.20..39.45 was still open.
+    # /power_input/U10_GATE: U10 pin 3 down to the router's own via at (38.300, 83.600),
+    # 14.5 mm, F.Cu -> In5.Cu. The easy one in this batch: this is the input-protection
+    # cluster, not the output field, and the channel south at x = 39.20..39.45 was still open.
+    #
+    # The router had already routed the R103 end of this net -- R103.1 through a 0.60/0.30
+    # via at (38.300, 83.600) and on east to Q10 -- and left the U10 end open. So the haul
+    # ends ON that via, on In5.Cu, which is one of the layers it reaches; no hand via and no
+    # F.Cu landing leg are needed. Until Step 6.3 this route did place its own via, at
+    # (38.000, 83.850), which is 0.091 mm hole-to-hole from the router's -- inside the
+    # 0.300 mm fab floor, and invisible to KiCad's DRC because the two vias are the same net.
+    # gen_pcb.check_via_holes gates that now. Ending on the router's via also lengthens the
+    # last In5.Cu leg's tightest gap from 0.933 mm to 1.111 mm.
     #
     # The polyline starts at (37.200, 96.000) -- 0.300 mm east of pin 3's pad centre but well
     # inside the pad, which spans x 36.15..37.65 -- because a leg drawn from the centre itself
     # meets the end cap of the /power_input/SNS run that turns at (36.900, 96.500) at exactly
     # 0.200 mm. Zero slack, measured, not guessed. Starting east of that cap costs no copper
-    # and buys 0.057 mm. Tightest per run, all against the 0.200 mm Default clearance:
-    #   F.Cu escape   0.257 then 0.268 to the /power_input/VCC10 run along y = 95.5
+    # and buys 0.057 mm. Tightest per run, against the 0.200 mm Default clearance except
+    # where noted:
+    #   F.Cu escape   0.257 then 0.268 to the /power_input/VCC10 run along y = 95.5; also
+    #                 0.201 to U10 pin 2, whose own pads mccan.kicad_dru relaxes to 0.120
     #   In5.Cu haul   0.246 and 0.241 to the VCC10 via at (38.800, 94.700)  <- binding
     #                 0.249 to the /power_input/Q10_G via at (38.700, 91.400)
-    #                 0.933 on the last leg into R103
-    #   F.Cu landing  0.518 to a VCC10 via
-    #   via (38.900, 95.550)  0.256 to that same VCC10 via
-    #   via (38.000, 83.850)  0.291 to the VCC10 run on In2.Cu
+    #                 1.111 on the last leg, to the VCC10 via at (36.850, 83.175)
+    #   via (38.900, 95.550)  0.256 to that same VCC10 via at (38.800, 94.700)
     # Worst slack +0.041 mm on a 0.200 mm limit.
     ("U10_GATE", "F.Cu", 0.20, [(37.200, 96.000), (38.150, 95.950), (38.900, 95.550)]),
     ("U10_GATE", "In5.Cu", 0.20, [(38.900, 95.550), (39.400, 95.000), (39.450, 94.700),
-                                  (39.200, 86.500), (38.000, 83.850)]),
-    ("U10_GATE", "F.Cu", 0.20, [(38.000, 83.850), (37.755, 83.330)]),
+                                  (39.200, 86.500), (38.300, 83.600)]),
 
-    # /outputs/PWM_FL_R: U7 pin 6 to Q4 pad 2. Pad to pad, so both ends anchor on their own
-    # net's pads and nothing here leans on the anchorage check's blind spot for frozen copper.
-    # 53.8 mm of track and four vias for a 23 mm gap, and the length is the point of the
-    # comment: the direct line is not merely tight, it does not exist.
+    # Step 6.3. Three more of U7's PCA9685 outputs, all three planned together against the
+    # frozen board and then re-measured against the GENERATED board -- the one this file
+    # produces, with these three routes and every ground drop in it -- so the figures below
+    # are the artifact's, not the plan's. Same measurement model as Step 6.1b above.
     #
-    # Two measurements, both at 0.20 mm width and a 0.005 mm planning margin:
-    #   * U7's pad row cannot be crossed at all. Pitch 0.65 mm, pad height 0.400 mm, so
-    #     adjacent pad edges are 0.25 mm apart; a 0.20 mm track between them needs
-    #     0.10 + 0.200 either side = 0.60 mm. Every escape from this row is off a pad END.
-    #   * Flooding pin 6's escape inside the box x 140..158, y 24..54 reaches 12891 cells on
-    #     F.Cu and stops at y = 39.05; on In2.Cu/In5.Cu/B.Cu it stops at y = 34.55/34.45/34.35.
-    #     The MOSFET row at y = 50.7 is not in the set, on any layer -- the router's copper
-    #     walls that box off across its whole width. That box holds 2401 legal 0.60 mm via
-    #     sites out of 216961, which is the density this batch is working in.
-    # So the route leaves the pad east, vias to B.Cu and runs west-south-west under the MCU
-    # to x = 132, ducks to F.Cu for the 4 mm at y 42..46 where B.Cu is full, then back to B.Cu
-    # south-east and east along the y = 56 lane to x = 146.7, north to Q4 and up to the pad.
+    # The committed /outputs/PWM_FL_R route that used to sit here has been REMOVED, and this
+    # batch re-routes that net from scratch. It was not wrong; it was first. U7 pins 6 and 7
+    # are 0.650 mm apart and both escape eastward through the same pocket, and the route that
+    # took the pocket sealed it: flooding pin 7's escape with the old PWM_FL_R in place gave
+    # 221 reachable cells and ZERO legal via sites at the board-minimum 0.50/0.20 via, and the
+    # only wall the search could name was that route's own F.Cu escape. Routing pin 7 first and
+    # pin 6 around it gets both out. The old comment also closed by saying the blind spot in
+    # gnd_drops "is reported in the Step 6.1b report, not patched here" -- c6bb73f patched it,
+    # so that sentence went with the route.
+    #
+    # Vias are 0.50/0.20 on the two PWM_FL_* nets and the netclass 0.60/0.30 on PWM_FR_R.
+    # 0.50 is the board minimum via diameter and 0.20 the drill it forces: min_via_annular_
+    # width is 0.15 mm, so a 0.50 barrel cannot take the 0.25 mm drill that dia/2 would give.
+    # The small barrel is necessary, not tidy -- PWM_FL_G's via at (138.600, 48.550) clears a
+    # MUXIN_RL_G via by 0.207 mm and PWM_FL_R's at (145.500, 29.700) clears PWM_FL_G's own
+    # F.Cu escape by 0.202 mm, so 0.60 would put both 0.043 and 0.048 mm inside the floor.
+    # PWM_FR_R's tightest via has 0.208 mm at 0.60, so it keeps the default.
+    #
+    # Two ground drops moved out of the way of this copper, and only two: the drop at
+    # (142.000, 32.925) to (141.900, 32.925), and the one at (144.405, 57.655) to
+    # (144.619, 57.627). gnd_drops() re-picked both sites itself, the board still carries 139
+    # drop vias serving 140 of the 141 SMD ground pads (U3.7 shares a neighbour's), and the
+    # only pad without one is still U4.4 -- the same tally as before this batch.
+    #
+    # All three nets END ON A VIA THE ROUTER ALREADY PLACED, at (159.600, 52.000),
+    # (148.500, 54.000) and (170.200, 54.300), rather than dropping a landing via of their
+    # own next to it. Each of them first had its own, and each of those three sat 0.019 mm,
+    # 0.000 mm and -0.229 mm hole-to-hole from the router's -- two of them literally inside
+    # the other barrel. KiCad's DRC passed all three, because it does not check hole-to-hole
+    # between two vias on the same net, so this would have shipped to the fab as three pairs
+    # of 0.30 mm drills a few microns apart. gen_pcb.check_via_holes gates it now, and it
+    # also caught three older hand vias the same way (Net-(U3-MODE), Net-(U4-SR) and
+    # /power_input/U10_GATE above, all three fixed the same way).
+
+    # /outputs/PWM_FL_G: U7 pin 7 east then the long way round to R41.1 at (161.255, 54.330) --
+    # 9 runs, 7 vias, F.Cu/B.Cu/In2.Cu. Pin 7 is the harder of the pair: its escape pocket is
+    # the 0.650 mm-pitch gap between pins 6 and 8, everything east of it is the router's output
+    # field, and the route drops to B.Cu almost at once, runs west under the mux block, turns
+    # south on In2.Cu down the x = 136.2 channel, and only comes back east across the bottom
+    # of the output field where In2.Cu is clear. Tightest per run, all against the 0.200 mm
+    # Default clearance:
+    #   F.Cu escape     0.202 to PWM_FL_R's via at (145.500, 29.700)  <- binding
+    #   B.Cu west       0.229 to the ground drop at (141.900, 32.925)
+    #   In2.Cu south    0.236 to the ISNS_DEN via at (137.700, 45.200)
+    #   B.Cu south      0.270 to the PWM_FL_B run on B.Cu
+    #   In2.Cu east     0.251 to the PWM_RR_G via at (143.000, 56.800)
+    #   F.Cu hop        0.272 to the MUXIN_RR_G via at (144.800, 59.400)
+    #   In2.Cu east     0.210 to the PWM_DEN_B via at (155.900, 59.100)
+    #   B.Cu north      0.270 to the MUXIN_FL_R run on B.Cu at x = 156.850
+    #   F.Cu landing    0.276 to the RET_FL_B via at (160.000, 53.500)
+    #   via (145.000,30.350)  0.226 to the MUXIN_RR_R run on In2.Cu
+    #   via (137.800,32.800)  0.225 to the +3V3_SW run on F.Cu
+    #   via (138.600,48.550)  0.207 to the MUXIN_RL_G via at (138.500, 47.800)
+    #   via (141.600,56.000)  0.225 to the RET_FR_G run on In5.Cu
+    #   via (143.650,57.850)  0.300 to the PWM_RR_G run on B.Cu
+    #   via (145.700,59.350)  0.225 to the Net-(C47-Pad1) run on F.Cu
+    #   via (156.600,57.400)  0.225 to the SENSE_RR_B run on F.Cu
+    # The B.Cu north run carries a waypoint at (158.700, 52.325) that buys nothing but
+    # clearance: with the run going straight from (158.000, 52.350) to the router's via at
+    # (159.600, 52.000) it passed a /outputs/PWM_RR_B via at (158.500, 51.700) at 0.178 mm,
+    # 0.022 inside the floor. A 0.05 mm sweep of single waypoints over the window found a
+    # plateau there; the leg's binding gap is now 0.270 mm elsewhere.
+    # Worst slack +0.002 mm, and it is the pin 6/pin 7 pinch: this route's F.Cu escape and
+    # PWM_FL_R's first via are the same 0.202 mm pair seen from either side. Like /EN_BOOST
+    # above, that is the class floor met exactly rather than a margin over it, and anything
+    # that changes either net near U7 pins 6-7 has to re-plan both of them together.
+
+    ("PWM_FL_G", "F.Cu", 0.20, [(143.087, 28.375), (143.950, 28.450), (144.200, 28.700), (144.600, 29.150), (144.950, 29.750), (145.000, 30.350)]),
+    ("PWM_FL_G", "B.Cu", 0.20, [(145.000, 30.350), (145.000, 31.250), (144.000, 32.250), (141.700, 32.300), (137.800, 32.800)]),
+    ("PWM_FL_G", "In2.Cu", 0.20, [(137.800, 32.800), (136.650, 32.850), (136.500, 32.950), (136.350, 33.100), (136.250, 33.250), (136.200, 39.550), (136.300, 39.700), (137.550, 40.950), (137.600, 42.650), (137.950, 44.550), (139.200, 45.800), (139.200, 48.050), (138.900, 48.350), (138.600, 48.550)]),
+    ("PWM_FL_G", "B.Cu", 0.20, [(138.600, 48.550), (139.800, 52.700), (139.950, 52.950), (141.800, 54.800), (141.800, 55.800), (141.600, 56.000)]),
+    ("PWM_FL_G", "In2.Cu", 0.20, [(141.600, 56.000), (142.450, 57.100), (142.700, 57.350), (143.650, 57.850)]),
+    ("PWM_FL_G", "F.Cu", 0.20, [(143.650, 57.850), (143.800, 58.350), (144.300, 58.350), (144.700, 58.350), (145.700, 59.350)]),
+    ("PWM_FL_G", "In2.Cu", 0.20, [(145.700, 59.350), (150.150, 60.700), (153.650, 60.650), (154.450, 60.450), (156.150, 59.700), (156.250, 59.600), (156.300, 59.600), (156.550, 59.350), (156.600, 57.400)]),
+    ("PWM_FL_G", "B.Cu", 0.20, [(156.600, 57.400), (155.675, 56.025), (155.750, 54.550), (157.850, 52.450), (158.000, 52.350), (158.700, 52.325), (159.600, 52.000)]),
+    ("PWM_FL_G", "F.Cu", 0.20, [(159.600, 52.000), (160.550, 53.100), (161.255, 54.330)]),
+
+    # /outputs/PWM_FL_R: U7 pin 6 out to R40.1 at (150.255, 53.830) -- 6 runs, 4 vias,
+    # F.Cu/B.Cu/In2.Cu. Pin 6 goes second and takes the long way west and south round the
+    # outside of everything: to B.Cu at (145.500, 29.700), west along y = 33..36 threading the
+    # MUXIN fanout, down the left edge of the mux block to In2.Cu and back, then a long B.Cu
+    # diagonal south-east under the output field to In2.Cu for the last 3 mm into R40. The
+    # detour is what the pair costs: pin 7 owns the pocket, so pin 6 cannot use it, and the
+    # stretch (143.950,32.950)-(141.250,33.600) is the one place on all three routes where the
+    # copper is legal against a ground drop but inside the enclosing SQUARE that gnd_drops uses
+    # -- 0.130 mm to the box round the drop that was at (142.000, 32.925), which is why that
+    # drop moved 0.100 mm west. No single-vertex nudge and no one- or two-vertex detour clears
+    # the box there (a 0.05 mm grid sweep over the whole 2.75 x 2.75 mm window found 410 points
+    # reachable from the east end and none that reach the west end), so the drop moves instead.
     # Tightest per run, all against the 0.200 mm Default clearance:
-    #   F.Cu escape       0.240 then 0.223 to U7 pin 7's pad (/outputs/PWM_FL_G), then 0.424
-    #                     to the /outputs/PWM_FL_B via once clear of the row
-    #   B.Cu west haul    0.286, 0.251 and 0.252 to the /outputs/MUXIN_RL_B vias; 0.275 to
-    #                     the GND drop via at (142.000, 32.925); 0.352 to the
-    #                     /outputs/PWM_RL_R via on the long diagonal; 0.380 to the GND drop via
-    #                     at (133.875, 37.000); 0.274 then 0.400 to the /outputs/PWM_RR_G via
-    #                     -- and, to the two drop SQUARES rather than their discs (see below),
-    #                     0.275 and 0.280 to (142.000, 32.925), 0.269, 0.260 and 0.280 to
-    #                     (133.875, 37.000)
-    #   F.Cu duck-under   0.224 to the /outputs/SENSE_FR_B via, 0.225 to Net-(C60-Pad1) on F.Cu
-    #   B.Cu south-east   0.230 to the /outputs/+24V_RR via; 0.250 then 0.224 to the
-    #                     /outputs/RET_FR_R vias; 0.224 to the /outputs/SENSE_RL_R via;
-    #                     0.250 to the /outputs/SENSE_FR_B via along the y = 56.05 lane;
-    #                     then 0.236, 0.221, 0.229, 0.225 and 0.730 against
-    #                     /outputs/MUXIN_RR_B's vias and its own B.Cu run  <- 0.221 binding
-    #   F.Cu landing      0.228 then 0.250 to Q4 pad 3 (/outputs/RET_FL_G)
-    #   via (145.100, 29.800)  0.225 to the /outputs/PWM_FL_B via
-    #   via (132.150, 42.000)  0.225 to Net-(C60-Pad1) on F.Cu
-    #   via (132.150, 45.950)  0.225 to Net-(C60-Pad1) on F.Cu
-    #   via (146.650, 51.300)  0.247 to the /outputs/RET_FL_G run on F.Cu
-    # Worst slack +0.021 mm on a 0.200 mm limit, on the y = 55.5..55.8 corner.
-    #
-    # The west haul keeps 0.26-0.28 mm off the enclosing SQUARES of two GND ground-drop vias
-    # where the disc model would have let it sit at 0.225, and that detour is bought for a
-    # reason. gnd_drops.via_ok
-    # models a drop as the SQUARE that encloses it; routes() and the planner behind these
-    # numbers model the same via as the disc it is (the Step 6.0 ruling). The two are equal
-    # against a face and differ at a corner, which is exactly where this haul passes. An
-    # earlier version ran the leg (141.800, 32.300)-(133.450, 36.500) at 0.225/0.231/0.238 mm
-    # from those two drops -- legal discs, passed routes() and check_track_crossings() -- but
-    # 0.145 mm from the square at (142.000, 32.925) and 0.135/0.115 mm from the one at
-    # (133.875, 37.000). via_ok therefore could not keep either site, and gnd_drops re-picked
-    # them at (144.175, 32.925) and (133.875, 37.200). Those two land on the router's frozen
-    # copper, because gnd_drops sees only TRACK_LOG -- the hand routes -- and the frozen
-    # segments are not in it: KiCad reported eight shorting_items between the first and
-    # /outputs/PWM_RL_G's F.Cu tracks, and a 0.275 mm clearance error between the second and
-    # /+5V on In5.Cu. Drawing this haul clear of the squares leaves both drops where the
-    # router's copper already proved them safe. The blind spot in gnd_drops is reported in
-    # the Step 6.1b report, not patched here -- tightening via_ok's obstacle set moves ground
-    # drops board-wide and that is not this step's change to make.
-    ("PWM_FL_R", "F.Cu", 0.20, [(143.087, 27.725), (143.950, 27.850), (144.750, 28.600),
-                                (145.100, 29.800)]),
-    ("PWM_FL_R", "B.Cu", 0.20, [(145.100, 29.800), (145.000, 31.150), (144.750, 31.500),
-                                (143.050, 32.250), (141.600, 32.250), (133.350, 36.400),
-                                (133.200, 36.600), (133.000, 40.150), (132.150, 42.000)]),
-    ("PWM_FL_R", "F.Cu", 0.20, [(132.150, 42.000), (132.350, 43.800), (132.150, 45.950)]),
-    ("PWM_FL_R", "B.Cu", 0.20, [(132.150, 45.950), (136.150, 53.200), (136.150, 54.650),
-                                (136.950, 55.850), (137.250, 56.050), (141.250, 56.050),
-                                (146.100, 55.800), (146.450, 55.500), (146.700, 54.900),
-                                (146.700, 51.350), (146.650, 51.300)]),
-    ("PWM_FL_R", "F.Cu", 0.20, [(146.650, 51.300), (147.050, 50.850), (147.713, 50.700)]),
+    #   F.Cu escape     0.254 to pin 7's own pad (U7.7, PWM_FL_G)
+    #   B.Cu west       0.228 to the ground drop at (133.875, 37.000)
+    #   In2.Cu jog      0.300 to the SENSE_FR_B via at (131.700, 43.600)
+    #   B.Cu diagonal   0.251 to the PWM_RR_G via at (143.000, 56.800)
+    #   In2.Cu landing  0.269 to the MUXIN_RR_B via at (145.875, 55.175)
+    #   F.Cu stub       0.487 to the MUXIN_FR_B via at (148.175, 54.825)
+    #   via (145.500,29.700)  0.202 to PWM_FL_G's F.Cu escape  <- binding, the pin 6/7 pinch
+    #   via (132.200,41.950)  0.225 to the Net-(C60-Pad1) run on F.Cu
+    #   via (132.200,45.300)  0.225 to the SENSE_FR_R run on In5.Cu
+    #   via (145.150,54.950)  0.209 to the MUXIN_RR_B via at (145.875, 55.175)
+    # Worst slack +0.002 mm, the same pinch quoted under PWM_FL_G.
+    ("PWM_FL_R", "F.Cu", 0.20, [(143.087, 27.725), (143.950, 27.800), (144.700, 28.550), (145.000, 28.900), (145.500, 29.700)]),
+    ("PWM_FL_R", "B.Cu", 0.20, [(145.500, 29.700), (145.650, 30.150), (145.650, 31.250), (143.950, 32.950), (142.800, 33.000), (142.550, 33.250), (142.550, 33.300), (142.250, 33.600), (141.250, 33.600), (140.900, 33.250), (140.650, 33.100), (140.200, 33.150), (133.250, 36.400), (133.250, 36.700), (133.200, 40.950), (132.200, 41.950)]),
+    ("PWM_FL_R", "In2.Cu", 0.20, [(132.200, 41.950), (132.400, 42.150), (132.400, 45.100), (132.200, 45.300)]),
+    ("PWM_FL_R", "B.Cu", 0.20, [(132.200, 45.300), (132.950, 47.250), (135.050, 51.200), (136.100, 52.250), (136.150, 54.750), (136.850, 55.800), (137.000, 55.950), (137.150, 56.050), (140.800, 56.100), (141.300, 56.600), (142.300, 56.650), (142.700, 56.250), (145.150, 54.950)]),
+    ("PWM_FL_R", "In2.Cu", 0.20, [(145.150, 54.950), (145.450, 54.650), (145.700, 54.500), (147.675, 53.650), (148.500, 54.000)]),
+    ("PWM_FL_R", "F.Cu", 0.20, [(148.500, 54.000), (150.255, 53.830)]),
+
+    # /outputs/PWM_FR_R: U7 pin 9 out to R43.1 at (170.255, 54.330) -- 8 runs, 7 vias,
+    # F.Cu/B.Cu/In5.Cu, and the only one of the three that keeps the netclass 0.60/0.30 via.
+    # Pin 9 escapes WEST, away from its destination, because east of it is the same output
+    # field the other two had to go round; it drops to B.Cu at (138.000, 29.400) and then runs
+    # right along the top of the board above the mux row, down the east edge at x = 175..180,
+    # and back west past R66 to R43. The long B.Cu legs are in the margin the router left
+    # above and outside the output field, which is why this one has the most slack of the three.
+    # Tightest per run, all against the 0.200 mm Default clearance:
+    #   F.Cu escape     0.236 to pin 8's pad (U7.8, PWM_FL_B)
+    #   B.Cu north      0.245 to the MUXIN_FL_B via at (141.875, 28.050)
+    #   In5.Cu hop      0.436 to the PWM_RL_R run on In5.Cu
+    #   B.Cu east edge  0.255 to the SENSE_FR_G via at (178.000, 58.200)
+    #   In5.Cu west     0.260 to the Net-(U9-IN1) via at (175.905, 60.330)
+    #   B.Cu west       0.275 to the PWM_DEN_A via at (170.700, 61.400)
+    #   F.Cu north      0.252 to the RET_RR_R via at (168.100, 59.000)
+    #   B.Cu west       0.267 to the SENSE_FR_B via at (168.500, 55.100)
+    #   via (138.000,29.400)  0.208 to the MUXIN_FR_R run on F.Cu  <- binding
+    #   via (171.600,25.400)  0.211 to the Net-(U7-~{OE}) run on B.Cu
+    #   via (173.800,29.300)  0.236 to the PWM_RL_R run on In5.Cu
+    #   via (178.050,59.750)  0.225 to the SENSE_FL_B run on In5.Cu
+    #   via (172.200,61.900)  0.211 to the RET_RL_G run on F.Cu
+    #   via (168.050,61.150)  0.211 to the PWM_DEN_A run on F.Cu
+    #   via (167.400,58.250)  0.212 to R66.1 (SENSE_FL_B)
+    # Worst slack +0.008 mm.
+    ("PWM_FR_R", "F.Cu", 0.20, [(143.087, 29.675), (142.350, 29.700), (142.000, 29.350), (141.850, 29.250), (141.350, 29.250), (141.150, 29.400), (138.000, 29.400)]),
+    ("PWM_FR_R", "B.Cu", 0.20, [(138.000, 29.400), (141.150, 29.400), (141.350, 29.250), (141.650, 29.200), (142.500, 28.350), (142.550, 27.650), (144.500, 25.700), (147.250, 24.600), (157.850, 23.500), (165.850, 23.250), (170.250, 24.100), (170.350, 24.150), (171.600, 25.400)]),
+    ("PWM_FR_R", "In5.Cu", 0.20, [(171.600, 25.400), (171.600, 27.100), (173.800, 29.300)]),
+    ("PWM_FR_R", "B.Cu", 0.20, [(173.800, 29.300), (174.350, 29.900), (174.450, 30.150), (175.200, 39.450), (176.700, 41.275), (176.500, 42.500), (179.500, 45.500), (179.600, 45.650), (180.000, 52.450), (179.250, 55.550), (179.150, 55.700), (178.700, 56.150), (178.650, 58.450), (178.050, 59.750)]),
+    ("PWM_FR_R", "In5.Cu", 0.20, [(178.050, 59.750), (175.400, 59.650), (173.500, 61.550), (173.350, 61.650), (172.200, 61.900)]),
+    ("PWM_FR_R", "B.Cu", 0.20, [(172.200, 61.900), (170.650, 62.100), (168.050, 61.150)]),
+    ("PWM_FR_R", "F.Cu", 0.20, [(168.050, 61.150), (167.550, 59.350), (167.450, 59.250), (167.400, 58.250)]),
+    ("PWM_FR_R", "B.Cu", 0.20, [(167.400, 58.250), (167.400, 57.200), (170.200, 54.300)]),
+
 ]
 
 # Hand vias: (net, x, y, diameter_mm, drill_mm).  Emptied with ROUTES -- see above.
@@ -1535,11 +1642,9 @@ ROUTE_VIAS = [
     # already the widest obstacle most of these corridors can absorb. Clearances for each
     # are quoted in that net's ROUTES comment above.
     ("Net-(U3-MODE)", 88.400, 31.200, 0.6, 0.3),   # F.Cu -> In2.Cu, east of pin 12
-    ("Net-(U3-MODE)", 86.800, 39.000, 0.6, 0.3),   # In2.Cu -> F.Cu at R11.1
     ("GND", 97.750, 88.050, 0.6, 0.3),             # U4 pin 6's ground drop, see ROUTES
     ("Net-(U4-SR)", 96.400, 87.850, 0.6, 0.3),     # F.Cu -> In2.Cu, the pocket's own site
     ("Net-(U4-SR)", 108.750, 93.400, 0.6, 0.3),    # In2.Cu -> In5.Cu, clear of RET_FL_G
-    ("Net-(U4-SR)", 110.300, 91.850, 0.6, 0.3),    # In5.Cu -> F.Cu at C32.1
     ("/EN_BOOST", 85.450, 34.400, 0.6, 0.3),       # F.Cu -> In2.Cu below U3 pin 6
     ("/EN_BOOST", 83.400, 38.200, 0.6, 0.3),       # In2.Cu -> F.Cu at R20.1
 
@@ -1547,11 +1652,29 @@ ROUTE_VIAS = [
     # against copper on every layer (routes() does not do that for a hand via) -- clearances
     # are quoted in the ROUTES comment for the net.
     ("U10_GATE", 38.900, 95.550, 0.6, 0.3),        # F.Cu -> In5.Cu, east of the VCC10 via
-    ("U10_GATE", 38.000, 83.850, 0.6, 0.3),        # In5.Cu -> F.Cu at R103.1
-    ("PWM_FL_R", 145.100, 29.800, 0.6, 0.3),       # F.Cu -> B.Cu, off U7 pin 6's pad end
-    ("PWM_FL_R", 132.150, 42.000, 0.6, 0.3),       # B.Cu -> F.Cu, duck under the full B.Cu
-    ("PWM_FL_R", 132.150, 45.950, 0.6, 0.3),       # F.Cu -> B.Cu again, south of C60
-    ("PWM_FL_R", 146.650, 51.300, 0.6, 0.3),       # B.Cu -> F.Cu at Q4
+    # Step 6.3 vias. 0.50/0.20 on the two PWM_FL_* nets -- the board's minimum via diameter
+    # and the largest drill 0.15 mm min_via_annular_width leaves it -- because at the netclass
+    # 0.60 the (138.600,48.550) and (145.500,29.700) barrels land 0.043 and 0.048 mm inside the
+    # clearance floor. 0.60/0.30 on PWM_FR_R, whose tightest barrel still has 0.208 mm. Each
+    # was swept against copper on every layer; clearances are in each net's ROUTES comment.
+    ("PWM_FL_G", 145.000, 30.350, 0.50, 0.20),
+    ("PWM_FL_G", 137.800, 32.800, 0.50, 0.20),
+    ("PWM_FL_G", 138.600, 48.550, 0.50, 0.20),
+    ("PWM_FL_G", 141.600, 56.000, 0.50, 0.20),
+    ("PWM_FL_G", 143.650, 57.850, 0.50, 0.20),
+    ("PWM_FL_G", 145.700, 59.350, 0.50, 0.20),
+    ("PWM_FL_G", 156.600, 57.400, 0.50, 0.20),
+    ("PWM_FL_R", 145.500, 29.700, 0.50, 0.20),
+    ("PWM_FL_R", 132.200, 41.950, 0.50, 0.20),
+    ("PWM_FL_R", 132.200, 45.300, 0.50, 0.20),
+    ("PWM_FL_R", 145.150, 54.950, 0.50, 0.20),
+    ("PWM_FR_R", 138.000, 29.400, 0.60, 0.30),
+    ("PWM_FR_R", 171.600, 25.400, 0.60, 0.30),
+    ("PWM_FR_R", 173.800, 29.300, 0.60, 0.30),
+    ("PWM_FR_R", 178.050, 59.750, 0.60, 0.30),
+    ("PWM_FR_R", 172.200, 61.900, 0.60, 0.30),
+    ("PWM_FR_R", 168.050, 61.150, 0.60, 0.30),
+    ("PWM_FR_R", 167.400, 58.250, 0.60, 0.30),
 ]
 
 

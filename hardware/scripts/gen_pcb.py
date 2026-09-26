@@ -1404,6 +1404,9 @@ DROP_CLEAR = 0.30       # the WIDEST netclass clearance -- used only where the n
                         # via at all.  Demanding 0.30 there does not make the board safer; it
                         # makes it unroutable and leaves the pin unconnected, which is worse.
 DROP_DEFAULT_CLEAR = 0.20
+# rules.min_hole_to_hole from scripts/gen_netclasses.py -- a fab floor, not a netclass one,
+# so it applies between two drills on the same net as much as on different ones.
+HOLE_TO_HOLE = 0.3
 
 
 def net_clearance(code):
@@ -1615,6 +1618,32 @@ class Hash(object):
         return out
 
 
+class BoxHash(object):
+    """The same 4 mm bucket grid as Hash, over anything that can name its own bounding box.
+
+    Hash indexes pads, whose tuple layout it knows.  This one takes (item, x0, y0, x1, y1) and
+    is what makes the frozen router's 4692 segments and 857 vias usable as obstacles: a
+    board-wide scan per candidate site is 141 pads x hundreds of candidates x thousands of
+    obstacles, which does not finish.
+    """
+
+    CELL = 4.0
+
+    def __init__(self, items):
+        self.b = {}
+        for it, x0, y0, x1, y1 in items:
+            for i in range(int(x0 / self.CELL), int(x1 / self.CELL) + 1):
+                for j in range(int(y0 / self.CELL), int(y1 / self.CELL) + 1):
+                    self.b.setdefault((i, j), []).append(it)
+
+    def near(self, x0, y0, x1, y1):
+        out = []
+        for i in range(int(x0 / self.CELL), int(x1 / self.CELL) + 1):
+            for j in range(int(y0 / self.CELL), int(y1 / self.CELL) + 1):
+                out += self.b.get((i, j), [])
+        return out
+
+
 def _pt_rect(px, py, rx0, ry0, rx1, ry1):
     """Euclidean distance from a point to an axis-aligned rectangle; 0 if inside."""
     dx = max(rx0 - px, 0.0, px - rx1)
@@ -1692,7 +1721,8 @@ def _stub_clear(x0, y0, x1, y1, w, pads, gnd, skip):
     return True
 
 
-def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
+def gnd_drops(comps, pos, padnet, netidx, placed, keepouts,
+              frozen_tracks=(), frozen_vias=()):
     """A via beside every SMD ground pad, with a stub to reach it.
 
     `placed` is (x, y, size, drill, net) for every via already on the board; `keepouts` is the
@@ -1718,6 +1748,17 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
     # about.  U3 pin 2 is the case that forced it: its only escape is the 0.35 mm channel
     # west of the pin, and pin 1's drop had taken it.
     foreign = [t for t in TRACK_LOG if t[6] != gnd]
+    # `frozen_tracks` and `frozen_vias` are the external router's copper, from
+    # frozen_obstacles().  They are not in TRACK_LOG or `placed` yet -- frozen_routes() runs
+    # after this function -- and without them a drop can be placed on top of router copper,
+    # which check_drop_via_crossings() then fails the build over, too late for the drop to
+    # move.  They are bucketed rather than appended to `foreign` and `placed` because there
+    # are 4692 and 857 of them and the plain loops below are per candidate site.
+    FZT = BoxHash([(t, min(t[0], t[2]) - t[4], min(t[1], t[3]) - t[4],
+                    max(t[0], t[2]) + t[4], max(t[1], t[3]) + t[4])
+                   for t in frozen_tracks if t[6] != gnd])
+    FZV = BoxHash([(v, v[0] - v[2], v[1] - v[2], v[0] + v[2], v[1] + v[2])
+                   for v in frozen_vias if v[4] != gnd])
 
     def via_ok(vx, vy, skip, island=True):
         if not (L.X0 + 0.5 + r <= vx <= L.X1 - 0.5 - r
@@ -1747,6 +1788,32 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
             need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
             if _seg_rect_gap((tx0, ty0), (tx1, ty1), tw,
                              (vx - r, vy - r, vx + r, vy + r)) < need:
+                return False
+        # Frozen router tracks.  Disc, not box, and that is the opposite choice from the
+        # `foreign` loop above on purpose.  Up there the box is the stricter model and it is
+        # affordable: `foreign` is our own hand routes, a few hundred segments in places we
+        # chose.  Here it is the router's 4692, and the box costs real ground connections --
+        # tightening this test to the box took the drops from 139 to 115 and left 22 pads
+        # with no drop at all instead of 1.  So this matches check_drop_via_crossings(), the
+        # gate that actually fails the build, exactly: the same disc, the same clearance, so
+        # a site this admits is a site the gate admits.
+        for tx0, ty0, tx1, ty1, tw, _tlay, tnet in FZT.near(vx - 2, vy - 2, vx + 2, vy + 2):
+            need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
+            # `need - 1e-6` for the reason spelled out in check_drop_via_crossings(): the
+            # router targets the floor exactly, so these are exact ties at 0.200 mm and a
+            # strict `<` decides them on the last bit of a double.  C45.2 is the case that
+            # forced it -- its drop sits 0.19999999999999787 mm from a MUXIN_RL_R track,
+            # which is 0.200 mm, and a strict test took the drop away and left the pad with
+            # no ground connection at all.
+            if _seg_disc_gap((tx0, ty0), (tx1, ty1), tw, vx, vy, DROP_VIA) < need - 1e-6:
+                return False
+        # Frozen router vias: barrel-to-barrel clearance and the board's 0.3 mm hole-to-hole,
+        # which is what a DRC would ask.
+        for px, py, ps, pd, pnet in FZV.near(vx - 2, vy - 2, vx + 2, vy + 2):
+            d = math.hypot(vx - px, vy - py)
+            if d < max((DROP_DRILL + pd) / 2.0 + 0.3,
+                       (DROP_VIA + ps) / 2.0 + max(net_clearance(pnet),
+                                                   DROP_DEFAULT_CLEAR)) - 1e-6:
                 return False
         near = hash_.near(vx - r - DROP_CLEAR, vy - r - DROP_CLEAR,
                           vx + r + DROP_CLEAR, vy + r + DROP_CLEAR)
@@ -1794,6 +1861,19 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts):
                 continue
             need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
             if _seg_seg(x0, y0, x1, y1, tx0, ty0, tx1, ty1) < (w + tw) / 2.0 + need:
+                return False
+        # The frozen router's F.Cu copper, and its vias, which are on every layer.
+        for tx0, ty0, tx1, ty1, tw, tlay, tnet in FZT.near(bx0 - 1, by0 - 1, bx1 + 1, by1 + 1):
+            if tlay != "F.Cu":
+                continue
+            need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
+            if _seg_seg(x0, y0, x1, y1, tx0, ty0, tx1, ty1) < (w + tw) / 2.0 + need - 1e-6:
+                return False
+        for px, py, ps, _pd, pnet in FZV.near(bx0 - 1, by0 - 1, bx1 + 1, by1 + 1):
+            need = max(net_clearance(pnet), DROP_DEFAULT_CLEAR)
+            # Disc, not the box the `placed` loop above uses, for the reason given in via_ok:
+            # against the router's own copper the box is a cost, not a safety margin.
+            if _seg_disc_gap((x0, y0), (x1, y1), w, px, py, ps) < need - 1e-6:
                 return False
         return True
 
@@ -2105,6 +2185,44 @@ def check_track_crossings(lo, hi):
                          + "\n  ".join(sorted(set(close))))
 
 
+def check_via_holes(lo, hi):
+    """Hole-to-hole between every hand via and every other via on the board.
+
+    KiCad's DRC does not answer this one. Its hole-to-hole check skips pairs on the SAME net,
+    and a hand route that changes layer where the router already changed layer lands on the
+    router's own via -- same net, so DRC says nothing, while the fab is handed two 0.30 mm
+    drills 0.02 mm apart, which is a slot it did not ask for. Three of Step 6.1/6.1b's hand
+    vias were exactly that, and the only reason they were ever noticed is that Step 6.3 hit
+    the same thing and the numbers were looked at directly.
+
+    Nothing else covers it either: routes() checks a hand via against `placed`, which at that
+    point is the thermal and stitching fields only, and gnd_drops() does its own hole-to-hole
+    but only for drops. So this is the hand vias' turn, VIA_LOG[lo:hi], against every via on
+    the board -- the router's included, and its own net included, because a drill does not
+    care what net it is on. min_hole_to_hole is 0.3 mm (scripts/gen_netclasses.py); the 1e-6
+    is the same float-tie allowance as check_drop_via_crossings above.
+
+    Where this fires, the fix is usually not to move the hand via but to delete it: if the
+    router already has a via on this net within a hair of it, the hand run can simply end on
+    the router's via and change layer there.
+    """
+    close = []
+    for i in range(lo, min(hi, len(VIA_LOG))):
+        ax, ay, _as, ad, anet = VIA_LOG[i]
+        for j, (bx, by, _bs, bd, bnet) in enumerate(VIA_LOG):
+            if j == i:
+                continue
+            gap = math.hypot(ax - bx, ay - by) - (ad + bd) / 2.0
+            if gap < HOLE_TO_HOLE - 1e-6:
+                close.append("a %s via (%.3f,%.3f) drill %.2f vs a %s via (%.3f,%.3f) "
+                             "drill %.2f: hole-to-hole %.3f < %.3f"
+                             % (NETNAME.get(anet, "?"), ax, ay, ad,
+                                NETNAME.get(bnet, "?"), bx, by, bd, gap, HOLE_TO_HOLE))
+    if close:
+        raise SystemExit("hand vias are too close to another drill:\n  "
+                         + "\n  ".join(sorted(set(close))))
+
+
 def check_drop_via_crossings(glo, ghi):
     """Every ground-drop via against every track on another net.
 
@@ -2201,6 +2319,13 @@ def routes(comps, pos, padnet, netidx, placed):
     #
     # A via counts on any layer -- that is what a via is for -- so vias carry layer None and
     # match anything.  A segment counts only on its own layer.
+    #
+    # The frozen router copper is read here as well.  frozen_routes() emits it after this
+    # function runs, so a hand run that deliberately ends on a router track or a router via
+    # of its own net -- eight of them do -- looked dangling to this check even though KiCad
+    # then reported the net fully connected.  Eight false ERROR lines on a passing build is
+    # a report that lies, so the obstacle view is consulted directly.
+    _fz_t, _fz_v = frozen_obstacles(netidx)
     dangling = []
     for s in segs:
         for end, which in ((s["p0"], "start"), (s["p1"], "end")):
@@ -2226,6 +2351,15 @@ def routes(comps, pos, padnet, netidx, placed):
                          and _rect_gap(b, (vx - vs / 2, vy - vs / 2,
                                            vx + vs / 2, vy + vs / 2)) <= 0.0
                          for vx, vy, vs, _vd, vnet in placed)
+            if not ok:
+                ok = any(fnet == s["code"] and flay == s["layer"]
+                         and _seg_rect_gap((fx0, fy0), (fx1, fy1), fw, b) <= 0.0
+                         for fx0, fy0, fx1, fy1, fw, flay, fnet in _fz_t)
+            if not ok:
+                ok = any(fnet == s["code"]
+                         and _rect_gap(b, (fx - fs / 2, fy - fs / 2,
+                                           fx + fs / 2, fy + fs / 2)) <= 0.0
+                         for fx, fy, fs, _fd, fnet in _fz_v)
             if not ok:
                 dangling.append("%s ROUTES[%d] seg %d %s (%.2f, %.2f)"
                                 % (s["name"], s["i"], s["j"], which, end[0], end[1]))
@@ -3274,6 +3408,42 @@ def _ar_cache(path, key, result=None):
     return result
 
 
+def frozen_obstacles(netidx):
+    """The frozen router's copper as obstacle tuples, emitting nothing.
+
+    gnd_drops() runs before frozen_routes(), so its `foreign` view was the hand routes and
+    nothing else and a drop site could be chosen on top of router copper.  Nothing caught
+    that until check_drop_via_crossings(); when it did fire, the drop was already placed and
+    the only thing the build could do was refuse.  Reading the frozen file twice -- once here
+    for obstacles, once in frozen_routes() for copper -- is what lets gnd_drops avoid the
+    site in the first place.  It is data both times, so the two reads cannot disagree.
+
+    Returns (tracks, vias) shaped like TRACK_LOG and VIA_LOG entries.  Nothing is appended to
+    either log: these are obstacles to plan against, and frozen_routes() is still the one and
+    only place the copper is emitted.  Empty in the branches where no frozen copper will be
+    emitted, so the obstacle set and the board always agree.
+    """
+    if (not os.path.exists(FROZEN) or os.environ.get("AR_SKIP")
+            or os.environ.get("AR_ROUTE")):
+        return [], []
+    doc = json.load(io.open(FROZEN, encoding="utf-8"))
+    nets = doc.get("nets", {})
+    skip = set(getattr(L, "FROZEN_DROP", ()))
+    tracks, vias = [], []
+    for name in sorted(nets):
+        net = netidx.get(name)
+        if net is None or name in skip:
+            # A net the board does not have is frozen_routes()' error to report, not ours;
+            # a FROZEN_DROP net is copper that will not be emitted, so it is not an obstacle.
+            continue
+        d = nets[name]
+        for r in d.get("segments", ()):
+            tracks.append((r[0], r[1], r[2], r[3], r[4], r[5], net))
+        for v in d.get("vias", ()):
+            vias.append((v[0], v[1], v[2], v[3], net))
+    return tracks, vias
+
+
 def frozen_routes(netidx):
     """Emit the copper an external router laid, as frozen by scripts/freeze_routes.py.
 
@@ -3542,10 +3712,18 @@ def main():
     # them for that test to mean anything.
     placed = list(VIA_LOG)
     _rt_lo = len(TRACK_LOG)
+    _rv_lo = len(VIA_LOG)
     out += routes(comps, pos, padnet, netidx, placed)
     _rt_hi = len(TRACK_LOG)
+    _rv_hi = len(VIA_LOG)
+    # The frozen router's copper, as obstacles only.  frozen_routes() below is still what
+    # emits it; this is the same data read early so that gnd_drops() can see it.  Nothing here
+    # reaches TRACK_LOG or VIA_LOG, so neither the board nor any later gate double-counts it;
+    # its tracks and vias are passed in separately, because TRACK_LOG and `placed` will not
+    # hold them until later, and because there are enough of them to need their own index.
+    _fz_tracks, _fz_vias = frozen_obstacles(netidx)
     _gd_lo = len(VIA_LOG)
-    dv, ds = gnd_drops(comps, pos, padnet, netidx, placed, kos)
+    dv, ds = gnd_drops(comps, pos, padnet, netidx, placed, kos, _fz_tracks, _fz_vias)
     _gd_hi = len(VIA_LOG)
     out += dv
     out += ds
@@ -3572,6 +3750,9 @@ def main():
     # ground-drop via placed against `foreign` (gnd_drops' hand-routes-only view) has never
     # been checked against it until this line.
     check_drop_via_crossings(_gd_lo, _gd_hi)
+    # And the hand vias against every drill on the board, for the reason in its docstring:
+    # DRC skips same-net hole-to-hole, so nothing else on this board asks the question.
+    check_via_holes(_rv_lo, _rv_hi)
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")

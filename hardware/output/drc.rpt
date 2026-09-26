@@ -1,14 +1,14 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-26T01:34:29 **
+** Created on 2026-09-26T10:05:08 **
 ** Report includes: Errors **
 
 ** Found 0 DRC violations **
 
-** Found 13 unconnected pads **
+** Found 11 unconnected pads **
 [unconnected_items]: Missing connection between items
     Local override; error
     @(157.8125 mm, 30.3250 mm): Pad 19 [/outputs/MUXIN_FL_R] of U8 on F.Cu
-    @(167.7250 mm, 29.4250 mm): Track [/outputs/MUXIN_FL_R] on B.Cu, length 1.1314 mm
+    @(166.9250 mm, 30.2250 mm): Track [/outputs/MUXIN_FL_R] on B.Cu, length 2.1750 mm
 [unconnected_items]: Missing connection between items
     Local override; error
     @(152.0875 mm, 29.6750 mm): Pad 9 [/outputs/MUXIN_RR_G] of U8 on F.Cu
@@ -19,20 +19,12 @@
     @(165.7550 mm, 54.3300 mm): Pad 1 [/outputs/PWM_FL_B] of R42 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(143.0875 mm, 28.3750 mm): Pad 7 [/outputs/PWM_FL_G] of U7 on F.Cu
-    @(150.1000 mm, 50.7000 mm): Track [/outputs/PWM_FL_G] on F.Cu, length 0.7130 mm
-[unconnected_items]: Missing connection between items
-    Local override; error
     @(143.0875 mm, 30.9750 mm): Pad 11 [/outputs/PWM_FR_B] of U7 on F.Cu
     @(153.1000 mm, 48.0000 mm): Track [/outputs/PWM_FR_B] on In2.Cu, length 1.4142 mm
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(143.0875 mm, 29.6750 mm): Pad 9 [/outputs/PWM_FR_R] of U7 on F.Cu
-    @(153.8870 mm, 50.7000 mm): Track [/outputs/PWM_FR_R] on F.Cu, length 1.0130 mm
-[unconnected_items]: Missing connection between items
-    Local override; error
     @(172.8875 mm, 51.2000 mm): Pad 5 [/outputs/PWM_RL_G] of Q7 on F.Cu
-    @(143.5500 mm, 35.1000 mm): Track [/outputs/PWM_RL_G] on In2.Cu, length 2.8991 mm
+    @(143.5500 mm, 34.3500 mm): Track [/outputs/PWM_RL_G] on In2.Cu, length 0.7500 mm
 [unconnected_items]: Missing connection between items
     Local override; error
     @(148.8125 mm, 30.9750 mm): Pad 18 [/outputs/PWM_RR_B] of U7 on F.Cu
