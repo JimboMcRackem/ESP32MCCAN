@@ -17,11 +17,17 @@ is the picture you need before choosing a lane.  This prints it.
     python scripts/show_inner.py x0 y0 x1 y1            # obstacles in the window
     python scripts/show_inner.py x0 y0 x1 y1 --tracks   # and the inner copper already laid
 
-Everything is in board millimetres, and every box is printed as the extent the clearance
-check will actually measure against: pads at their true size, vias as the SQUARE box
-gen_pcb.routes() models them with.  The square matters.  routes() measures box-to-box, so a
-via that clears a disc of the same diameter can still foul a corner, and half the candidate
-positions a mental picture accepts are rejected on that alone.
+Everything is in board millimetres.  Pads are printed at their true size, which is exactly
+the extent gen_pcb.routes() measures a pad against -- a pad keeps the box everywhere in that
+file, through-hole included, because it has an orientation and a shape the box conservatively
+encloses.  A via here is printed the same way, as its bounding square, but that stopped being
+what routes() measures a via against at commit 330b8f3 ("a via is a disc, not its bounding
+square"): a via has no orientation, so its box was claiming copper at the corners that was
+never there, and routes() now compares a via by centre and diameter (_seg_disc_gap), not by
+box.  The square printed here is still a cheap, honest-enough extent to eyeball a lane
+against, but it is looser than the check that actually decides -- a candidate this tool shows
+fouling a via's corner can still pass routes(), because the corner the box claims is not
+copper the via has.
 
 The obstacle list comes from the netlist and the placer, so it is right even when
 mccan.kicad_pcb is stale; --tracks reads the generated board, so it is only as current as
