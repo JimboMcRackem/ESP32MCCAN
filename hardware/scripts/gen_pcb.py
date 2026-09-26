@@ -2160,7 +2160,15 @@ def check_track_crossings(lo, hi):
             need = max(net_clearance(anet), net_clearance(bnet))
             gap = _seg_seg_dist((ax0, ay0), (ax1, ay1),
                                 (bx0, by0), (bx1, by1)) - (aw + bw) / 2
-            if gap < need:
+            # `need - 1e-6`, not `need`: the same float-tie allowance that
+            # check_drop_via_crossings explains below, applied here for the same reason.
+            # The tightest hand-vs-hand pair on this board is an exact tie --
+            # /power_input/SNS against /power_input/VBAT_PROT on F.Cu at (36.90, 96.50),
+            # gap 0.300000 against a 0.300 need -- so under a strict `<` whether the build
+            # passes is decided by the last bit of a double rather than by any real copper.
+            # The allowance only ever lets a gap through, so it cannot fail a board that
+            # passes today; one nanometre is far below anything a fab holds or KiCad writes.
+            if gap < need - 1e-6:
                 close.append("%s (%.2f,%.2f)-(%.2f,%.2f) vs %s (%.2f,%.2f)-(%.2f,%.2f) "
                              "on %s: %.3f < %.3f"
                              % (NETNAME.get(anet, "?"), ax0, ay0, ax1, ay1,
@@ -2175,7 +2183,8 @@ def check_track_crossings(lo, hi):
             need = max(net_clearance(anet), net_clearance(vnet))
             # _seg_disc_gap, not _seg_rect_gap: the via is round.  See the note above it.
             gap = _seg_disc_gap((ax0, ay0), (ax1, ay1), aw, vx, vy, vs)
-            if gap < need:
+            # `need - 1e-6`: the same float-tie allowance, for the same reason.
+            if gap < need - 1e-6:
                 close.append("%s (%.2f,%.2f)-(%.2f,%.2f) vs a %s via (%.2f,%.2f): "
                              "%.3f < %.3f"
                              % (NETNAME.get(anet, "?"), ax0, ay0, ax1, ay1,
@@ -2382,7 +2391,11 @@ def routes(comps, pos, padnet, netidx, placed):
             need = pad_clearance(p, code)
             g = (_seg_rect_gap(seg[0], seg[1], seg[2], _pad_box(p)) if seg
                  else _rect_gap(box, _pad_box(p)))
-            if g < need:
+            # `need - 1e-6`, not `need`: the same float-tie allowance as above. Hand
+            # routes are laid to the clearance floor exactly rather than to a margin over
+            # it, so these gaps tie instead of clearing, and a strict `<` decides a tie on
+            # float noise.
+            if g < need - 1e-6:
                 close.append("%s vs %s.%s (%s): %.3f < %.3f"
                              % (what, p[0], p[1], NETNAME.get(p[2], "?"), g, need))
 
@@ -2412,7 +2425,8 @@ def routes(comps, pos, padnet, netidx, placed):
                 continue
             need = max(net_clearance(vnet), net_clearance(s["code"]))
             g = _seg_disc_gap(s["p0"], s["p1"], s["w"], vx, vy, vs)
-            if g < need:
+            # `need - 1e-6`: the same float-tie allowance, for the same reason.
+            if g < need - 1e-6:
                 close.append("%s vs %s on %s: %.3f < %.3f"
                              % (what, label, NETNAME.get(vnet, "?"), g, need))
     for v in vias:
@@ -2424,7 +2438,8 @@ def routes(comps, pos, padnet, netidx, placed):
             need = max(net_clearance(vnet), net_clearance(v["code"]))
             # Both objects are round, so neither gets a box.  See the note by _disc_disc_gap.
             g = _disc_disc_gap(v["x"], v["y"], v["sz"], vx, vy, vs)
-            if g < need:
+            # `need - 1e-6`: the same float-tie allowance, for the same reason.
+            if g < need - 1e-6:
                 close.append("%s vs a via on %s: %.3f < %.3f"
                              % (what, NETNAME.get(vnet, "?"), g, need))
 
