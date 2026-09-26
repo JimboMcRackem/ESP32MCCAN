@@ -1543,6 +1543,60 @@ ROUTES = [
     ("PWM_FR_R", "F.Cu", 0.20, [(168.050, 61.150), (167.550, 59.350), (167.450, 59.250), (167.400, 58.250)]),
     ("PWM_FR_R", "B.Cu", 0.20, [(167.400, 58.250), (167.400, 57.200), (170.200, 54.300)]),
 
+    # ============== necks at three router-to-pad junctions on F.Cu ==============
+    #
+    # Not new connections.  Each of these three lays 0.5 mm of hand copper directly on top of
+    # the first leg of a frozen router run, to widen a junction that KiCad's connection_width
+    # check reports as a hairline isthmus.  Found only after gen_netclasses.py stopped writing
+    # connection_width at `warning`, which the --severity-error gate had been discarding:
+    #
+    #   0.0589 mm  R101.2 /power_input/U10_DRN  (56.8425, 78.2300)
+    #   0.0790 mm  Q10.1  /power_input/Q10_G    (26.2000, 104.1000)
+    #   0.1346 mm  Q12.1  Net-(Q12-B)           (42.6000, 77.8000)
+    #
+    # all against the board's own 0.2000 mm min_connection.  The geometry is the same in all
+    # three: the router leaves the pad on a 45 degree diagonal at 0.25 mm and crosses the pad
+    # outline near its ROUNDED CORNER, so the copper common to track and pad tapers to a sliver
+    # instead of meeting across a full 0.25 mm.  0.059 mm of copper is not a fabrication margin,
+    # it is a coin toss at the etch tank -- and U10_DRN is the protection FET's drain node,
+    # Q10_G is Q10's gate and Net-(Q12-B) is the gate driver's base.  A neck that does not
+    # survive etching on those is an open gate on the eFuse, not a cosmetic finding.
+    #
+    # Why hand copper over the junction and not a re-route: this is the router's copper, frozen
+    # in scripts/routes_signal.json, and the freeze is not regenerated (plan Task 10 ruling).
+    # FROZEN_DROP would take the WHOLE net's router copper -- 14, 22 and 14 segments -- to fix a
+    # 1 mm junction.  Adding copper on the same net can only widen the union, never narrow it,
+    # so it is the minimal change that fixes the actual defect rather than the report of it.
+    # Each segment is collinear with, and shorter than, the frozen leg it overlays, so it adds
+    # no new geometry: U10_DRN's frozen leg runs (56.8, 78.2)-(56.0, 79.0) and this covers the
+    # first 0.990 mm of it; the other two cover their frozen legs exactly end to end.
+    #
+    # 0.5 mm is measured, not chosen for looks.  Sweeping the width against KiCad's own check
+    # (every value below run as a full DRC at --severity-all):
+    #     0.30 mm  fixes U10_DRN only          -- Q10_G still 0.0790, Q12-B still 0.1100
+    #     0.35 mm  fixes U10_DRN only          -- Q10_G still 0.0790, Q12-B still 0.0856
+    #     0.40 mm  fixes U10_DRN and Q10_G     -- Q12-B still 0.0601 (its pad is only 0.6 mm
+    #                                             tall, so a 45 degree crossing has very little
+    #                                             pad edge to meet)
+    #     0.50 mm  fixes all three
+    # Achieved connection width after the fix, read by raising min_connection on a scratch copy
+    # of the generated board until each junction reappears: none of the three is reported at a
+    # 0.70 mm threshold, so all three are >= 0.700 mm -- 3.5x the 0.2000 mm floor, and the
+    # figure a 0.5 mm track presents across a 45 degree crossing (0.5 * sqrt(2) = 0.7071 mm),
+    # which is the cross-check that the sweep is measuring the junction and not something else.
+    #
+    # Clearance cost of the extra 0.125 mm of half-width, measured against every other piece of
+    # copper on F.Cu plus every via and pad on the board (gen_pcb's own gap helpers and its own
+    # net_clearance), tightest neighbour each:
+    #   U10_DRN     1.370 mm to pad R101.1 (/power_input/MID), need 0.300 -- slack +1.070
+    #   Q10_G       0.850 mm to pad Q10.2 (/power_input/FEED_P), need 0.300 -- slack +0.550
+    #   Net-(Q12-B) 0.800 mm to pad Q12.2 (/power_input/FEED_P), need 0.300 -- slack +0.500
+    # This is the eFuse block, not the output field; there is room here and these are the
+    # loosest hand routes on the board.
+    ("U10_DRN", "F.Cu", 0.50, [(56.800, 78.200), (56.100, 78.900)]),
+    ("Q10_G", "F.Cu", 0.50, [(26.200, 104.100), (25.800, 104.500)]),
+    ("Net-(Q12-B)", "F.Cu", 0.50, [(42.600, 77.800), (42.000, 78.400)]),
+
 ]
 
 # Hand vias: (net, x, y, diameter_mm, drill_mm).  Emptied with ROUTES -- see above.

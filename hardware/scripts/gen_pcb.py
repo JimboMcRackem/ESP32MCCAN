@@ -2515,6 +2515,15 @@ def routes(comps, pos, padnet, netidx, placed):
         print("  ERROR: %d route clearance(s) short:" % len(close))
         for c in close:
             print("      %s" % c)
+    # HOW THIS FILE FAILS A BUILD: `raise SystemExit`, here and at check_track_crossings,
+    # check_drop_via_crossings, check_via_holes, frozen_routes and main()'s unplaced-parts
+    # guard.  There is no `sys.exit` anywhere in this file and never was, so grepping for one
+    # -- which is a reasonable first probe, and is the probe a reviewer used -- returns 0 and
+    # reads exactly like "this cannot fail".  It can; this is the line for the hand routes.
+    # Verify it by adding a deliberately shorted ROUTE_VIAS entry and running bare, not by
+    # reading: reading is the method that let three task reports record "gen_pcb rc=0" as
+    # evidence of route clearance while this function printed ERROR and returned the copper.
+    #
     # And now refuse.  Until this line the three checks above printed "ERROR: ..." and then
     # this function built the copper and returned it, main() ran on, the board was written
     # and the process exited 0 -- so every "gen_pcb rc=0" recorded on this branch verified
