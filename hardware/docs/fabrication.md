@@ -407,13 +407,19 @@ coupon for no benefit.
 
 - **CAN** is the only net that leaves the box on a long unshielded harness. At 500 kbit/s the
   110 mm from the transceiver to J8 is about 0.7 ns of flight against a ~50 ns edge. Stub lengths do
-  not matter and a few millimetres of skew between the two tracks is ~20 ps. The pair is routed on
-  `In2.Cu`, 0.2 mm under the solid `In1.Cu` ground plane with no splits anywhere it crosses, so the
-  return current runs directly beneath each track for the whole run — it is routed for **immunity**,
-  not for impedance. At 0.2 mm from the plane the pair is plane-referenced rather than edge coupled,
-  so differential impedance lands near 70 Ω, not 120 Ω. Widening the gap does not change that (the
-  plane dominates) and at this bit rate it does not need to: what the bus sees is the 120 Ω
-  termination at R26, and the track is far too short to be visible to it.
+  not matter and a few millimetres of skew between the two tracks is ~20 ps.
+  **The reasoning below changed from the six-layer board and the conclusion did not.** `CANH`/`CANL`
+  are now routed almost entirely on `In2.Cu` (16 of the 20 segments on the two nets this session;
+  the rest are short fanout hops onto `In5.Cu`), which sits 0.2 mm below `In1.Cu` and 0.2454 mm
+  above `In3.Cu` — both solid, unbroken `GND` (§2). That makes the pair a true **stripline** with a
+  reference plane on both sides, not the six-layer board's single-sided arrangement, so the return
+  current has two nearby paths to run in rather than one. This was routed for **immunity**, not for
+  impedance, and it still is — a stripline is, if anything, *more* tightly coupled to its return
+  path than the six-layer arrangement was, not less. What the differential impedance actually lands
+  at was not computed this session (a field solver, not this document, is the right tool for that
+  number), and it does not need to be: what the bus sees is the 120 Ω termination at R26, and the
+  track is far too short relative to the signal edge for anything between the transceiver and R26
+  to be visible to it, on either stackup.
 - **The ESP32 module** carries its own RF; nothing on this board routes RF.
 - There is no USB, no Ethernet, and no memory bus.
 
@@ -424,12 +430,16 @@ The dielectric heights in §2 are therefore nominal and the fab may adjust them 
 
 ## 12. Copper pours
 
-Five zones:
+**Seven zones**, read from `mccan.kicad_pcb` directly this session (`(zone ...)` entries) — not
+five, which was the six-layer board's count and is now wrong twice over (too few zones, and naming
+`In3.Cu` as the feed instead of `In4.Cu`):
 
 | Layer | Net | What |
 |---|---|---|
 | `In1.Cu` | `GND` | **solid and unbroken** — the reference plane for `F.Cu` and `In2.Cu` |
-| `In3.Cu` | `/VBAT` | the 7 A feed plane (§2) |
+| `In3.Cu` | `GND` | **solid and unbroken** — the second reference plane for `In2.Cu`'s stripline (§11) |
+| `In4.Cu` | `/VBAT` | the 7 A feed plane (§2) — **not `In3.Cu`** on this board |
+| `In6.Cu` | `GND` | **solid and unbroken** — the reference plane for `In5.Cu` and `B.Cu` |
 | `B.Cu` | `GND` | bottom pour |
 | `B.Cu` | `/+24V` | under D4 only — **see the gap-pad warning in §10** |
 | `F.Cu` | `/power_input/GND_IN` | the input-side ground island |
