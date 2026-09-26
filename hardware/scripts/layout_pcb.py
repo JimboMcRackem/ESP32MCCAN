@@ -1152,25 +1152,51 @@ ROUTES = [
 
     # Net-(U3-COMP): the highest-impedance node in the converter, kept short and away
     # from SW per the brief. Pin 8 -> R14.1 -> C24.1 (C24's COMP terminal). Leaves pin 8
-    # centre, jogs east to x=87.0 before running south past the GND via at
-    # (86.25, 34.225) -- the brief's own warning: straight down pin 8's own centre
-    # (x=86.75) clears that via by only 0.10 mm and fails; entering near x=87.0 is what
-    # R14.1's own pad width (86.425-87.225) allows. Re-verified here by rectangle gap:
-    # the jog segment clears the via by 0.350 mm and the following vertical run clears
-    # it by 0.325 mm (both over the 0.20 mm floor -- the brief's approximate "0.35 mm"
-    # turns out to be right for both legs). Final leg into C24.1 clears C24.2
-    # (GND, same footprint, foreign net) by 0.849 mm and R14's own other pad by 1.125 mm.
+    # centre, jogs east to x=87.0 before running south; entering near x=87.0 is what
+    # R14.1's own pad width (86.425-87.225) allows.
+    #
+    # THE OBSTACLE THIS JOG AVOIDS IS NOT WHAT THIS COMMENT USED TO SAY. It named "the
+    # GND via at (86.25, 34.225)", quoted the brief's warning that a straight run down
+    # pin 8's own centre (x=86.75) "clears that via by only 0.10 mm and fails", and then
+    # claimed to have re-verified 0.350 mm and 0.325 mm against it. There is no via at
+    # (86.250, 34.225). The nearest via of any net to that point is a GND thermal via at
+    # (86.412, 32.413), 1.820 mm away, and gen_pcb prints "sharing a neighbour's via:
+    # U3.7" -- pin 7 never got a drop of its own. All four figures were about copper the
+    # board does not have.
+    #
+    # What is actually there, and what binds, re-measured against the generated board
+    # with gen_pcb's own _seg_rect_gap / _seg_seg_dist:
+    #   jog out of pad   0.248 mm to pin 7's ground stub (86.250,33.456)-(86.412,31.587),
+    #                    0.250 mm to pin 7's pad itself
+    #   run south        0.500 mm to pin 7's pad, 0.539 mm to that stub
+    #   into R14.1       0.551 mm to the GND via at (86.775, 36.375)
+    #   final leg        0.849 mm to C24.2 (GND, same footprint, foreign net)
+    # The straight-down-x=86.75 alternative does NOT fail: measured, it clears 0.248 mm,
+    # the same pinch the jog takes leaving the pad. What the jog buys is the long leg --
+    # 0.500 mm instead of 0.248 mm for the whole run south -- so the 0.248 mm pinch is
+    # confined to 0.35 mm of diagonal next to the pad instead of running 1.9 mm alongside
+    # pin 7. That is a real reason for the jog; the via was not.
+    # Worst slack +0.048 mm on a 0.200 mm limit.
     ("Net-(U3-COMP)", "F.Cu", 0.25, [(86.750, 33.4562), (87.0, 33.7), (87.0, 34.6),
                                        (86.825, 35.400), (88.550, 35.025)]),
 
-    # FB_24V: per the controller's ruling, the tap reads through the +24V pour (R12.1/
-    # C61.1 drop straight to it below, see ROUTE_VIAS), not along F.Cu -- so the only
-    # F.Cu run this net needs is pin 9 out to a trunk that ties R12.2/C61.2/R13.1
-    # together, which is the far end of the output-cap divider, satisfying "tap the far
-    # end" the same way the ruling does for the +24V side. Hop clears pin 10 (SS,
-    # foreign) by 0.25 mm and pin 8 (COMP, foreign) by 0.523 mm. Trunk clears the new
-    # R12.1/C61.1 +24V vias by >1.0 mm and R13.2 (GND) by 1.125 mm -- all comfortable;
-    # this net has no tight neighbour once past pin 10.
+    # FB_24V: the only F.Cu run this net needs is pin 9 out to a trunk that ties
+    # R12.2/C61.2/R13.1 together, which is the far end of the output-cap divider,
+    # satisfying the controller's "tap the far end".
+    #
+    # The divider's OTHER end, R12.1/C61.1, used to be described here as reading "through
+    # the +24V pour (R12.1/C61.1 drop straight to it below, see ROUTE_VIAS)". Both halves
+    # of that are now wrong: there is no +24V pour anywhere near those pads -- /+24V's one
+    # zone is 24V_D4 on B.Cu, 5 mm away -- and the two ROUTE_VIAS entries were removed for
+    # exactly that reason. What actually feeds R12.1/C61.1 is the frozen router's F.Cu
+    # copper, (91.800,34.000)-(91.800,32.200) between the two pads and
+    # (91.800,32.200)-(90.300,30.700) up to the +24V via there. The ruling's substance --
+    # no long F.Cu haul round from the output caps, no run beside SW -- is unaffected.
+    #
+    # Hop clears pin 10 (SS, foreign) by 0.250 mm and pin 8 (COMP, foreign) by 0.523 mm.
+    # Trunk's tightest is now 0.899 mm to that frozen /+24V track, then 1.025 mm to C24.1
+    # and to C61.1's pad -- all comfortable; this net has no tight neighbour once past
+    # pin 10. Worst slack +0.050 mm on a 0.200 mm limit.
     ("FB_24V", "F.Cu", 0.25, [(87.4562, 32.750), (90.175, 32.750)]),
     ("FB_24V", "F.Cu", 0.25, [(90.175, 32.200), (90.175, 35.800)]),
 
@@ -1333,17 +1359,27 @@ ROUTES = [
     # /EN_BOOST: U3 pin 6 down to R20.1. This is the tightest net in this batch and the
     # only one planned to the class limit itself rather than with the 0.005 mm planning
     # margin the others carry: pin 6's sole escape is the channel between pin 5's pad
-    # corner (85.375, 33.875) and pin 7's ground drop via at (86.250, 34.225), and that
-    # channel leaves 0.202 mm to pin 5 at its narrowest -- 2 um over the 0.200 mm floor.
-    # Widening it would mean displacing a third ground drop, which buys nothing the rule
-    # does not already allow. Tightest per leg:
-    #   south out of pad 0.202 mm to pin 5 (RT, foreign) at the pinch, 0.213 mm to the
-    #                    pin 7 ground drop via -- the whole escape is those two numbers
-    #   In2.Cu run       0.419 mm to that same ground drop via
-    #   via down 0.60    0.219 mm to the ground drop via, 0.225 mm to R14.2
+    # corner (85.375, 33.875) and pin 7 on the other side, and that channel leaves
+    # 0.202 mm to pin 5 at its narrowest -- 2 um over the 0.200 mm floor.
+    #
+    # "Pin 7 on the other side" is the correction. This comment used to say the channel's
+    # far wall was "pin 7's ground drop via at (86.250, 34.225)" and quoted three
+    # clearances against it. No via exists there: nearest of any net is a GND thermal via
+    # at (86.412, 32.413), 1.820 mm off, and gen_pcb prints "sharing a neighbour's via:
+    # U3.7", so pin 7 has no drop via of its own -- it has its PAD, and a ground stub from
+    # the pad centre (86.250, 33.456) running south to the neighbour's via at
+    # (86.412, 31.587). Re-measured against the generated board, per leg:
+    #   south out of pad 0.202 mm to pin 5 (RT, foreign) at the pinch; on the other side
+    #                    0.275 mm to pin 7's pad and 0.275 mm to that ground stub
+    #   In2.Cu run       1.422 mm to the GND via at (81.775, 39.025) -- this leg is not
+    #                    tight at all, and the 0.419 mm here before was not measuring it
+    #   via down 0.60    0.225 mm to R14.2's pad, 0.230 mm to pin 5's pad
     #   via up   0.60    0.925 mm to R20.2 (GND)
-    # Worst slack +0.002 mm on a 0.200 mm limit. There is nothing left to give here: any
-    # future change near U3 pins 5-7 has to re-plan this net, not nudge it.
+    # Worst slack +0.002 mm on a 0.200 mm limit -- unchanged, because the binding number
+    # was always the 0.202 mm to pin 5 and that one was right. There is nothing left to
+    # give here: any future change near U3 pins 5-7 has to re-plan this net, not nudge it.
+    # Widening the channel would mean moving pin 7's ground stub, which buys nothing the
+    # rule does not already allow.
     ("/EN_BOOST", "F.Cu", 0.20, [(85.750, 33.456), (85.700, 33.850), (85.700, 33.950),
                                  (85.650, 34.000), (85.650, 34.100), (85.550, 34.200),
                                  (85.450, 34.400)]),
@@ -1806,7 +1842,7 @@ ROUTE_VIAS = [
 #
 # Step 6.4 measured what naming a net here would buy on the two widest sealed pockets.  Each
 # pocket IS sealed by one identifiable net's frozen copper rather than by geometry, but in every
-# case that net is one the board currently has closed, so the tuple stays empty.  Every figure
+# case that net is one the board currently has closed, so neither is named above.  Every figure
 # below is from scripts/show_pocket.py, which is committed for exactly this reason -- reproduce
 # any of them with `python scripts/show_pocket.py NET REF.PAD` (prefix MSYS_NO_PATHCONV=1 in
 # Git Bash or the leading slash in the net name is read as a path):
@@ -1826,7 +1862,8 @@ ROUTE_VIAS = [
 #   /outputs/PWM_RR_B, pad Q9.5 (158.388, 51.700).  Q9.5 is NOT sealed.  The router left this
 #   net a via-in-pad at (158.500, 51.700) and no track at all, so Q9.5 already reaches all four
 #   signal layers.  Its F.Cu pocket does hold 7 copper-legal via sites, and all 7 fail the
-#   0.30 mm hole-to-hole floor against that same frozen drill (best -0.100 mm), which is why an
+#   0.30 mm hole-to-hole floor against that same frozen drill (best -0.200 mm, at (158.800,
+#   51.700) against the 0.20 mm drill at (158.500, 51.700)), which is why an
 #   earlier count of "0 legal sites" here was both wrong and harmless: the net does not need a
 #   new via at this pad.  The seals are the other two pads.  R51.1 (147.255, 56.830) has the
 #   widest pocket measured on this board, 4438 cells (11.10 mm2), with no legal via site at all,

@@ -36,9 +36,15 @@ What it reports, and what each figure means
   step^2 -- a cell count is only comparable against another at the same step.
 * Legal via sites INSIDE the pocket, copper-only, then how many of those also clear the
   0.30 mm hole-to-hole floor (gen_pcb.HOLE_TO_HOLE).  Copper and fab are separate gates and a
-  site can pass one and fail the other, so they are counted separately: KiCad's DRC does not
-  check hole-to-hole between same-net vias, which is exactly where a pad with its own frozen
-  via in it lands.
+  site can pass one and fail the other, so they are counted separately.  This used to say the
+  second gate was needed because "KiCad's DRC does not check hole-to-hole between same-net
+  vias, which is exactly where a pad with its own frozen via in it lands".  That is FALSE --
+  the same false claim gen_pcb.check_via_holes' docstring carried, and it was fixed there with
+  the KiCad output that disproves it.  KiCad 10.0 checks same-net pairs and reports them; what
+  hid them was `hole_to_hole` sitting at `warning` while the gate ran `--severity-error`.
+  scripts/gen_netclasses.py now writes that rule at `error`.  The second count is still worth
+  printing, for the reason the rest of this script exists: it answers the question before a via
+  is placed, rather than after a board has been written and run through DRC.
 * If there are none, the nearest miss: the pocket cell that comes closest to taking a via,
   how short it is, and the obstacle that is binding.  That obstacle is the thing to consider
   moving or dropping; nothing else in the pocket is.
