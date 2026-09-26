@@ -376,13 +376,15 @@ real circuit requirement, not a style preference.
 1 oz (35 um) finished copper on ALL SIX layers -- inner layers must be 1 oz,
   NOT 2 oz: inner clearance is 0.20 mm and 2 oz inner etch cannot hold it.
 Min track/clearance 0.20/0.20 mm outer AND inner.
-Min plated drill 0.20 mm, 47 holes (aspect ratio 8:1 at 1.6 mm).
-Min annular ring 0.15 mm, on 35 vias of 0.50 mm dia / 0.20 mm drill.
+Min plated drill 0.20 mm, 78 holes (aspect ratio 8:1 at 1.6 mm): 66 vias of
+0.50 mm dia plus 12 thermal through-pads of 0.60 mm dia inside footprints.
+Min annular ring 0.15 mm, on those 66 vias of 0.50 mm dia / 0.20 mm drill
+(scripts/check_geometry.py prints that 66 on every build).
 Surface finish ENIG. Mask both sides, silkscreen both sides.
 
 1. VIA IN PAD, PLUGGED AND CAPPED (IPC-4761 type IV or VI), planarised, BY
    RULE: every via whose centre falls inside a copper pad, wherever on the
-   board it sits. That is 194 vias over 132 pads on the board as generated
+   board it sits. That is 192 vias over 132 pads on the board as generated
    (scripts/check_vias.py recomputes this count on every build and is the
    authority for it going forward; the drill/Excellon files are the
    authority for exactly which holes they are). The default finish is
