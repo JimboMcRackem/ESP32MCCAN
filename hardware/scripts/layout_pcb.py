@@ -1696,28 +1696,35 @@ ROUTE_VIAS = [
 #
 # Step 6.4 measured what naming a net here would buy on the two widest sealed pockets.  Each
 # pocket IS sealed by one identifiable net's frozen copper rather than by geometry, but in every
-# case that net is one the board currently has closed, so the tuple stays empty:
+# case that net is one the board currently has closed, so the tuple stays empty.  Every figure
+# below is from scripts/show_pocket.py, which is committed for exactly this reason -- reproduce
+# any of them with `python scripts/show_pocket.py NET REF.PAD` (prefix MSYS_NO_PATHCONV=1 in
+# Git Bash or the leading slash in the net name is read as a path):
 #
-#   /outputs/PWM_RL_G, pad Q7.5 (172.888, 51.200).  Its reachable F.Cu pocket is 2762 cells of
-#   0.05 mm (6.91 mm2) and holds no legal 0.50/0.20 via site anywhere, so the net cannot leave
-#   F.Cu at this pad; the nearest miss is (170.000, 52.300), short by 0.029 mm against a
-#   /outputs/PWM_FR_B via.  The pocket is not a thin corridor -- the widest all-legal disc of
-#   F.Cu track centres inside it has radius 0.600 mm, at (172.050, 49.450) -- so what denies the
-#   via is copper on the other three signal layers, not the width of this one.  Dropping any one
-#   of /outputs/PWM_RL_B (50 segments, 13 vias, 85.36 mm), /outputs/SENSE_RL_B (33, 9,
-#   80.87 mm) or /outputs/SENSE_RL_G (59, 10, 95.99 mm) opens the pocket and puts the rest of
-#   PWM_RL_G's own frozen copper in reach, but only at R47.1: the hand run needed is 48.5 mm
-#   straight-line, and the dropped net's 81-96 mm has to be re-authored here in full.
+#   /outputs/PWM_RL_G, pad Q7.5 (172.888, 51.200).  Its reachable F.Cu pocket is 2745 cells of
+#   0.05 mm (6.86 mm2, and 6.92 mm2 at a quarter of that pitch) and holds no legal 0.50/0.20 via
+#   site anywhere, so the net cannot leave F.Cu at this pad; the nearest miss is (170.000,
+#   52.300), short by 0.029 mm against a /outputs/PWM_FR_B via.  The pocket is not a thin
+#   corridor -- the widest all-legal disc of F.Cu track centres inside it has radius 0.598 mm,
+#   at (172.050, 49.450) -- so what denies the via is copper on the other three signal layers,
+#   not the width of this one.  Dropping any one of /outputs/PWM_RL_B (50 segments, 13 vias,
+#   85.36 mm), /outputs/SENSE_RL_B (33, 9, 80.87 mm) or /outputs/SENSE_RL_G (59, 10, 95.99 mm)
+#   opens the pocket and puts the rest of PWM_RL_G's own frozen copper in reach, but only at
+#   R47.1: the hand run needed is 48.5 mm straight-line, and the dropped net's 81-96 mm has to
+#   be re-authored here in full.
 #
 #   /outputs/PWM_RR_B, pad Q9.5 (158.388, 51.700).  Q9.5 is NOT sealed.  The router left this
 #   net a via-in-pad at (158.500, 51.700) and no track at all, so Q9.5 already reaches all four
-#   signal layers; its pocket is the whole board.  The seals are the other two pads.  R51.1
-#   (147.255, 56.830) has the widest pocket measured on this board, 4439 cells (11.10 mm2), with
-#   no legal via site and no reachable cell on any layer but F.Cu, and /outputs/PWM_FL_G (22
-#   segments, 2 vias, 20.24 mm) is the only single drop that both frees it and connects it to
-#   Q9.5.  U7.18 (148.812, 30.975) has a 156-cell pocket and is freed by exactly one net,
-#   /outputs/MUXIN_RL_B (31, 9, 57.71 mm).  Closing PWM_RR_B needs both drops, not one, plus
-#   38 mm of new hand run, because it has no frozen copper of its own to join.
+#   signal layers.  Its F.Cu pocket does hold 7 copper-legal via sites, and all 7 fail the
+#   0.30 mm hole-to-hole floor against that same frozen drill (best -0.100 mm), which is why an
+#   earlier count of "0 legal sites" here was both wrong and harmless: the net does not need a
+#   new via at this pad.  The seals are the other two pads.  R51.1 (147.255, 56.830) has the
+#   widest pocket measured on this board, 4438 cells (11.10 mm2), with no legal via site at all,
+#   and /outputs/PWM_FL_G (22 segments, 2 vias, 20.24 mm) is the only single drop that both
+#   frees it and connects it to Q9.5.  U7.18 (148.812, 30.975) has a 156-cell pocket (0.39 mm2)
+#   whose best via position is 0.450 mm short, bound by /outputs/MUXIN_RL_B on In2.Cu -- the one
+#   net that frees it (31 segments, 9 vias, 57.71 mm).  Closing PWM_RR_B needs both drops, not
+#   one, plus 38 mm of new hand run, because it has no frozen copper of its own to join.
 #
 # And the cheap-looking drops are the expensive ones.  /outputs/PWM_FL_G and /outputs/PWM_FL_R
 # are the only two nets whose ROUTES run above changes layer on a via this file does not place:
@@ -1727,7 +1734,9 @@ ROUTE_VIAS = [
 # own hand route as well as orphaning the pad the router reached through it -- Q4.5 and Q4.2
 # respectively -- so the 20.24 mm above is the cost of the copper, not of the change.
 #
-# The full measurement, and the recommendation that the remaining shortfall is placement in the
-# U7/U8/Q7/Q9 output bank rather than routing, is in
-# .superpowers/sdd/2026-09-23-pcb-relayout-8layer/task-10-step6.4-report.md.
+# The authority for all of the above is scripts/show_pocket.py, which is committed and rerunnable;
+# the narrative version, with the candidate tables and the recommendation that the remaining
+# shortfall is placement in the U7/U8/Q7/Q9 output bank rather than routing, is in
+# .superpowers/sdd/2026-09-23-pcb-relayout-8layer/task-10-step6.4-report.md -- which .gitignore
+# excludes, so it is in the working tree and not in a clone.
 FROZEN_DROP = ()
