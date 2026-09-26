@@ -24,6 +24,34 @@
 # The condition has to name each ref.  A.memberOfFootprint('U1') works; the tempting
 # A.memberOfFootprint(B) parses, never matches, and fails open with no error at all.
 
+# Ground-plane pour necks, GND_IN1 / GND_IN3 / GND_IN6 only.
+#
+# min_connection is 0.2000 mm and these pours hold four necks of 0.1558 to 0.1845 mm, repeated
+# identically on all three layers because those zones are plane-only -- no track segment on any
+# of them -- and all 1405 vias are full F.Cu-B.Cu barrels, so the three planes see exactly the
+# same antipad field.
+#
+# min_connection asks for the narrowest copper that may carry a CONNECTION, i.e. a series path.
+# A neck between two antipads in a solid plane is not a series path: the plane is a sheet and
+# current spreads around the constriction through the copper beside it.  It would only matter
+# if cutting it stranded copper, and it does not: KiCad reports 0 isolated_copper (now at
+# `error`, not `warning`), scripts/check_zone_islands.py reports no zone unconnected to itself,
+# and the only unconnected GND item on the board is U4.4 -- the one pad gen_pcb warns has no
+# room for a drop at all.  140 of the 141 SMD GND pads carry their own full-barrel drop via, so
+# each of the four GND pours is tied to the others at 140 points.
+#
+# What remains to ask of a plane neck is whether it ETCHES, so this is set at the vendor floor
+# and not at zero: 0.10 mm is PCBWay's inner-layer minimum at 1 oz (4 mil = 0.1016 mm), the
+# figure that chose 1 oz inners in scripts/gen_netclasses.py's module docstring.  The narrowest
+# neck here is 0.1558 mm, 1.5x that.
+#
+# Scoped to these zones by name and to A.Type == 'Zone', deliberately: a global relaxation
+# would also stop this rule catching a router track meeting a pad across its rounded corner,
+# which is what it caught on F.Cu at U10_DRN, Q10_G and Net-(Q12-B).
+(rule "ground plane pour necks"
+	(constraint connection_width (min 0.10mm))
+	(condition "A.Type == 'Zone' && (A.Name == 'GND_IN1' || A.Name == 'GND_IN3' || A.Name == 'GND_IN6')"))
+
 # U1 needs 0.200 mm pad-to-pad
 (rule "land pattern U1"
 	(constraint clearance (min 0.12mm))

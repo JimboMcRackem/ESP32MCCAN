@@ -81,30 +81,63 @@ RULES = {
     # 0.25 here against a 0.20 track floor while the project file on disk said 0.15, which is
     # how the inconsistency stayed invisible: nothing had regenerated the file since.
     "min_connection": 0.20,
-    # Measured 2026-09-22, because this is the rule that will decide whether Task 9 step 6's
-    # "zero warnings" gate is reachable.  It fires 12 times on the routed board and the 12
-    # are two different things:
+    # Re-measured 2026-09-26 on the EIGHT-layer board with the router's copper frozen in
+    # place, because the figures that used to stand here were the six-layer board's and named
+    # zones (GND_BOT, VBAT_IN3) that either no longer carry a neck or no longer exist.  The
+    # rule fires 15 times, and the 15 are two different things:
     #
-    #   2 are REAL -- a router via landing off the corner of Q10 and Q11's gate pads rather
-    #     than into them, so the two coppers overlap by 0.08 mm.  That is exactly what this
-    #     rule is for and it wants fixing in the routing, not here.
-    #   10 are necks inside the GND_BOT and VBAT_IN3 POURS, 0.01 to 0.19 mm, where the fill
-    #     squeezes between two antipads.
+    #   3 are REAL, all on F.Cu, all where a router track meets a pad or a via at 45 degrees
+    #     across the pad's rounded corner and leaves a hairline isthmus:
+    #       0.0589 mm  R101.2 /power_input/U10_DRN  (56.8425, 78.2300)
+    #       0.0790 mm  Q10.1  /power_input/Q10_G    (26.2000, 104.1000)
+    #       0.1346 mm  Q12.1  Net-(Q12-B)           (42.6000, 77.8000)
+    #     Same defect class the six-layer note described ("a router via landing off the corner
+    #     of Q10 and Q11's gate pads rather than into them"), and the same verdict: it wants
+    #     fixing in the routing, not here.  Fixed there -- see layout_pcb.ROUTES' "necks at
+    #     three router-to-pad junctions" section, which lays 0.5 mm hand copper over the first
+    #     leg of each frozen run and takes all three junctions to >= 0.700 mm.
+    #   12 are necks in the GND_IN1 / GND_IN3 / GND_IN6 plane pours, 0.1558 to 0.1845 mm:
+    #     FOUR necks with identical geometry, repeated on three layers, because those three
+    #     zones are plane-only (0 track segments between them, verified on the board) and every
+    #     one of the board's 1405 vias is a full F.Cu-B.Cu barrel, so all three planes see
+    #     exactly the same antipad field.
     #
     # The obvious lever for the second group is the zones' own min_thickness, and it is not
-    # the lever: raising it 0.3 -> 0.5 on a scratch copy took the count 12 -> 10, removing
-    # both VBAT_IN3 necks and none of GND_BOT's eight.  KiCad's filler and KiCad's
-    # connection_width check are not measuring the same thing.
+    # the lever: raising it 0.3 -> 0.5 on a scratch copy of the six-layer board took the count
+    # 12 -> 10 and removed none of the GND necks.  KiCad's filler and KiCad's connection_width
+    # check are not measuring the same thing.
     #
-    # What makes the pour necks benign is not their width, it is that the pour is not the
-    # path.  Return current runs on In1.Cu, which is solid and unbroken, and every SMD GND
-    # pad has its own drop via into it -- B.Cu's GND is a shield and a thermal pour, not a
-    # conductor of anything.  The same argument holds for VBAT_IN3, whose feed
-    # scripts/check_plane_width.py measures at 71 mm.  And KiCad agrees the necks strand
-    # nothing: it reports no isolated-copper violation and no unconnected GND item.
-    # So the resolution is a scoped exception in mccan.kicad_dru for those two pours only,
-    # written once the routing is final -- not a global relaxation, which would also stop
-    # this rule catching the Q10/Q11 kind.
+    # Why the plane necks are benign, re-argued for THIS board rather than carried over.  The
+    # old argument was that the pour is not the return path -- true of the six-layer board,
+    # where the necks were in B.Cu's shield pour, and NOT available here: In1.Cu is a neck
+    # layer and it IS the reference plane for F.Cu.  The argument that does hold is about what
+    # the rule measures.  min_connection is the narrowest copper that may carry a CONNECTION,
+    # i.e. a series path.  A neck between two antipads in a solid plane is not a series path:
+    # the plane is a two-dimensional sheet and current spreads around a constriction through
+    # the parallel copper beside it.  The neck would only matter if it were the sole path --
+    # that is, if cutting it stranded copper -- and that is exactly what three other checks
+    # answer, all of them re-run on this board:
+    #
+    #   * KiCad's isolated_copper: 0 violations, and gen_netclasses now writes it at `error`
+    #     rather than `warning`, so it cannot fail quietly.
+    #   * scripts/check_zone_islands.py: "no zone is unconnected to itself".
+    #   * the unconnected-item count: exactly one GND item, U4.4, the pad gen_pcb warns about
+    #     on every build for having no room for a drop at all.  140 of the 141 SMD GND pads
+    #     have their own drop via, every one a full F.Cu-B.Cu barrel, so each of the four GND
+    #     pours is tied to the others at 140 points.  Stranding is not a live risk here.
+    #
+    # What is left to ask of a plane neck is whether it etches, and that is a vendor number,
+    # not this rule's 0.20 mm design floor: PCBWay's inner-layer minimum at 1 oz is 4 mil =
+    # 0.1016 mm (see the module docstring, which picked 1 oz inners on that figure).  So the
+    # scoped exception those three zones get in mccan.kicad_dru is set at 0.10 mm -- the
+    # fabrication floor -- and not at 0 and not globally.  Scoped by zone NAME, so it cannot
+    # touch a track, a pad or a via, which is what keeps it from masking the F.Cu kind above.
+    #
+    # Measured margin, so a future reader can see how much the exception is actually spending:
+    # narrowest plane neck 0.1558 mm against the 0.10 mm the rule now asks.  Sweeping the
+    # scoped minimum shows the check is live rather than disabled -- 0.16 mm passes all twelve,
+    # 0.17 mm fails three, 0.20 mm fails all twelve, 0.24 mm fails eighteen -- so a via field
+    # that tightened by 0.06 mm would bring this back.
     "min_silk_clearance": 0.0,
 }
 
@@ -173,6 +206,24 @@ SEVERITIES = {
 # still ask for 0.30 mm -- the exception is now about netclass clearance, not fabrication.
 DRU_MIN = 0.12
 
+# The plane-pour connection_width exception.  The whole argument is in the min_connection note
+# above; this is only the number and its scope.
+#
+# 0.10 mm is PCBWay's published inner-layer minimum at 1 oz (4 mil = 0.1016 mm), the figure the
+# module docstring used to choose 1 oz inners in the first place.  It is a FABRICATION floor,
+# which is the only question a neck in a two-dimensional plane still raises once stranding has
+# been ruled out, and it is not zero: the narrowest neck on this board is 0.1558 mm, and a
+# sweep of this value shows the check is live rather than disabled -- 0.16 mm passes all
+# twelve, 0.17 mm fails three, 0.20 mm fails all twelve, 0.24 mm fails eighteen.
+#
+# Scoped by zone NAME and by A.Type == 'Zone', so it cannot reach a track, a pad or a via.
+# That is what keeps it from masking the Q10/Q11 kind the min_connection note describes: those
+# are pad-and-track findings on F.Cu, and this rule is not eligible to see them.  Verified
+# rather than assumed -- with this rule in place the three F.Cu necks were still reported, at
+# 0.0589, 0.0790 and 0.1346 mm, until they were fixed in layout_pcb.ROUTES.
+PLANE_ZONES = ("GND_IN1", "GND_IN3", "GND_IN6")
+PLANE_MIN = 0.10
+
 DRU_HEAD = """(version 1)
 
 # GENERATED by scripts/gen_netclasses.py -- do not edit.
@@ -198,6 +249,35 @@ DRU_HEAD = """(version 1)
 #
 # The condition has to name each ref.  A.memberOfFootprint('U1') works; the tempting
 # A.memberOfFootprint(B) parses, never matches, and fails open with no error at all.
+"""
+
+PLANE_RULE = """# Ground-plane pour necks, %s only.
+#
+# min_connection is 0.2000 mm and these pours hold four necks of 0.1558 to 0.1845 mm, repeated
+# identically on all three layers because those zones are plane-only -- no track segment on any
+# of them -- and all 1405 vias are full F.Cu-B.Cu barrels, so the three planes see exactly the
+# same antipad field.
+#
+# min_connection asks for the narrowest copper that may carry a CONNECTION, i.e. a series path.
+# A neck between two antipads in a solid plane is not a series path: the plane is a sheet and
+# current spreads around the constriction through the copper beside it.  It would only matter
+# if cutting it stranded copper, and it does not: KiCad reports 0 isolated_copper (now at
+# `error`, not `warning`), scripts/check_zone_islands.py reports no zone unconnected to itself,
+# and the only unconnected GND item on the board is U4.4 -- the one pad gen_pcb warns has no
+# room for a drop at all.  140 of the 141 SMD GND pads carry their own full-barrel drop via, so
+# each of the four GND pours is tied to the others at 140 points.
+#
+# What remains to ask of a plane neck is whether it ETCHES, so this is set at the vendor floor
+# and not at zero: %.2f mm is PCBWay's inner-layer minimum at 1 oz (4 mil = 0.1016 mm), the
+# figure that chose 1 oz inners in scripts/gen_netclasses.py's module docstring.  The narrowest
+# neck here is 0.1558 mm, 1.5x that.
+#
+# Scoped to these zones by name and to A.Type == 'Zone', deliberately: a global relaxation
+# would also stop this rule catching a router track meeting a pad across its rounded corner,
+# which is what it caught on F.Cu at U10_DRN, Q10_G and Net-(Q12-B).
+(rule "ground plane pour necks"
+\t(constraint connection_width (min %smm))
+\t(condition "A.Type == 'Zone' && (%s)"))
 """
 
 
@@ -275,6 +355,8 @@ def scan_tight_footprints(clearance):
 def write_dru(clearance):
     tight = scan_tight_footprints(clearance)
     parts = [DRU_HEAD.format(min=DRU_MIN)]
+    parts.append(PLANE_RULE % (" / ".join(PLANE_ZONES), PLANE_MIN, "%.2f" % PLANE_MIN,
+                               " || ".join("A.Name == '%s'" % z for z in PLANE_ZONES)))
     for ref in sorted(tight, key=refkey):
         parts.append(
             '# %s needs %.3f mm pad-to-pad\n'

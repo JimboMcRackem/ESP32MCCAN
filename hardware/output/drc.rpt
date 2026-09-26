@@ -1,8 +1,8 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-09-26T19:34:35 **
+** Created on 2026-09-26T19:37:50 **
 ** Report includes: Errors **
 
-** Found 25 DRC violations **
+** Found 13 DRC violations **
 [via_dangling]: Via is not connected or connected on only one layer
     Local override; error
     @(91.8250 mm, 32.2000 mm): Via [/+24V] on F.Cu - B.Cu
@@ -42,55 +42,19 @@
 [via_dangling]: Via is not connected or connected on only one layer
     Local override; error
     @(86.1000 mm, 110.0000 mm): Via [Net-(U9-IS)] on F.Cu - B.Cu
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1652 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN1' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1652 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN3' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1845 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN3' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1845 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN1' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1558 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN3' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1671 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN3' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1558 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN1' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1671 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN1' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1652 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN6' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1845 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN6' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1558 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN6' [GND] on GND, priority 0
-[connection_width]: Copper connection too narrow (board setup constraints minimum connection width 0.2000 mm; actual 0.1671 mm) (GND)
-    Rule: board setup constraints; error
-    @(20.5000 mm, 20.5000 mm): Zone 'GND_IN6' [GND] on GND, priority 0
 
 ** Found 11 unconnected pads **
 [unconnected_items]: Missing connection between items
     Local override; error
     @(157.8125 mm, 30.3250 mm): Pad 19 [/outputs/MUXIN_FL_R] of U8 on F.Cu
-    @(166.9250 mm, 30.2250 mm): Track [/outputs/MUXIN_FL_R] on B.Cu, length 2.1750 mm
+    @(167.7250 mm, 29.4250 mm): Track [/outputs/MUXIN_FL_R] on B.Cu, length 1.1314 mm
 [unconnected_items]: Missing connection between items
     Local override; error
     @(152.0875 mm, 29.6750 mm): Pad 9 [/outputs/MUXIN_RR_G] of U8 on F.Cu
     @(141.1000 mm, 32.8000 mm): Track [/outputs/MUXIN_RR_G] on F.Cu, length 1.8000 mm
 [unconnected_items]: Missing connection between items
     Local override; error
-    @(152.2000 mm, 50.7000 mm): Track [/outputs/PWM_FL_B] on F.Cu, length 0.0130 mm
+    @(151.3500 mm, 50.7000 mm): Track [/outputs/PWM_FL_B] on F.Cu, length 0.8630 mm
     @(165.7550 mm, 54.3300 mm): Pad 1 [/outputs/PWM_FL_B] of R42 on F.Cu
 [unconnected_items]: Missing connection between items
     Local override; error
@@ -111,7 +75,7 @@
 [unconnected_items]: Missing connection between items
     Local override; error
     @(148.8125 mm, 32.2750 mm): Pad 16 [/outputs/PWM_RR_R] of U7 on F.Cu
-    @(138.2550 mm, 56.8300 mm): Track [/outputs/PWM_RR_R] on F.Cu, length 0.0541 mm
+    @(138.3000 mm, 56.8000 mm): Track [/outputs/PWM_RR_R] on In5.Cu, length 0.6000 mm
 [unconnected_items]: Missing connection between items
     Local override; error
     @(96.7000 mm, 86.1500 mm): Pad 4 [GND] of U4 on F.Cu
