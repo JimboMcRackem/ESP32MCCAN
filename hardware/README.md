@@ -16,20 +16,48 @@ ERC (must exit 0):
     --severity-error --exit-code-violations \
     -o output/erc.rpt mccan.kicad_sch
 
-DRC (must exit 0, includes schematic parity):
+DRC — run BOTH severities, and read the counts in the report body, not the exit code:
+
   "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
     --severity-error --schematic-parity --exit-code-violations \
     --refill-zones -o output/drc.rpt mccan.kicad_pcb
 
+  "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
+    --severity-all --schematic-parity --exit-code-violations \
+    --refill-zones -o output/drc-all.rpt mccan.kicad_pcb
+
+`--severity-error` alone is NOT the gate, and was the whole of it until Task 10. It discards
+every finding whose rule sits at `warning`, and KiCad's stock project file puts 29 of its 62
+rules there. On the board committed before `80fe282` that gate printed "Found 0 violations"
+while `--severity-all` printed 28 — 15 `connection_width` and 13 `via_dangling`, one of the
+`connection_width` findings a 0.059 mm neck at an eFuse gate pad. Every "DRC: 0 errors" on
+this branch before that commit was measured through that filter.
+
+`scripts/gen_netclasses.py` now promotes the seven rules that can fail THIS board to `error`
+(see its `SEVERITIES`), so today the two runs agree. That agreement is a property of the
+current KiCad rule set, not of the gate: a KiCad upgrade that adds a rule defaulting to
+`warning` would make the `--severity-error` run blind again with no signal at all. Hence both.
+
+Neither run's exit code is the pass/fail signal on its own — `kicad-cli` exits 5 whenever any
+unconnected pad exists, and this board carries 11 accepted ones. The gate is the count in the
+report body: it must match the accepted residual, currently 9 violations (all `via_dangling`),
+11 unconnected pads, 0 footprint errors, at BOTH severities.
+
 ## Board setup decisions
 
-Minimum connection width is 0.15 mm, not 0.25 mm.
+Minimum connection width is 0.20 mm, tied to minimum track width.
 
-  It was originally set equal to the minimum TRACK width, which is wrong for any board
-  routed at 45 degrees: two 0.25 mm tracks meeting at a 45 degree corner neck to
-  0.25 * cos(22.5) = 0.231 mm at the joint, so every corner the autorouter turned came
-  back as a connection_width warning.  0.15 mm is the fabricator's limit, which is what
-  this rule is for.  Minimum track width stays 0.25 mm.
+  This section used to read "0.15 mm, not 0.25 mm ... minimum track width stays 0.25 mm",
+  which was the six-layer board's setting and is three wrong figures now: both rules are
+  0.20 mm today (`scripts/gen_netclasses.py`'s `RULES`, and `mccan.kicad_pro`).
+
+  The two ARE tied on purpose. min_connection is the narrowest copper that may carry a
+  connection, so setting it above the thinnest track the board permits makes every
+  legitimately necked track a violation of a rule the same file grants -- two 0.20 mm
+  tracks meeting at 45 degrees neck to 0.20 * cos(22.5) = 0.185 mm at the joint. The
+  earlier note reached for the fabricator's limit instead, which is what the SCOPED
+  plane-pour exception in `mccan.kicad_dru` is for, not what this rule is for. See the
+  long `min_connection` note in `scripts/gen_netclasses.py`.
 
 Reference designators are on F.Fab, except J*, F*, TP*, U*, Q*, D* and L*.
 

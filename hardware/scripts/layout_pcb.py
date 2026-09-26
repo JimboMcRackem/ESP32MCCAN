@@ -951,7 +951,10 @@ ROUTES = [
     # the CAN clearance, do not widen these tracks, and do not nudge either polyline: any of
     # those makes the board fail, and the failure will name a via you cannot move.
     #
-    # The ruling (task-10-step6-ruling.md) was to accept 0.2003 mm rather than re-route: the
+    # The ruling (.superpowers/sdd/2026-09-23-pcb-relayout-8layer/task-10-step6-ruling.md --
+    # .gitignore excludes it, so it is in the working tree and not in a clone; its reasoning is
+    # the two sentences that follow, which is what a clone has) was to accept 0.2003 mm rather
+    # than re-route: the
     # router placed those vias to the netclass rule, KiCad agrees they are legal, and CAN here
     # is a terminated differential bus at motorcycle bit rates where a 0.6 mm via at 0.2 mm is
     # electrically irrelevant. Moving the pair means re-running the router and discarding 4692
@@ -1159,10 +1162,11 @@ ROUTES = [
     # GND via at (86.25, 34.225)", quoted the brief's warning that a straight run down
     # pin 8's own centre (x=86.75) "clears that via by only 0.10 mm and fails", and then
     # claimed to have re-verified 0.350 mm and 0.325 mm against it. There is no via at
-    # (86.250, 34.225). The nearest via of any net to that point is a GND thermal via at
-    # (86.412, 32.413), 1.820 mm away, and gen_pcb prints "sharing a neighbour's via:
-    # U3.7" -- pin 7 never got a drop of its own. All four figures were about copper the
-    # board does not have.
+    # (86.250, 34.225). The nearest via of ANY net to that point is this net's neighbour
+    # /EN_BOOST's own ROUTE_VIAS barrel at (85.450, 34.400), 0.819 mm away; the nearest GND
+    # via is a thermal via at (86.412, 32.413), 1.820 mm away. And gen_pcb prints "sharing a
+    # neighbour's via: U3.7" -- pin 7 never got a drop of its own. All four figures were
+    # about copper the board does not have.
     #
     # What is actually there, and what binds, re-measured against the generated board
     # with gen_pcb's own _seg_rect_gap / _seg_seg_dist:
@@ -1170,7 +1174,9 @@ ROUTES = [
     #                    0.250 mm to pin 7's pad itself
     #   run south        0.500 mm to pin 7's pad, 0.539 mm to that stub
     #   into R14.1       0.551 mm to the GND via at (86.775, 36.375)
-    #   final leg        0.849 mm to C24.2 (GND, same footprint, foreign net)
+    #   final leg        0.551 mm to that same GND via, which is what binds this leg too --
+    #                    the 0.849 mm to C24.2 (GND, same footprint, foreign net) is only the
+    #                    tightest PAD, and this row used to quote it as the leg's tightest
     # The straight-down-x=86.75 alternative does NOT fail: measured, it clears 0.248 mm,
     # the same pinch the jog takes leaving the pad. What the jog buys is the long leg --
     # 0.500 mm instead of 0.248 mm for the whole run south -- so the 0.248 mm pinch is
@@ -1261,7 +1267,8 @@ ROUTES = [
     #   diagonal         0.218 mm to pin 12's pad (the binding measurement on this net)
     #   jog to the via   0.252 mm to the SS duck-under via at (88.600, 32.000)
     #   In2.Cu south     0.253 mm to that same SS via on the long leg -- the tightest of the
-    #                    seven In2.Cu legs -- then 0.254 mm to the SS via at (88.525,
+    #                    EIGHT In2.Cu legs (the polyline below has nine points; this said
+    #                    "seven") -- then 0.254 mm to the SS via at (88.525,
     #                    37.800), 0.277-0.280 mm alongside SS, and 0.342 mm to the GND drop
     #                    via at (87.625, 36.575)
     #   via down 0.60    0.225 mm to pin 12's pad and 0.225 mm to the SS via at (88.600,
@@ -1364,8 +1371,9 @@ ROUTES = [
     #
     # "Pin 7 on the other side" is the correction. This comment used to say the channel's
     # far wall was "pin 7's ground drop via at (86.250, 34.225)" and quoted three
-    # clearances against it. No via exists there: nearest of any net is a GND thermal via
-    # at (86.412, 32.413), 1.820 mm off, and gen_pcb prints "sharing a neighbour's via:
+    # clearances against it. No via exists there: the nearest of ANY net is this net's own
+    # ROUTE_VIAS barrel at (85.450, 34.400), 0.819 mm off, and the nearest GND via is a
+    # thermal via at (86.412, 32.413), 1.820 mm off. gen_pcb prints "sharing a neighbour's via:
     # U3.7", so pin 7 has no drop via of its own -- it has its PAD, and a ground stub from
     # the pad centre (86.250, 33.456) running south to the neighbour's via at
     # (86.412, 31.587). Re-measured against the generated board, per leg:

@@ -40,7 +40,10 @@ track-vs-track test at the bottom is this file's own grown-box approximation and
 it is the cautious direction for a search, and routes() does not have that test at all.)
 
 It used to model a via as a square here too, matching what routes() then did.  Task 10's
-ruling (task-10-step6-ruling.md) found that square the defect and not the caution: a via is
+ruling (.superpowers/sdd/2026-09-23-pcb-relayout-8layer/task-10-step6-ruling.md -- which
+.gitignore excludes, so it is in the working tree and not in a clone; the reasoning is
+restated below so a clone does not need it) found that square the defect and not the
+caution: a via is
 round, so its bounding box over-reports an off-axis intrusion by (sqrt(2)-1)*s/2 = 0.124 mm
 on a 0.6 mm via.  A via 0.40 mm from its own pad's diagonal neighbour passed as a disc and
 failed as a box by 0.025 mm, and the cure the box named was to move it in x, which is not the

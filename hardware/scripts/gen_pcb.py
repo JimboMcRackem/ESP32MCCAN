@@ -1632,34 +1632,15 @@ def pads_board(comps, pos, padnet):
     return out
 
 
-class Hash(object):
-    """A 4 mm bucket grid over the pads, so a candidate test is local rather than board-wide."""
-
-    CELL = 4.0
-
-    def __init__(self, items):
-        self.b = {}
-        for it in items:
-            cx, cy, w, h = it[3], it[4], it[5], it[6]
-            for i in range(int((cx - w / 2) / self.CELL), int((cx + w / 2) / self.CELL) + 1):
-                for j in range(int((cy - h / 2) / self.CELL), int((cy + h / 2) / self.CELL) + 1):
-                    self.b.setdefault((i, j), []).append(it)
-
-    def near(self, x0, y0, x1, y1):
-        out = []
-        for i in range(int(x0 / self.CELL), int(x1 / self.CELL) + 1):
-            for j in range(int(y0 / self.CELL), int(y1 / self.CELL) + 1):
-                out += self.b.get((i, j), [])
-        return out
-
-
 class BoxHash(object):
-    """The same 4 mm bucket grid as Hash, over anything that can name its own bounding box.
+    """A 4 mm bucket grid over anything that can name its own bounding box.
 
-    Hash indexes pads, whose tuple layout it knows.  This one takes (item, x0, y0, x1, y1) and
-    is what makes the frozen router's 4692 segments and 857 vias usable as obstacles: a
-    board-wide scan per candidate site is 141 pads x hundreds of candidates x thousands of
-    obstacles, which does not finish.
+    Takes (item, x0, y0, x1, y1).  This is what makes the frozen router's 4690 segments and
+    855 vias usable as obstacles: a board-wide scan per candidate site is 141 pads x hundreds
+    of candidates x thousands of obstacles, which does not finish.
+
+    `near` lives here only.  It used to exist twice, verbatim, here and in Hash -- which is now
+    a subclass that only knows how to turn a pad tuple into a box.
     """
 
     CELL = 4.0
@@ -1677,6 +1658,20 @@ class BoxHash(object):
             for j in range(int(y0 / self.CELL), int(y1 / self.CELL) + 1):
                 out += self.b.get((i, j), [])
         return out
+
+
+class Hash(BoxHash):
+    """BoxHash over the pads, so a candidate test is local rather than board-wide.
+
+    A pad tuple from pads_board() is (ref, pad, net, cx, cy, w, h, smd, id) with an
+    axis-aligned bbox, so the box is just centre +- half-size.  The bucket ranges this
+    produces are the same integers the hand-written version computed, so the index and every
+    `near` result are unchanged.
+    """
+
+    def __init__(self, items):
+        BoxHash.__init__(self, [(it, it[3] - it[5] / 2, it[4] - it[6] / 2,
+                                 it[3] + it[5] / 2, it[4] + it[6] / 2) for it in items])
 
 
 def _pt_rect(px, py, rx0, ry0, rx1, ry1):
@@ -2121,7 +2116,10 @@ def _seg_rect_gap(p0, p1, w, rect):
 # 12 findings check_track_crossings raised the first time it ran after the frozen router copper
 # (Task 10 Step 6.0) were every one of them a square-corner artifact -- all 12 clear under the
 # disc, KiCad's own DRC found 0 violations on the same copper, and the model had been 0.124 mm
-# tighter than the rule KiCad enforces since Task 7.  See task-10-step6-ruling.md.
+# tighter than the rule KiCad enforces since Task 7.  The ruling is at
+# .superpowers/sdd/2026-09-23-pcb-relayout-8layer/task-10-step6-ruling.md, which .gitignore
+# excludes -- it is in the working tree and not in a clone, so the paragraph above is the
+# clone's copy of the reasoning and not a pointer to it.
 #
 # So: pads keep the box, vias get these.  Do not "simplify" a via back onto _seg_rect_gap.
 

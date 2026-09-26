@@ -35,7 +35,10 @@ What it reports, and what each figure means
 * The pocket: reachable cells and area.  Cells are `--step` squares, so area is cells x
   step^2 -- a cell count is only comparable against another at the same step.
 * Legal via sites INSIDE the pocket, copper-only, then how many of those also clear the
-  0.30 mm hole-to-hole floor (gen_pcb.HOLE_TO_HOLE).  Copper and fab are separate gates and a
+  0.30 mm hole-to-hole floor (gen_pcb.HOLE_TO_HOLE).  The circle printed on that line is a
+  LOWER bound built from this net's own class clearance; the count itself is graded per
+  obstacle at max(own, neighbour's class), so a site beside FEED or POWER copper needs more
+  than the number printed.  Copper and fab are separate gates and a
   site can pass one and fail the other, so they are counted separately.  This used to say the
   second gate was needed because "KiCad's DRC does not check hole-to-hole between same-net
   vias, which is exactly where a pad with its own frozen via in it lands".  That is FALSE --
@@ -362,14 +365,26 @@ def main(argv):
     for (px, py, _s, _w) in pocket.values():
         s, who = slack_at(vidx, px, py)
         (legal if s >= 0 else misses).append((s, px, py, who))
-    print("  via      %.2f/%.2f mm needs a clear %.2f mm circle on every layer: "
-          "%d legal site(s) in the pocket" % (via, drill, via + 2 * _mine, len(legal)))
+    # `_mine` is THIS net's own class clearance, so via + 2 * _mine is a LOWER BOUND on the
+    # circle a site needs, not the requirement.  slack_at / SR.obstacles grade each obstacle at
+    # max(_mine, that neighbour's class clearance), which is what the count below reflects: next
+    # to FEED or POWER copper (0.30 mm) a Default-class 0.50 mm via needs 1.10 mm, not the 0.90
+    # printed here.  The line used to say "needs a clear N mm circle" flat, which read as the
+    # requirement and understated it by 0.20 mm per side against a wider-class neighbour.
+    print("  via      %.2f/%.2f mm needs at LEAST a clear %.2f mm circle on every layer "
+          "(%.2f own-class clearance per side; a neighbour in a wider class raises it, and the "
+          "count below uses the real per-obstacle figure): %d legal site(s) in the pocket"
+          % (via, drill, via + 2 * _mine, _mine, len(legal)))
 
     if legal:
+        # Hoisted out of the per-site loop: this is a full-board regex scan (1401 vias here) and
+        # it does not depend on the site, so inside the loop it re-parsed the whole board once
+        # per legal site -- seconds of it on an unbounded pocket with ~1000 sites.
+        all_drills = drills(text)
         h2h = []
         for s, px, py, who in legal:
             worst, wat = 9e9, ""
-            for ax, ay, dd in drills(text):
+            for ax, ay, dd in all_drills:
                 g = math.hypot(px - ax, py - ay) - (drill + dd) / 2.0
                 if g < worst:
                     worst, wat = g, "a %.2f mm drill at (%.3f, %.3f)" % (dd, ax, ay)
