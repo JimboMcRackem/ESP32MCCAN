@@ -26,30 +26,46 @@
 
 # Ground-plane pour necks, GND_IN1 / GND_IN3 / GND_IN6 only.
 #
-# min_connection is 0.2000 mm and these pours hold four necks of 0.1558 to 0.1845 mm, repeated
-# identically on all three layers because those zones are plane-only -- no track segment on any
-# of them -- and all 1405 vias are full F.Cu-B.Cu barrels, so the three planes see exactly the
-# same antipad field.
+# min_connection is 0.2000 mm and these pours hold four necks -- 0.1558, 0.1652, 0.1671 and
+# 0.1845 mm -- reported identically on all three layers because those zones are plane-only (no
+# track segment on any of them; all 5119 segments are on F.Cu, B.Cu, In2.Cu or In5.Cu) and all
+# 1401 vias are full F.Cu-B.Cu barrels, so the three planes see exactly the same antipad field.
 #
-# min_connection asks for the narrowest copper that may carry a CONNECTION, i.e. a series path.
-# A neck between two antipads in a solid plane is not a series path: the plane is a sheet and
-# current spreads around the constriction through the copper beside it.  It would only matter
-# if cutting it stranded copper, and it does not: KiCad reports 0 isolated_copper (now at
-# `error`, not `warning`), scripts/check_zone_islands.py reports no zone unconnected to itself,
-# and the only unconnected GND item on the board is U4.4 -- the one pad gen_pcb warns has no
-# room for a drop at all.  140 of the 141 SMD GND pads carry their own full-barrel drop via, so
-# each of the four GND pours is tied to the others at 140 points.
+# Read scripts/gen_netclasses.py's min_connection note before changing this.  Two things it says
+# matter here, and the second is the one earlier versions of this comment got wrong:
 #
-# What remains to ask of a plane neck is whether it ETCHES, so this is set at the vendor floor
-# and not at zero: 0.10 mm is PCBWay's inner-layer minimum at 1 oz (4 mil = 0.1016 mm), the
-# figure that chose 1 oz inners in scripts/gen_netclasses.py's module docstring.  The narrowest
-# neck here is 0.1558 mm, 1.5x that.
+#   1. This rule is NOT justified by any claim about which necks are series paths.  KiCad's
+#      connection_width reports FOUR necks in these pours, while an independent scan of In1.Cu's
+#      antipad field finds 74 foreign-net gaps NARROWER than the 0.1558 mm it reports -- seven of
+#      them at exactly 0.0000 mm, two antipads touching -- and reports none of those 74.  So the
+#      check does not report every pinch, and the rule by which it selects four out of at least
+#      seventy-eight is unknown: KiCad's implementation was not read.  Any comment here that
+#      explains which necks matter is guessing.
+#   2. What justifies it is stranding and stitching, both measured.  Stranding: 0
+#      isolated_copper (promoted to `error`, not `warning`), scripts/check_zone_islands.py
+#      reports no zone unconnected to itself, and the only unconnected GND item on the board is
+#      U4.4 -- the one pad gen_pcb warns has no room for a drop at all.  Stitching: GND carries
+#      434 of the 1401 vias and every one is a full F.Cu-B.Cu barrel, so each of the four GND
+#      pours is tied to the other three at 434 points.  A neck narrows one of four sheets that
+#      are shorted together 434 times; it does not narrow the net.
+#
+# What remains to ask of a plane neck is whether it ETCHES -- and this is set ABOVE the vendor
+# floor, not at it.  PCBWay's inner-layer minimum at 1 oz is 4 mil = 0.1016 mm (the figure that
+# chose 1 oz inners in scripts/gen_netclasses.py's module docstring); 0.15 mm is 1.47x that and
+# 0.0058 mm below the narrowest neck here, so the rule remains a tripwire that any tightening of
+# the via field trips, rather than a blanket admitting anything the fab can etch.  The sweep:
+# 0.15 and 0.16 mm pass all twelve, 0.17 mm fails three, 0.20 mm fails all twelve, 0.24 mm fails
+# eighteen.  Two consecutive `--refill-zones` runs report the same four widths to 0.0001 mm, so
+# that 0.0058 mm is margin and not refill noise.
 #
 # Scoped to these zones by name and to A.Type == 'Zone', deliberately: a global relaxation
 # would also stop this rule catching a router track meeting a pad across its rounded corner,
-# which is what it caught on F.Cu at U10_DRN, Q10_G and Net-(Q12-B).
+# which is what it caught on F.Cu at U10_DRN, Q10_G and Net-(Q12-B).  The scope bounds what the
+# rule GRADES, not what it can excuse -- KiCad reports every zone neck as a lone Zone item, so
+# this rule cannot distinguish open-pour copper from copper that is some via's only tie into the
+# plane.  Nothing on this board is in the latter shape below 0.20 mm.
 (rule "ground plane pour necks"
-	(constraint connection_width (min 0.10mm))
+	(constraint connection_width (min 0.15mm))
 	(condition "A.Type == 'Zone' && (A.Name == 'GND_IN1' || A.Name == 'GND_IN3' || A.Name == 'GND_IN6')"))
 
 # U1 needs 0.200 mm pad-to-pad
