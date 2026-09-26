@@ -380,11 +380,23 @@ Min plated drill 0.20 mm, 47 holes (aspect ratio 8:1 at 1.6 mm).
 Min annular ring 0.15 mm, on 35 vias of 0.50 mm dia / 0.20 mm drill.
 Surface finish ENIG. Mask both sides, silkscreen both sides.
 
-1. VIA IN PAD, PLUGGED AND CAPPED (IPC-4761 type IV or VI), planarised, on the
-   five thermal paddles: D4 pad 3, U1 pad 9, U2 pad 9, U3 pad 17, U9 pad 15.
-   65 vias, 0.55 mm pad / 0.25 mm drill. The default finish is TENTED, which is
-   a mask skin over an open barrel and is NOT the same thing. All other vias on
-   the board are ordinary tented vias.
+1. VIA IN PAD, PLUGGED AND CAPPED (IPC-4761 type IV or VI), planarised, BY
+   RULE: every via whose centre falls inside a copper pad, wherever on the
+   board it sits. That is 194 vias over 132 pads on the board as generated
+   (scripts/check_vias.py recomputes this count on every build and is the
+   authority for it going forward; the drill/Excellon files are the
+   authority for exactly which holes they are). The default finish is
+   TENTED, which is a mask skin over an open barrel and is NOT the same
+   thing -- any of these left tented wicks paste down the barrel during
+   reflow and starves the joint under that pad.
+
+   The five largest concentrations are dedicated thermal arrays and want
+   filling for that reason too, not only this rule: D4 pad 3, U1 pad 9, U2
+   pad 9, U3 pad 17, U9 pad 15 (65 vias, 0.55 mm pad / 0.25 mm drill,
+   0.80 mm pitch). The other 129 vias sit over 127 more pads spread across
+   the board -- wherever a feed via lands on a pad centre by design, or a
+   router via changes layer inside a pad it fanned out to -- and are to be
+   plugged and capped the same as the five.
 
 2. NO SOLDER MASK DAM AT U10. Its leads leave a 0.15 mm gap and a dam that thin
    does not survive the mask process. Run one opening across the leads and let
