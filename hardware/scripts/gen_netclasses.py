@@ -108,6 +108,60 @@ RULES = {
     "min_silk_clearance": 0.0,
 }
 
+# --- rule severities, because a rule at `warning` is a rule the gate cannot report
+#
+# The DRC gate this repo runs is
+#
+#   kicad-cli pcb drc --severity-error --schematic-parity --exit-code-violations --refill-zones
+#
+# and `--severity-error` discards every finding whose rule is set to `warning`.  KiCad's stock
+# project file sets 29 of its 62 rules to warning or ignore, and nothing here had ever touched
+# them -- so on the committed board that gate reported `Found 0 violations` while
+# `--severity-all` reported **28**: 15 connection_width and 13 via_dangling.  Every "DRC: 0
+# errors" recorded on this branch was measured through that filter.
+#
+# Promoted here, with the reason each one is an error on THIS board and not a style note:
+#
+#   connection_width   the narrowest copper that may carry a connection, min_connection above.
+#                      A 0.059 mm neck where a router track meets a gate or drain pad does not
+#                      survive etching; that is an open gate on the eFuse, not a cosmetic
+#                      finding.  15 of these were hidden.
+#   hole_to_hole       min_hole_to_hole above, i.e. whether the fab can drill the board.  See
+#                      the note in gen_pcb.check_via_holes for why this one was believed not to
+#                      cover same-net pairs and does.
+#   holes_co_located   two drills at the same point is a drill file the fab has to query.
+#   via_dangling       a via connected on one layer or none.  Legal copper, but every one is
+#                      counted in the via-in-pad population docs/fabrication.md tells the fab
+#                      to plug and cap, so each buys a chargeable process step for nothing.
+#                      13 were hidden.
+#   track_dangling     a track that reaches nothing is either a missing connection or copper
+#                      nobody meant to lay.
+#   isolated_copper    the other half of the pour argument below: the whole case for leaving a
+#                      zone neck alone is that it strands nothing, and this is the rule that
+#                      would say otherwise.  It cannot be allowed to say it at warning.
+#   copper_sliver      an etch-resolution defect, i.e. a fabrication question and not taste.
+#
+# Five of the seven report ZERO on this board, so promoting them costs nothing today and is
+# purely about what the next change cannot do quietly.  What is deliberately left at `warning`
+# is the silk/text/library-metadata group (silk_overlap, text_height, lib_footprint_issues,
+# missing_footprint and the like): those are drawing-office findings, none of them decides
+# whether the board works or can be built, and several fire on every clone because the
+# footprint library is not registered in the runner's KiCad configuration.  `padstack` is left
+# alone as well -- it reports 0 here, and every via on the board is graded for diameter, drill
+# and annular ring by scripts/check_geometry.py, which gates rather than warns.
+#
+# None of this makes `--severity-error` sufficient on its own.  Run BOTH severities: the
+# promoted rules are the ones that can fail a board, and the residue is still worth reading.
+SEVERITIES = {
+    "connection_width": "error",
+    "copper_sliver": "error",
+    "hole_to_hole": "error",
+    "holes_co_located": "error",
+    "isolated_copper": "error",
+    "track_dangling": "error",
+    "via_dangling": "error",
+}
+
 # The tightest land pattern on the board is U10's at 0.15 mm; the VSON/QFN/HSOF parts are at
 # 0.20 mm.  0.12 keeps a margin under the worst of them, so a part fractionally tighter than
 # its neighbours does not need a hand-written exception -- and, more importantly, so that the
@@ -258,6 +312,7 @@ def main():
     pro["net_settings"]["classes"] = classes
     pro["net_settings"]["netclass_patterns"] = patterns
     pro["board"]["design_settings"]["rules"].update(RULES)
+    pro["board"]["design_settings"].setdefault("rule_severities", {}).update(SEVERITIES)
     pro["board"]["design_settings"]["track_widths"] = [0.0, 0.25, 0.4, 0.8, 2.0]
     pro["board"]["design_settings"]["via_dimensions"] = [
         {"diameter": 0.0, "drill": 0.0},
@@ -269,6 +324,7 @@ def main():
         json.dumps(pro, indent=2, ensure_ascii=False) + "\n")
 
     print("classes: %s" % ", ".join(c["name"] for c in classes))
+    print("rule severities raised to error: %s" % ", ".join(sorted(SEVERITIES)))
     print("patterns: %d" % len(patterns))
     for p in patterns:
         print("    %-6s %s" % (p["netclass"], p["pattern"]))

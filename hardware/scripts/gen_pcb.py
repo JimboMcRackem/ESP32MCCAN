@@ -2197,19 +2197,42 @@ def check_track_crossings(lo, hi):
 def check_via_holes(lo, hi):
     """Hole-to-hole between every hand via and every other via on the board.
 
-    KiCad's DRC does not answer this one. Its hole-to-hole check skips pairs on the SAME net,
-    and a hand route that changes layer where the router already changed layer lands on the
-    router's own via -- same net, so DRC says nothing, while the fab is handed two 0.30 mm
-    drills 0.02 mm apart, which is a slot it did not ask for. Three of Step 6.1/6.1b's hand
-    vias were exactly that, and the only reason they were ever noticed is that Step 6.3 hit
-    the same thing and the numbers were looked at directly.
+    A hand route that changes layer where the router already changed layer lands on the
+    router's own via, and the fab is handed two 0.30 mm drills 0.02 mm apart, which is a slot
+    it did not ask for. Three of Step 6.1/6.1b's hand vias were exactly that, and the only
+    reason they were ever noticed is that Step 6.3 hit the same thing and the numbers were
+    looked at directly.
 
-    Nothing else covers it either: routes() checks a hand via against `placed`, which at that
-    point is the thermal and stitching fields only, and gnd_drops() does its own hole-to-hole
-    but only for drops. So this is the hand vias' turn, VIA_LOG[lo:hi], against every via on
-    the board -- the router's included, and its own net included, because a drill does not
-    care what net it is on. min_hole_to_hole is 0.3 mm (scripts/gen_netclasses.py); the 1e-6
-    is the same float-tie allowance as check_drop_via_crossings above.
+    This docstring used to say KiCad's DRC "skips pairs on the SAME net, so DRC says nothing".
+    That is FALSE and it was asserted here and at four places in layout_pcb.py. KiCad 10.0
+    checks same-net hole-to-hole and reports it -- verified by duplicating the /+24V via at
+    (90.300, 30.700) 0.1414 mm away on its own net:
+
+        [hole_to_hole]: Drilled hole too close to other hole
+            (board setup constraints min 0.2995 mm; actual 0.0000 mm)
+            Rule: board setup constraints; warning
+            @(90.3000 mm, 30.7000 mm): Via [/+24V] on F.Cu - B.Cu
+            @(90.4000 mm, 30.8000 mm): Via [/+24V] on F.Cu - B.Cu
+
+    What silenced it was the SEVERITY, not the net: `hole_to_hole` was set to `warning` in
+    mccan.kicad_pro and the gate runs `--severity-error`, which discards warnings entirely.
+    One `--severity-all` run would have covered every pair on the board -- the router's and
+    the drops' included, on the same net and on different nets -- for free, and that is the
+    gate nobody reached for. scripts/gen_netclasses.py now writes `hole_to_hole` at `error`.
+
+    This function is still worth having, for the reason the rest of this file exists: it
+    refuses at generate time, before a board is written, so a bad hand via never reaches the
+    artifact KiCad would be asked about. But it is a first line, not the only one, and the
+    residual it used to claim ("router-vs-router and drop-vs-drop pairs on the same net are
+    ungated, and KiCad will not look") was wrong twice over -- the ungated population included
+    DIFFERENT-net router and drop pairs as well, and KiCad does look.
+
+    Nothing else in the generator covers it: routes() checks a hand via against `placed`, which
+    at that point is the thermal and stitching fields only, and gnd_drops() does its own
+    hole-to-hole but only for drops. So this is the hand vias' turn, VIA_LOG[lo:hi], against
+    every via on the board -- the router's included, and its own net included, because a drill
+    does not care what net it is on. min_hole_to_hole is 0.3 mm (scripts/gen_netclasses.py);
+    the 1e-6 is the same float-tie allowance as check_drop_via_crossings above.
 
     Where this fires, the fix is usually not to move the hand via but to delete it: if the
     router already has a via on this net within a hair of it, the hand run can simply end on
@@ -3827,7 +3850,10 @@ def main():
     # been checked against it until this line.
     check_drop_via_crossings(_gd_lo, _gd_hi)
     # And the hand vias against every drill on the board, for the reason in its docstring:
-    # DRC skips same-net hole-to-hole, so nothing else on this board asks the question.
+    # this refuses at generate time, before a board exists to be asked about.  (This line
+    # used to say "DRC skips same-net hole-to-hole, so nothing else on this board asks the
+    # question" -- a sixth copy of an assertion that is false.  KiCad checks same-net pairs;
+    # hole_to_hole was a `warning` and the gate ran --severity-error.)
     check_via_holes(_rv_lo, _rv_hi)
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')

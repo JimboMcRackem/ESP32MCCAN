@@ -1223,9 +1223,12 @@ ROUTES = [
     # via-in-pad on this net at R11.1 (86.825, 39.000) and left the rest of the net open,
     # so the In2.Cu run simply ends on that via. A hand via of our own at (86.800, 39.000)
     # -- which is what this file had until Step 6.3 -- put two 0.30 mm drills 0.025 mm
-    # apart, 0.275 mm INSIDE the 0.300 mm hole-to-hole floor. KiCad's DRC never said a word
-    # because it skips hole-to-hole between two vias on the same net; gen_pcb's
-    # check_via_holes is what found it, and now gates it.
+    # apart, 0.275 mm INSIDE the 0.300 mm hole-to-hole floor. gen_pcb's check_via_holes is
+    # what found it, and now gates it. This comment used to add "KiCad's DRC never said a
+    # word because it skips hole-to-hole between two vias on the same net". That is false:
+    # KiCad checks same-net pairs and reports them (verified -- see the note in
+    # gen_pcb.check_via_holes). It said nothing because hole_to_hole was set to `warning` in
+    # mccan.kicad_pro and the gate ran --severity-error, which discards warnings.
     #
     # Tightest neighbour per leg, measured against the generated board:
     #   east out of pad  0.250 mm to the SW_BOOST hop, 0.275 mm to pin 10's and pin 12's pads
@@ -1315,7 +1318,10 @@ ROUTES = [
     # As with Net-(U3-MODE), there is no via at the C32 end: the router's own 0.60/0.30
     # via-in-pad at C32.1 (110.305, 91.830) is where the In5.Cu hop lands. The hand via this
     # file used to place at (110.300, 91.850) sat 0.021 mm from it -- 0.279 mm inside the
-    # 0.300 mm hole-to-hole floor, and silent in DRC because the two are the same net.
+    # 0.300 mm hole-to-hole floor, and silent in DRC because hole_to_hole was a `warning` and
+    # the gate ran --severity-error. NOT because the two are the same net, which is what this
+    # comment used to say: KiCad checks same-net hole-to-hole and reports it. See the note in
+    # gen_pcb.check_via_holes for the verification.
     ("Net-(U4-SR)", "F.Cu", 0.20, [(96.700, 86.650), (96.250, 86.650), (96.000, 86.900),
                                    (96.050, 87.500), (96.400, 87.850)]),
     ("Net-(U4-SR)", "In2.Cu", 0.20, [(96.400, 87.850), (97.350, 88.600), (97.500, 88.700),
@@ -1361,8 +1367,12 @@ ROUTES = [
     # ends ON that via, on In5.Cu, which is one of the layers it reaches; no hand via and no
     # F.Cu landing leg are needed. Until Step 6.3 this route did place its own via, at
     # (38.000, 83.850), which is 0.091 mm hole-to-hole from the router's -- inside the
-    # 0.300 mm fab floor, and invisible to KiCad's DRC because the two vias are the same net.
-    # gen_pcb.check_via_holes gates that now. Ending on the router's via also lengthens the
+    # 0.300 mm fab floor, and invisible to the DRC gate because hole_to_hole was a `warning`
+    # and the gate ran --severity-error. Not, as this comment used to claim, because the two
+    # vias are the same net: KiCad checks same-net pairs and reports them (see the note in
+    # gen_pcb.check_via_holes). gen_pcb.check_via_holes gates it at generate time now, and
+    # gen_netclasses.py writes hole_to_hole at `error` so KiCad gates it too. Ending on the
+    # router's via also lengthens the
     # last In5.Cu leg's tightest gap from 0.933 mm to 1.111 mm.
     #
     # The polyline starts at (37.200, 96.000) -- 0.300 mm east of pin 3's pad centre but well
@@ -1415,9 +1425,14 @@ ROUTES = [
     # (148.500, 54.000) and (170.200, 54.300), rather than dropping a landing via of their
     # own next to it. Each of them first had its own, and each of those three sat 0.019 mm,
     # 0.000 mm and -0.229 mm hole-to-hole from the router's -- two of them literally inside
-    # the other barrel. KiCad's DRC passed all three, because it does not check hole-to-hole
-    # between two vias on the same net, so this would have shipped to the fab as three pairs
-    # of 0.30 mm drills a few microns apart. gen_pcb.check_via_holes gates it now, and it
+    # the other barrel. The DRC gate passed all three, and the reason was the SEVERITY, not
+    # the net: hole_to_hole was set to `warning` in mccan.kicad_pro and the gate ran
+    # --severity-error, which discards warnings. This comment used to say KiCad "does not
+    # check hole-to-hole between two vias on the same net"; it does, and reports it -- see the
+    # note in gen_pcb.check_via_holes for the verification. Either way this would have shipped
+    # to the fab as three pairs of 0.30 mm drills a few microns apart, because nobody ran the
+    # one --severity-all pass that would have shown it. gen_pcb.check_via_holes gates it now,
+    # gen_netclasses.py writes hole_to_hole at `error`, and it
     # also caught three older hand vias the same way (Net-(U3-MODE), Net-(U4-SR) and
     # /power_input/U10_GATE above, all three fixed the same way).
 
