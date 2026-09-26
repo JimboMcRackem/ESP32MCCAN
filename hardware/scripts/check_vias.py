@@ -314,12 +314,28 @@ def main():
               % (len(vias), skipped))
 
     gnd = set(c for c, n in netname.items() if n == "GND")
-    therm = [v for v in vias if v[2] < 0.6]
+    # A hand route via is named in layout_pcb.ROUTE_VIAS, so it does not have to be guessed
+    # at from its diameter -- and it must not be, because eleven of Step 6.3's signal vias are
+    # 0.50 mm, below the 0.6 mm line this used to read as "thermal".  A thermal via has to sit
+    # inside its paddle; a route via changes layer in open copper and sits inside nothing, so
+    # grading one by the other's rule reported every one of them as a fault.  They are
+    # graded with the power/route population instead: counted, their pad landings named, and
+    # only a landing in ANOTHER net's pad is a failure -- which is the rule that fits them.
+    import layout_pcb as _L
+    route = set((round(x, 3), round(y, 3)) for _n, x, y, _d, _dr in _L.ROUTE_VIAS)
+
+    def _small_route(v):
+        # Only the sub-0.6 ones need rescuing; at 0.6 and above the two rules below already
+        # class a hand via correctly, and this deliberately does not disturb them.
+        return v[2] < 0.6 and (round(v[0], 3), round(v[1], 3)) in route
+
+    therm = [v for v in vias if v[2] < 0.6 and not _small_route(v)]
     # Diameter says what a via is for only on GND.  A 0.8 mm via on VBAT is a hand route
     # changing layer, and it lands on its own pad about as often as not; grading it by the
     # stitching rule reports the router doing its job as a fault.
     stitch = [v for v in vias if v[2] >= 0.6 and v[4] in gnd]
-    power = [v for v in vias if v[2] >= 0.6 and v[4] not in gnd]
+    power = ([v for v in vias if v[2] >= 0.6 and v[4] not in gnd]
+             + [v for v in vias if _small_route(v)])
 
     bad = []
     hosts = {}
