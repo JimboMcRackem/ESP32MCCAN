@@ -1408,6 +1408,41 @@ DROP_DEFAULT_CLEAR = 0.20
 # so it applies between two drills on the same net as much as on different ones.
 HOLE_TO_HOLE = 0.3
 
+# The float-tie allowance, subtracted from every clearance and hole-to-hole comparison in this
+# file so that an arithmetic tie is not decided by the last bit of a double.  It is ONE number
+# with ONE name because eleven copies of a literal drift, and because every comment below says
+# "the same float-tie allowance" -- which has to stay true.
+#
+# It was 1e-6 mm, and the comment justifying that said one nanometre is "three orders below
+# anything a fab holds or KiCad writes".  Both halves of that were confused.  1e-6 mm is one
+# MICROmetre, not one nanometre, and it is exactly one KiCad internal unit -- KiCad stores
+# board geometry in integer nanometres, so 1e-6 mm is 1000 of the smallest distance KiCad can
+# represent.  The blind spot was therefore not "three orders below anything": it was a full
+# 1000 representable steps wide, and a gap genuinely 1 nm short of the rule passed here and was
+# an error in KiCad's own DRC.  Nor was it three orders below this board's margins -- the
+# tightest legitimate slack measured on it is +0.000317 mm, only 317x the old epsilon.
+#
+# 1e-9 mm is one nanometre: one KiCad internal unit, the smallest gap that can differ from a
+# tie at all.  Float error on gaps built from ~200 mm coordinates is ~1e-15 mm here, six orders
+# below this, so it still absorbs every tie.  Measured on this board, every comparison at every
+# site (1.6 million of them):
+#   drop via vs foreign track   691108 comparisons, one strictly negative -- the GND via at
+#                               (163.875, 26.900) against /outputs/MUXIN_RL_R on B.Cu, at
+#                               -0.000000000000002 -- plus three exact zeros; none below -1e-9
+#   hand via vs frozen track    two exact ties at 0.300 mm, ROUTE_VIAS[36] (/VBAT) against
+#                               /outputs/MUXIN_RR_B and Net-(U7-~{OE}); none below -1e-9
+#   hand track vs track         391422 comparisons, none negative, tightest tie exactly 0.0
+#   hand track vs via           399958 comparisons, none negative, tightest slack +0.000317
+#   hand via hole-to-hole       106400 comparisons, tightest slack +0.2066 -- decorative here
+# The +0.000317 is the tightest legitimate slack on the whole board, so a 1e-6 epsilon sat only
+# 317x below the thing it was supposed to be invisible against; 1e-9 sits 317000x below it.
+#
+# Two independent checks that this is a behavioural no-op today: building with TIE = 1e-9 gives
+# a board byte-identical to the one 1e-6 produced (md5 6c4f884ff624c5b9d3bc484f7bb2613e) and 0
+# ERROR lines, and building with TIE = 0.0 refuses -- on the two 0.300 mm hand-via ties above --
+# which is what makes the allowance load-bearing rather than decoration.
+TIE = 1e-9
+
 
 def net_clearance(code):
     """The clearance the netclass rules actually apply to a net, by net code."""
@@ -1799,13 +1834,13 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts,
         # a site this admits is a site the gate admits.
         for tx0, ty0, tx1, ty1, tw, _tlay, tnet in FZT.near(vx - 2, vy - 2, vx + 2, vy + 2):
             need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
-            # `need - 1e-6` for the reason spelled out in check_drop_via_crossings(): the
+            # `need - TIE` for the reason spelled out in check_drop_via_crossings(): the
             # router targets the floor exactly, so these are exact ties at 0.200 mm and a
             # strict `<` decides them on the last bit of a double.  C45.2 is the case that
             # forced it -- its drop sits 0.19999999999999787 mm from a MUXIN_RL_R track,
             # which is 0.200 mm, and a strict test took the drop away and left the pad with
             # no ground connection at all.
-            if _seg_disc_gap((tx0, ty0), (tx1, ty1), tw, vx, vy, DROP_VIA) < need - 1e-6:
+            if _seg_disc_gap((tx0, ty0), (tx1, ty1), tw, vx, vy, DROP_VIA) < need - TIE:
                 return False
         # Frozen router vias: barrel-to-barrel clearance and the board's 0.3 mm hole-to-hole,
         # which is what a DRC would ask.
@@ -1813,7 +1848,7 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts,
             d = math.hypot(vx - px, vy - py)
             if d < max((DROP_DRILL + pd) / 2.0 + 0.3,
                        (DROP_VIA + ps) / 2.0 + max(net_clearance(pnet),
-                                                   DROP_DEFAULT_CLEAR)) - 1e-6:
+                                                   DROP_DEFAULT_CLEAR)) - TIE:
                 return False
         near = hash_.near(vx - r - DROP_CLEAR, vy - r - DROP_CLEAR,
                           vx + r + DROP_CLEAR, vy + r + DROP_CLEAR)
@@ -1867,13 +1902,13 @@ def gnd_drops(comps, pos, padnet, netidx, placed, keepouts,
             if tlay != "F.Cu":
                 continue
             need = max(net_clearance(tnet), DROP_DEFAULT_CLEAR)
-            if _seg_seg(x0, y0, x1, y1, tx0, ty0, tx1, ty1) < (w + tw) / 2.0 + need - 1e-6:
+            if _seg_seg(x0, y0, x1, y1, tx0, ty0, tx1, ty1) < (w + tw) / 2.0 + need - TIE:
                 return False
         for px, py, ps, _pd, pnet in FZV.near(bx0 - 1, by0 - 1, bx1 + 1, by1 + 1):
             need = max(net_clearance(pnet), DROP_DEFAULT_CLEAR)
             # Disc, not the box the `placed` loop above uses, for the reason given in via_ok:
             # against the router's own copper the box is a cost, not a safety margin.
-            if _seg_disc_gap((x0, y0), (x1, y1), w, px, py, ps) < need - 1e-6:
+            if _seg_disc_gap((x0, y0), (x1, y1), w, px, py, ps) < need - TIE:
                 return False
         return True
 
@@ -2160,15 +2195,16 @@ def check_track_crossings(lo, hi):
             need = max(net_clearance(anet), net_clearance(bnet))
             gap = _seg_seg_dist((ax0, ay0), (ax1, ay1),
                                 (bx0, by0), (bx1, by1)) - (aw + bw) / 2
-            # `need - 1e-6`, not `need`: the same float-tie allowance that
+            # `need - TIE`, not `need`: the same float-tie allowance that
             # check_drop_via_crossings explains below, applied here for the same reason.
             # The tightest hand-vs-hand pair on this board is an exact tie --
             # /power_input/SNS against /power_input/VBAT_PROT on F.Cu at (36.90, 96.50),
             # gap 0.300000 against a 0.300 need -- so under a strict `<` whether the build
             # passes is decided by the last bit of a double rather than by any real copper.
             # The allowance only ever lets a gap through, so it cannot fail a board that
-            # passes today; one nanometre is far below anything a fab holds or KiCad writes.
-            if gap < need - 1e-6:
+            # passes today, and at one nanometre it is the narrowest allowance that can
+            # absorb a tie at all -- KiCad's own geometry grid is one nanometre.
+            if gap < need - TIE:
                 close.append("%s (%.2f,%.2f)-(%.2f,%.2f) vs %s (%.2f,%.2f)-(%.2f,%.2f) "
                              "on %s: %.3f < %.3f"
                              % (NETNAME.get(anet, "?"), ax0, ay0, ax1, ay1,
@@ -2183,8 +2219,8 @@ def check_track_crossings(lo, hi):
             need = max(net_clearance(anet), net_clearance(vnet))
             # _seg_disc_gap, not _seg_rect_gap: the via is round.  See the note above it.
             gap = _seg_disc_gap((ax0, ay0), (ax1, ay1), aw, vx, vy, vs)
-            # `need - 1e-6`: the same float-tie allowance, for the same reason.
-            if gap < need - 1e-6:
+            # `need - TIE`: the same float-tie allowance, for the same reason.
+            if gap < need - TIE:
                 close.append("%s (%.2f,%.2f)-(%.2f,%.2f) vs a %s via (%.2f,%.2f): "
                              "%.3f < %.3f"
                              % (NETNAME.get(anet, "?"), ax0, ay0, ax1, ay1,
@@ -2232,7 +2268,7 @@ def check_via_holes(lo, hi):
     hole-to-hole but only for drops. So this is the hand vias' turn, VIA_LOG[lo:hi], against
     every via on the board -- the router's included, and its own net included, because a drill
     does not care what net it is on. min_hole_to_hole is 0.3 mm (scripts/gen_netclasses.py);
-    the 1e-6 is the same float-tie allowance as check_drop_via_crossings above.
+    TIE is the same float-tie allowance as check_drop_via_crossings above.
 
     Where this fires, the fix is usually not to move the hand via but to delete it: if the
     router already has a via on this net within a hair of it, the hand run can simply end on
@@ -2245,7 +2281,7 @@ def check_via_holes(lo, hi):
             if j == i:
                 continue
             gap = math.hypot(ax - bx, ay - by) - (ad + bd) / 2.0
-            if gap < HOLE_TO_HOLE - 1e-6:
+            if gap < HOLE_TO_HOLE - TIE:
                 close.append("a %s via (%.3f,%.3f) drill %.2f vs a %s via (%.3f,%.3f) "
                              "drill %.2f: hole-to-hole %.3f < %.3f"
                              % (NETNAME.get(anet, "?"), ax, ay, ad,
@@ -2282,13 +2318,15 @@ def check_drop_via_crossings(glo, ghi):
             need = max(net_clearance(vnet), net_clearance(tnet))
             # _seg_disc_gap, not _seg_rect_gap: the via is round.  See the note above it.
             gap = _seg_disc_gap((tx0, ty0), (tx1, ty1), tw, vx, vy, vs)
-            # `need - 1e-6`, not `need`: the router targets the clearance floor exactly,
+            # `need - TIE`, not `need`: the router targets the clearance floor exactly,
             # not a margin over it, so the tightest drop-via-to-foreign-track gaps on this
             # board are exact ties at 0.200 mm. A strict `<` would decide those ties on the
             # last bit of a double and fail the build on float noise, not a real violation.
-            # One nanometre is three orders below anything a fab can hold and below the
-            # grid KiCad itself writes, so it cannot hide a genuine intrusion.
-            if gap < need - 1e-6:
+            # This is the site the allowance exists for: the GND via at (163.875, 26.900)
+            # against /outputs/MUXIN_RL_R on B.Cu computes -0.000000000000 here. TIE is one
+            # nanometre -- see its definition, which says why the 1e-6 this used to be was
+            # a thousand times larger than the grid KiCad writes, not below it.
+            if gap < need - TIE:
                 close.append("a %s via (%.2f,%.2f) vs %s (%.2f,%.2f)-(%.2f,%.2f) on %s: "
                              "%.3f < %.3f"
                              % (NETNAME.get(vnet, "?"), vx, vy,
@@ -2416,11 +2454,11 @@ def routes(comps, pos, padnet, netidx, placed):
             need = pad_clearance(p, code)
             g = (_seg_rect_gap(seg[0], seg[1], seg[2], _pad_box(p)) if seg
                  else _rect_gap(box, _pad_box(p)))
-            # `need - 1e-6`, not `need`: the same float-tie allowance as above. Hand
+            # `need - TIE`, not `need`: the same float-tie allowance as above. Hand
             # routes are laid to the clearance floor exactly rather than to a margin over
             # it, so these gaps tie instead of clearing, and a strict `<` decides a tie on
             # float noise.
-            if g < need - 1e-6:
+            if g < need - TIE:
                 close.append("%s vs %s.%s (%s): %.3f < %.3f"
                              % (what, p[0], p[1], NETNAME.get(p[2], "?"), g, need))
 
@@ -2450,8 +2488,8 @@ def routes(comps, pos, padnet, netidx, placed):
                 continue
             need = max(net_clearance(vnet), net_clearance(s["code"]))
             g = _seg_disc_gap(s["p0"], s["p1"], s["w"], vx, vy, vs)
-            # `need - 1e-6`: the same float-tie allowance, for the same reason.
-            if g < need - 1e-6:
+            # `need - TIE`: the same float-tie allowance, for the same reason.
+            if g < need - TIE:
                 close.append("%s vs %s on %s: %.3f < %.3f"
                              % (what, label, NETNAME.get(vnet, "?"), g, need))
     for v in vias:
@@ -2463,8 +2501,8 @@ def routes(comps, pos, padnet, netidx, placed):
             need = max(net_clearance(vnet), net_clearance(v["code"]))
             # Both objects are round, so neither gets a box.  See the note by _disc_disc_gap.
             g = _disc_disc_gap(v["x"], v["y"], v["sz"], vx, vy, vs)
-            # `need - 1e-6`: the same float-tie allowance, for the same reason.
-            if g < need - 1e-6:
+            # `need - TIE`: the same float-tie allowance, for the same reason.
+            if g < need - TIE:
                 close.append("%s vs a via on %s: %.3f < %.3f"
                              % (what, NETNAME.get(vnet, "?"), g, need))
         # And against the frozen router's copper -- 4692 segments and 857 vias that nothing
@@ -2489,7 +2527,7 @@ def routes(comps, pos, padnet, netidx, placed):
             # check_drop_via_crossings.  Disc against capsule, for the reason above
             # _seg_disc_gap.
             g = _seg_disc_gap((fx0, fy0), (fx1, fy1), fw, v["x"], v["y"], v["sz"])
-            if g < need - 1e-6:
+            if g < need - TIE:
                 close.append("%s vs a frozen %s track (%.2f,%.2f)-(%.2f,%.2f): %.3f < %.3f"
                              % (what, NETNAME.get(fnet, "?"), fx0, fy0, fx1, fy1, g, need))
         for fx, fy, fs, _fd, fnet in _fz_v:
@@ -2497,7 +2535,7 @@ def routes(comps, pos, padnet, netidx, placed):
                 continue
             need = max(net_clearance(fnet), net_clearance(v["code"]))
             g = _disc_disc_gap(v["x"], v["y"], v["sz"], fx, fy, fs)
-            if g < need - 1e-6:
+            if g < need - TIE:
                 close.append("%s vs a frozen %s via (%.2f,%.2f): %.3f < %.3f"
                              % (what, NETNAME.get(fnet, "?"), fx, fy, g, need))
 
