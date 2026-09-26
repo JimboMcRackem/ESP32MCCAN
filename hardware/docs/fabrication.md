@@ -134,23 +134,42 @@ sideways copper growth there is to close a gap that small.
 
 ## 3. Board outline and mechanical
 
-- Rectangle **140.0 × 100.0 mm**, corners radiused **3.0 mm** (four arcs, `Edge.Cuts`).
+**Re-measured this session against `mccan.kicad_pcb` directly** (the eight `Edge.Cuts` entities
+and the `MountingHole_3.2mm_M3` footprints), replacing the 140 × 100 mm board this section
+described before the re-layout:
+
+- Rectangle **200.0 × 140.0 mm**, corners radiused **3.0 mm** (four straight `Edge.Cuts` sides plus
+  four 3 mm arcs, nothing else — outline runs x 20…220, y 20…160).
 - Four **M3 mounting holes, 3.2 mm NPTH**, 5.0 mm in from each corner. In board coordinates:
-  (25, 25), (155, 25), (25, 115), (155, 115) — the outline runs x 20…160, y 20…120.
+  **(25, 25), (215, 25), (25, 155), (215, 155)** — read off footprints H1–H4 directly, not derived
+  from `MOUNT_INSET` arithmetic.
 - Copper is held **0.50 mm** off the edge everywhere.
 - No V-score, no tab-route, no panelisation requested. If the fab panelises for their own handling,
   the antenna keep-out below still applies to the finished piece.
 
-### Antenna keep-out — this one is absolute
+### Antenna keep-out — this one is absolute, and its coordinates moved 60 mm
 
-`U5` is an ESP32-WROOM-32 module mounted so its antenna overhangs the board edge. **No copper, no
-plating, no parts, no silkscreen and no mask on ANY layer** inside:
+`U5` is an ESP32-WROOM-32E module (footprint `RF_Module:ESP32-WROOM-32E`, at board coordinates
+207, 72, rotated 270°) mounted so its antenna overhangs the board's right-hand edge. Its all-layer
+`keepout` zone polygon, read from `mccan.kicad_pcb` this session (search the U5 footprint for
+`(keepout`), is the authority — not a constant, not a note on `Cmts.User`. **No copper, no plating,
+no parts, no silkscreen and no mask on ANY layer** inside:
 
-> **x 153.56 … 174.75, y 48.00 … 96.00** (board coordinates)
+> **x 213.56 … 234.75, y 48.00 … 96.00** (board coordinates) — 21.19 × 48.00 mm
 
-which is 18.0 × 6.19 mm of module antenna plus margin, measured from the module end face
-(datasheet v1.8 Fig. 12). The region extends past the board edge; that is intentional. The
-heat-spreader plate is notched to clear it — see `enclosure.md`.
+**This is not the same rectangle §14 item 5 used to point at.** The board moved 60 mm to the right
+during the re-layout (U5 was at x=147 on the old board) and this keep-out moved with it; a reader
+still working from the old x 153.56…174.75 coordinates would clear the wrong patch of board by
+60 mm. **There is currently no marked region for it on `Cmts.User`** — the only antenna-related
+mark there is a free-standing text note (`scripts/layout_pcb.py:419`) placed near the top edge of
+the board, roughly 90 mm from this rectangle, carrying the datasheet's 18.0 × 6.19 mm antenna-element
+figure rather than this keep-out's own 21.19 × 48.00 mm. **Drawing that region and moving that note
+is copper-generating work (`scripts/layout_pcb.py`), which is out of scope for this documentation
+pass — see §16.** Until it exists, this document and the order text in §14 are the only correct
+source for where the keep-out is.
+
+The keep-out extends past the board edge; that is intentional. The heat-spreader plate is notched
+to clear it — see `enclosure.md`.
 
 ---
 
