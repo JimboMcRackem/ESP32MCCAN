@@ -1,12 +1,15 @@
 # Fabrication and Assembly Notes
 
-**Status: DRAFT — the routing is frozen but not finished.** The external router's result is folded
-into the board (`scripts/routes_signal.json`), and every figure below is measured against that
-board. KiCad DRC currently reports **20 violations and 25 unconnected items**, none of them a
-clearance or short: the violations are 12 dangling vias and 1 dangling track left on nets the
-router could not close, plus 7 pour necks. About twenty single hops remain to be hand-routed.
-Nothing in this document depends on those hops except the via counts in §5, which will grow by a
-few. Re-measure §5 before an order goes out.
+**Status: DRAFT — the board is not yet fabricable.** The external router's result is folded into
+the board (`scripts/routes_signal.json`), and every figure below is measured against that board.
+KiCad DRC currently reports **9 violations and 11 unconnected items**, at both `--severity-error`
+and `--severity-all` (re-run this session with `kicad-cli pcb drc --severity-error
+--schematic-parity --exit-code-violations --refill-zones`; see `../README.md` for why both
+severities matter and why the exit code is not the gate). All 9 violations are `via_dangling` —
+vias left on nets the router could not close. The 11 unconnected items are **9 signal nets (two of
+them U9's own pins, `Net-(U9-IN0)` and `Net-(U9-IS)`) plus one `GND` pad** (U4 pad 4). **This is a
+real gap, not a rounding error in a report: the board cannot go to order until those 11 close.**
+Nothing else in this document depends on those hops.
 
 **Authority:** `../../docs/superpowers/specs/2026-09-11-esp32-mccan-pcb-hardware-design.md` §9.3,
 §9.4, §10 (Task 9). The board itself carries a condensed version of this document on `Cmts.User`
@@ -25,12 +28,12 @@ actually reads.
 
 | Field | Value |
 |---|---|
-| Board size | 140.0 × 100.0 mm rectangle, 3.0 mm corner radius |
-| Layers | **6** |
+| Board size | 200.0 × 140.0 mm rectangle, 3.0 mm corner radius |
+| Layers | **8** |
 | Material | FR4, Tg ≥ 150 °C |
 | Finished thickness | **1.6 mm** |
 | Outer copper | **1 oz (35 µm) finished** |
-| Inner copper | **1 oz (35 µm) — all four inner layers** |
+| Inner copper | **1 oz (35 µm) — all six inner layers** |
 | Min track / clearance | **0.20 mm / 0.20 mm** (both outer and inner) |
 | Min drill | **0.20 mm** (plated) |
 | Max aspect ratio | **8:1** (1.6 mm ÷ 0.20 mm) |
@@ -49,8 +52,16 @@ actually reads.
 
 ## 2. Stackup
 
-Six layers, built as a foil lamination: two cores bonded by three prepregs, with `F.Cu` and `B.Cu`
-as outer foil. It is symmetric about the middle prepreg, which is what keeps the panel flat.
+Eight layers, built as a foil lamination: three cores and four prepregs, with `F.Cu` and `B.Cu` as
+outer foil. It is symmetric about the middle core, which is what keeps the panel flat.
+
+**Revision, 2026-09-27 — the board went from six layers to eight, and the feed plane changed
+layers with it.** The six-layer stackup this section used to describe, and the split-`In3.Cu`
+arrangement spec §3.2 argued for, were both superseded on this branch: the split was implemented
+and then reversed (a per-net island computed as a bounding box swallows foreign pads once that
+net's own pads span the board), so the plane that survives is a **solid, unbroken `/VBAT` pour on
+`In4.Cu`** — not split, and not on `In3.Cu`. Read verbatim from `mccan.kicad_pcb`'s own `(stackup
+...)` block:
 
 ```
     F.Mask     0.010
@@ -58,17 +69,26 @@ as outer foil. It is symmetric about the middle prepreg, which is what keeps the
       prepreg  0.100
     In1.Cu     0.035    GND  — solid, unbroken
       core     0.200
-    In2.Cu     0.035    signal
-      prepreg  0.761
-    In3.Cu     0.035    VBAT — the 7 A feed plane
+    In2.Cu     0.035    signal — CAN stripline (§11), plane-referenced both sides
+      prepreg  0.2454
+    In3.Cu     0.035    GND  — solid, unbroken
       core     0.200
-    In4.Cu     0.035    signal
+    In4.Cu     0.035    /VBAT — solid, unbroken, the 7 A feed plane
+      prepreg  0.2454
+    In5.Cu     0.035    signal
+      core     0.200
+    In6.Cu     0.035    GND  — solid, unbroken
       prepreg  0.100
     B.Cu       0.035    signal + GND pour + a +24V pour under D4
     B.Mask     0.010
                 -----
-                1.571 mm copper + dielectric, pressed to 1.6 mm finished
+                1.571 mm copper + dielectric (8 × 0.035 mm copper + dielectrics
+                0.100/0.200/0.2454/0.200/0.2454/0.200/0.100 mm), pressed to 1.6 mm finished
 ```
+
+Every signal layer sits next to a plane on at least one side: `F.Cu` by `In1.Cu` (`GND`); `In2.Cu`
+by `In1.Cu` and `In3.Cu`, both `GND` — a true stripline; `In5.Cu` by `In4.Cu` (`/VBAT`) above and
+`In6.Cu` (`GND`) below; `B.Cu` by `In6.Cu` (`GND`).
 
 FR4 constants in the KiCad stackup are εr 4.5, loss tangent 0.02. **These are nominal.** The
 sub-thicknesses are nominal too — the fab is free to adjust them to hit 1.6 mm, because nothing on
@@ -76,22 +96,36 @@ this board depends on a specific dielectric height (§11). The one thing that is
 is the *order* of the layers and the 0.1 mm prepreg either side: `F.Cu` and `B.Cu` must each sit
 one thin prepreg from their reference plane.
 
-### Why 1 oz on all six
+### Why 1 oz on all eight
 
 The earlier four-layer revision specified 1 oz outer / 2 oz inner, and the 2 oz was bought for the
-`VBAT` plane. Going to six layers made the 2 oz impossible and then showed it had never been
-needed:
+`VBAT` plane. Going to six layers (and then eight) made the 2 oz impossible and then showed it had
+never been needed:
 
-- **Impossible**, because `In2.Cu` and `In4.Cu` now carry *tracks*. PCBWay etch inner layers to
-  4/4 mil at 1 oz but 6/8 mil at 2 oz, and 8 mil is 0.203 mm — **above** the 0.20 mm clearance
-  every net class on this board declares. Inner copper weight is a single selector for all inner
-  layers short of a custom stackup, so the signal layers decide it for the plane as well.
-- **Not needed**, because `scripts/check_plane_width.py` measures what the `In3.Cu` pour actually
+- **Impossible**, because `In2.Cu` and `In5.Cu` carry *tracks* — the two signal entries of
+  `gen_pcb.SIGNAL_LAYERS` among the six inner layers (`In4.Cu` is the solid `/VBAT` plane, not a
+  track layer). PCBWay etch inner layers to 4/4 mil at 1 oz but 6/8 mil at 2 oz, and 8 mil is
+  0.203 mm — **above** the 0.20 mm clearance every net class on this board declares. Inner copper
+  weight is a single selector for all inner layers short of a custom stackup, so the signal layers
+  decide it for the plane layers too — the argument gets *stronger* on this board: two inner
+  signal layers out of six inner layers taking one selector, rather than two out of four.
+- **Not needed**, because `scripts/check_plane_width.py` measures what the `In4.Cu` pour actually
   delivers rather than trusting the arithmetic: it rasterises the zone, punches every via and
-  through-hole antipad out of it, cuts it in both directions and grades the worst cut. The worst
-  cut carries **71 mm** of effective width against the **11.44 mm** IPC-2221 asks for 7.0 A at a
-  10 K rise, internal, 1 oz. That is 6.1×. Having a whole layer is what made the feed work, not the
-  copper weight.
+  through-hole antipad out of it, cuts it in both directions and grades the worst cut. Re-run this
+  session against the board as committed:
+
+  ```
+  /VBAT on In4.Cu, 1445 hole(s) punched through it
+    narrowest vertical cut:   104.90 mm at x = 97.3
+    narrowest horizontal cut: 136.70 mm at y = 144.1
+  ```
+
+  The worst cut carries **104.90 mm** of effective width against the **11.44 mm** IPC-2221 asks
+  for 7.0 A at a 10 K rise, internal, 1 oz — a **9.2×** margin. (Earlier figures recorded on this
+  branch for this same measurement — 71 mm/6.1× on the retired six-layer `In3.Cu`, 106.50 mm/9.3×
+  before the router, 105.30 mm/9.2× and 104.90 mm/9.2× at two routing checkpoints since — are all
+  superseded by this one; the router has moved the cut since every one of them.) Having a whole
+  layer is what made the feed work, not the copper weight.
 
 1 oz outer is also what holds U10's 0.15 mm land pattern (§6): the finer the etch, the less
 sideways copper growth there is to close a gap that small.
