@@ -191,20 +191,28 @@ of the board is looser.
 | Copper to board edge | 0.50 mm |
 | Solder-mask to copper clearance | 0.00 mm |
 
-Net classes (`scripts/layout_pcb.py`, `NETCLASSES`) — track / clearance / via / drill, all mm:
+Net classes (`mccan.kicad_pro`'s `net_settings`, written by `scripts/gen_netclasses.py` from
+`layout_pcb.NETCLASSES`) — track / clearance / via / drill, all mm, read from the project file this
+session:
 
 | Class | Track | Clearance | Via | Drill | Nets |
 |---|---|---|---|---|---|
-| `FEED` | 3.50 | 0.30 | 0.80 | 0.40 | the 7.0 A input chain |
-| `POWER` | 2.00 | 0.30 | 0.80 | 0.40 | `VLOGIC_IN`, `+24V`, `+5V` |
-| `CAN` | 0.30 | 0.20 | 0.60 | 0.30 | `CANH`, `CANL` |
-| Default | 0.25 | 0.20 | 0.60 | 0.30 | everything else |
+| `FEED` | 3.50 | 0.30 | 0.80 | 0.40 | `/VBAT` and the rest of the 7.0 A input chain (7 nets, incl. `/power_input/GND_IN`) |
+| `POWER` | 2.00 | 0.30 | 0.80 | 0.40 | `/VLOGIC_IN`, `/+24V`, `/+5V` |
+| `CAN` | 0.30 | 0.20 | 0.60 | 0.30 | `/CANH`, `/CANL` and U6's two internal CAN nets |
+
+**There is no `Default` netclass** — every net not matched above sits on the board's own DRC
+floors (the table just above: 0.20 mm track and clearance, 0.60/0.30 via/drill from KiCad's
+built-in class, which just repeats those same floors). The row this table used to carry for
+"Default" quoted 0.25 mm track width; the project file gives 0.20 mm, matching the floor, so that
+row was simply wrong and is removed rather than corrected in place.
 
 **`FEED` at 3.50 mm is a 20 K-rise width (8.01 A at 1 oz), not a 10 K one, and that is deliberate.**
 It is a *floor* for the short hops between the input parts, which sit in one tight island by J1.
 Anything running further than a few millimetres on `F.Cu` must be **poured to ≥ 4.5 mm**, and the
-through-path itself belongs on the `In3.Cu` polygon. A net-class minimum cannot express "and pour
-it", which is why the board note says so in words.
+through-path itself belongs on the `In4.Cu` polygon (the `/VBAT` plane — §2; **not** `In3.Cu`,
+which is solid `GND` on this board). A net-class minimum cannot express "and pour it", which is why
+the board note says so in words.
 
 ---
 
@@ -263,15 +271,23 @@ into this document.**
 | `U1` | VSON/QFN | **0.200 mm** | exposed thermal pad to neighbouring signal pad |
 | `U2` | VSON/QFN | **0.200 mm** | exposed thermal pad to neighbouring signal pad |
 | `U10` | LTC4380, MSOP-10 | **0.150 mm** | pad to pad, lead pitch 0.5 mm |
-| `U10` | — | **0.175 mm** | **track to pad** — U10 pads 3/5 (`U10_GATE`, `VBAT_PROT`) to a 0.30 mm `SNS` track |
+| `U10` | — | **0.175 mm** (unverified this session) | **track to pad** — U10 pads 3/5 (`U10_GATE`, `VBAT_PROT`) to a 0.30 mm `SNS` track |
 
-That last row is the tightest feature on the board and is not covered by the `.kicad_dru`
-exception at all in spirit — `memberOfFootprint()` names the pad, so KiCad does accept the track as
-well, but the *fab* was never told. **The board is no easier to build than its tightest entry:
-0.15 mm etch and 0.175 mm track-to-pad registration inside U10's land pattern.**
+The first three rows are pad-to-pad gaps fixed by the manufacturer's land pattern — confirmed this
+session against `mccan.kicad_dru`, which is generated from a scan of the board and carries exactly
+these three (`U1`, `U2`, `U10`, each at the value above) — and they do not move when the board is
+re-routed.
 
-The next three gaps are 0.183 mm (U10 pad 1 to a `VCC10` track), 0.190 mm (U1 pad 5 to a
-`Net-(U1-BST)` track) and 0.200 mm. Nothing else on the board is under 0.20 mm.
+**The track-to-pad row is a different kind of number: it depends on where a specific routed track
+sits relative to the pad, which Task 10's router run can and does change.** `mccan.kicad_dru`'s
+`memberOfFootprint()` condition does cover the track as well as the pad, so DRC is silenced here
+correctly — but the exact clearance figure was not re-measured against the routing this board now
+carries, and this document should not state one it did not check. **0.175 mm (and the two below)
+are carried forward from before Task 10's routing and are unverified against the current board;**
+treat them as "still this tight or tighter" rather than as exact. The next two gaps, on the same
+basis, are ~0.183 mm (U10 pad 1 to a `VCC10` track) and ~0.190 mm (U1 pad 5 to a `Net-(U1-BST)`
+track). Nothing else on the board is stated to be under 0.20 mm, and that claim is equally
+unverified against the current routing.
 
 The assembler has the matching problem: they need a stencil and reflow profile that will not bridge
 an exposed thermal pad to the pin 0.15–0.20 mm away. §10.
