@@ -17,12 +17,21 @@ So this stops being an assumption and becomes a measurement.
 
 What it measures
 ----------------
-A plane is not a rectangle; it is a rectangle with several hundred holes in it.  Every via that
-passes through punches an antipad, and so does every through-hole pad on another net.  This
-rasterises the plane at the routing grid, subtracts those holes dilated by the clearance, and
-then takes every straight cut across the board -- every column and every row -- and sums the
-copper the cut actually crosses.  Runs narrower than the zone's own min_thickness are not
-counted, because copper that thin does not survive the fill.
+A plane is not a rectangle; it is a rectangle with several hundred holes in it, and sometimes a
+large bite out of one corner.  Every via that passes through punches an antipad, and so does
+every through-hole pad on another net; every copper-pour keep-out covering the layer removes a
+whole polygon.  This rasterises the plane at the routing grid, subtracts those holes dilated by
+the clearance and those keep-outs exactly, and then takes every straight cut across the board
+-- every column and every row -- and sums the copper the cut actually crosses.  Runs narrower
+than the zone's own min_thickness are not counted, because copper that thin does not survive
+the fill.
+
+The keep-outs are not optional detail.  On the worked-example board U5's antenna keep-out is a
+21.19 x 48.00 mm rectangle nested INSIDE the U5 footprint block and applied to every copper
+layer including In4.Cu.  G.find_all is one level deep, so the first version of this check never
+saw it and reported the worst /VBAT cut as 104.90 mm at x = 97.3 when the truth was 72.80 mm at
+x = 218.0 -- a fiction 44 % high, printed with no warning, in the one script the split-plane
+decision rests on.  See pockets() and deep_zones().
 
 The minimum over all cuts is the answer.  It is a deliberately pessimistic one: it assumes the
 current has to cross the single worst line on the board, when in reality it flows from the
@@ -77,37 +86,82 @@ def netmap(doc):
     return out
 
 
+def zone_layers(z):
+    """Every layer a zone covers.
+
+    `(layer "In4.Cu")` for a single-layer pour, `(layers "F.Cu" "B.Cu" ...)` for a keep-out
+    that applies to a set.  Reading only the FIRST entry -- which is what this file used to do
+    -- makes a 32-layer keep-out look like an F.Cu one, which is exactly how U5's antenna
+    keep-out went unnoticed on In4.Cu.
+    """
+    lay = G.find(z, "layer") or G.find(z, "layers")
+    return [G.unq(x) for x in lay[1:]] if lay else []
+
+
+def deep_zones(node):
+    """Every `(zone ...)` block anywhere in the document, at any nesting depth.
+
+    G.find_all is one level deep by design (gen_pcb.py:123), so `find_all(doc, "zone")`
+    returns the seven top-level pours and nothing else.  This board has an eighth: the stock
+    ESP32-WROOM-32E footprint's antenna keep-out lives INSIDE the U5 footprint block, and its
+    layer list includes In4.Cu.  This exists only to count them, so `pockets()` below can
+    assert it looked everywhere -- see its guard.
+    """
+    out = []
+    for c in node:
+        if isinstance(c, list) and c:
+            if c[0] == "zone":
+                out.append(c)
+            out.extend(deep_zones(c))
+    return out
+
+
 def plane(doc, names):
     """The zone pouring NET, as (layer, [(x, y), ...], min_thickness)."""
     for z in G.find_all(doc, "zone"):
         nn = G.find(z, "net_name")
         if not nn or G.unq(nn[1]) != NET:
             continue
-        lay = G.find(z, "layer") or G.find(z, "layers")
-        name = lay[1] if lay else "?"
+        lays = zone_layers(z)
+        name = lays[0] if lays else "?"
         poly = G.find(z, "polygon")
         pts = G.find(poly, "pts") if poly else None
         if not pts:
             continue
         xy = [(float(p[1]), float(p[2])) for p in G.find_all(pts, "xy")]
         mt = G.find(z, "min_thickness")
-        return G.unq(name), xy, float(mt[1]) if mt else 0.0
+        return name, xy, float(mt[1]) if mt else 0.0
     return None, None, None
 
 
-def rivals(doc, layer):
-    """Zones of another net sharing the plane's layer, as [(net_name, zone_name), ...].
+def is_pour_keepout(z):
+    """True if this zone forbids copper pour, i.e. it REMOVES plane copper."""
+    ko = G.find(z, "keepout")
+    if ko is None:
+        return False
+    cp = G.find(ko, "copperpour")
+    return bool(cp) and G.unq(cp[1]) == "not_allowed"
 
-    This raster measures the plane's OUTLINE polygon minus barrels.  It does not do polygon
-    arithmetic against other zones, so a second zone on the same layer -- which KiCad will
-    carve out of this one if it has the higher priority -- is copper this check still counts.
-    That blindness is the whole reason for this guard: a split power layer would read as a
-    solid one and the number printed below would be a fiction.  Refuse to measure instead.
+
+def rivals(doc, layer):
+    """Zones of another net that POUR on the plane's layer, as [(net_name, zone_name), ...].
+
+    This raster measures the plane's OUTLINE polygon minus barrels and minus keep-outs.  It
+    does not do polygon arithmetic between two POURS, so a second pour on the same layer --
+    which KiCad will carve out of this one if it has the higher priority -- is copper this
+    check would still count.  That blindness is the whole reason for this guard: a split power
+    layer would read as a solid one and the number printed below would be a fiction.  Refuse
+    to measure instead.
+
+    A copper-pour KEEP-OUT is not in this list, because it needs no priority arithmetic: it
+    removes copper unconditionally, so `pockets()` subtracts it exactly rather than refusing.
     """
     out = []
-    for z in G.find_all(doc, "zone"):
-        lay = G.find(z, "layer") or G.find(z, "layers")
-        if not lay or G.unq(lay[1]) != layer:
+    for z in G.find_all(doc, "zone") + [z for fp in G.find_all(doc, "footprint")
+                                        for z in G.find_all(fp, "zone")]:
+        if layer not in zone_layers(z):
+            continue
+        if is_pour_keepout(z):
             continue
         nn = G.find(z, "net_name")
         nm = G.unq(nn[1]) if nn else ""
@@ -116,6 +170,55 @@ def rivals(doc, layer):
         zn = G.find(z, "name")
         out.append((nm or "<none>", G.unq(zn[1]) if zn else "?"))
     return out
+
+
+def pockets(doc, layer):
+    """Copper-pour keep-out polygons covering `layer`, in BOARD coordinates.
+
+    Returned as [(owner, [(x, y), ...]), ...].  These are holes in the plane exactly as a via
+    barrel is, only rectangular and much larger, and unlike a rival pour they need no priority
+    reasoning: `copperpour not_allowed` deletes the copper outright.  Before this existed the
+    check rastered In4.Cu as if U5's 21.19 x 48.00 mm antenna keep-out were solid /VBAT, and
+    printed a worst cut 32 mm wider than the truth.
+
+    The walk is two-level -- top-level zones, then zones inside footprints -- which is where
+    KiCad actually puts them and mirrors how holes() already walks footprint pads.  The guard
+    at the end is what makes that safe: if deep_zones() finds a zone block this walk did not
+    reach, the caller refuses rather than measuring a plane it has not fully subtracted.
+
+    A zone's `(polygon (pts ...))` is in ABSOLUTE board coordinates even when the zone block is
+    nested inside a footprint -- unlike a pad's `(at ...)`, which is footprint-local and is why
+    holes() rotates and offsets.  Checked on this board: U5 sits at (207, 72, 270 deg) and its
+    nested keep-out polygon reads (213.56, 48) .. (234.75, 96) straight out of the file, which
+    is where the antenna actually is.  Applying the footprint transform to it put the rectangle
+    at x 111..159, y 285.56..306.75 -- off the board entirely -- which is how this was caught.
+    """
+    out = []
+
+    def take(z, owner):
+        if not is_pour_keepout(z) or layer not in zone_layers(z):
+            return
+        poly = G.find(z, "polygon")
+        pts = G.find(poly, "pts") if poly else None
+        if not pts:
+            return
+        xy = [(float(p[1]), float(p[2])) for p in G.find_all(pts, "xy")]
+        if len(xy) >= 3:
+            out.append((owner, xy))
+
+    seen = 0
+    for z in G.find_all(doc, "zone"):
+        seen += 1
+        take(z, "<board>")
+    for fp in G.find_all(doc, "footprint"):
+        ref = "?"
+        for pr in G.find_all(fp, "property"):
+            if len(pr) > 2 and G.unq(pr[1]) == "Reference":
+                ref = G.unq(pr[2])
+        for z in G.find_all(fp, "zone"):
+            seen += 1
+            take(z, ref)
+    return out, seen, len(deep_zones(doc))
 
 
 def holes(doc, names):
@@ -151,11 +254,8 @@ def holes(doc, names):
     return out
 
 
-def raster(pts, bores):
-    """The plane as a grid of 1s at GRID pitch, holes already punched."""
-    w = int(round((L.X1 - L.X0) / GRID)) + 1
-    h = int(round((L.Y1 - L.Y0) / GRID)) + 1
-    m = bytearray(w * h)
+def spans(pts, w, h):
+    """Scanline the polygon: yield (row, i0, i1) grid spans its interior covers."""
     n = len(pts)
     for j in range(h):
         y = L.Y0 + j * GRID
@@ -170,8 +270,29 @@ def raster(pts, bores):
         for k in range(0, len(xs) - 1, 2):
             i0 = max(0, int(math.ceil((xs[k] - L.X0) / GRID)))
             i1 = min(w - 1, int(math.floor((xs[k + 1] - L.X0) / GRID)))
+            if i1 >= i0:
+                yield row, i0, i1
+
+
+def raster(pts, bores, cutouts=()):
+    """The plane as a grid of 1s at GRID pitch, holes and keep-out pockets already punched.
+
+    `cutouts` are copper-pour keep-out polygons on this layer.  They are subtracted with the
+    same scanline the outline is filled with, and WITHOUT dilating by CLEAR: a keep-out
+    boundary is where the pour stops, it is not a barrel the pour is pulled back from.  That
+    makes this the exact figure rather than a pessimistic one; every other subtraction here
+    (the barrels, at radius + CLEAR) is already the pessimistic side.
+    """
+    w = int(round((L.X1 - L.X0) / GRID)) + 1
+    h = int(round((L.Y1 - L.Y0) / GRID)) + 1
+    m = bytearray(w * h)
+    for row, i0, i1 in spans(pts, w, h):
+        for i in range(i0, i1 + 1):
+            m[row + i] = 1
+    for poly in cutouts:
+        for row, i0, i1 in spans(poly, w, h):
             for i in range(i0, i1 + 1):
-                m[row + i] = 1
+                m[row + i] = 0
     for bx, by, br in bores:
         r = br + CLEAR
         i0 = max(0, int(math.floor((bx - r - L.X0) / GRID)))
@@ -232,8 +353,17 @@ def main():
         print("fiction.  Give the plane its layer, or teach this check to subtract zones.")
         return 2
 
+    pocks, walked, total = pockets(doc, layer)
+    if walked != total:
+        print("FAIL: %d zone block(s) in %s, but this check's walk reached only %d."
+              % (total, os.path.basename(BOARD), walked))
+        print("A zone is nested somewhere this check does not look, so it cannot prove it has")
+        print("subtracted every keep-out from %s.  Refusing to measure.  Extend pockets()."
+              % layer)
+        return 2
+
     bores = holes(doc, names)
-    m, w, h = raster(pts, bores)
+    m, w, h = raster(pts, bores, [p for _owner, p in pocks])
 
     cols = [(cut(m[i::w], h, GRID, mt), L.X0 + i * GRID) for i in range(w)]
     rows = [(cut(m[j * w:(j + 1) * w], w, GRID, mt), L.Y0 + j * GRID) for j in range(h)]
@@ -250,6 +380,12 @@ def main():
     worst = min(wx, wy)
 
     print("%s on %s, %d hole(s) punched through it" % (NET, layer, len(bores)))
+    for owner, poly in pocks:
+        xs = [p[0] for p in poly]
+        ys = [p[1] for p in poly]
+        print("  keep-out subtracted: %s, x %.2f..%.2f y %.2f..%.2f (%.2f x %.2f mm)"
+              % (owner, min(xs), max(xs), min(ys), max(ys),
+                 max(xs) - min(xs), max(ys) - min(ys)))
     print("  narrowest vertical cut:   %6.2f mm at x = %.1f" % (wx, xat))
     print("  narrowest horizontal cut: %6.2f mm at y = %.1f" % (wy, yat))
     print("  runs under min_thickness %g mm are not counted" % mt)
