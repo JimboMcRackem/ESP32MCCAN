@@ -1272,22 +1272,53 @@ wherever the bike has room instead of all seven crowding one wall.
 **Eight penetrations** (was nine: F1 moved onto the board as an eFuse, §4.1).
 
 ```
-        ┌──────────────── PANEL ─────────────────┐
-        │  (FL)   (FR)   (RL)   (RR)             │  4× M12 gland, 4-core 22 AWG
-        │                                        │
-        │  (DENALI)   (PWR)    (CAN)    (VENT)   │  Denali, PWR: M16   CAN: M12
-        └────────────────────────────────────────┘
+        ┌──────────────────────── PANEL (200 mm wall) ────────────────────────┐
+        │ (FL) (FR) (RL) (RR) (CAN)  (DENALI)  (PWR)          (VENT)         │
+        │ M12  M12  M12  M12  M12    M16       M16            no gland       │
+        └──────────────────────────────────────────────────────────────────┘
         opposite wall: free (see below -- the plate is no longer here)
 ```
+
+> **REVISED 2026-09-27 — the panel is now a single row on a 200 mm wall, and this is computed,
+> not asserted.** The 140 mm wall this section used to draw forced the seven glands into two
+> rows (see the two-row sketch this replaces, and the arithmetic below). At 200 mm they fit on
+> one line, with margin to spare:
+>
+> | Gland | Count | Assumed hex across-flats | Row total |
+> |---|---|---|---|
+> | M12 (FL, FR, RL, RR, CAN) | 5 | 18 mm (typical metric M12×1.5 cable-gland locknut) | 90 mm |
+> | M16 (Denali, PWR) | 2 | 22 mm (typical metric M16×1.5 cable-gland locknut) | 44 mm |
+> | Spanner clearance | 6 gaps between 7 glands | 4 mm assumed per gap | 24 mm |
+>
+> **90 + 44 + 24 = 158 mm** for the seven glands in a row, against a 200 mm wall — **42 mm of
+> margin**, comfortably more than the ≥ 15 mm per side a panel layout should keep clear of the
+> corners. The hex-across-flats figures are typical catalogue values for this class of metric
+> cable gland, not a chosen part number (§9.3 still leaves that open); if the eventual gland is
+> larger, the margin absorbs a few millimetres each before the row needs to move to two lines
+> again. The vent (the eighth penetration) needs no gland body and is not counted in this sum;
+> even allowing an M12-sized membrane fitting and one more gap for it (≈ 22 mm) the row is
+> 180 mm, still inside 200 mm.
 
 > **REVISED 2026-09-20 — the heat-spreader plate is the BASE, not the wall opposite the panel.**
 > This section used to put the plate on the opposite wall. It cannot go there: the gap pad
 > contacts **B.Cu** (assembly is single sided so the bottom is bare copper), and a gap pad only
 > works between two roughly parallel faces, so the plate must be **parallel to the board**. An
-> edge wall would also have to be ~100 mm deep to reach the required 140 cm², against a board
-> that needs ~30 mm of height. The plate is therefore the **base**, 140 x 100 mm, with the
-> **antenna corner notched out** so no metal enters U5's keep-out. See `hardware/docs/enclosure.md`
-> §1. The wall opposite the panel is now free, which relaxes rather than tightens this section.
+> edge wall would also have to be deep enough to reach the required plate area, against a board
+> that needs ~30 mm of height. The plate is therefore the **base**.
+>
+> **REVISED 2026-09-27 — outline and requirement figure corrected for the 8-layer re-layout.**
+> This block used to say "140 x 100 mm" and "the required 140 cm²". The board is now
+> **200 × 140 mm**, and the plate follows it: **279.92 cm²** un-notched, **276.8 cm²** after the
+> antenna-corner notch (`hardware/docs/enclosure.md` §1, both re-measured against
+> `mccan.kicad_pcb` this session). The "**140 cm²**" this block quoted as "required" was the old
+> board's own footprint, not a thermal requirement — `enclosure.md` §1's own thermal table
+> states the actual design requirement as **≥ 150 cm²** (its "Effective area — requirement" row);
+> the 140 cm² row in that same table is informational, showing what the bare board footprint
+> alone would deliver. This document is corrected to match `enclosure.md`'s figure: the
+> requirement is **≥ 150 cm²**, and at 276.8 cm² it is met with room to spare — see
+> `hardware/docs/enclosure.md` §1, where the notch coordinates and area are re-derived. The
+> antenna corner is still notched out so no metal enters U5's keep-out. The wall opposite the
+> panel is now free, which relaxes rather than tightens this section.
 
 
 | # | Penetration | Gland | Cable |
@@ -1343,8 +1374,30 @@ Two mitigations, both still required:
 
 **Plastic IP67 box with a FINNED aluminium heat-spreader plate sealed into one wall.**
 **(DECIDED 2026-09-12 — finned, not flat; see §9.4 for why a flat plate fails.)** An off-the-shelf
-polycarbonate enclosure (Hammond 1554/1555, Fibox, Bopla class) with one wall machined for a
-gasketed aluminium plate. **The CM choke L2, the PROFET U9, L1, the boost IC U3 and the boost
+polycarbonate enclosure with one wall machined for a gasketed aluminium plate.
+
+> **REVISED 2026-09-27 — the box now needs to clear 200 × 140 mm plus a service loop, and the
+> named families were checked against that, not re-guessed.** This board grew from
+> 140 × 100 mm to 200 × 140 mm (`docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md`).
+> Checked against public catalogue data (not a datasheet on file, so treat this as a sanity
+> check rather than a spec):
+>
+> - **Hammond 1554/1555** — the family runs from roughly 52 × 50 mm up to about
+>   299 × 240 × 120 mm, so it still reaches 200 × 140 mm plus a service loop at the large end of
+>   the range.
+> - **Fibox MNX** — runs from roughly 100 × 100 mm up to about 360 × 255 × 150 mm, also still
+>   reaching this size.
+> - **Bopla — check the series, not just the brand.** The commonly catalogued **Euromas** family
+>   tops out around 200 × 120 × 75 mm — wide enough but **not deep enough** for a 140 mm board
+>   dimension plus any service loop. "Bopla class" is not specific enough to know whether a
+>   family that actually reaches this size exists in their range; do not assume Euromas is the
+>   one meant.
+>
+> **The part number stays unchosen** — this is a sanity check that the size class is still
+> reachable, not a selection. Hammond and Fibox are worth a real catalogue lookup at this size;
+> Bopla needs a specific series identified before it is worth listing here at all.
+
+**The CM choke L2, the PROFET U9, L1, the boost IC U3 and the boost
 inductor L3** couple to the plate through a silicone gap pad — §9.4's current list, which no
 longer contains boost FETs (the LM51571-Q1 integrates its switch) or a P-FET (§4.2's pass pair
 dissipates 0.12 W and does not need the plate). Remaining walls stay RF-transparent so the onboard antenna works.
@@ -1469,9 +1522,39 @@ P-FET — under 1 W in either mode. Across 1000 mm² of 1.5 mm, 2 W/mK material 
 
 ## 10. PCB and EMC
 
-**Stackup:** 6 layers — signal / GND / signal / VBAT / signal / signal — with **1 oz (35 µm)
-copper on all six**. The solid ground plane is what makes the boost's switching node and the
-EMC behaviour tractable; every signal layer is next to a plane.
+**Stackup:** 8 layers — `F.Cu` signal / `In1.Cu` GND / `In2.Cu` signal / `In3.Cu` GND /
+`In4.Cu` `/VBAT` / `In5.Cu` signal / `In6.Cu` GND / `B.Cu` signal — with **1 oz (35 µm) copper
+on all eight**. Every signal layer is plane-referenced on at least one face (`In2.Cu` on both),
+which is what makes the boost's switching node and the EMC behaviour tractable. `In4.Cu` is a
+**solid, unbroken `/VBAT` pour** — the whole layer belongs to the feed, nothing else — and
+`CANH`/`CANL` are routed as a stripline on `In2.Cu`, between the `In1.Cu` and `In3.Cu` ground
+planes.
+
+> **REVISED 2026-09-27 — 6 layers became 8, and the feed plane moved with the extra room.**
+> The 200 × 140 mm re-layout (`docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md`)
+> added two more inner layers to relieve the routing congestion the 6-layer board hit
+> (§1 of that spec). The extra layers are both signal (`In2.Cu`, `In5.Cu`) and both ground
+> (`In1.Cu`, `In3.Cu`, `In6.Cu` — a third ground plane), so `In2.Cu`'s CAN pair gained a second
+> reference plane and became a true stripline rather than a single-sided run, and the feed
+> plane itself moved from `In3.Cu` to `In4.Cu`.
+>
+> **That spec's own §3.2 proposed splitting `In4.Cu` three ways** — `/VBAT`, `/+24V`, `/+5V`
+> and `/VLOGIC_IN` as per-net islands on the one layer, to save routing the smaller rails as
+> tracks. **It was implemented and then reversed on the board itself.** A per-net island
+> computed as a bounding box is not an island once that net's own pads span the board's width —
+> it encloses whichever foreign pads happen to fall inside the box, which on this layout meant
+> `/VBAT`'s own pads. The board that exists carries a **solid, unbroken `/VBAT` pour on the
+> whole of `In4.Cu`**; the other rails route as ordinary `POWER`-netclass tracks. This does not
+> change anything below about current-carrying capacity, because the feed was never sharing the
+> layer in the first place on the board that was built — see
+> `docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md` §3.2 for the split's own
+> history.
+>
+> 1 oz stays on all eight layers for the same reason it went to 1 oz at 6: `In2.Cu` and
+> `In5.Cu` carry tracks, PCBWay etch inner layers to 6/8 mil at 2 oz, and 8 mil (0.203 mm) is
+> above every net class's 0.20 mm clearance floor here. Adding layers did not change the
+> selector — it is still one weight for every inner layer — it only added more layers that
+> selector applies to.
 
 > **REVISED 2026-09-22. This section used to specify 4 layers and 2 oz inner copper.** Two
 > routing layers were not enough: the external router settled at about 100 of 139 signal nets
@@ -1499,17 +1582,20 @@ rather than a trace, with via stitching.
 
 | Path | Copper | Width for a 10 °C rise at 7.0 A | Note |
 |---|---|---|---|
-| **In3.Cu polygon — the actual feed** | **1 oz internal** | **11.44 mm** | measured at **71 mm** on its worst cut — a 6.1× margin |
+| **In4.Cu polygon — the actual feed** | **1 oz internal** | **11.44 mm** | measured at **104.90 mm** on its worst cut — a 9.2× margin |
 | F.Cu stubs between the input parts | 1 oz external | 4.42 mm (2.91 mm at 20 °C) | `FEED` netclass floor is **3.5 mm**, a 20 °C rise, for hops of a few mm only |
 
 > **The 11.44 mm is measured, not assumed, and that is new.** The width requirement was carried
 > as arithmetic for two years' worth of revisions without anyone checking what the pour
-> actually delivers. `hardware/scripts/check_plane_width.py` rasterises the VBAT zone, punches
-> all 1190 via and through-hole antipads out of it, and cuts it in both directions: the worst
-> cut carries **71 mm** of copper against the 11.44 mm required. **What carries the feed is
-> having a whole layer, not having thick copper** — which is why dropping to 1 oz costs the
-> current path nothing. The check is part of the build and fails the board if that stops
-> being true.
+> actually delivers. `hardware/scripts/check_plane_width.py` rasterises the `/VBAT` zone,
+> punches every via and through-hole antipad out of it, and cuts it in both directions: the
+> worst cut carries **104.90 mm** of copper against the 11.44 mm required — **re-run this
+> session** (`python scripts/check_plane_width.py`) against the 8-layer, 200 × 140 mm board,
+> which punches 1445 holes through the plane, up from the 1190 the 6-layer board's `In3.Cu`
+> carried. **What carries the feed is having a whole layer, not having thick copper** — which is
+> why dropping to 1 oz costs the current path nothing. The check is part of the build and fails
+> the board if that stops being true. (The 71 mm / 6.1× figure above described the retired
+> six-layer `In3.Cu`; it is superseded by this measurement, taken on `In4.Cu`.)
 
 > **This finally gives the "5–6 mm" figure a derivation, and settles a conflict the plan has
 > carried since Task 8 Step 1.** The plan recorded two widths for the same net — the constraints

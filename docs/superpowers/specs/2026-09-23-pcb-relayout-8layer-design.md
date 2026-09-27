@@ -55,13 +55,23 @@ constrained by a box — the box follows the board.
 | Footprints | 238 | 238 (unchanged) |
 | Input block fill (worst region) | 75.8 % | **≤ 45 %** |
 | Panel wall for 7 glands | 140 mm (needs 143) | **200 mm** |
-| Heat-spreader plate | ~137 cm² → 61 °C | **~272 cm²** |
+| Heat-spreader plate | ~137 cm² → 61 °C | **276.8 cm²** (measured, was estimated ~272 cm² — see revision note below) |
 
 **The plate stops being a design driver.** `enclosure.md` §1 requires ≥ 150 cm² and the old
 board delivered ~137 cm² after the antenna notch, which is why so much of the current
-placement bends around the plate edge. At ~272 cm² the requirement is met roughly twice
-over. The consequence is recorded in §4.3: the thermal group keeps its plate-edge placement
-but loses its veto over everything else.
+placement bends around the plate edge. At **276.8 cm²** the requirement (276.8 / 150 = 1.85×)
+is met almost twice over. The consequence is recorded in §4.3: the thermal group keeps its
+plate-edge placement but loses its veto over everything else.
+
+> **Revision, 2026-09-27 — the plate area is now measured, not estimated.** This table and the
+> paragraph above carried "~272 cm²", an estimate of the right quantity (the notched plate area
+> at the final outline) rather than an arithmetic error — an earlier draft of this correction
+> called it a slip and told a later reader to write 280, which is the *board* area, not the
+> *plate* area, and would have been wrong in a different way. The measured figure, re-derived
+> this session from `mccan.kicad_pcb`'s `Edge.Cuts` entities (200 × 140 mm, four 3 mm corner
+> arcs → 279.92 cm² board area) and U5's footprint `keepout` polygon (x 213.56–234.75,
+> y 48–96 → the 6.44 × 48 mm = 3.09 cm² portion of it that overlaps the board), is
+> **279.92 − 3.09 = 276.8 cm²**. See `hardware/docs/enclosure.md` §1 for the full derivation.
 
 The antenna keep-out is unchanged in size — 18.0 × 6.19 mm from the module's end face, per
 ESP32-WROOM-32E datasheet v1.8 Figure 12 — and U5 still points it off the board edge. The
@@ -79,7 +89,7 @@ plate is still the **base**, still notched at the antenna corner.
 | 2 | `In1.Cu` | **GND**, solid |
 | 3 | `In2.Cu` | signal — **the CAN pair lives here** |
 | 4 | `In3.Cu` | **GND**, solid |
-| 5 | `In4.Cu` | **POWER**, split: `VBAT` \| `+24V` \| `+5V` \| `VLOGIC_IN` |
+| 5 | `In4.Cu` | **`/VBAT`**, solid — see §3.2, revised 2026-09-27: a three-way split was tried and reversed |
 | 6 | `In5.Cu` | signal — bulk routing |
 | 7 | `In6.Cu` | **GND**, solid |
 | 8 | `B.Cu` | signal — short runs, plate side |
@@ -105,25 +115,57 @@ also removes the pair from the two layers where the feed pours and the switch no
 The pair stays matched-length with constant spacing. See §11 for the impedance question the
 move opens.
 
-### 3.2 Why the power layer is split, and the risk that creates
+### 3.2 The power layer was split, and then reversed — `In4.Cu` is a solid `/VBAT` plane
 
-`VLOGIC_IN`, `+24V` and `+5V` are today the `POWER` netclass at 2.0 mm, routed as tracks.
-A 2.0 mm track is awkward to route, and there is no reason for it when a layer is available:
-as zones on `In4.Cu` they cost no routing effort at all and carry more current than they
-need. The largest of these loads is the boost output at 0.5 A.
+**This section originally proposed splitting `In4.Cu` three ways, and that is not what the
+board carries. Revision, 2026-09-27.**
 
-**The risk is that `VBAT` no longer owns a whole layer.** `hardware/scripts/check_plane_width.py`
-measures the VBAT pour's worst cut at **71 mm** against the **11.44 mm** IPC-2221 requires
-for 7.0 A at a 10 °C rise on 1 oz internal copper — a 6.1× margin. Sharing `In4.Cu` three
-ways consumes some of that margin, and the margin is large but it is no longer free.
+The original argument: `VLOGIC_IN`, `+24V` and `+5V` were the `POWER` netclass at 2.0 mm,
+routed as tracks. A 2.0 mm track is awkward to route, and there seemed no reason for it when a
+layer was available — as per-net zones on `In4.Cu` they would cost no routing effort at all and
+carry more current than they need. The largest of these loads is the boost output at 0.5 A.
 
-**This is accepted because the gate already exists.** `check_plane_width.py` rasterises the
-zone, punches every via and through-hole antipad out of it, and cuts it in both directions.
-It is part of the build and it fails the board. If the split starves the feed, the build
-says so before anyone orders copper. No arithmetic argument is being relied on.
+**It could not work, and the reason is geometric, not electrical.** The split was implemented
+as per-net islands computed as bounding boxes. That is only an island while a net's own pads sit
+inside a region no other net's pads also occupy. On this board they do not: a net's pads span
+enough of the layer's width that its bounding box encloses pads belonging to a *different* net —
+concretely, `/VBAT`'s own pads fell inside the box computed for one of the smaller rails, which
+is a short somewhere KiCad's own zone fill does not distinguish from intentional copper. A
+bounding box is the wrong shape for "this net's territory" on any board where the net's pads are
+not clustered in one corner, and this board's `/VBAT` pads are not.
 
-Return paths under the split are sound: `In5.Cu` is the only signal layer adjacent to
-`In4.Cu`, and it has solid `In6.Cu` GND on its other face.
+**What the board carries instead: `In4.Cu` is a solid, unbroken `/VBAT` pour, and nothing else
+lives on it.** `VLOGIC_IN`, `+24V` and `+5V` route as ordinary `POWER`-netclass tracks on the
+signal layers, the way they did before this section was written. The whole layer belongs to the
+feed, which is simpler than the split it replaces, not just safer.
+
+**A consequence for the gate this section used to name.** `check_plane_width.py` rasterises a
+zone's outline and subtracts via and through-hole antipads from it — it has no way to see a
+*neighbouring* zone sharing the same layer, so a split plane is exactly the case it cannot grade
+without printing a number it cannot stand behind. On a solid, single-net plane this limitation
+does not matter: there is only one zone on the layer, and the checker measures it directly. The
+gate is no longer being asked to do the one thing it cannot do, which is a side effect of the
+split's removal rather than a fix to the checker.
+
+**The margin, measured on the board as it stands (not transcribed from an earlier commit):**
+
+```
+python scripts/check_plane_width.py
+/VBAT on In4.Cu, 1445 hole(s) punched through it
+  narrowest vertical cut:   104.90 mm at x = 97.3
+```
+
+104.90 mm against the 11.44 mm IPC-2221 requires for 7.0 A at a 10 °C rise on 1 oz internal
+copper is a **9.2×** margin. (For the record: 71 mm / 6.1× described the retired six-layer
+`In3.Cu`; 106.50 mm / 9.3× was measured on this layer before the router ran; 105.30 mm / 9.2×
+and a second 104.90 mm / 9.2× reading were taken at two routing checkpoints since. Every one of
+those is superseded by the figure above — the router moves the cut with every commit that
+touches the plane, so only a measurement taken against the board being fabricated means
+anything.)
+
+Return paths under the plane are sound, and this paragraph is unchanged by the split's reversal:
+`In5.Cu` is the only signal layer adjacent to `In4.Cu`, and it has solid `In6.Cu` GND on its
+other face.
 
 ### 3.3 Carried over unchanged
 
@@ -265,10 +307,11 @@ Every gate runs on every build. A failure is a build failure, not a warning.
 | `check_geometry.py` | copper below the board's own minimums; tracks on a plane layer; zero-length segments. Grades the router's output **before** the copper is admitted |
 | `check_vias.py` | via placement against a baseline, so the router's deliberate via-in-pad is not graded as gen_pcb's |
 | `check_grounds.py` | `GND_IN` and `GND` meet at **exactly two** places — L2 winding B, and R3. DRC cannot catch this, because a pour never shorts to a foreign net |
-| `check_plane_width.py` | the feed's effective poured width, antipads punched out, cut both ways. **Load-bearing now** — see §3.2 |
+| `check_plane_width.py` | the feed's effective poured width on `In4.Cu`, antipads punched out, cut both ways. No longer load-bearing in the sense §3.2 originally argued — the plane it measures is solid, not split, so there is no longer a scenario where the split starves the feed for this gate to catch. Still run on every build; see §3.2 (revised 2026-09-27) |
 | `check_courtyards.py` | courtyard overlap |
 | `check_density.py` | **new** — per-region courtyard fill against declared budgets (§4.2) |
 | silk assertion | **new** — any reference designator shrunk or demoted to F.Fab (§5) |
+| `check_zone_islands.py` | **added later on this branch, missing from this table until 2026-09-27** — catches a zone that filled as two disconnected islands: legal copper on the right net, invisible to DRC (a pour never shorts to a foreign net) and to every other gate in this table |
 
 ---
 
@@ -390,7 +433,7 @@ These predate this design and are unaffected by it, but should not be lost in th
 
 | Risk | Mitigation |
 |---|---|
-| The split power plane starves the `VBAT` feed | `check_plane_width.py` measures it and fails the build (§3.2). Current margin is 6.1× |
+| ~~The split power plane starves the `VBAT` feed~~ — **retired 2026-09-27, the split itself was retired.** `In4.Cu` is a solid, unbroken `/VBAT` plane (§3.2); there is no longer a second net on the layer that could starve it. `check_plane_width.py` still runs on every build and its current margin, measured this session, is **9.2×** (104.90 mm against 11.44 mm required) |
 | 8 layers at 280 cm² costs materially more than 6 at 140 cm² | Accepted deliberately. The board is a one-off, and two respins of a cramped board cost more |
 | A 200 × 140 mm enclosure is awkward to mount | Flagged as an open item (§11) before any enclosure is ordered |
 | Removing silk's fallbacks makes the build unbuildable if placement is tight | That is the intent. The failure is loud and early, and the area exists to satisfy it |
