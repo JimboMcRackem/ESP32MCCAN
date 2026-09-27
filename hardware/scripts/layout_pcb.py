@@ -373,8 +373,11 @@ NOTES = [
      "FEED path (7.0 A cont, 7.8 A transient): the In4.Cu polygon is a solid /VBAT plane,\n"
      "priority 0, nothing else on the layer -- +24V, +5V and VLOGIC_IN are routed like any\n"
      "other net (see route_external.HANDS_OFF), not carved out as zones. Measured at\n"
-     "106.50 mm on its worst cut against the 11.44 mm IPC-2221 asks (10 C rise, internal,\n"
-     "1 oz) -- see scripts/check_plane_width.py. On F.Cu the FEED class floor is\n"
+     # Two lines, exactly as before: NOTES lines are laid out at a fixed 2.1 mm pitch and the
+     # UUIDs are keyed by index, so adding a line slides every note below it down the board
+     # and reassigns UUIDs.  Keep the count.
+     "72.80 mm on its worst cut (x = 218.0, by the U5 keep-out) against the 11.44 mm IPC-2221\n"
+     "asks (10 C, internal, 1 oz) = 6.4x; see check_plane_width.py. On F.Cu the FEED floor is\n"
      "3.5 mm = a 20 C rise; POUR to >= 4.5 mm for 10 C on any real run. No TRACK carries it.\n"
      "HEAT LEAVES THROUGH THE BASE, NOT AN EDGE: the plate is the face UNDER the board and\n"
      "couples through B.Cu. Thermal group L2 (0.78 W), U9 (0.35 W), L1 (0.28 W), U3, L3 --\n"
@@ -383,7 +386,11 @@ NOTES = [
      "eFuse island near J1, and NOT via-coupled to the plate: U10, Q10, Q11, R100, C65.\n"
      "R100 needs its own copper and a Kelvin tap. C65 must sit AT U10 pin 5.\n"
      "Antenna edge is RIGHT: no copper, plating or parts on ANY layer in the U5 keep-out.\n"
-     "Wire-exit field is BOTTOM: J1 power at the far left, J2 CAN at the far right.\n"
+     # J8 carries /CANH and /CANL (x 67.4); J2 is the 6-pin PROGRAMMING header (x 155.17,
+     # /+3V3_ALW, DTR, RTS, UART_RX, UART_TX, GND).  Read off the board's own footprint nets.
+     # The note used to say "J2 CAN at the far right", which named the wrong connector as the
+     # one needing the CAN gland and the separation from the power connector.
+     "Wire-exit field is BOTTOM: J1 power far left, J8 CAN 3rd from left, J2 PROG far right.\n"
      "Boost switch-node loop area minimised. NO gate loops: U3 switches internally, so the\n"
      "only fast edge is SW -> D4 -> C61 -> PGND. Keep that loop tight; nothing else here is.\n"
      "GND_IN and GND are SEPARATE and meet at TWO places only: L2 winding B, and R3.\n"
@@ -394,7 +401,7 @@ NOTES = [
      "These MUST be plugged and capped (IPC-4761 type IV or VI) -- unplugged vias in a\n"
      "solderable paddle wick paste out of the joint and void the thermal path they exist for.\n"
      "Heat leaves through B.Cu: assembly is single sided and the bottom is bare on purpose.\n"
-     "Gap pad contacts the two dashed Cmts.User patches, ~1360 mm2 total. Do not tent the\n"
+     "Gap pad contacts the two dashed Cmts.User patches, {TIM_AREA} mm2 total. Do not tent the\n"
      "stitching vias inside them on B.Cu any more than the rest of the bottom side.\n"
      "U10 is MSOP-10 with NO exposed pad; its dissipation leaves through the lead frame.\n"
      "B.Cu under D4 is +24 V, not ground. The gap pad is the ONLY thing between it and the\n"
@@ -611,6 +618,29 @@ TIM_PADS = [
     ("TIM-A", 76.0, 23.0, 110.0, 82.0),
     ("TIM-B", 81.0, 104.0, 95.0, 116.0),
 ]
+
+# The gap-pad total, DERIVED.  This is 2006 + 168 = 2174 mm2 today.
+#
+# It used to be typed into NOTES as "~1360 mm2" -- 1190 + 168, the figure from before TIM-A's
+# bottom edge was re-derived from 58 to 82.  So the board's Cmts.User note contradicted the
+# board's OWN adjacent labels, which gen_pcb.tim_areas() has always computed from these same
+# rectangles and which printed 2006 and 168 correctly two millimetres away on the same layer.
+# A hardcoded total does not move when the rectangles it totals move; a derived one cannot
+# drift, which is why the number is no longer written down anywhere.
+#
+# NOTES is above this, with the rest of the board furniture, and TIM_PADS is here, with the
+# thermal reasoning that sizes it.  The total is the one figure that spans the two, so it is
+# substituted into NOTES here rather than duplicated up there.
+TIM_AREA = sum((x1 - x0) * (y1 - y0) for _tag, x0, y0, x1, y1 in TIM_PADS)
+
+_marks = sum(t.count("{TIM_AREA}") for t, _x, _y, _l, _s in NOTES)
+NOTES = [(t.replace("{TIM_AREA}", "%.0f" % TIM_AREA), x, y, lay, sz)
+         for t, x, y, lay, sz in NOTES]
+if _marks != 1 or any("{" in t or "}" in t for t, _x, _y, _l, _s in NOTES):
+    # Refuse rather than ship a literal "{TIM_AREA}" to a fabricator, or ship a NOTES block
+    # that quietly stopped carrying the placeholder at all and so stopped tracking TIM_PADS.
+    raise SystemExit("layout_pcb: NOTES must carry exactly one {TIM_AREA} placeholder and no "
+                     "other braces; found %d placeholder(s)." % _marks)
 
 
 # --------------------------------------------------------------------------- routes

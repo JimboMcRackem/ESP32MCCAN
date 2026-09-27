@@ -1036,14 +1036,29 @@ def U(tag):
     return q(str(_uuid.uuid5(NS, "board:" + tag)))
 
 
+# The three GND planes carry DISTINCT user-facing names, and that is not cosmetic.
+#
+# KiCad names a gerber after the layer's USER name when it has one, and this board stores
+# `(usegerberextensions no)` (see PCBPLOT below), which makes every plot file `.gbr`.  While
+# all three planes were called "GND" a `--board-plot-params` export wrote mccan-GND.gbr three
+# times: In1.Cu, In3.Cu and In6.Cu collapsed into one file and two ground planes vanished with
+# no error, no warning and a job file that still listed fifteen paths.  A board that passes
+# every gate becomes a four-layer order.  The extension-based names it happened to get away
+# with before (.g1 / .g3 / .g6) were an accident of the export invocation, not a property of
+# the board.
+#
+# Nothing in this repo keys off these strings: every script addresses layers by their canonical
+# name (In1.Cu, In3.Cu, In6.Cu) -- grep confirmed, and the zones below are named separately
+# (GND_IN1 / GND_IN3 / GND_IN6) and are unchanged.  In4.Cu keeps "PWR" because it is already
+# unique; renaming it would move a gerber filename for no fab-facing gain.
 LAYERS = """	(layers
 		(0 "F.Cu" signal)
-		(4 "In1.Cu" power "GND")
+		(4 "In1.Cu" power "GND_In1")
 		(6 "In2.Cu" signal)
-		(8 "In3.Cu" power "GND")
+		(8 "In3.Cu" power "GND_In3")
 		(10 "In4.Cu" power "PWR")
 		(12 "In5.Cu" signal)
-		(14 "In6.Cu" power "GND")
+		(14 "In6.Cu" power "GND_In6")
 		(2 "B.Cu" signal)
 		(9 "F.Adhes" user "F.Adhesive")
 		(11 "B.Adhes" user "B.Adhesive")
