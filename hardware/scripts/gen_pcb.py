@@ -687,6 +687,19 @@ def place(comps):
     for i, (cx0, cy0, cx1, cy1) in enumerate(L.CHANNELS):
         grid.mark(cx0, cy0, cx1, cy1)
 
+    # Accumulate rather than print-and-continue, for the reason routes() now accumulates:
+    # an "ERROR:" that still writes a board is not a gate.  Demonstrated, on a throwaway copy
+    # of PLACE with J5 moved onto J6 and J7 moved 1.25 mm off the left edge -- a synthetic
+    # injection, never a state this board shipped in: all three checks below printed their
+    # ERROR, main() ran on, the board was written and the process exited 0.  The three most
+    # consequential placement faults the generator knows how to find were advisory text.
+    # They now refuse, below.  The current board triggers none of the three -- established by
+    # arming this gate and regenerating: the board reproduces byte-for-byte and no ERROR
+    # appears in stdout.
+    overlaps = []
+    offboard = []
+    inchannel = []
+
     for ref, (x, y, rot) in L.PLACE.items():
         c = by_ref.get(ref)
         if c is None:
@@ -697,19 +710,35 @@ def place(comps):
         for other, ob in hand.items():
             if bx0 < ob[2] and ob[0] < bx1 and by0 < ob[3] and ob[1] < by1:
                 print("  ERROR: hand placements %s and %s overlap" % (ref, other))
+                overlaps.append((ref, other))
         if ref not in L.OFFBOARD_OK and (
                 bx0 < L.X0 or by0 < L.Y0 or bx1 > L.X1 or by1 > L.Y1):
             print("  ERROR: %s courtyard %.2f..%.2f x %.2f..%.2f leaves the board"
                   % (ref, bx0, bx1, by0, by1))
+            offboard.append(ref)
         for i, (cx0, cy0, cx1, cy1) in enumerate(L.CHANNELS):
             if bx0 < cx1 and cx0 < bx1 and by0 < cy1 and cy0 < by1:
                 print("  ERROR: hand placement %s sits in channel %d (%.1f..%.1f x %.1f..%.1f)"
                       % (ref, i, cx0, cx1, cy0, cy1))
+                inchannel.append((ref, i))
         hand[ref] = (bx0, by0, bx1, by1)
         pos[ref] = (x, y, rot)
         grid.mark(bx0 - halo, by0 - halo, bx1 + halo, by1 + halo)
         for kx0, ky0, kx1, ky1 in fp_keepouts(c["fp"], x, y, rot):
             grid.mark(kx0, ky0, kx1, ky1)
+
+    # Refuse here, not in main(), and before the auto-flow runs: the same placement of the
+    # raise that routes() uses.  main() accumulates the whole file in `out` and does not open
+    # BOARD for writing until its last two lines, so nothing has been written yet and the
+    # previous board survives intact.  There is no opt-out list because the current board
+    # prints none of these three; if one is ever deliberate it needs an explicit named
+    # exemption here (L.OFFBOARD_OK is the existing precedent), not a downgraded check.
+    if overlaps or offboard or inchannel:
+        raise SystemExit("gen_pcb: hand placements refused -- %d overlapping pair(s), "
+                         "%d courtyard(s) off the board, %d placement(s) in a channel.  "
+                         "%s not written."
+                         % (len(overlaps), len(offboard), len(inchannel),
+                            os.path.basename(BOARD)))
 
     leftovers = []
     for c in sorted(comps, key=lambda c: natkey(c["ref"])):

@@ -346,32 +346,53 @@ def main(argv):
         return rc
     archive()
 
+    # run() does subprocess.call and RETURNS rc -- it does not raise.  Until this block
+    # accumulated, all seven results below were discarded and this function returned 0
+    # unconditionally, so a router result that check_geometry graded as under the board's own
+    # floors, or that check_grounds found had bridged GND to GND_IN, or that check_plane_width
+    # found had pinched the 7 A plane below IPC-2221, was printed as a failure and then
+    # reported as an overall success.  regenerate() tests `if rc:` at four sites; these seven
+    # simply omitted it.  Collect, name, and fail.
+    failed = []
+
+    def gate(argv, title):
+        if run(argv, title):
+            failed.append(os.path.basename(argv[2]))
+
     # Geometry first, because it is the one that decides whether the rest is worth reading.
     # A board with copper under its own floors cannot be frozen however well it grades on
     # connectivity, and this is the check that catches the router quietly going below what it
-    # was told -- see the --escalation comment above, and scripts/check_geometry.py.
-    run([sys.executable, "-u", os.path.join(HERE, "check_geometry.py"), ROUTED],
-        "track and via geometry against the board's own floors (this repo)")
-    run([py, "-u", os.path.join(home, "py_router", "check_connected.py"), ROUTED],
-        "connectivity (KiCadRoutingTools)")
-    run([py, "-u", os.path.join(home, "py_router", "check_drc.py"), ROUTED],
-        "clearances (KiCadRoutingTools)")
-    run([py, "-u", os.path.join(home, "py_router", "check_weird.py"), ROUTED],
-        "copper hygiene, dangling stubs included (KiCadRoutingTools)")
+    # was told -- see the --escalation comment above, and scripts/check_geometry.py.  All
+    # seven still RUN even after one fails: the point of the chain is the whole report, and a
+    # human folding a result back in wants every gate's answer, not just the first bad one.
+    gate([sys.executable, "-u", os.path.join(HERE, "check_geometry.py"), ROUTED],
+         "track and via geometry against the board's own floors (this repo)")
+    gate([py, "-u", os.path.join(home, "py_router", "check_connected.py"), ROUTED],
+         "connectivity (KiCadRoutingTools)")
+    gate([py, "-u", os.path.join(home, "py_router", "check_drc.py"), ROUTED],
+         "clearances (KiCadRoutingTools)")
+    gate([py, "-u", os.path.join(home, "py_router", "check_weird.py"), ROUTED],
+         "copper hygiene, dangling stubs included (KiCadRoutingTools)")
     # With the input board as a baseline this grades gen_pcb's OWN vias and skips the
     # router's, which is the only way the thermal/stitching split means anything here -- and
     # it fails if the router handed back fewer than it was given.  See check_vias.py's BASE.
-    run([sys.executable, "-u", os.path.join(HERE, "check_vias.py"), ROUTED, UNROUTED],
-        "via placement, gen_pcb's own vias only (this repo)")
-    run([sys.executable, "-u", os.path.join(HERE, "check_grounds.py"), ROUTED],
-        "GND / GND_IN separation (this repo)")
+    gate([sys.executable, "-u", os.path.join(HERE, "check_vias.py"), ROUTED, UNROUTED],
+         "via placement, gen_pcb's own vias only (this repo)")
+    gate([sys.executable, "-u", os.path.join(HERE, "check_grounds.py"), ROUTED],
+         "GND / GND_IN separation (this repo)")
     # Last, because it is the only check whose answer the ROUTER can make worse: every via
     # it placed punches another antipad through the VBAT plane, so the plane is narrower
     # after a run than the input board it was measured on.
-    run([sys.executable, "-u", os.path.join(HERE, "check_plane_width.py"), ROUTED],
-        "VBAT plane cross-section against IPC-2221 (this repo)")
+    gate([sys.executable, "-u", os.path.join(HERE, "check_plane_width.py"), ROUTED],
+         "VBAT plane cross-section against IPC-2221 (this repo)")
 
     print("")
+    if failed:
+        print("FAIL: %d of 7 post-route gate(s) failed: %s"
+              % (len(failed), ", ".join(failed)))
+        print("%s exists, but it is NOT a candidate to fold back into mccan.kicad_pcb." % ROUTED)
+        return 1
+
     print("The routed board is %s." % ROUTED)
     print("It is NOT mccan.kicad_pcb, and it is not meant to be committed as one --")
     print("hardware/docs/routing-tool.md has how a good result gets folded back in.")
