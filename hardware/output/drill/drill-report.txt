@@ -1,0 +1,39 @@
+Drill report for mccan.kicad_pcb
+Created on 2026-09-27T01:07:30
+
+Copper Layer Stackup:
+    =============================================================
+    L1 :  F.Cu                      front
+    L2 :  GND                       in1
+    L3 :  In2.Cu                    in2
+    L4 :  GND                       in3
+    L5 :  PWR                       in4
+    L6 :  In5.Cu                    in5
+    L7 :  GND                       in6
+    L8 :  B.Cu                      back
+
+
+Drill file 'mccan-PTH.drl' contains
+    plated through holes:
+    =============================================================
+    T1  0.200mm  0.0079"  (65 holes))
+    T2  0.200mm  0.0079"  (12 holes))
+    T3  0.250mm  0.0098"  (65 holes))
+    T4  0.300mm  0.0118"  (968 holes))
+    T5  0.400mm  0.0157"  (303 holes))
+    T6  1.000mm  0.0394"  (6 holes))
+    T7  1.150mm  0.0453"  (18 holes))
+    T8  1.300mm  0.0512"  (4 holes))
+    T9  2.150mm  0.0846"  (6 holes))
+
+    Total plated holes count 1447
+
+
+Drill file 'mccan-NPTH.drl' contains
+    unplated through holes:
+    =============================================================
+    T1  2.600mm  0.1024"  (18 holes))
+    T2  3.200mm  0.1260"  (4 holes))
+    T3  3.500mm  0.1378"  (6 holes))
+
+    Total unplated holes count 28

@@ -218,11 +218,14 @@ the board note says so in words.
 
 ## 5. Drill schedule
 
-**Re-derived this session directly from `mccan.kicad_pcb`** (every `via` and every `thru_hole` /
-`np_thru_hole` pad, tallied by size) rather than from a generated Excellon file — this task did not
-generate a fabrication package (see §15), so the drill/hit report is not available as an input.
-That means this section is one step further from what the fab will receive than KiCad's own
-Excellon report would be; re-check it against the drill files before an order goes out.
+**Confirmed this session against `output/drill/drill-report.txt`**, KiCad's own Excellon hit
+report (`kicad-cli pcb export drill --format excellon --excellon-separate-th --generate-report`,
+Task 11 Step 7) — the authority this section is supposed to be re-derived from, generated for the
+first time in this task. Every count below matches the report exactly: **1447 plated holes, 28
+non-plated, 1475 total**, tallied by drill size in `mccan-PTH.drl` and `mccan-NPTH.drl`. (An
+earlier pass this session had tallied the same counts directly from `mccan.kicad_pcb`'s `via` and
+`thru_hole`/`np_thru_hole` entries before the drill files existed; the two methods agree exactly,
+which is worth recording since they are independent code paths over the same board.)
 
 **Plated (PTH + vias):**
 
@@ -529,30 +532,89 @@ exposed thermal pad to the pin 0.15-0.20 mm away.
 
 ## 15. The fabrication package
 
-**Not yet generated.** Generating gerbers/drill/CPL/BOM was in scope for the task that produced
-this document's other sections, but generating output files is not a documentation change, and
-this pass was scoped to documentation only — it did not run `kicad-cli` against the board. It also
-could not usefully be ordered from yet: §1 and §16 both flag **11 unconnected pads** still open,
-and a package generated before they close would be gerbers for a board that isn't finished. When it
-is generated, it should contain:
+> ## DO NOT SEND THIS PACKAGE TO A FABRICATOR
+>
+> This package was generated from a board that is not electrically complete, so that the export
+> step itself could be exercised and checked — not because the board is ready to order. **The
+> board has 11 unconnected pads, of which 9 are signal nets serving the lighting outputs this
+> board exists to drive** (`/outputs/MUXIN_FL_R`, `/outputs/MUXIN_RR_G`, `/outputs/PWM_FL_B`,
+> `/outputs/PWM_FR_B`, `/outputs/PWM_RL_G`, `/outputs/PWM_RR_B` — two open items on one net, a
+> U7/Q9/R51 chain — `/outputs/PWM_RR_R`, and U9's own pins `Net-(U9-IN0)`/`Net-(U9-IS)`); the
+> remaining one is a `GND` pad (U4 pin 4). Generated from board md5 `6c4f884ff624c5b9d3bc484f7bb2613e`,
+> commit `1b788e04e45d8d7814d92c011c13595499ecc8a4` (the last commit to touch `mccan.kicad_pcb`).
+> **This package will be regenerated once those 11 nets close** and DRC reports zero unconnected
+> items and zero violations at both severities. `output/gerbers/NOT-FOR-FABRICATION.txt` carries
+> this same warning inside the gerber directory itself, so it travels with the files if they are
+> copied out of this repo.
 
-| File | Source |
-|---|---|
-| Gerbers (X2, all copper + mask + silk + paste + `Edge.Cuts`) | `kicad-cli pcb export gerbers` |
-| Drill files (Excellon, plated and non-plated separated) | `kicad-cli pcb export drill` |
-| Gerber job file (`.gbrjob`) — carries the stackup | emitted with the Gerbers (`creategerberjobfile yes`) |
-| BOM (CSV) | `kicad-cli sch export bom`, reconciled against `part-selection.md` |
-| CPL / pick-and-place (CSV, top only) | `kicad-cli pcb export pos` |
-| Schematic PDF | `kicad-cli sch export pdf` |
-| Assembly drawings (PDF, `F.Fab` + this document) | `kicad-cli pcb export pdf` |
-| This file | `docs/fabrication.md` |
+**Generated 2026-09-27, Task 11 Step 7**, from the board at md5 `6c4f884ff624c5b9d3bc484f7bb2613e`
+(commit `1b788e04e`), with `kicad-cli 10.0.2`:
 
-Plot parameters are already set in the board (`pcbplotparams`): Gerber X2 with advanced attributes,
-job file on, output to `output/gerbers/`, DNP parts crossed out on the fab layer.
+| File | Source | Generated |
+|---|---|---|
+| Gerbers, 8 copper + mask + silk + paste + `Edge.Cuts` (X2, `--check-zones`) | `kicad-cli pcb export gerbers` | `output/gerbers/*.g*` — see note below on filenames |
+| Gerber job file (`.gbrjob`) — carries the stackup and disambiguates the layer names below | emitted with the Gerbers | `output/gerbers/mccan-job.gbrjob` |
+| `output/gerbers/NOT-FOR-FABRICATION.txt` | written by hand this session, not by `kicad-cli` | — |
+| Drill files (Excellon, plated/non-plated separated, hit report) | `kicad-cli pcb export drill` | `output/drill/mccan-PTH.drl`, `mccan-NPTH.drl`, `mccan-*-drl_map.pdf`, `drill-report.txt` (§5's authority) |
+| BOM (CSV) | `kicad-cli sch export bom` | `output/mccan-bom.csv` — **not yet reconciled against `part-selection.md` this session; see §16** |
+| CPL / pick-and-place (CSV, top and bottom) | `kicad-cli pcb export pos` | `output/mccan-cpl.csv` |
+| Schematic PDF | `kicad-cli sch export pdf` | `output/mccan-schematic.pdf` |
+| Assembly drawing (PDF, `F.Fab`/`B.Fab`/`F.Silkscreen`/`Edge.Cuts`, multipage, DNP crossed out) | `kicad-cli pcb export pdf` | `output/mccan-assembly.pdf` |
+| This file | `docs/fabrication.md` | — |
+
+**A real defect was found and worked around while generating the gerbers, and it is worth a
+fabricator's attention regardless of the 11 open nets.** The board's layer table gives three
+different physical layers (`In1.Cu`, `In3.Cu`, `In6.Cu`) the same user-facing name, `GND`, and a
+fourth (`In4.Cu`) the name `PWR`. Plotting with the exact invocation this section used to
+recommend — `kicad-cli pcb export gerbers --board-plot-params --check-zones` — uses the board's
+own stored plot setting `usegerberextensions no`, which names every copper gerber `mccan-<name>.gbr`
+with no per-layer disambiguation. **The three `GND` layers all write to the same filename in that
+mode, and each plot overwrites the last: the resulting directory silently contains only one
+ground layer's copper, duplicated by name onto two others.** Confirmed this session by running
+that exact command into a scratch directory and comparing: the `.gbrjob` file correctly claims
+three separate files for `In1.Cu`/`In3.Cu`/`In6.Cu` (L2, L4, L7), but only one `mccan-GND.gbr`
+exists on disk, holding `In6.Cu`'s copper. **That is not this package** — the actual export
+above used `kicad-cli pcb export gerbers --check-zones -l F.Cu,In1.Cu,In2.Cu,In3.Cu,In4.Cu,In5.Cu,In6.Cu,B.Cu,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,F.Mask,B.Mask,Edge.Cuts`
+(explicit layer list, `--board-plot-params` omitted), which falls back to `kicad-cli`'s default
+numbered Protel-style extensions and produces three genuinely distinct files —
+`mccan-GND.g1`/`.g3`/`.g6` — confirmed by MD5 (three different hashes) and by content (each
+declares its own `%TF.FileFunction,Copper,L2/L4/L7,Inr%`). **The files are still named ambiguously
+by basename** (`GND.g1`, `GND.g3`, `GND.g6`, `PWR.g4`); a fab or a human skimming the directory by
+filename alone cannot tell them apart, and must read `mccan-job.gbrjob`'s `FilesAttributes` list
+to map each file to its physical layer. This is a real gap in the board's own generated layer
+naming (`scripts/gen_pcb.py`, which sets each plane's user-facing name and the stored
+`pcbplotparams`) and is flagged in §16 as a script fix for someone with scope to touch
+`hardware/scripts/` — this task's hard constraints forbid editing it.
+
+**Confirming Ruling B — the four plane layers are not blank.** The board stores 36 zones and
+zero `filled_polygon` entries (`grep -c filled_polygon mccan.kicad_pcb` → 0), so KiCad fills them
+only on load/plot; plotting without `--check-zones` would have exported the `GND` and `/VBAT`
+planes as empty copper. `--check-zones` was used for every plot above, and the resulting files
+are non-trivially sized — an empty plane would be a few hundred bytes, not this:
+
+| Layer | Net | File | Size |
+|---|---|---|---|
+| `In1.Cu` | `GND` | `mccan-GND.g1` | **926,530 bytes** |
+| `In3.Cu` | `GND` | `mccan-GND.g3` | **926,530 bytes** |
+| `In4.Cu` | `/VBAT` | `mccan-PWR.g4` | **1,368,647 bytes** |
+| `In6.Cu` | `GND` | `mccan-GND.g6` | **926,530 bytes** |
+
+(`In1.Cu` and `In3.Cu` and `In6.Cu` landing on the identical byte count is coincidence, not a
+duplicate-content bug — confirmed above by MD5, all three differ.) The gerber set carries all
+**eight** copper layers (`F.Cu`, `In1.Cu`–`In6.Cu`, `B.Cu` — verified against `mccan-job.gbrjob`'s
+`FilesAttributes` list, L1 through L8), not six, which would have been the tell that the board
+never regenerated.
+
+`mccan.kicad_pcb` was confirmed unchanged by the plot (`--check-zones` refills zones in memory
+while plotting, but does not write the result back to the board file): md5
+`6c4f884ff624c5b9d3bc484f7bb2613e` before and after every export command in this section, and
+`git diff --stat mccan.kicad_pcb` empty throughout.
 
 The whole board is generated — `python scripts/gen_pcb.py` writes `mccan.kicad_pcb` from
 `scripts/layout_pcb.py`. Nothing is hand-edited, so the fab package must always be re-exported from
-a freshly generated board rather than from a working copy.
+a freshly generated board rather than from a working copy — and, per the warning above, re-exported
+using an explicit `--layers` list rather than `--board-plot-params` until the layer-naming defect
+is fixed at the source.
 
 ---
 
@@ -562,8 +624,26 @@ a freshly generated board rather than from a working copy.
   document): 9 signal nets (two of them U9's own pins) plus one `GND` pad. Verified this session
   via `kicad-cli pcb drc` at both severities — 9 `via_dangling` violations, 11 unconnected items,
   0 footprint errors. Do not release an order until this is 0.
-- **[BLOCKING]** No fabrication package exists yet (§15) — not generated by this documentation
-  pass, and not worth generating until the item above closes.
+- **[BLOCKING]** A fabrication package now exists (§15, generated 2026-09-27) but is explicitly
+  marked **NOT FOR FABRICATION** — it was generated to exercise and check the export step, not
+  because the board above is ready. Do not send it to a fab. It must be regenerated once the item
+  above closes.
+- **[TO FIX, in `hardware/scripts/`, out of this task's scope]** Plotting gerbers with
+  `--board-plot-params` (as this document used to recommend in §15) silently loses two of the
+  three `GND` plane layers, because `In1.Cu`, `In3.Cu` and `In6.Cu` all carry the board's
+  user-facing layer name `GND` and the board's stored `usegerberextensions no` setting gives
+  every copper gerber the same `.gbr` extension with no disambiguation — three plots to the same
+  filename, two of them overwritten. §15 documents the workaround (explicit `--layers`, letting
+  `kicad-cli` fall back to numbered Protel extensions) and confirms by MD5 that the resulting
+  files are genuinely distinct, but the files are still only distinguishable by reading
+  `mccan-job.gbrjob`, not by filename. The real fix is in `hardware/scripts/gen_pcb.py`, which
+  sets each plane's user-facing name and the stored `pcbplotparams` — give `In1.Cu`, `In3.Cu` and
+  `In6.Cu` distinct names (or turn `usegerberextensions` on) so `--board-plot-params` alone
+  produces an unambiguous set. This task's hard constraints forbid editing
+  `hardware/scripts/`, so it is reported here rather than fixed.
+- **[OPEN]** The BOM (`output/mccan-bom.csv`, generated 2026-09-27) has not been reconciled
+  against `part-selection.md` this session — §15's table flags this. Do it before ordering
+  parts from it.
 - **[TO CONFIRM]** Hole-to-hole minimum at 0.50–0.80 mm via diameters (§13).
 - **[TO CONFIRM]** Antenna-to-plate vertical clearance. In-plane clearance is 17.3 mm (per
   `enclosure.md`, not re-verified against the new board geometry this session); the plate sits

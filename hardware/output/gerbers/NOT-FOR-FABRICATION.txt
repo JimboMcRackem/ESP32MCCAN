@@ -1,0 +1,29 @@
+DO NOT SEND THIS PACKAGE TO A FABRICATOR.
+
+This gerber/drill/CPL/BOM package was generated from a board that is not
+electrically complete. It is here so the export step itself could be
+exercised and checked (zone fill, layer count, plane content, drill
+schedule) -- not because the board is ready to order.
+
+Board file:    hardware/mccan.kicad_pcb
+MD5:           6c4f884ff624c5b9d3bc484f7bb2613e
+Generated from commit: 1b788e04e45d8d7814d92c011c13595499ecc8a4
+                (the last commit to touch mccan.kicad_pcb as of this
+                package's generation; documentation-only commits made
+                after it do not change the board content above)
+Generated:     2026-09-27, hardware/docs/fabrication.md Task 11 Step 7
+
+Why it is not orderable: KiCad DRC reports 9 violations (all
+via_dangling) and 11 unconnected items at both --severity-error and
+--severity-all. Of the 11 unconnected items, 9 are SIGNAL nets serving
+the lighting outputs this board exists to drive (/outputs/MUXIN_FL_R,
+/outputs/MUXIN_RR_G, /outputs/PWM_FL_B, /outputs/PWM_FR_B,
+/outputs/PWM_RL_G, /outputs/PWM_RR_B -- two open items on this one net,
+a U7/Q9/R51 chain -- /outputs/PWM_RR_R, and U9's own pins
+Net-(U9-IN0) and Net-(U9-IS)); the remaining one is a GND pad (U4 pin 4).
+0 footprint errors.
+
+This package will be regenerated once those nets close and DRC reports
+zero unconnected items and zero violations at both severities. See
+hardware/docs/fabrication.md Status (top of file) and section 16 for the
+current state of the block.
