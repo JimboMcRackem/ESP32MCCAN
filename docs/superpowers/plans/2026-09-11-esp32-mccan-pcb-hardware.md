@@ -1082,6 +1082,14 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 
 ## Task 8: PCB layout — stackup, placement and power
 
+> **SUPERSEDED 2026-09-27.** The board this task laid out — 6 layers, 140 × 100 mm, `In3.Cu`
+> as the `VBAT` feed — was re-laid out at 200 × 140 mm on 8 layers by
+> `docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md` and its own plan,
+> `docs/superpowers/plans/2026-09-23-pcb-relayout-8layer.md` (Tasks 1–9 there). This task's
+> steps are left as written below: they record how the 6-layer board got built, and that board
+> was a real, working intermediate stage on the way to the current one. Do not treat anything
+> below as a description of the board on `plan3-pcb-hardware` today.
+
 **Files:**
 - Modify: `hardware/mccan.kicad_pcb`
 
@@ -1224,6 +1232,13 @@ git commit -m "hw(pcb): 4-layer stackup, thermal group on plate edge, antenna ke
 ---
 
 ## Task 9: PCB layout — routing and fabrication outputs
+
+> **SUPERSEDED 2026-09-27.** Same reason as Task 8, above: the 6-layer, 140 × 100 mm board this
+> task routed and packaged was superseded by the 8-layer, 200 × 140 mm re-layout in
+> `docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md` and its plan. That plan's
+> Task 11 is what generates the fabrication package for the current board. This task's steps
+> are left as written below as a record of how the 6-layer board was routed and packaged; they
+> do not describe `plan3-pcb-hardware`'s current board.
 
 **Files:**
 - Modify: `hardware/mccan.kicad_pcb`
