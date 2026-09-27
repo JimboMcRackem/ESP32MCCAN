@@ -68,11 +68,13 @@ That is the whole thing. It:
    `check_grounds.py` and `check_plane_width.py`.
 
    `check_plane_width.py` runs last because it is the only one whose answer the router can
-   make *worse*: every via it places punches another antipad through the VBAT plane, so the
+   make *worse*: every via it places punches another antipad through the `/VBAT` plane, so the
    pour is narrower after a run than on the input board. It rasterises the pour, subtracts
    every via and through-hole antipad, cuts it in both directions and grades the worst cut
-   against IPC-2221 for 7.0 A at a 10 K rise. At 1 oz that asks 11.44 mm; the board delivers
-   71 mm.
+   against IPC-2221 for 7.0 A at a 10 K rise. At 1 oz that asks 11.44 mm; **re-run this session
+   against the current 8-layer, 200 × 140 mm board** (`python scripts/check_plane_width.py`),
+   the plane — `In4.Cu` now, not the six-layer board's `In3.Cu` — delivers **104.90 mm**, a
+   9.2× margin. (71 mm / 6.1× described the retired six-layer `In3.Cu` and is superseded.)
 
 Useful variants:
 
@@ -109,10 +111,16 @@ Further guards, all of them from the tool itself and none of them a default:
   CSP part on it** — the detector is really a fine-pitch-grid detector and it fires on TSSOP and
   QFN, reading U7 (a 0.65 mm TSSOP-28) as a "14 rows x 2 columns" ball grid and then running an
   under-pad shrink rescue at 0.0762 mm track / 0.25 mm via / 0.09 mm clearance;
-- `--layers` comes from `gen_pcb.SIGNAL_LAYERS` — **F.Cu, In2.Cu, In4.Cu, B.Cu** since the board
-  went to six layers on 2026-09-22. **In1.Cu is the ground plane and In3.Cu is the VBAT plane;
-  neither is a routing layer**, because a track on either is a slot cut through a reference.
-  `route.py` would otherwise use every copper layer the board declares. It is also not quite
+- `--layers` comes from `gen_pcb.SIGNAL_LAYERS` — **F.Cu, In2.Cu, In5.Cu, B.Cu**, four signal
+  layers since the 2026-09-23 re-layout to 8 layers, 200 × 140 mm (was F.Cu, In2.Cu, In4.Cu,
+  B.Cu on the six-layer board this section originally described). **`In1.Cu`, `In3.Cu`,
+  `In4.Cu` and `In6.Cu` are the plane layers — three GND and the `/VBAT` feed on `In4.Cu` —
+  and none of them is a routing layer**, because a track on any of them is a slot cut through a
+  reference. (On the six-layer board `In3.Cu` was the `VBAT` plane; the feed moved to `In4.Cu`
+  in the re-layout, and `In3.Cu` is solid `GND` on this board — confirmed this session directly
+  against `check_geometry.py`'s own layer report, which lists routing on `F.Cu`, `In2.Cu`,
+  `In5.Cu` and `B.Cu` and nothing on any plane layer.) `route.py` would otherwise use every
+  copper layer the board declares. It is also not quite
   watertight — back when the list was `F.Cu B.Cu`, the first run put four sub-micron stubs on
   the two plane layers despite logging both as forbidden — which is one of the things
   `check_geometry.py` exists to catch. Note that `AR_LAYERS` is still `F.Cu B.Cu`: that is
@@ -370,8 +378,11 @@ congested run.** The lever that worked was the stackup.
   `route_planes.py` before `route.py` so plane-drop vias land on real fill. This board already
   pours its planes and places all 142 ground drops in `gen_pcb.py`, so that step is skipped
   deliberately — running it would place a second set of taps.
-- **Nothing this repo writes carries a zone fill.** `gen_pcb.py` emits all six zones as outlines
-  with no `filled_polygon`, and KiCad fills them on load. Two consequences, both of them regular
+- **Nothing this repo writes carries a zone fill.** `gen_pcb.py` emits all **seven** zones — GND
+  on `In1.Cu`, `In3.Cu`, `In6.Cu` and `B.Cu`, `/VBAT` on `In4.Cu`, `/+24V` on `B.Cu`, and
+  `/power_input/GND_IN` on `F.Cu` (corrected 2026-09-27; this bullet used to say "six", the
+  six-layer board's count) — as outlines with no `filled_polygon`, and KiCad fills them on load.
+  Two consequences, both of them regular
   false alarms rather than findings:
 
   `check_drc.py` needs **`--refill-zones`** when run standalone, for the same reason KiCad's own DRC
@@ -397,3 +408,39 @@ congested run.** The lever that worked was the stackup.
   rules. None of those bite this board.
 - Both `Orthoroute` (`C:\Program Files\Orthoroute`) and this are installed. Orthoroute was not
   chosen: KiCadRoutingTools has the first-class CLI, which is what a generated-board workflow needs.
+
+### 5.4 The eight-layer run — 2026-09-23 re-layout, Task 10, board as committed
+
+**The figure to beat, from §5.2: 72 unconnected items, of which 51 are nets the router never
+sees** (`AR_SKIP_CLASSES` covers `FEED`, `POWER` and `CAN`) — so **21** was the router-attributable
+number on the six-layer board.
+
+The 200 × 140 mm, 8-layer board — four signal layers again (`F.Cu`, `In2.Cu`, `In5.Cu`, `B.Cu`;
+`In4.Cu` is no longer a signal layer, see §3 above) — carries, measured this session directly
+against `mccan.kicad_pcb`:
+
+| | §5.2 (six-layer, `64182bf`) | This board (eight-layer) |
+|---|---|---|
+| Frozen copper | 3629 seg / 568 via | **5119 seg / 1401 via** (`check_geometry.py`, this session) |
+| KiCad DRC violations | 22 | **9**, all `via_dangling` (`kicad-cli pcb drc --severity-error --schematic-parity --refill-zones`, this session) |
+| Unconnected items | 72 | **11** |
+| Footprint errors | not recorded | **0** |
+
+**The 11 remaining are almost all signal nets, not the FEED/POWER/CAN class the six-layer run
+was still hand-routing at this stage.** Read from the DRC JSON directly this session, the 11
+items decompose into 10 distinct nets: `/outputs/MUXIN_FL_R`, `/outputs/MUXIN_RR_G`,
+`/outputs/PWM_FL_B`, `/outputs/PWM_FR_B`, `/outputs/PWM_RL_G`, `/outputs/PWM_RR_B` (two items —
+a three-pad chain, U7 pin 18 / Q9 pin 5 / R51 pin 1, each pair counted separately),
+`/outputs/PWM_RR_R`, `Net-(U9-IN0)`, `Net-(U9-IS)` (the last two are U9's own pins) — all nine
+of them ordinary signal nets in the router's own remit — plus one `GND` pad, U4 pin 4, which is
+not: `GND` is a poured plane, not a routed net, so this one dangling via is a board-assembly
+question (why a via meant to drop onto the plane did not land connected) rather than a routing
+failure of the kind this section otherwise tracks.
+
+**This is not yet a closed board** (`fabrication.md` §16, §1) — 11 unconnected items is still
+11 more than zero — but the shape of the remainder changed completely: on the six-layer board
+most of the gap was nets not yet attempted (51 of 72); on this one, all but one of the 11 are
+nets the router *did* attempt and nearly closed. The extra layer pair did what §1 of the
+2026-09-23 re-layout spec predicted — it did not just make the congested region easier to route,
+it converted the failure mode from "no room to try" to "a handful of individual nets to finish
+by hand", which is a much smaller remaining task.
