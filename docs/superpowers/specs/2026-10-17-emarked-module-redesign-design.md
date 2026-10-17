@@ -35,26 +35,99 @@ left to dim.
 
 ### 2.1 Signal modules (indicators / DRL / brake)
 
-Bought E-marked 12 V modules, one per corner, taking a **steady switched 12 V** per function —
-**no PWM**.
+**The part is now chosen** (eBay 395373564004, seller Autopeak-uk2021, "4x 16LED Motorcycle
+Flowing Turn Signal Indicators Brake Warning Lights E-marked", £14.79 for four). One pack
+covers all four corners: **2 white-DRL + yellow front units and 2 red-brake + yellow rear
+units**. Each takes a **steady switched 12 V** per function -- **no PWM**.
 
 | | Wires | Functions |
 |---|---|---|
-| Front (×2) | 3 | ground, DRL, indicator |
-| Rear (×2) | 4 | ground, DRL, indicator, brake |
+| Front (×2) | 3 | ground, DRL (white), indicator (yellow) |
+| Rear (×2) | 4 | ground, tail (dim red), brake (bright red), indicator (yellow) |
 
-- **1.5 W per module**, total, in whichever mode it is in → **125 mA at 12 V**.
-- **DRL and brake are OR'd internally** on the rear module: they drive one light engine, and
-  the module handles the combination. No sequencing is required of the firmware — but see
-  §5.3, where this fact *forces* a behavioral rule.
-- **Emitters are 2835 SMD** — discrete mid-power packages, not COB and not a single high-power
-  emitter. At 1.5 W a module is therefore on the order of six to eight of them. A 12 V module
-  built this way is normally resistor-ballasted or linearly regulated rather than fed by a
-  switching converter, which matters for §4.4: **the signal channels should present no
-  meaningful turn-on inrush and no bulk capacitance.** Confirm against the datasheet once the
-  part is chosen; it is an expectation here, not a measurement.
-- Specific part not yet selected. The figures above are the design basis; §9 carries the
-  verification items.
+**Manufacturer figures, as listed:**
+
+| | |
+|---|---|
+| Power | ~1.5 W per module |
+| Emitters | 16 × 2835 SMD |
+| Luminous flux | 300 lm |
+| Colour temperature | 3000 K |
+| Voltage | DC 12 V |
+| IP rating | IP67 |
+| Lead length | 260 mm |
+| Thread | M10 (3/8") |
+| Body | ABS + PC, smoked lens, ~102 mm |
+| Lifespan | 50,000 h |
+
+**Per-function current, which is the number the output stage is sized on:**
+
+| Function | Current @ 12 V | Power |
+|---|---|---|
+| Day light (DRL, white) | 0.08 A | 0.96 W |
+| Turn signal (yellow) | 0.08 A | 0.96 W |
+| Brake lamp (bright red) | 0.08 A | 0.96 W |
+| Tail lamp (dim red) | 0.02 A | 0.24 W |
+
+These are **well below** the 125 mA per channel the earlier draft assumed from the headline
+1.5 W. A front module draws 0.08 A (one function at a time, since R48 drops the DRL while
+indicating); a rear module draws up to 0.10 A, because the engine asserts tail *and* brake
+together when braking. All four corners at worst case is **0.36 A**, not the 0.50 A §4.1
+previously carried. The 1.5 W headline is the module's ceiling, not a per-function figure.
+
+**This settles the stop-lamp question that was open item §9.2.4.** Tail is 0.02 A and brake is
+0.08 A -- a 4× current ratio into the same red engine -- so the stop lamp genuinely is brighter
+than the running light, which type approval requires and which the "1.5 W in any mode" reading
+had implied was impossible. The rear module's two red inputs are separate wires at two
+brightness levels, not one engine fed by an OR gate at a single level. §5.3's forced rule is
+unchanged and still correct: on an indicating rear corner, **both** red inputs are de-asserted.
+
+#### 2.1.1 The indicator is sequential, and that has consequences
+
+**The yellow turn signal is a "flowing" / sequential animation**, not a steady lamp: the listing
+states the yellow is "a sequential dynamic light" running in "flow mode", while the white and red
+functions are constant. The module contains its own sequencer. Three consequences, in order of
+how much they matter:
+
+1. **`blinkPeriodMs` now has a hard lower bound: the sweep duration.** The firmware applies
+   12 V for one on-phase and the module animates for as long as that takes. If the on-phase is
+   shorter than the sweep, the animation never completes and the indicator shows a partial
+   chase instead of a signal. The default 340 ms may or may not be enough -- **it must be
+   measured** on the bench against the module's actual sweep (§9.2.3). This is a configuration
+   bound, not a code change: §5.4's `flashSource` and `blinkPeriodMs` already express it.
+2. **It makes §5.4's `flashSource` switch more valuable, not less.** In `follow` mode each edge
+   of the bike's own flasher triggers one sweep, so the sweep must fit inside *the bike's*
+   on-time, which we do not control. In `generate` mode we set the period and can guarantee the
+   sweep completes. If the Experia's flasher turns out to be too fast for the sweep, `generate`
+   is the escape hatch -- which is an argument for having built the switch rather than
+   hard-coding `auto`.
+3. **The no-inrush expectation does not hold for the yellow channel.** A sequencer implies a
+   controller IC and very likely a reservoir capacitor, so the earlier reasoning -- that a
+   resistor-ballasted 2835 module presents no meaningful turn-on inrush and no bulk capacitance
+   -- survives for the white and red channels but is **unsafe for the four indicator channels**.
+   At 0.08 A steady the absolute inrush is small, so this is unlikely to trouble the switch
+   choice; it does undermine lamp-out detection on those channels (§6.4), because a sequencer's
+   draw varies through the sweep and there is no steady current to compare a threshold against.
+
+**The E-marking claim needs checking before this part is trusted for the purpose it was bought
+for.** "E-marked" appears in the listing *title*, but nowhere in the specification, and the item
+specifics give Brand: Unbranded and MPN: Does not apply, with no approval number anywhere.
+E-marking was the entire reason for this redesign (§1), so a title claim with no number behind
+it is not evidence. Two specific doubts, both for §9.2:
+
+- **Sequential indicators are not automatically approvable.** Whether a flowing indicator holds
+  a valid ECE approval for motorcycle use is a question for the physical part's markings, not
+  for a listing title.
+- **3000 K is warm white, and a DRL must be white.** 3000 K sits at the edge of, or outside,
+  the white boundary ECE R48/R87 define for a daytime running lamp. If the listed figure is
+  accurate rather than a copy-paste, the DRL function may not be compliant even if the
+  indicator is.
+
+**Resolution for both: read the markings on the physical part** -- an E-mark is moulded or
+printed on the lens, as a circled E with a country number and an approval number -- and keep the
+packaging. If no marking is present, the part fails the requirement that motivated this redesign
+and a different module is needed. Nothing in the board or firmware design depends on the answer:
+every channel is a switched 12 V output either way.
 
 ### 2.2 Auxiliary pods — Oxford 4K (EL385)
 
@@ -165,7 +238,7 @@ defect.
  both pods back through one 5 A fuse (see 4.1.1). Returns common at a single
  star point; pod L's 2.17 A return does not share copper with the logic pour.
  A third aux circuit exists but is occupied -- if freed, pod L moves to it and
- feed A drops to 0.60 A, so keep AUX_L's switch on its own domain island.
+ feed A drops to 0.46 A, so keep AUX_L's switch on its own domain island.
 ```
 
 ### 4.1 Load budget
@@ -173,9 +246,9 @@ defect.
 | Load | Current @ 12 V |
 |---|---|
 | 2 × Oxford pod @ 26 W | 4.33 A |
-| 4 × signal module @ 1.5 W | 0.50 A |
+| 4 × signal module (measured per-function, §2.1) | 0.36 A |
 | Logic | ~0.10 A |
-| **Total** | **~5.0 A** |
+| **Total** | **~4.8 A** |
 
 That total is for reference only: **it does not run on one feed.** The previous design's feed
 was 7.0 A continuous / 7.8 A transient behind a 10 A panel fuse, and an earlier draft of this
@@ -198,12 +271,12 @@ Everything on one 5 A circuit, computed rather than estimated:
 
 | Condition | Pods | Signals | Logic | Total | % of 5 A | % of derated 3.75 A |
 |---|---|---|---|---|---|---|
-| 14.4 V charging | 3.61 A | ~0.70 A | 0.08 A | 4.39 A | 88% | 117% |
-| 12.0 V nominal | 4.33 A | 0.50 A | 0.10 A | **4.93 A** | **99%** | **132%** |
-| 10.5 V sag | 4.95 A | ~0.38 A | 0.11 A | **5.44 A** | **109%** | **145%** |
+| 14.4 V charging | 3.61 A | ~0.50 A | 0.08 A | 4.19 A | 84% | 112% |
+| 12.0 V nominal | 4.33 A | 0.36 A | 0.10 A | **4.79 A** | **96%** | **128%** |
+| 10.5 V sag | 4.95 A | ~0.27 A | 0.11 A | **5.33 A** | **107%** | **142%** |
 
 A 5 A fuse wants no more than 75% of its rating continuously, so 3.75 A is the usable figure.
-This load is 117-145% of that and crosses the absolute rating outright below about 11.5 V. It
+This load is 112-142% of that and crosses the absolute rating outright below about 11.3 V. It
 is not a tight fit to be managed; it does not fit. Note too that the **pods alone** need = 10.4 V
 to stay under 5 A and = 13.9 V to stay inside the derated 3.75 A, so a circuit dedicated to both
 pods together is no answer either.
@@ -217,13 +290,16 @@ single feed. One pod has to ride with the logic and signals.
 
 | Condition | Feed A: pod L + signals + logic | Feed B: pod R |
 |---|---|---|
-| 14.4 V charging | 2.59 A (52% / 69% derated) | 1.81 A (36%) |
-| 12.0 V nominal | 2.77 A (55% / 74% derated) | 2.17 A (43%) |
-| 10.5 V sag | 2.97 A (59% / 79% derated) | 2.48 A (50%) |
+| 14.4 V charging | 2.39 A (48% / 64% derated) | 1.81 A (36%) |
+| 12.0 V nominal | 2.63 A (53% / 70% derated) | 2.17 A (43%) |
+| 10.5 V sag | 2.86 A (57% / 76% derated) | 2.48 A (50%) |
 
-Worst case is 59% of a circuit's absolute rating and 79% of the 3.75 A it carries continuously.
-Fuse each feed below its circuit, at 125% of its own worst-case load: **4 A on feed A** (74% of
-the fuse at 2.97 A) and **3 A on feed B**. A board fuse rated above the upstream 5 A could never
+(Signal figures are the measured per-function currents of §2.1, not the 125 mA/channel the
+earlier draft inferred from the 1.5 W headline. The pods still dominate feed A entirely.)
+
+Worst case is 57% of a circuit's absolute rating and 76% of the 3.75 A it carries continuously.
+Fuse each feed below its circuit, at 125% of its own worst-case load: **4 A on feed A** (72% of
+the fuse at 2.86 A) and **3 A on feed B**. A board fuse rated above the upstream 5 A could never
 act, since the bike's fuse would always trip first.
 
 **The fault-containment problem, and where it is solved.** Sharing feed A between a pod and the
@@ -257,7 +333,7 @@ That residue is unavoidable with two circuits and is accepted.
   would modulate the MCU's reference. This is the ground-separation constraint the board's gates
   already check by counting connections between pours, and on feed A it is now load-bearing
   rather than routine.
-- **Pod inrush is worse on feed A than feed B**, because feed A's surge lands on top of 0.60 A of
+- **Pod inrush is worse on feed A than feed B**, because feed A's surge lands on top of 0.46 A of
   signals and logic rather than on an idle circuit. §4.4's inrush measurement should be taken
   against feed A's budget, not a bare pod's.
 - **The firmware is unaffected.** `AUX_L` and `AUX_R` are already separate channels carrying the
@@ -265,7 +341,7 @@ That residue is unavoidable with two circuits and is accepted.
   switches sit in different power domains, which is a layout constraint rather than a logical one.
 
 **If the occupied third circuit is ever freed**, moving pod L onto it restores the fault
-containment described above and drops feed A to 0.60 A. The board should therefore keep pod L's
+containment described above and drops feed A to 0.46 A. The board should therefore keep pod L's
 switch on its own power domain island, so that change is a harness change and not a respin.
 
 **Still to confirm on the bike** (§9.3.4a): whether the two available circuits are independently
@@ -531,12 +607,34 @@ These are verification items, not assumptions. Each names who or what can settle
 
 ### 9.2 Blocking the signal modules
 
-3. **Module part selection**, then confirm against its datasheet: inrush, whether the indicator
-   wire expects a steady switched 12 V or a flasher-relay feed, and the per-mode power split.
-4. **Is the rear brake brighter than the rear running light?** The stated 1.5 W-in-any-mode
-   figure implies they are equal, which cannot be right for a stop lamp and would not meet
-   type approval. Most likely 1.5 W is the maximum across modes. Changes nothing in this design
-   — we switch a wire either way — but decides whether the install is legal.
+3. ~~**Module part selection**~~ **DONE — part chosen and specified in §2.1** (eBay
+   395373564004). The per-mode split came with it: 0.08 A for DRL, turn and brake, 0.02 A for
+   tail. Three items it opened in exchange, all needing the physical part:
+
+   3a. **Measure the indicator's sweep duration.** The yellow function is a sequential
+   animation (§2.1.1), so `blinkPeriodMs` cannot be set below it without showing a partial
+   chase instead of a signal. Bench-measure the sweep, then set the default accordingly — 340 ms
+   is an assumption until this is done. Also check whether the sweep restarts cleanly on each
+   re-energise or needs a minimum off-time between flashes.
+
+   3b. **Verify the E-mark on the part itself.** "E-marked" is a listing-title claim with no
+   approval number behind it, against Brand: Unbranded and MPN: Does not apply. Read the moulded
+   or printed mark on the lens (circled E, country number, approval number) and keep the
+   packaging. **If there is no mark, the part fails the requirement that motivated this entire
+   redesign** (§1) and a different module is needed. Note separately that a *sequential*
+   indicator's approval status is not something a title can establish.
+
+   3c. **Check the DRL's colour against the listed 3000 K.** A daytime running lamp must be
+   white; 3000 K is warm white and sits at or outside the ECE R48/R87 boundary. If the figure is
+   accurate rather than copy-paste, the DRL function may be non-compliant even where the
+   indicator is fine. A photo against a known-white reference settles it well enough to decide
+   whether to pursue it.
+
+4. ~~**Is the rear brake brighter than the rear running light?**~~ **ANSWERED: yes, 4×.** The
+   part's own figures give tail 0.02 A and brake 0.08 A into the same red engine, so the stop
+   lamp is genuinely brighter than the running light. The "1.5 W in any mode" reading that made
+   this look impossible was wrong: 1.5 W is the module's ceiling, not a per-function figure. The
+   rear's two red inputs are separate wires at two levels. §5.3's forced rule is unchanged.
 
 ### 9.3 Bike questions
 
