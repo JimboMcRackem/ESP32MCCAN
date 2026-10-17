@@ -113,9 +113,8 @@ loom from 14 wires to 12.
 | Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (250 mA worst case) |
 | Pods | 4 (+1) | per-pod +12 V and return; pod returns do **not** share with signal returns |
 | CAN | 2 | CAN H / CAN L |
-| Feed S | 2 | aux circuit +, − — logic rail and the ten signal channels |
-| Feed L | 2 | aux circuit +, − — `AUX_L` only |
-| Feed R | 2 | aux circuit +, − — `AUX_R` only (§4.1.1) |
+| Feed A | 2 | aux circuit +, − — logic, the ten signal channels, `AUX_L` |
+| Feed B | 2 | aux circuit +, − — `AUX_R` only (§4.1.1) |
 
 ### 3.2 Boot safety
 
@@ -129,47 +128,44 @@ defect.
 ## 4. Hardware architecture
 
 ```
- FEED S --[2 A]--+   aux circuit 1 of 3 (bike: 5 A each).  0.60 A @ 12 V
+ FEED A --[4 A]--+   1 of 2 available aux circuits (5 A each). 2.77 A @ 12 V
                  v
        +------------------+
        | INPUT PROTECTION |  LTC4380 + 2 FETs, rev. polarity + overcurrent
        | 24 V TVS, pi+CM  |
        +--------+---------+
-             VBAT_S (~12 V)
-        +--------+---------+
-        v                  v
- +-------------+   +-----------------+
- | 3V3 BUCK    |   | QUAD SMART HS   |  the ten signal channels
- | +3V3_ALW    |   | x2 -> 10 ch     |  125 mA each
- | + 5V gated  |   | 125 mA each     |
- +------+------+   +-----------------+
-        |                  ^ 10 GPIO
-        |     +------------+------------+
-        +---->| ESP32-WROOM-32E-N8      |
+             VBAT_A (~12 V)
+        +--------+---------+------------------+
+        v                  v                  v
+ +-------------+   +-----------------+  +------------------+
+ | 3V3 BUCK    |   | QUAD SMART HS   |  | SMART HS  AUX_L  |
+ | +3V3_ALW    |   | x2 -> 10 ch     |  | limit 3.0-3.5 A: |
+ | + 5V gated  |   | 125 mA each     |  | MUST trip before |
+ +------+------+   +-----------------+  | feed A's 4 A fuse|
+        |                  ^ 10 GPIO    +------------------+
+        |     +------------+------------+        ^ 1 GPIO
+        +---->| ESP32-WROOM-32E-N8      |--------+
               | 12 GPIO out, pulled dn  |
               | deep sleep <- EXT1 wake |
               +--+--------+----------+--+
-                 | TWAI   | 1 GPIO   | 1 GPIO
-        +--------+-----+  v          v
-        | TJA1042T/3   | +--------+ +--------+
-        | listen-only, | | SMART  | | SMART  |
-        | HW-enforced  | | HS     | | HS     |
-        +------+-------+ | AUX_L  | | AUX_R  |
-               |         +---+----+ +----+---+
-               v             ^ VBAT_L    ^ VBAT_R
-          CAN H / L          |           |
-                        +----+----+ +----+----+
-                        | rev pol | | rev pol |
-                        | 24V TVS | | 24V TVS |
-                        +----+----+ +----+----+
-                             ^           ^
-              FEED L --[3 A]-+           +-[3 A]-- FEED R
-                     2.17 A @ 12 V       2.17 A @ 12 V
+                 | TWAI              | 1 GPIO
+        +--------+-----+             v
+        | TJA1042T/3   |     +------------------+
+        | listen-only, |     | SMART HS  AUX_R  |
+        | HW-enforced  |     +--------+---------+
+        +------+-------+              ^ VBAT_B
+               |                 +----+----+
+               v                 | rev pol |
+          CAN H / L              | 24V TVS |
+                                 +----+----+
+                                      ^
+                       FEED B --[3 A]-+  2.17 A @ 12 V
 
- Three separate power domains. VBAT_S / VBAT_L / VBAT_R are NEVER diode-OR'd:
- joining any two puts their loads back through one 5 A fuse (see 4.1.1). The
- three returns common at a single star point; neither pod return shares copper
- with the logic ground pour.
+ Two power domains. VBAT_A and VBAT_B are NEVER diode-OR'd: joining them puts
+ both pods back through one 5 A fuse (see 4.1.1). Returns common at a single
+ star point; pod L's 2.17 A return does not share copper with the logic pour.
+ A third aux circuit exists but is occupied -- if freed, pod L moves to it and
+ feed A drops to 0.60 A, so keep AUX_L's switch on its own domain island.
 ```
 
 ### 4.1 Load budget
@@ -184,8 +180,8 @@ defect.
 That total is for reference only: **it does not run on one feed.** The previous design's feed
 was 7.0 A continuous / 7.8 A transient behind a 10 A panel fuse, and an earlier draft of this
 section carried a 7.5 A board fuse on the same reasoning. Both are withdrawn — the Experia
-supplies **three 5 A aux circuits**, and this load exceeds any one of them while fitting
-comfortably across three. §4.1.1 is the binding version of this budget.
+supplies 5 A aux circuits of which **two are available**, and this load exceeds any one of them
+while fitting across two. §4.1.1 is the binding version of this budget.
 
 **The Experia provides 5 A per aux circuit, and one circuit cannot carry this board.** The
 feed is a 5 A fuse, not a 60 W power limit -- it passes 5 A at any voltage, which is 60 W at
@@ -212,61 +208,71 @@ is not a tight fit to be managed; it does not fit. Note too that the **pods alon
 to stay under 5 A and = 13.9 V to stay inside the derated 3.75 A, so a circuit dedicated to both
 pods together is no answer either.
 
-### 4.1.1 Three feeds: one pod each, logic and signals on the third
+### 4.1.1 Two feeds: pod R alone, everything else together
 
-**The Experia provides three 5 A aux circuits.** That is one more than the minimum this load
-needs, and the third is worth taking rather than banking: it lets the controller and the signal
-lamps sit on a circuit that carries nothing high-powered.
+The Experia has three 5 A aux circuits but **one is already in use, so two are available.** Two
+is the minimum this load needs, and it only works in one arrangement: both pods together draw
+4.33 A at 12 V and 4.95 A at 10.5 V, so a circuit dedicated to the pair is no better than a
+single feed. One pod has to ride with the logic and signals.
 
-| Condition | Feed L: pod L | Feed R: pod R | Feed S: signals + logic |
-|---|---|---|---|
-| 14.4 V charging | 1.81 A (36%) | 1.81 A (36%) | 0.78 A (16%) |
-| 12.0 V nominal | 2.17 A (43%) | 2.17 A (43%) | 0.60 A (12%) |
-| 10.5 V sag | 2.48 A (50%) | 2.48 A (50%) | 0.49 A (10%) |
+| Condition | Feed A: pod L + signals + logic | Feed B: pod R |
+|---|---|---|
+| 14.4 V charging | 2.59 A (52% / 69% derated) | 1.81 A (36%) |
+| 12.0 V nominal | 2.77 A (55% / 74% derated) | 2.17 A (43%) |
+| 10.5 V sag | 2.97 A (59% / 79% derated) | 2.48 A (50%) |
 
-Worst case is 50% of a circuit's absolute rating and 66% of the 3.75 A it will carry
-continuously. The whole board is 4.93 A against a 15 A provision -- a third of what the bike
-offers.
+Worst case is 59% of a circuit's absolute rating and 79% of the 3.75 A it carries continuously.
+Fuse each feed below its circuit, at 125% of its own worst-case load: **4 A on feed A** (74% of
+the fuse at 2.97 A) and **3 A on feed B**. A board fuse rated above the upstream 5 A could never
+act, since the bike's fuse would always trip first.
 
-**The reason to prefer this over two feeds is a safety argument, not a margin one.** With the
-pods sharing a circuit with the logic rail, a pod fault that blows its fuse takes the controller
-and every signal lamp with it -- the rider loses indicators because an auxiliary light failed.
-Giving each pod its own circuit means a pod fault is contained to that pod: the controller keeps
-running, the indicators keep working, and the firmware can report the failure (§6.3). The feed
-carrying the safety-critical loads is also the lightly loaded one, at 10-16% of its fuse.
+**The fault-containment problem, and where it is solved.** Sharing feed A between a pod and the
+logic rail means a pod fault that blew feed A's fuse would take the controller and every signal
+lamp with it -- the rider would lose indicators because an auxiliary light failed. With only two
+circuits available this cannot be solved by splitting, so **it moves into part selection:**
+
+> **The `AUX_L` channel's smart high-side switch must current-limit and latch off below feed A's
+> 4 A fuse rating.** The pod draws 2.48 A at worst, so the switch's limit belongs between those
+> two figures -- roughly 3.0-3.5 A -- and its I2t must beat a 4 A blade fuse comfortably. A pod
+> short is then contained by the switch, which the firmware can report (§6.3), and the fuse never
+> sees it. This is a hard requirement on the part, not a preference.
+
+What remains uncontainable is a fault *upstream* of that switch -- a short on feed A's own copper,
+or the switch failing closed -- which the fuse must clear and which does take the logic rail down.
+That residue is unavoidable with two circuits and is accepted.
 
 **Consequences for the board:**
 
-- **Three feeds.** §3.1's harness grows from 2 pins to 6. Feed S takes the full §4.2 protection
+- **Two feeds.** §3.1's harness grows from 2 pins to 4. Feed A takes the full §4.2 protection
   chain -- LTC4380 + FETs, 24 V TVS, pi + common-mode filter, 3V3 buck, gated +5V -- because it
-  alone feeds the logic rail and the ten signal channels. Feeds L and R power one high-side
-  switch each and need reverse-polarity protection and a 24 V TVS, but no buck, no filter and no
-  LTC4380: the smart switch already provides the current limit and thermal protection on its own
-  channel.
-- **Never diode-OR the feeds.** Joining any two puts their loads back through one fuse and
-  undoes the split. In particular, do not "helpfully" OR feed L and R to keep both pods alive
-  through a single-circuit failure -- that reintroduces exactly the 4.3 A case §4.1 rejected.
-- **The returns common at one point, and the pod returns never share copper with the logic
-  reference.** All three circuits return to battery negative, so a single-point star ground at
-  the board is correct and necessary -- the switch channels need the same reference as the MCU
-  driving them. But each pod return carries 2.17 A, and routing that through the logic ground
-  pour would modulate the MCU's reference. This is the ground-separation constraint the board's
-  gates already check by counting the connections between pours; it now applies to three domains
-  rather than one.
-- **Each feed is fused below its circuit**, not above it: 3 A on feeds L and R, 2 A on feed S.
-  A board fuse rated above the upstream 5 A can never act, because the bike's fuse always trips
-  first -- which is why the withdrawn 7.5 A figure was useless. Sized below, a board-side fault
-  blows at the board and leaves the bike's circuit intact.
+  feeds the logic rail. Feed B powers the `AUX_R` switch alone and needs reverse-polarity
+  protection and a 24 V TVS, but no buck, no filter and no LTC4380: its switch already provides
+  the current limit and thermal protection on that channel.
+- **Never diode-OR the feeds.** Joining them puts both pods' current back through one fuse and
+  undoes the split entirely.
+- **The returns common at one star point, and pod L's return never shares copper with the logic
+  reference.** Both circuits return to battery negative, so a single-point star ground at the
+  board is correct and necessary -- the switch channels need the MCU's reference. But pod L's
+  2.17 A return sits in the same domain as the logic ground, so routing it through the logic pour
+  would modulate the MCU's reference. This is the ground-separation constraint the board's gates
+  already check by counting connections between pours, and on feed A it is now load-bearing
+  rather than routine.
+- **Pod inrush is worse on feed A than feed B**, because feed A's surge lands on top of 0.60 A of
+  signals and logic rather than on an idle circuit. §4.4's inrush measurement should be taken
+  against feed A's budget, not a bare pod's.
 - **The firmware is unaffected.** `AUX_L` and `AUX_R` are already separate channels carrying the
   same value (§3, §5.5), so the split needs no behavioural change -- only that the two channels'
-  high-side switches sit in different power domains, which is a layout constraint rather than a
-  logical one.
+  switches sit in different power domains, which is a layout constraint rather than a logical one.
 
-**Still to confirm on the bike** (§9.3.4a): whether the three circuits are independently fused
-or share a feed upstream of their individual 5 A fuses, and whether any of them is switched with
-the ignition rather than permanently live. The second question decides whether deep sleep and the
-quiescent budget matter at all: if feed S dies with the ignition, the board is simply off when
-the bike is off, and the §4.2 deep-sleep path becomes belt-and-braces rather than load-bearing.
+**If the occupied third circuit is ever freed**, moving pod L onto it restores the fault
+containment described above and drops feed A to 0.60 A. The board should therefore keep pod L's
+switch on its own power domain island, so that change is a harness change and not a respin.
+
+**Still to confirm on the bike** (§9.3.4a): whether the two available circuits are independently
+fused or share a feed upstream of their individual 5 A fuses, and whether either is switched with
+the ignition rather than permanently live. The second decides whether the quiescent budget matters
+at all: if feed A dies with the ignition, the board is simply off when the bike is off and §4.2's
+deep-sleep path stops being load-bearing.
 
 ### 4.2 Carried forward from plan3
 
@@ -534,10 +540,10 @@ These are verification items, not assumptions. Each names who or what can settle
 
 ### 9.3 Bike questions
 
-4a. ~~**How many aux circuits does the Experia provide?**~~ **ANSWERED: three, at 5 A each.**
-   §4.1.1 takes all three -- one pod per circuit, logic and signals on the third -- which is
-   one more than the load strictly needs and buys fault containment rather than margin. **Still
-   open:** whether the three are independently fused or share a feed upstream of their individual
+4a. ~~**How many aux circuits does the Experia provide?**~~ **ANSWERED: three at 5 A each, but
+   one is already in use — two are available.** §4.1.1 therefore puts pod R on its own feed and
+   everything else, pod L included, on the other; the fault containment a third circuit would
+   have bought moves into the `AUX_L` switch's current limit instead. **Still open:** whether the three are independently fused or share a feed upstream of their individual
    5 A fuses, and whether any is switched with the ignition rather than permanently live. The
    second question decides whether the quiescent budget matters at all: if the logic feed dies
    with the ignition, the board is off whenever the bike is off and §4.2's deep-sleep path stops
