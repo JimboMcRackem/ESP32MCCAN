@@ -93,14 +93,21 @@ git clean -fd hardware/output/gerbers
 
 - [ ] **Step 2: Cut the firmware branch off main and carry the docs across**
 
+Both doc commits currently sit on `plan4-emarked-modules`, which was cut from the PCB line
+before the divergence was measured. Carry both across:
+
 ```bash
 git checkout main
 git checkout -b plan4-firmware-outputs
 git cherry-pick bb78428          # the spec
+git cherry-pick 85dbc6a          # this plan + the spec's corrected branch bases
 git log --oneline -3
+ls src/domain/test_mode.h        # must exist: proves we are on main's line
 ```
 
-Expected: the spec and this plan are present, and `src/domain/test_mode.h` exists.
+Expected: both docs present, `src/domain/test_mode.h` exists. Once this lands,
+`plan4-emarked-modules` holds nothing unique and can be deleted — the user's call, not the
+implementer's.
 
 - [ ] **Step 3: Verify the inherited baseline is green before changing anything**
 
