@@ -986,16 +986,36 @@ Expected: PASS, 21 tests.
 
 - [ ] **Step 7: Confirm the rollover tests actually exercise the wrap**
 
-A rollover test that would also pass with signed arithmetic proves nothing. Temporarily change
-both elapsed comparisons — `(uint32_t)(nowMs - t.sinceMs)` in `indicatorPhase` and
-`(uint32_t)(nowMs - est.flashRisingMs)` in the latch — to `(int32_t)`, and run:
+A rollover test that would also pass under broken arithmetic proves nothing, so mutate the code
+and watch the tests catch it.
+
+> **Corrected (ruling R4).** An earlier draft of this step told you to swap both
+> `(uint32_t)` casts for `(int32_t)`. That mutation is a **no-op** and the tests correctly keep
+> passing: `nowMs` and `t.sinceMs` are both `uint32_t`, so the subtraction already wraps as
+> unsigned *before* the outer cast runs; the wrapped results these tests produce (768 ms and
+> 1536 ms) are small positives the cast leaves untouched; and comparing the `int32_t` against
+> the `uint32_t` threshold promotes it straight back to unsigned. Use the mutation below
+> instead — it is also the mistake a real author is likely to make.
+
+Temporarily add a "sanity" guard to both elapsed comparisons — `(uint32_t)(nowMs - t.sinceMs)`
+in `indicatorPhase` and `(uint32_t)(nowMs - est.flashRisingMs)` in the latch — so each reads:
+
+```cpp
+if (nowMs > t.sinceMs && (uint32_t)(nowMs - t.sinceMs) >= kFlashFollowTimeoutMs)
+```
+
+This is the classic "guard against a negative interval" reflex, and it is exactly wrong: across
+the wrap `nowMs` is *smaller* than `sinceMs`, so the guard is false and the elapsed check never
+runs. Then run:
 
 ```bash
 python -m platformio test -e native -f test_behavior_engine
 ```
 
 Expected: FAIL on `test_spot_hold_survives_millis_rollover` and
-`test_auto_watchdog_survives_millis_rollover`. Change both back to `(uint32_t)` and confirm PASS.
+`test_auto_watchdog_survives_millis_rollover` — with `sinceMs = 0xFFFFFF00` and
+`nowMs = 0x500`, 1536 ms has genuinely elapsed, but the guard suppresses the comparison so the
+watchdog never falls back and the spot latch never releases. Remove the guards and confirm PASS.
 
 - [ ] **Step 8: Serialize `flashSource` in `src/domain/config_json.cpp`**
 
