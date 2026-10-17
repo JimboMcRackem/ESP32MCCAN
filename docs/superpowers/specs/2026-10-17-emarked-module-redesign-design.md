@@ -167,6 +167,41 @@ Feed fuse **7.5 A**. The previous design's feed was 7.0 A continuous / 7.8 A tra
 10 A panel fuse; the load is comparable, but almost all of it now leaves the board through a
 switch rather than being converted on it.
 
+**The Experia's aux circuit is 60 W, and that changes the conclusion above.** 60 W at 12 V is
+5.0 A, so the table's ~5.0 A total is not "comfortably inside a 7.5 A fuse" -- it is *the entire
+circuit*. Two consequences, both of which the board plan has to answer rather than inherit:
+
+1. **The 7.5 A board fuse can never act.** It sits above what the source can deliver, so the
+   bike's own aux protection trips first on any fault large enough to matter. A board fuse is
+   only the element that acts if it is rated *below* the upstream limit. Either size it under
+   the circuit (and accept that it, not the bike, is the thing that blows), or keep 7.5 A and
+   state plainly that it is a backstop against a board-side short and nothing else.
+
+2. **There is no headroom at all.** The pods alone are 52 W -- 87% of the circuit -- before a
+   single signal module or the logic rail is counted. Totals, with the pods on:
+
+   | Condition | Pods | Signals | Logic | Total |
+   |---|---|---|---|---|
+   | 12 V nominal | 52 W | ~6 W | ~1.2 W | **~59 W** (98% of 60 W) |
+   | 14.4 V charging | 52 W | ~7 W | ~1.2 W | **~60 W** (at or just over) |
+
+   The pods are constant-power (8-32 V input), so they do not ease off as the alternator comes
+   up; the 2835 signal modules are resistor-ballasted per 2.1, so their draw *rises* with
+   voltage. The design therefore gets slightly worse at charging voltage, not better. Pod
+   inrush (4.4) lands on top of this.
+
+**Whether the limit is enforced as a wattage or as a fuse current decides how bad this is, and
+it is not yet known.** A 5 A fuse passes 5 A at any voltage, which at 14.4 V is 72 W and leaves
+real margin. A 60 W electronic limit does not. Measure which it is before selecting the output
+stage.
+
+**The likely resolution is to split the feed**, since "60 W *per circuit*" implies more than one:
+pods on one circuit, signals and logic on another. That keeps each well inside its limit, removes
+the inrush interaction entirely, and costs one extra feed wire and one extra input stage. It is
+the board plan's first decision, and it needs the bike's actual aux provision confirmed -- how
+many circuits there are, and how each is protected -- which is 9.1 work, alongside the Plug C/D
+pinout.
+
 ### 4.2 Carried forward from plan3
 
 Proven, and reused without redesign: **LTC4380 + 2 FETs** input protection (reverse polarity,
@@ -331,10 +366,22 @@ In priority order:
 2. **CAN stale** (no frames for > 500 ms) — treat every logical input as false. Everything goes
    dark, which is correct: a quiet bus means the bike's own lamps are off too. A longer idle
    drops to deep sleep with EXT1 wake, unchanged from plan3.
+   **Confirmed on the bike: CAN is off when the bike is off.** So a dead bus is not an ambiguous
+   signal to be interpreted — it *is* the off state, and the two consequences are load-bearing.
+   First, bus activity is a sufficient wake source on its own: the board needs no separate
+   ignition sense, no accessory-line sense, and no voltage threshold to decide whether the bike
+   is awake, which is what makes the plan3 EXT1 scheme correct here rather than merely
+   convenient. Second, stale-means-dark is a fail-safe with no false-positive cost — there is no
+   legitimate riding condition in which the bus falls quiet for 500 ms while the bike expects
+   lamps lit, so the rule can be unconditional and needs no grace period beyond the threshold
+   itself. A stale bus is therefore not a fault to report; it is the normal resting state, and
+   §6.3's fault reporting must not treat it as an error condition.
    This is a distinct condition from §5.2's "Run clear" row, which keeps indicators and hazards
    live: Run-clear means *the bus is alive and reporting the bike parked*, whereas CAN-stale
-   means there is no information at all. Whether the parked case is even reachable on the
-   Experia is open item §9.3.5.
+   means there is no information at all. The CAN-off-with-bike-off fact narrows open item §9.3.5
+   without closing it: it rules out any always-on-bus reading of Run-clear, so the row is
+   reachable only in a key-on-but-not-ready-to-ride state, if the Experia has one. Confirm on
+   the bike whether such a state exists and what Run reads in it.
 3. **Switch fault** (overcurrent latch-off reported by the part) — log, retry with backoff,
    surface on the Status screen. A shorted harness neither blows a fuse nor takes the controller
    down.
