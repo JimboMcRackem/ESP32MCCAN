@@ -114,7 +114,7 @@ void loop() {
   // Drain all pending CAN frames into the state cache.
   uint32_t id;
   uint8_t data[8];
-  while (g_bus.receive(id, data)) g_can.update(id, data);
+  while (g_bus.receive(id, data)) g_can.update(id, data, millis());
 
   uint32_t now = millis();
 
@@ -124,7 +124,7 @@ void loop() {
   static uint32_t last = 0;
   if (now - last >= 10) {
     last = now;
-    LogicalState s = g_can.evaluate(g_cfg);
+    LogicalState s = g_can.evaluate(g_cfg, now);
     OutputIntent o = resolveOutputs(s, g_test, g_cfg, now, g_engine, g_testEngine);
     applyIntent(g_out, o);
   }

@@ -8,10 +8,12 @@ const CanState::Frame* CanState::find(uint32_t id) const {
   return nullptr;
 }
 
-void CanState::update(uint32_t id, const uint8_t data[8]) {
+void CanState::update(uint32_t id, const uint8_t data[8], uint32_t nowMs) {
   for (auto& f : frames_) {                 // update existing
     if (f.seen && f.id == id) {
       std::memcpy(f.data, data, 8);
+      anyRx_    = true;
+      lastRxMs_ = nowMs;
       return;
     }
   }
@@ -20,6 +22,8 @@ void CanState::update(uint32_t id, const uint8_t data[8]) {
       f.seen = true;
       f.id = id;
       std::memcpy(f.data, data, 8);
+      anyRx_    = true;
+      lastRxMs_ = nowMs;
       return;
     }
   }
@@ -51,7 +55,14 @@ bool CanState::evalFunction(const FunctionMap& fm) const {
   return false;
 }
 
-LogicalState CanState::evaluate(const Config& cfg) const {
+bool CanState::stale(uint32_t nowMs) const {
+  // Unsigned subtraction, so this is correct across millis() rollover.
+  if (!anyRx_) return true;
+  return (uint32_t)(nowMs - lastRxMs_) >= kStaleMs;
+}
+
+LogicalState CanState::evaluate(const Config& cfg, uint32_t nowMs) const {
+  if (stale(nowMs)) return LogicalState{};
   LogicalState s;
   s.leftInd    = evalFunction(mapFor(cfg, Function::LeftInd));
   s.rightInd   = evalFunction(mapFor(cfg, Function::RightInd));

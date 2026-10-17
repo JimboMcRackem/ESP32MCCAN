@@ -18,8 +18,8 @@ void test_empty_snapshot_is_zero(void) {
 void test_snapshot_returns_seen_frames(void) {
   CanState s;
   uint8_t d[8];
-  frame(0xAA, 0x01, d); s.update(0x102, d);
-  frame(0xBB, 0x02, d); s.update(0x400, d);
+  frame(0xAA, 0x01, d); s.update(0x102, d, 0);
+  frame(0xBB, 0x02, d); s.update(0x400, d, 0);
 
   CanFrameSnapshot out[16];
   int n = s.snapshot(out, 16);
@@ -40,9 +40,9 @@ void test_snapshot_returns_seen_frames(void) {
 void test_snapshot_respects_maxOut(void) {
   CanState s;
   uint8_t d[8] = {0};
-  s.update(0x100, d);
-  s.update(0x200, d);
-  s.update(0x300, d);
+  s.update(0x100, d, 0);
+  s.update(0x200, d, 0);
+  s.update(0x300, d, 0);
   CanFrameSnapshot out[2];
   TEST_ASSERT_EQUAL_INT(2, s.snapshot(out, 2));   // clamped to maxOut
 }
@@ -50,8 +50,8 @@ void test_snapshot_respects_maxOut(void) {
 void test_update_refreshes_existing_frame(void) {
   CanState s;
   uint8_t d[8] = {0};
-  d[0] = 0x11; s.update(0x102, d);
-  d[0] = 0x22; s.update(0x102, d);                // same id updated
+  d[0] = 0x11; s.update(0x102, d, 0);
+  d[0] = 0x22; s.update(0x102, d, 0);              // same id updated
   CanFrameSnapshot out[16];
   int n = s.snapshot(out, 16);
   TEST_ASSERT_EQUAL_INT(1, n);
