@@ -1,5 +1,6 @@
 #include "domain/config_json.h"
 #include <ArduinoJson.h>
+#include <cstring>
 
 static const char* kFuncNames[(size_t)Function::COUNT] = {
   "run", "leftInd", "rightInd", "frontBrake", "rearBrake",
@@ -24,6 +25,8 @@ std::string configToJson(const Config& c) {
 
   doc["blinkPeriodMs"] = c.blinkPeriodMs;
   doc["spotHoldMs"] = c.spotHoldMs;
+  static const char* kFlashSourceNames[] = { "auto", "follow", "generate" };
+  doc["flashSource"] = kFlashSourceNames[(uint8_t)c.flashSource];
   doc["testMaxMs"] = c.testMaxMs;
 
   std::string out;
@@ -62,6 +65,14 @@ Config configFromJson(const std::string& json, bool& ok) {
 
   c.blinkPeriodMs = doc["blinkPeriodMs"] | c.blinkPeriodMs;
   c.spotHoldMs = doc["spotHoldMs"] | c.spotHoldMs;
+  // Unknown or non-string values resolve to Auto rather than to an undefined
+  // enum value: an unreadable setting must not change how the bike signals.
+  const char* fs = doc["flashSource"].as<const char*>();
+  c.flashSource = FlashSource::Auto;
+  if (fs) {
+    if (!strcmp(fs, "follow"))        c.flashSource = FlashSource::Follow;
+    else if (!strcmp(fs, "generate")) c.flashSource = FlashSource::Generate;
+  }
   c.testMaxMs = doc["testMaxMs"] | c.testMaxMs;
 
   return c;

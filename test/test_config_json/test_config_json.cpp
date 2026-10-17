@@ -60,6 +60,25 @@ void test_config_written_by_the_previous_firmware_still_loads() {
   TEST_ASSERT_EQUAL_UINT8(18, fm.bits[0].bit);
 }
 
+void test_flash_source_round_trips() {
+  Config in = defaultConfig();
+  in.flashSource = FlashSource::Generate;
+  bool ok = false;
+  Config out = configFromJson(configToJson(in), ok);
+  TEST_ASSERT_TRUE(ok);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Generate, (int)out.flashSource);
+}
+
+void test_unknown_flash_source_resolves_to_auto() {
+  bool ok = false;
+  Config a = configFromJson("{\"flashSource\":\"follow-ish\"}", ok);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)a.flashSource);
+  Config b = configFromJson("{\"flashSource\":7}", ok);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)b.flashSource);
+  Config c = configFromJson("{}", ok);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)c.flashSource);
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -70,5 +89,7 @@ int main(int, char**) {
   RUN_TEST(test_corrupt_json_falls_back_to_default);
   RUN_TEST(test_empty_string_falls_back_to_default);
   RUN_TEST(test_config_written_by_the_previous_firmware_still_loads);
+  RUN_TEST(test_flash_source_round_trips);
+  RUN_TEST(test_unknown_flash_source_resolves_to_auto);
   return UNITY_END();
 }

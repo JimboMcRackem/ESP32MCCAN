@@ -19,11 +19,22 @@ struct FunctionMap {
   uint8_t count = 0;   // 0 = unassigned
 };
 
+// Where an indicator's on/off phase comes from. `Auto` mirrors the CAN bit's
+// edges so our lamps flash in phase with the bike's own -- which added
+// indicators are required to do -- and falls back to generating when the bit
+// turns out to be a steady request flag rather than a flasher.
+enum class FlashSource : uint8_t { Auto = 0, Follow, Generate };
+
+// Longer than any legal flash period, so a bit still true after this is a
+// steady flag, not a flasher.
+constexpr uint32_t kFlashFollowTimeoutMs = 1200;
+
 struct Config {
   FunctionMap map[(size_t)Function::COUNT];
 
   uint32_t blinkPeriodMs = 340;   // on-time == off-time
   uint32_t spotHoldMs    = 800;   // flash long-press threshold
+  FlashSource flashSource = FlashSource::Auto;
   uint32_t testMaxMs     = 600000;   // absolute cap on a test-mode session
 };
 
