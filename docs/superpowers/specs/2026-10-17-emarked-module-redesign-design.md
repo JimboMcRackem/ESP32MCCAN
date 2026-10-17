@@ -534,12 +534,14 @@ These are verification items, not assumptions. Each names who or what can settle
 
 ### 9.3 Bike questions
 
-4a. **How many aux circuits does the Experia provide, and are they independently fused?**
-   §4.1.1 now *requires* two, because one 5 A circuit cannot carry both pods plus the signals.
-   Confirm the count, that each has its own 5 A fuse rather than sharing one upstream, and
-   whether any is switched rather than permanently live. **If only one circuit exists**, the
-   pods must instead come off a battery-direct fused feed -- which is what Oxford's own relay
-   kit does, and is the fallback. This is now the board's first architectural decision.
+4a. ~~**How many aux circuits does the Experia provide?**~~ **ANSWERED: three, at 5 A each.**
+   §4.1.1 takes all three -- one pod per circuit, logic and signals on the third -- which is
+   one more than the load strictly needs and buys fault containment rather than margin. **Still
+   open:** whether the three are independently fused or share a feed upstream of their individual
+   5 A fuses, and whether any is switched with the ignition rather than permanently live. The
+   second question decides whether the quiescent budget matters at all: if the logic feed dies
+   with the ignition, the board is off whenever the bike is off and §4.2's deep-sleep path stops
+   being load-bearing.
 
 5. ~~**Is the Experia's CAN bus alive with the ignition off?**~~ **ANSWERED: it is not — CAN is
    off when the bike is off.** So bus activity alone is a sufficient wake source (no ignition
