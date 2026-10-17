@@ -989,7 +989,7 @@ Expected: PASS, 21 tests.
 A rollover test that would also pass under broken arithmetic proves nothing, so mutate the code
 and watch the tests catch it.
 
-> **Corrected (ruling R4).** An earlier draft of this step told you to swap both
+> **Corrected (ruling R5).** An earlier draft of this step told you to swap both
 > `(uint32_t)` casts for `(int32_t)`. That mutation is a **no-op** and the tests correctly keep
 > passing: `nowMs` and `t.sinceMs` are both `uint32_t`, so the subtraction already wraps as
 > unsigned *before* the outer cast runs; the wrapped results these tests produce (768 ms and
