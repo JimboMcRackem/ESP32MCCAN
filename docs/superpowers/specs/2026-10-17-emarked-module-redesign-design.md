@@ -364,11 +364,24 @@ against `hardware/mccan.kicad_pcb` at its real path.
 | **Rewritten** | `OutputIntent`, `ChannelMap` → output map, `IPwm` → `IOutputs`, the PWM HAL → GPIO HAL, the behavior engine's output half, every schematic sheet, the whole board |
 | **Deleted** | `color.h`; appearance config and the Appearance screen; the brightness half of test mode; the boost, RGB and sense hardware of §4.3; the thermal plate and gap pad |
 
-**Git:** the new work branches off `plan3-pcb-hardware` to inherit `hardware/scripts/`, and
-lands on `main` by **cherry-pick, never merge** — `main` is an ancestor of
-`plan3-pcb-hardware`, so a merge would fast-forward roughly 200 abandoned PCB commits onto
-`main`. This trap has already been hit once on this repo and is recorded here so it is not hit
-again.
+**Git — corrected 2026-10-17 after measuring, and it changes the branch bases.**
+`main` and `plan3-pcb-hardware` have **diverged** at merge-base `730beb8`. `main` is no longer
+an ancestor of `plan3-pcb-hardware`: the test-mode-and-brightness work was cherry-picked onto
+`main` and never reached the PCB branch, which leaves `main` roughly **1140 lines ahead on the
+firmware** — `src/domain/test_mode.{h,cpp}`, `src/domain/gamma_table.h`, hue+level colour
+editing, and the `test_color_level` and `test_web_protocol` suites.
+
+Consequently the two halves of this redesign take **different parents**:
+
+- **Firmware work branches off `main`**, because it must build on `test_mode.{h,cpp}` and the
+  current `web_protocol`. Branching it off the PCB line would rewrite a stale firmware and
+  silently discard the test-mode work this spec says to keep.
+- **Board work branches off `plan3-pcb-hardware`**, to inherit `hardware/scripts/` and the six
+  gates.
+
+Both land on `main` by **cherry-pick, never merge**. The no-merge rule still holds, for the
+original reason inverted: merging the PCB line into `main` would drag roughly 200 abandoned
+board commits with it.
 
 ---
 
