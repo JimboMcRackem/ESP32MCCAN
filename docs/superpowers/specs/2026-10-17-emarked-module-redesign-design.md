@@ -47,6 +47,12 @@ Bought E-marked 12 V modules, one per corner, taking a **steady switched 12 V** 
 - **DRL and brake are OR'd internally** on the rear module: they drive one light engine, and
   the module handles the combination. No sequencing is required of the firmware — but see
   §5.3, where this fact *forces* a behavioral rule.
+- **Emitters are 2835 SMD** — discrete mid-power packages, not COB and not a single high-power
+  emitter. At 1.5 W a module is therefore on the order of six to eight of them. A 12 V module
+  built this way is normally resistor-ballasted or linearly regulated rather than fed by a
+  switching converter, which matters for §4.4: **the signal channels should present no
+  meaningful turn-on inrush and no bulk capacitance.** Confirm against the datasheet once the
+  part is chosen; it is an expectation here, not a measurement.
 - Specific part not yet selected. The figures above are the design basis; §9 carries the
   verification items.
 
@@ -188,12 +194,19 @@ short-circuit protection, thermal shutdown and open-load detection in silicon, w
 the stage the previous design built by hand out of twelve shunts and a mux — the subsystem that
 generated more review findings than any other in plan3.
 
-**Pod inrush is the hard constraint.** A wide-input converter looks like a discharged capacitor
-at turn-on, and a smart high-side switch answers that by hitting its current limit and latching
-off. The dual-channel part must therefore be selected for **capacitive-load / inrush capability
-specifically**, not merely for 2.17 A steady state. If no suitable part exists, the fallback is
-deliberate gate slew-rate limiting. This is expected to be the largest datasheet effort in the
-build, and it is the same part whose sense output would provide pod lamp-out.
+**Pod inrush is the hard constraint — and it is confined to the aux channel.** A wide-input
+converter looks like a discharged capacitor at turn-on, and a smart high-side switch answers
+that by hitting its current limit and latching off. The **dual-channel** part must therefore be
+selected for **capacitive-load / inrush capability specifically**, not merely for 2.17 A steady
+state. If no suitable part exists, the fallback is deliberate gate slew-rate limiting. This is
+expected to be the largest datasheet effort in the build, and it is the same part whose sense
+output would provide pod lamp-out.
+
+The **quad** parts carrying the ten signal outputs are not under that constraint: 2835-based
+modules (§2.1) are resistive rather than capacitive loads, so those channels can be chosen on
+steady-state 125 mA and protection alone. The absence of bulk capacitance also helps the
+lamp-out nice-to-have, since there is no charging current to confuse an open-load threshold —
+though whether any threshold resolves 125 mA is still the open question.
 
 **Lamp-out detection is a nice-to-have, not a requirement.** It influences part selection only
 as a tiebreaker and is dropped without ceremony if the open-load threshold cannot resolve
