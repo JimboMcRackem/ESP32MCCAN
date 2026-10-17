@@ -1,12 +1,12 @@
 #pragma once
 #include "domain/logical_state.h"
-#include "domain/output_intent.h"
+#include "domain/outputs.h"
 #include "domain/config.h"
 #include <cstdint>
 
 struct EngineState {
-  bool spotLatched = false;
-  bool flashPrev = false;
+  bool     spotLatched   = false;
+  bool     flashPrev     = false;
   uint32_t flashRisingMs = 0;
 };
 

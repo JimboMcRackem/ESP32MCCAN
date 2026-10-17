@@ -1,198 +1,139 @@
 #include <unity.h>
 #include "domain/behavior_engine.h"
-#include "domain/config.h"
 
-static Config cfg;
-static const Rgb OFF{0, 0, 0};
-
-void setUp(void) { cfg = defaultConfig(); }
+void setUp(void) {}
 void tearDown(void) {}
 
-// nowMs = 0 is within the "on" half of the blink cycle.
-static uint32_t FLASH_ON = 0;
-static uint32_t flashOffTime() { return cfg.blinkPeriodMs; }  // start of off-half
+// nowMs = 0 is inside the first ON half of the blink cycle, so a requested
+// indicator reads as lit. PHASE_OFF lands in the dark half.
+static const uint32_t PHASE_ON  = 0;
+static const uint32_t PHASE_OFF = 400;   // > 340 ms, < 680 ms
 
-void test_drl_default_day() {
+static uint16_t run(LogicalState s, uint32_t nowMs) {
+  Config cfg = defaultConfig();
+  EngineState est;
+  return computeOutputs(s, cfg, nowMs, est).on;
+}
+
+void test_default_lights_four_drl() {
   LogicalState s; s.run = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteDay)));
-  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.drlWhiteDay)));
-  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.drlDimRedDay)));
-  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.drlDimRedDay)));
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL),
+    run(s, PHASE_ON));
 }
 
-void test_drl_default_night_uses_night_colors() {
-  LogicalState s; s.run = true; s.night = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteNight)));
-  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.drlDimRedNight)));
-}
-
-void test_left_indicator_flashes_left_corners_on_phase() {
+void test_left_indicator_drops_left_drl_and_flashes_both_left_corners() {
   LogicalState s; s.run = true; s.leftInd = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.drlWhiteDay)));   // right side unaffected
-  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.drlDimRedDay)));
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FR_DRL, OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND),
+    run(s, PHASE_ON));
 }
 
-void test_indicator_off_phase_is_fully_dark() {
+void test_left_indicator_dark_phase_leaves_left_corners_fully_dark() {
   LogicalState s; s.run = true; s.leftInd = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, flashOffTime(), est);
-  TEST_ASSERT_TRUE((o.frontL == OFF));
-  TEST_ASSERT_TRUE((o.rearL == OFF));
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FR_DRL, OUT_RR_DRL), run(s, PHASE_OFF));
 }
 
-void test_hazards_flash_all_four() {
+void test_right_indicator_mirrors_left() {
+  LogicalState s; s.run = true; s.rightInd = true;
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_DRL, OUT_RL_DRL, OUT_FR_IND, OUT_RR_IND),
+    run(s, PHASE_ON));
+}
+
+void test_hazards_flash_all_four_and_kill_every_drl() {
   LogicalState s; s.run = true; s.leftInd = true; s.rightInd = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.indicatorOrange)));
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_IND, OUT_FR_IND, OUT_RL_IND, OUT_RR_IND),
+    run(s, PHASE_ON));
 }
 
-void test_brake_lights_both_rears_full_red() {
+void test_brake_adds_both_rear_brakes_to_the_drls() {
+  LogicalState s; s.run = true; s.frontBrake = true;
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL,
+            OUT_RL_BRK, OUT_RR_BRK),
+    run(s, PHASE_ON));
+}
+
+void test_rear_brake_also_counts_as_brake() {
   LogicalState s; s.run = true; s.rearBrake = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.brakeRed)));
-  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));
-  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteDay)));
+  TEST_ASSERT_TRUE((run(s, PHASE_ON) & outMask(OUT_RL_BRK, OUT_RR_BRK)) != 0);
 }
 
-void test_brake_plus_left_indicator_priority() {
+void test_brake_plus_left_indicator_kills_the_indicating_corners_brake() {
   LogicalState s; s.run = true; s.frontBrake = true; s.leftInd = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.indicatorOrange)));  // indicator wins on left
-  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));         // right rear brakes
-  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((o.frontR == resolveColor(cfg.drlWhiteDay)));
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FR_DRL, OUT_RR_DRL, OUT_RR_BRK, OUT_FL_IND, OUT_RL_IND),
+    run(s, PHASE_ON));
 }
 
-void test_brake_plus_left_indicator_off_phase_left_is_dark() {
-  LogicalState s; s.run = true; s.frontBrake = true; s.leftInd = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, flashOffTime(), est);
-  TEST_ASSERT_TRUE((o.rearL == OFF));       // fully dark, brake suppressed
-  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));
+void test_brake_plus_right_indicator_mirrors_it() {
+  LogicalState s; s.run = true; s.rearBrake = true; s.rightInd = true;
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_DRL, OUT_RL_DRL, OUT_RL_BRK, OUT_FR_IND, OUT_RR_IND),
+    run(s, PHASE_ON));
 }
 
-void test_not_run_drl_off_but_indicator_works() {
-  LogicalState s; s.run = false; s.leftInd = true;
-  EngineState est{};
-  OutputIntent on = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((on.frontL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((on.rearL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((on.frontR == OFF));     // non-indicating corners dark
-  TEST_ASSERT_TRUE((on.rearR == OFF));
+void test_brake_plus_hazards_is_indicators_only() {
+  LogicalState s;
+  s.run = true; s.frontBrake = true; s.leftInd = true; s.rightInd = true;
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_IND, OUT_FR_IND, OUT_RL_IND, OUT_RR_IND),
+    run(s, PHASE_ON));
 }
 
-void test_not_run_brake_ignored() {
-  LogicalState s; s.run = false; s.rearBrake = true;
-  EngineState est{};
-  OutputIntent o = computeOutputs(s, cfg, FLASH_ON, est);
-  TEST_ASSERT_TRUE((o.rearL == OFF));
-  TEST_ASSERT_TRUE((o.rearR == OFF));
+void test_run_clear_keeps_indicators_and_drops_everything_else() {
+  LogicalState s; s.leftInd = true; s.frontBrake = true; s.highBeam = true;
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_IND, OUT_RL_IND), run(s, PHASE_ON));
 }
 
-void test_denali_off_when_not_run() {
-  LogicalState s; s.run = false;
-  EngineState est{};
-  TEST_ASSERT_EQUAL_UINT8(0, computeOutputs(s, cfg, 0, est).denali);
-}
-
-void test_denali_daytime_level() {
-  LogicalState s; s.run = true;              // day, no beams
-  EngineState est{};
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliDay, computeOutputs(s, cfg, 0, est).denali);
-}
-
-void test_denali_low_when_night_or_lowbeam() {
-  LogicalState s; s.run = true; s.lowBeam = true;
-  EngineState est{};
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliLow, computeOutputs(s, cfg, 0, est).denali);
-}
-
-void test_denali_high_beam_level() {
+void test_aux_follows_high_beam_and_is_gated_by_run() {
   LogicalState s; s.run = true; s.highBeam = true;
-  EngineState est{};
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliHigh, computeOutputs(s, cfg, 0, est).denali);
+  TEST_ASSERT_TRUE((run(s, PHASE_ON) & outMask(OUT_AUX_L, OUT_AUX_R))
+                   == outMask(OUT_AUX_L, OUT_AUX_R));
+  s.run = false;
+  TEST_ASSERT_EQUAL_UINT16(0, run(s, PHASE_ON) & outMask(OUT_AUX_L, OUT_AUX_R));
 }
 
-void test_spot_latches_after_hold_then_persists() {
-  cfg.denaliSpot = 200;   // distinct from denaliHigh (255) so the spot branch is observable
-  LogicalState s; s.run = true; s.highBeam = true; s.flash = true;
-  EngineState est{};
-  // t=0 flash pressed (rising edge), not yet held long enough -> high-beam level, not latched
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliHigh, computeOutputs(s, cfg, 0, est).denali);
-  TEST_ASSERT_FALSE(est.spotLatched);
-  // t=spotHoldMs: held long enough -> latches to spot level
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliSpot,
-                          computeOutputs(s, cfg, cfg.spotHoldMs, est).denali);
-  TEST_ASSERT_TRUE(est.spotLatched);
-  // release flash, still high beam -> spot stays latched
+void test_spot_latch_holds_aux_on_after_a_long_flash_press() {
+  Config cfg = defaultConfig();
+  EngineState est;
+  LogicalState s; s.run = true; s.flash = true;
+  computeOutputs(s, cfg, 0, est);                       // rising edge
+  OutputIntent o = computeOutputs(s, cfg, cfg.spotHoldMs, est);
+  TEST_ASSERT_TRUE(o.isOn(OUT_AUX_L));
   s.flash = false;
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliSpot,
-                          computeOutputs(s, cfg, cfg.spotHoldMs + 500, est).denali);
-  TEST_ASSERT_TRUE(est.spotLatched);
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, cfg.spotHoldMs + 50, est).isOn(OUT_AUX_L));
+  s.lowBeam = true;                                     // auto-drop
+  TEST_ASSERT_FALSE(computeOutputs(s, cfg, cfg.spotHoldMs + 100, est).isOn(OUT_AUX_L));
 }
 
-void test_spot_auto_drops_on_low_beam() {
-  LogicalState s; s.run = true; s.highBeam = true; s.flash = true;
-  EngineState est{};
-  computeOutputs(s, cfg, 0, est);
-  computeOutputs(s, cfg, cfg.spotHoldMs, est);       // latched
-  TEST_ASSERT_TRUE(est.spotLatched);
-  // rider selects low beam -> spot drops
-  LogicalState low; low.run = true; low.lowBeam = true;
-  OutputIntent o = computeOutputs(low, cfg, cfg.spotHoldMs + 100, est);
-  TEST_ASSERT_FALSE(est.spotLatched);
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliLow, o.denali);
-}
-
-void test_short_flash_press_does_not_latch() {
-  LogicalState s; s.run = true; s.highBeam = true; s.flash = true;
-  EngineState est{};
-  computeOutputs(s, cfg, 0, est);                    // rising edge
-  computeOutputs(s, cfg, cfg.spotHoldMs - 50, est);  // released early below
-  s.flash = false;
-  computeOutputs(s, cfg, cfg.spotHoldMs - 40, est);
-  TEST_ASSERT_FALSE(est.spotLatched);
-}
-
-void test_denali_night_only_selects_low() {
-  LogicalState s; s.run = true; s.night = true;   // night mode, low beam not set
-  EngineState est{};
-  TEST_ASSERT_EQUAL_UINT8(cfg.denaliLow, computeOutputs(s, cfg, 0, est).denali);
+void test_zero_blink_period_falls_back_to_340ms() {
+  Config cfg = defaultConfig();
+  cfg.blinkPeriodMs = 0;
+  EngineState est;
+  LogicalState s; s.run = true; s.leftInd = true;
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 0, est).isOn(OUT_FL_IND));
+  TEST_ASSERT_FALSE(computeOutputs(s, cfg, 400, est).isOn(OUT_FL_IND));
 }
 
 int main(int, char**) {
   UNITY_BEGIN();
-  RUN_TEST(test_drl_default_day);
-  RUN_TEST(test_drl_default_night_uses_night_colors);
-  RUN_TEST(test_left_indicator_flashes_left_corners_on_phase);
-  RUN_TEST(test_indicator_off_phase_is_fully_dark);
-  RUN_TEST(test_hazards_flash_all_four);
-  RUN_TEST(test_brake_lights_both_rears_full_red);
-  RUN_TEST(test_brake_plus_left_indicator_priority);
-  RUN_TEST(test_brake_plus_left_indicator_off_phase_left_is_dark);
-  RUN_TEST(test_not_run_drl_off_but_indicator_works);
-  RUN_TEST(test_not_run_brake_ignored);
-  RUN_TEST(test_denali_off_when_not_run);
-  RUN_TEST(test_denali_daytime_level);
-  RUN_TEST(test_denali_low_when_night_or_lowbeam);
-  RUN_TEST(test_denali_high_beam_level);
-  RUN_TEST(test_spot_latches_after_hold_then_persists);
-  RUN_TEST(test_spot_auto_drops_on_low_beam);
-  RUN_TEST(test_short_flash_press_does_not_latch);
-  RUN_TEST(test_denali_night_only_selects_low);
-  return UNITY_END();
+  RUN_TEST(test_default_lights_four_drl);
+  RUN_TEST(test_left_indicator_drops_left_drl_and_flashes_both_left_corners);
+  RUN_TEST(test_left_indicator_dark_phase_leaves_left_corners_fully_dark);
+  RUN_TEST(test_right_indicator_mirrors_left);
+  RUN_TEST(test_hazards_flash_all_four_and_kill_every_drl);
+  RUN_TEST(test_brake_adds_both_rear_brakes_to_the_drls);
+  RUN_TEST(test_rear_brake_also_counts_as_brake);
+  RUN_TEST(test_brake_plus_left_indicator_kills_the_indicating_corners_brake);
+  RUN_TEST(test_brake_plus_right_indicator_mirrors_it);
+  RUN_TEST(test_brake_plus_hazards_is_indicators_only);
+  RUN_TEST(test_run_clear_keeps_indicators_and_drops_everything_else);
+  RUN_TEST(test_aux_follows_high_beam_and_is_gated_by_run);
+  RUN_TEST(test_spot_latch_holds_aux_on_after_a_long_flash_press);
+  RUN_TEST(test_zero_blink_period_falls_back_to_340ms);
+  UNITY_END();
+  return 0;
 }

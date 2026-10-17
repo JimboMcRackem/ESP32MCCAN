@@ -1,6 +1,6 @@
 #pragma once
 #include "domain/logical_state.h"
-#include "domain/output_intent.h"
+#include "domain/outputs.h"
 #include "domain/behavior_engine.h"
 #include "domain/config.h"
 #include <cstdint>

@@ -4,30 +4,35 @@
 #include "domain/can_state.h"
 #include "domain/behavior_engine.h"
 #include "domain/test_mode.h"
-#include "domain/channel_map.h"
-#include "hal/pwm_pca9685.h"
+#include "domain/output_map.h"
+#include "hal/outputs_gpio.h"
 #include "hal/can_bus.h"
 #include "hal/storage.h"
 #include "domain/web_protocol.h"
 #include "hal/web_server.h"
-#include <Wire.h>
 
 // Pin/bus assignments — provisional, finalized against the PCB (PCB plan).
-// PWM outputs live on the PCA9685 (channels 0-13), reached over I2C — no per-channel GPIO.
-static const int kI2cSda = 21;              // I2C to the PCA9685
-static const int kI2cScl = 22;
-static const uint8_t kPca9685Addr = 0x40;   // default PCA9685 address
-static const uint32_t kPwmFreqHz = 1000;    // LED PWM frequency
 static const int kCanRxPin = 16;            // CAN transceiver GPIOs (moved off the I2C pins)
 static const int kCanTxPin = 17;
 static const uint32_t kCanBitrate = 500000;
+
+// Provisional GPIO assignment in OutputIndex order - finalized against the PCB
+// in the board plan. All twelve are plain outputs; none is a strapping pin that
+// would float a lamp on at reset.
+static const uint8_t kOutputPins[OUT_COUNT] = {
+  13, 14,        // FL_DRL, FL_IND
+  25, 26,        // FR_DRL, FR_IND
+  27, 32, 33,    // RL_DRL, RL_IND, RL_BRK
+  18, 19, 23,    // RR_DRL, RR_IND, RR_BRK
+   4,  5,        // AUX_L, AUX_R
+};
+static GpioOutputs g_out(kOutputPins, OUT_COUNT);
 
 static Config      g_cfg;
 static CanState    g_can;
 static EngineState g_engine;
 static TestMode    g_test;         // lighting override held by the web app
 static EngineState g_testEngine;   // scenarios run against THIS, never g_engine
-static Pca9685Pwm  g_pwm(kPca9685Addr);
 static CanBus      g_bus;
 
 static WebServerHal g_web;
@@ -47,13 +52,13 @@ static void releaseTest(uint32_t now) {
 void setup() {
   Serial.begin(115200);
 
+  g_out.begin();   // all twelve outputs LOW before anything else
+
   storage::begin();
   bool ok = false;
   g_cfg = configFromJson(storage::readConfig(), ok);  // falls back to defaults
   if (!ok) Serial.println("config missing/corrupt -> using Experia defaults");
 
-  Wire.begin(kI2cSda, kI2cScl);
-  if (!g_pwm.begin(kPwmFreqHz)) Serial.println("PCA9685 init failed");
   if (!g_bus.begin(kCanRxPin, kCanTxPin, kCanBitrate))
     Serial.println("CAN init failed");
 
@@ -121,7 +126,7 @@ void loop() {
     last = now;
     LogicalState s = g_can.evaluate(g_cfg);
     OutputIntent o = resolveOutputs(s, g_test, g_cfg, now, g_engine, g_testEngine);
-    applyIntent(g_pwm, o);
+    applyIntent(g_out, o);
   }
 
   // Stream CAN frame snapshots to the browser while discovery is active.

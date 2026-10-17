@@ -5,7 +5,6 @@ void test_default_timing_and_colors() {
   Config c = defaultConfig();
   TEST_ASSERT_EQUAL_UINT32(340, c.blinkPeriodMs);
   TEST_ASSERT_EQUAL_UINT32(800, c.spotHoldMs);
-  TEST_ASSERT_TRUE((resolveColor(c.indicatorOrange) == Rgb{255, 80, 0}));
   TEST_ASSERT_EQUAL_UINT32(600000, c.testMaxMs);
 }
 
@@ -72,23 +71,6 @@ void test_experia_all_single_bit_mappings() {
   TEST_ASSERT_EQUAL_UINT8(13, kickStand.bits[0].bit);
 }
 
-void test_default_colors_and_denali_levels() {
-  Config c = defaultConfig();
-
-  // Test all remaining color defaults
-  TEST_ASSERT_TRUE((resolveColor(c.drlWhiteDay) == Rgb{255, 255, 255}));
-  TEST_ASSERT_TRUE((resolveColor(c.drlWhiteNight) == Rgb{120, 120, 120}));
-  TEST_ASSERT_TRUE((resolveColor(c.drlDimRedDay) == Rgb{120, 0, 0}));
-  TEST_ASSERT_TRUE((resolveColor(c.drlDimRedNight) == Rgb{60, 0, 0}));
-  TEST_ASSERT_TRUE((resolveColor(c.brakeRed) == Rgb{255, 0, 0}));
-
-  // Test all Denali levels
-  TEST_ASSERT_EQUAL_UINT8(50, c.denaliDay);
-  TEST_ASSERT_EQUAL_UINT8(128, c.denaliLow);
-  TEST_ASSERT_EQUAL_UINT8(255, c.denaliHigh);
-  TEST_ASSERT_EQUAL_UINT8(255, c.denaliSpot);
-}
-
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -99,6 +81,5 @@ int main(int, char**) {
   RUN_TEST(test_experia_highbeam_is_and_of_two_bits);
   RUN_TEST(test_run_and_daynight_unassigned);
   RUN_TEST(test_experia_all_single_bit_mappings);
-  RUN_TEST(test_default_colors_and_denali_levels);
   return UNITY_END();
 }

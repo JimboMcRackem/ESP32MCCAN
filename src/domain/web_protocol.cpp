@@ -58,36 +58,16 @@ ProtocolAction handleRequest(const std::string& json) {
       }
       tm.kind = TestKind::Scenario;
     } else if (m == "zones") {
-      JsonArrayConst zs = doc["zones"];
-      if (zs.size() != 4) {
-        act.error = "test zones must be 4 rgb triples";
+      // NOTE: this firmware speaks the new 12-bit output mask; the wire
+      // format (protocol version bump, flashSource field) is finished by a
+      // later task, but the mask parse has to land here because the type
+      // underneath TestMode::zones already changed with OutputIntent.
+      const uint32_t mask = doc["zones"] | 0u;
+      if (mask >= (1u << (uint32_t)OUT_COUNT)) {
+        act.error = "zones mask has bits above OUT_COUNT";
         return act;
       }
-      // ChannelIndex corner order: front L, front R, rear L, rear R.
-      Rgb* dst[4] = { &tm.zones.frontL, &tm.zones.frontR,
-                      &tm.zones.rearL,  &tm.zones.rearR };
-      int zi = 0;
-      for (JsonArrayConst z : zs) {
-        if (z.size() != 3) {
-          act.error = "test zone must be an rgb triple";
-          return act;
-        }
-        int v[3];
-        for (int k = 0; k < 3; ++k) {
-          v[k] = z[k] | -1;
-          if (v[k] < 0 || v[k] > 255) {
-            act.error = "test zone value out of range";
-            return act;
-          }
-        }
-        *dst[zi++] = Rgb{ (uint8_t)v[0], (uint8_t)v[1], (uint8_t)v[2] };
-      }
-      const int den = doc["denali"] | 0;
-      if (den < 0 || den > 255) {
-        act.error = "test denali out of range";
-        return act;
-      }
-      tm.zones.denali = (uint8_t)den;
+      tm.zones.on = (uint16_t)mask;
       tm.kind = TestKind::Zones;
     } else {
       act.error = "test mode must be off, scenario or zones";

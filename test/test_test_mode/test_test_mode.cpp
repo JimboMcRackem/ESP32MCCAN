@@ -21,9 +21,7 @@ void test_off_passes_the_real_state_through(void) {
   OutputIntent got  = resolveOutputs(real, t, cfg, kOn, est, testEst);
   EngineState ref;
   OutputIntent want = computeOutputs(real, cfg, kOn, ref);
-  TEST_ASSERT_TRUE((got.frontL == want.frontL));
-  TEST_ASSERT_TRUE((got.rearL == want.rearL));
-  TEST_ASSERT_EQUAL_UINT8(want.denali, got.denali);
+  TEST_ASSERT_EQUAL_UINT16(want.on, got.on);
 }
 
 void test_scenario_ignores_the_real_state(void) {
@@ -33,9 +31,9 @@ void test_scenario_ignores_the_real_state(void) {
   TEST_ASSERT_TRUE(scenarioByName("brake", t.scenario));
 
   OutputIntent o = resolveOutputs(real, t, cfg, kOn, est, testEst);
-  TEST_ASSERT_TRUE((o.rearL == resolveColor(cfg.brakeRed)));
-  TEST_ASSERT_TRUE((o.rearR == resolveColor(cfg.brakeRed)));
-  TEST_ASSERT_TRUE((o.frontL == resolveColor(cfg.drlWhiteDay)));
+  TEST_ASSERT_TRUE(o.isOn(OUT_RL_BRK));
+  TEST_ASSERT_TRUE(o.isOn(OUT_RR_BRK));
+  TEST_ASSERT_TRUE(o.isOn(OUT_FL_DRL));
 }
 
 void test_scenario_blinks_at_the_configured_rate(void) {
@@ -47,28 +45,19 @@ void test_scenario_blinks_at_the_configured_rate(void) {
   // On-phase and off-phase of one blink cycle at the configured period.
   OutputIntent on  = resolveOutputs(real, t, cfg, 0, est, testEst);
   OutputIntent off = resolveOutputs(real, t, cfg, cfg.blinkPeriodMs, est, testEst);
-  TEST_ASSERT_TRUE((on.frontL == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((on.rearR == resolveColor(cfg.indicatorOrange)));
-  TEST_ASSERT_TRUE((off.frontL == Rgb{0, 0, 0}));
-  TEST_ASSERT_TRUE((off.rearR == Rgb{0, 0, 0}));
+  TEST_ASSERT_TRUE(on.isOn(OUT_FL_IND));
+  TEST_ASSERT_TRUE(on.isOn(OUT_RR_IND));
+  TEST_ASSERT_EQUAL_UINT16(0, off.on);
 }
 
 void test_zones_pass_through_verbatim(void) {
   LogicalState real; real.run = true; real.rearBrake = true;
   TestMode t;
   t.kind = TestKind::Zones;
-  t.zones.frontL = Rgb{1, 2, 3};
-  t.zones.frontR = Rgb{4, 5, 6};
-  t.zones.rearL  = Rgb{7, 8, 9};
-  t.zones.rearR  = Rgb{10, 11, 12};
-  t.zones.denali = 77;
+  t.zones.on = outMask(OUT_RL_BRK, OUT_AUX_L);
 
   OutputIntent o = resolveOutputs(real, t, cfg, kOn, est, testEst);
-  TEST_ASSERT_TRUE((o.frontL == Rgb{1, 2, 3}));
-  TEST_ASSERT_TRUE((o.frontR == Rgb{4, 5, 6}));
-  TEST_ASSERT_TRUE((o.rearL == Rgb{7, 8, 9}));
-  TEST_ASSERT_TRUE((o.rearR == Rgb{10, 11, 12}));
-  TEST_ASSERT_EQUAL_UINT8(77, o.denali);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_BRK, OUT_AUX_L), o.on);
 }
 
 void test_scenario_cannot_corrupt_the_real_engine_state(void) {
