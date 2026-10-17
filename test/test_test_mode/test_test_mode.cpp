@@ -31,9 +31,10 @@ void test_scenario_ignores_the_real_state(void) {
   TEST_ASSERT_TRUE(scenarioByName("brake", t.scenario));
 
   OutputIntent o = resolveOutputs(real, t, cfg, kOn, est, testEst);
-  TEST_ASSERT_TRUE(o.isOn(OUT_RL_BRK));
-  TEST_ASSERT_TRUE(o.isOn(OUT_RR_BRK));
-  TEST_ASSERT_TRUE(o.isOn(OUT_FL_DRL));
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL,
+            OUT_RL_BRK, OUT_RR_BRK),
+    o.on);
 }
 
 void test_scenario_blinks_at_the_configured_rate(void) {
@@ -45,8 +46,8 @@ void test_scenario_blinks_at_the_configured_rate(void) {
   // On-phase and off-phase of one blink cycle at the configured period.
   OutputIntent on  = resolveOutputs(real, t, cfg, 0, est, testEst);
   OutputIntent off = resolveOutputs(real, t, cfg, cfg.blinkPeriodMs, est, testEst);
-  TEST_ASSERT_TRUE(on.isOn(OUT_FL_IND));
-  TEST_ASSERT_TRUE(on.isOn(OUT_RR_IND));
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_IND, OUT_FR_IND, OUT_RL_IND, OUT_RR_IND), on.on);
   TEST_ASSERT_EQUAL_UINT16(0, off.on);
 }
 

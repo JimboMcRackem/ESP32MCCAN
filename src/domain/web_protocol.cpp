@@ -124,6 +124,7 @@ std::string testStateMessage(const TestMode& t, const Config& cfg, uint32_t nowM
   doc["kind"] = t.kind == TestKind::Scenario ? "scenario"
               : t.kind == TestKind::Zones    ? "zones"
                                              : "off";
+  doc["zones"] = t.zones.on;
   uint32_t remaining = 0;
   if (t.kind != TestKind::Off) {
     const uint32_t elapsed = nowMs - t.startedMs;     // rollover-safe

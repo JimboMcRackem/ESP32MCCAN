@@ -4,6 +4,8 @@
 #include "domain/config.h"
 #include "domain/can_state.h"
 #include <ArduinoJson.h>
+#include <cstring>
+#include <cstdio>
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -126,6 +128,34 @@ void test_unknown_scenario_is_an_error(void) {
 // longer exists; full mask-format coverage (and the protocol version bump)
 // belongs to the task that finishes the wire protocol rework.
 
+void test_zones_request_parses_a_twelve_bit_mask() {
+  const unsigned want = (unsigned)outMask(OUT_RL_BRK, OUT_AUX_L);
+  char buf[128];
+  snprintf(buf, sizeof buf,
+           "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":%u}", want);
+  ProtocolAction a = handleRequest(buf);
+  TEST_ASSERT_TRUE(a.setTest);
+  TEST_ASSERT_TRUE(a.error.empty());
+  TEST_ASSERT_EQUAL_INT((int)TestKind::Zones, (int)a.testOut.kind);
+  TEST_ASSERT_EQUAL_UINT16((uint16_t)want, a.testOut.zones.on);
+}
+
+void test_zones_request_rejects_bits_above_the_output_count() {
+  ProtocolAction a = handleRequest(
+    "{\"type\":\"test\",\"mode\":\"zones\",\"zones\":65535}");
+  TEST_ASSERT_FALSE(a.error.empty());   // must not silently truncate
+}
+
+void test_test_state_message_reports_the_zone_mask() {
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.zones.on = outMask(OUT_FR_IND);
+  char want[64];
+  snprintf(want, sizeof want, "\"zones\":%u", (unsigned)outMask(OUT_FR_IND));
+  const std::string m = testStateMessage(t, defaultConfig(), 0);
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), want));
+}
+
 void test_test_rejects_an_unknown_mode(void) {
   ProtocolAction a = handleRequest("{\"type\":\"test\",\"mode\":\"strobe\"}");
   TEST_ASSERT_FALSE(a.setTest);
@@ -191,6 +221,9 @@ int main(int, char**) {
   RUN_TEST(test_test_off_is_accepted);
   RUN_TEST(test_test_scenario_resolves_the_preset);
   RUN_TEST(test_unknown_scenario_is_an_error);
+  RUN_TEST(test_zones_request_parses_a_twelve_bit_mask);
+  RUN_TEST(test_zones_request_rejects_bits_above_the_output_count);
+  RUN_TEST(test_test_state_message_reports_the_zone_mask);
   RUN_TEST(test_test_rejects_an_unknown_mode);
   RUN_TEST(test_config_message_carries_the_protocol_version);
   RUN_TEST(test_test_state_message_shape);
