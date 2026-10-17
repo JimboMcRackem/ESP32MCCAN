@@ -113,8 +113,9 @@ loom from 14 wires to 12.
 | Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (250 mA worst case) |
 | Pods | 4 (+1) | per-pod +12 V and return; pod returns do **not** share with signal returns |
 | CAN | 2 | CAN H / CAN L |
-| Feed A | 2 | aux circuit 1 +, − — logic, signals, `AUX_L` |
-| Feed B | 2 | aux circuit 2 +, − — `AUX_R` only (§4.1.1) |
+| Feed S | 2 | aux circuit +, − — logic rail and the ten signal channels |
+| Feed L | 2 | aux circuit +, − — `AUX_L` only |
+| Feed R | 2 | aux circuit +, − — `AUX_R` only (§4.1.1) |
 
 ### 3.2 Boot safety
 
@@ -128,43 +129,47 @@ defect.
 ## 4. Hardware architecture
 
 ```
- FEED A --[4 A fuse]--+   aux circuit 1 (bike: 5 A).  2.77 A @ 12 V, pod L on
-                      v
-            +------------------+
-            | INPUT PROTECTION |  LTC4380 + 2 FETs, rev. polarity + overcurrent
-            | 24 V TVS, pi+CM  |
-            +--------+---------+
-                  VBAT (~12 V)
-        +------------+----------+----------------+
-        v                       v                v
- +-------------+  +-----------------+  +------------------+
- | 3V3 BUCK    |  | QUAD SMART HS   |  | SMART HS  AUX_L  |
- | +3V3_ALW    |  | x2 -> 10 ch     |  | 2.17 A + inrush  |
- | + 5V gated  |  | 125 mA each     |  +------------------+
- +------+------+  +-----------------+
-        |                 ^ 10 GPIO          ^ 1 GPIO
-        |          +------+------------------+------+
-        +---------># ESP32-WROOM-32E-N8             |
-                  | 12 GPIO out, all pulled down    |
-                  | deep sleep <- EXT1 wake         |
-                  +------+--------------------+-----+
-                         | TWAI               v 1 GPIO
-                  +------+--------+  +------------------+
-                  | TJA1042T/3    |  | SMART HS  AUX_R  |
-                  | listen-only,  |  | 2.17 A + inrush  |
-                  | HW-enforced   |  +--------+---------+
-                  +------+--------+           ^ VBAT_B
-                         |                    |
-                         v              +-----+------------+
-                     CAN H / L          | rev. polarity +  |
-                                        | 24 V TVS         |
-                                        | no buck, no filt |
-                                        +-----+------------+
-                                              ^
-                           FEED B --[3 A fuse]-+  aux circuit 2, 2.17 A @ 12 V
+ FEED S --[2 A]--+   aux circuit 1 of 3 (bike: 5 A each).  0.60 A @ 12 V
+                 v
+       +------------------+
+       | INPUT PROTECTION |  LTC4380 + 2 FETs, rev. polarity + overcurrent
+       | 24 V TVS, pi+CM  |
+       +--------+---------+
+             VBAT_S (~12 V)
+        +--------+---------+
+        v                  v
+ +-------------+   +-----------------+
+ | 3V3 BUCK    |   | QUAD SMART HS   |  the ten signal channels
+ | +3V3_ALW    |   | x2 -> 10 ch     |  125 mA each
+ | + 5V gated  |   | 125 mA each     |
+ +------+------+   +-----------------+
+        |                  ^ 10 GPIO
+        |     +------------+------------+
+        +---->| ESP32-WROOM-32E-N8      |
+              | 12 GPIO out, pulled dn  |
+              | deep sleep <- EXT1 wake |
+              +--+--------+----------+--+
+                 | TWAI   | 1 GPIO   | 1 GPIO
+        +--------+-----+  v          v
+        | TJA1042T/3   | +--------+ +--------+
+        | listen-only, | | SMART  | | SMART  |
+        | HW-enforced  | | HS     | | HS     |
+        +------+-------+ | AUX_L  | | AUX_R  |
+               |         +---+----+ +----+---+
+               v             ^ VBAT_L    ^ VBAT_R
+          CAN H / L          |           |
+                        +----+----+ +----+----+
+                        | rev pol | | rev pol |
+                        | 24V TVS | | 24V TVS |
+                        +----+----+ +----+----+
+                             ^           ^
+              FEED L --[3 A]-+           +-[3 A]-- FEED R
+                     2.17 A @ 12 V       2.17 A @ 12 V
 
- VBAT and VBAT_B are NEVER diode-OR'd: joining them puts both pods' current
- back through one 5 A fuse and undoes the split (see 4.1.1).
+ Three separate power domains. VBAT_S / VBAT_L / VBAT_R are NEVER diode-OR'd:
+ joining any two puts their loads back through one 5 A fuse (see 4.1.1). The
+ three returns common at a single star point; neither pod return shares copper
+ with the logic ground pour.
 ```
 
 ### 4.1 Load budget
@@ -179,7 +184,8 @@ defect.
 That total is for reference only: **it does not run on one feed.** The previous design's feed
 was 7.0 A continuous / 7.8 A transient behind a 10 A panel fuse, and an earlier draft of this
 section carried a 7.5 A board fuse on the same reasoning. Both are withdrawn — the Experia
-supplies 5 A per aux circuit, which the next subsection shows this load exceeds.
+supplies **three 5 A aux circuits**, and this load exceeds any one of them while fitting
+comfortably across three. §4.1.1 is the binding version of this budget.
 
 **The Experia provides 5 A per aux circuit, and one circuit cannot carry this board.** The
 feed is a 5 A fuse, not a 60 W power limit -- it passes 5 A at any voltage, which is 60 W at
@@ -206,44 +212,61 @@ is not a tight fit to be managed; it does not fit. Note too that the **pods alon
 to stay under 5 A and = 13.9 V to stay inside the derated 3.75 A, so a circuit dedicated to both
 pods together is no answer either.
 
-### 4.1.1 Two feeds, one pod each (required)
+### 4.1.1 Three feeds: one pod each, logic and signals on the third
 
-"5 A *per circuit*" means more than one circuit exists, and splitting across two resolves it
-with real margin. Put one pod on each, and let the signals and logic ride with whichever is
-convenient:
+**The Experia provides three 5 A aux circuits.** That is one more than the minimum this load
+needs, and the third is worth taking rather than banking: it lets the controller and the signal
+lamps sit on a circuit that carries nothing high-powered.
 
-| Condition | Feed A: pod L + signals + logic | Feed B: pod R |
-|---|---|---|
-| 14.4 V | 2.59 A (52%) | 1.81 A (36%) |
-| 12.0 V | 2.77 A (55%) | 2.17 A (43%) |
-| 10.5 V | 2.97 A (59%) | 2.48 A (50%) |
+| Condition | Feed L: pod L | Feed R: pod R | Feed S: signals + logic |
+|---|---|---|---|
+| 14.4 V charging | 1.81 A (36%) | 1.81 A (36%) | 0.78 A (16%) |
+| 12.0 V nominal | 2.17 A (43%) | 2.17 A (43%) | 0.60 A (12%) |
+| 10.5 V sag | 2.48 A (50%) | 2.48 A (50%) | 0.49 A (10%) |
 
-Worst case is 59% of the absolute rating and 79% of the derated 3.75 A, across the whole
-voltage range. It also removes the inrush interaction entirely, since the two pods' turn-on
-surges no longer land on the same fuse.
+Worst case is 50% of a circuit's absolute rating and 66% of the 3.75 A it will carry
+continuously. The whole board is 4.93 A against a 15 A provision -- a third of what the bike
+offers.
+
+**The reason to prefer this over two feeds is a safety argument, not a margin one.** With the
+pods sharing a circuit with the logic rail, a pod fault that blows its fuse takes the controller
+and every signal lamp with it -- the rider loses indicators because an auxiliary light failed.
+Giving each pod its own circuit means a pod fault is contained to that pod: the controller keeps
+running, the indicators keep working, and the firmware can report the failure (§6.3). The feed
+carrying the safety-critical loads is also the lightly loaded one, at 10-16% of its fuse.
 
 **Consequences for the board:**
 
-- **The feed is two feeds.** 3.1's harness grows from 2 pins to 4, and the board carries two
-  input stages. Feed A takes the full 4.2 protection chain (LTC4380 + FETs, TVS, filter) because
-  it feeds the logic rail; feed B powers only the `AUX_R` channel, so it needs reverse-polarity
-  protection and a TVS but no buck and no filter.
-- **Do not diode-OR them.** OR-ing the two feeds would put both pods' current back through one
-  fuse and undo the entire point.
-- **Each feed gets a fuse below its circuit**, not above it: 4 A on feed A and 3 A on feed B.
+- **Three feeds.** §3.1's harness grows from 2 pins to 6. Feed S takes the full §4.2 protection
+  chain -- LTC4380 + FETs, 24 V TVS, pi + common-mode filter, 3V3 buck, gated +5V -- because it
+  alone feeds the logic rail and the ten signal channels. Feeds L and R power one high-side
+  switch each and need reverse-polarity protection and a 24 V TVS, but no buck, no filter and no
+  LTC4380: the smart switch already provides the current limit and thermal protection on its own
+  channel.
+- **Never diode-OR the feeds.** Joining any two puts their loads back through one fuse and
+  undoes the split. In particular, do not "helpfully" OR feed L and R to keep both pods alive
+  through a single-circuit failure -- that reintroduces exactly the 4.3 A case §4.1 rejected.
+- **The returns common at one point, and the pod returns never share copper with the logic
+  reference.** All three circuits return to battery negative, so a single-point star ground at
+  the board is correct and necessary -- the switch channels need the same reference as the MCU
+  driving them. But each pod return carries 2.17 A, and routing that through the logic ground
+  pour would modulate the MCU's reference. This is the ground-separation constraint the board's
+  gates already check by counting the connections between pours; it now applies to three domains
+  rather than one.
+- **Each feed is fused below its circuit**, not above it: 3 A on feeds L and R, 2 A on feed S.
   A board fuse rated above the upstream 5 A can never act, because the bike's fuse always trips
   first -- which is why the withdrawn 7.5 A figure was useless. Sized below, a board-side fault
-  blows at the board and leaves the bike's own circuit intact.
+  blows at the board and leaves the bike's circuit intact.
 - **The firmware is unaffected.** `AUX_L` and `AUX_R` are already separate channels carrying the
-  same value (3, 5.5), so a split feed needs no behavioural change -- only that the two channels'
+  same value (§3, §5.5), so the split needs no behavioural change -- only that the two channels'
   high-side switches sit in different power domains, which is a layout constraint rather than a
   logical one.
 
-**Still to confirm on the bike** (9.1, alongside the Plug C/D pinout): how many aux circuits the
-Experia actually provides, whether they are independently fused or share a feed upstream, and
-whether any of them is switched rather than permanently live. Two independently-fused circuits
-is what this design now assumes; if only one exists, the pods must come off a battery-direct
-fused feed instead, which is what Oxford's own relay kit does and is the fallback.
+**Still to confirm on the bike** (§9.3.4a): whether the three circuits are independently fused
+or share a feed upstream of their individual 5 A fuses, and whether any of them is switched with
+the ignition rather than permanently live. The second question decides whether deep sleep and the
+quiescent budget matter at all: if feed S dies with the ignition, the board is simply off when
+the bike is off, and the §4.2 deep-sleep path becomes belt-and-braces rather than load-bearing.
 
 ### 4.2 Carried forward from plan3
 
