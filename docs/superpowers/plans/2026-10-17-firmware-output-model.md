@@ -99,9 +99,9 @@ before the divergence was measured. Carry both across:
 ```bash
 git checkout main
 git checkout -b plan4-firmware-outputs
-git cherry-pick bb78428          # the spec
-git cherry-pick 85dbc6a          # this plan + the spec's corrected branch bases
-git log --oneline -3
+# Range, not a fixed list: every doc commit on that branch, whatever it ends at.
+git cherry-pick bb78428^..plan4-emarked-modules
+git log --oneline -5
 ls src/domain/test_mode.h        # must exist: proves we are on main's line
 ```
 
