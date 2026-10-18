@@ -105,7 +105,7 @@ COMPS = [
     ("Q13", "Transistor_FET:Si7141DP",   172.72, 127.00,  90, "SQJ461EP", ""),
     ("R108", "Device:R",                 172.72, 139.70,   0, "100k", ""),
     ("D24", "Device:D_Zener",            185.42, 128.27, 270, "MMSZ5245B", ""),
-    ("C66", "Device:C",                  203.20, 128.27,   0, "100nF", ""),
+    ("C66", "Device:C",                  203.20, 128.27,   0, "100nF 100V", ""),
     ("D25", "Device:D_Zener",             210.82, 128.27, 270, "SMBJ24A", ""),
     ("NT1", "Device:NetTie_2",           218.44, 147.32,   0, "NetTie_2", ""),
 ]
@@ -129,7 +129,6 @@ GNDS = [
     ("#PWR04", 123.19 + SH,  86.36),   # C3
     ("#PWR05", 130.81 + SH,  86.36),   # C4
     ("#PWR06", 151.13 + SH,  86.36),   # C5
-    ("#PWR07", 220.98, 147.32),        # NT1 pin 2: the GND side of the feed B star point
 ]
 
 # ON is left open on its internal 1 MOhm pull-up, exactly as the datasheet's Figure 7 does;
@@ -250,6 +249,8 @@ WIRES = [
     ((203.20, 147.32), (210.82, 147.32)),
     ((210.82, 132.08), (210.82, 147.32)),
     ((210.82, 147.32), (215.90, 147.32)),
+    # NT1 pin 2 -> GND_IN (connector side of L2), through a local label like the other GND_IN members
+    ((220.98, 147.32), (226.06, 147.32)),
 ]
 
 JUNCTIONS = [
@@ -302,6 +303,7 @@ LABELS = [
     ("FEED_B_P",  154.94, 124.46, 0),
     ("GATE_B",    175.26, 132.08, 0),
     ("GND_B",     160.02, 147.32, 0),
+    ("GND_IN",    226.06, 147.32, 0),     # NT1 pin 2
 ]
 
 HLABELS = [

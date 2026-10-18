@@ -165,10 +165,17 @@ filter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.
   * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.
     R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the
     +/-20 V rating at the 50.6 V clamp.
-  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF.  D25 is drawn with
+  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with
     Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.
-  * NT1 joins GND_B to GND at one deliberate point (the star point for the layout phase).  GND_B is local
-    to this sheet and must not touch GND_IN or the plane anywhere else.
+  * NT1 joins GND_B to GND_IN (the connector side of choke L2) at one deliberate point, the star point for
+    the layout phase.  It is NOT tied to GND: that would let feed B's return wire carry part of feed A's load
+    current and bypass L2's return winding (DC common-mode imbalance), and the reverse for feed B's own
+    load.  On GND_IN all board current passes through L2's return winding, balanced.  GND_B must touch
+    nothing else.  NT1 is a wide (2.0 mm) tie: with one feed reversed and the other connected, fault current
+    runs through it until the reversed feed's harness fuse clears, and it must outlast the fuse.
+  * Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed
+    disconnected, and when the whole harness is reversed.  One feed reversed while the other is connected
+    shorts through the shared return (via NT1) until that harness fuse clears.
   * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.
   * The 3 A fuse for feed B is HARNESS-SIDE, below the bike's 5 A circuit fuse.  There is no fuse here.
 Q13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L

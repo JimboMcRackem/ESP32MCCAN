@@ -278,7 +278,7 @@ for pnum, net, shape in FANOUT:
         lab(net, end[0], end[1])
 
 # --- shared diagnostic lines (R1): U5 pad -> 4.7k series -> *_Q to the outputs sheet.  One
-#     series resistor per shared line, at the MCU (TI TPS4H160 7.3.7.5).  The 10k pull-down
+#     series resistor per shared line, at the MCU (TI TPS4H160 7.3.7.5).  The 47k pull-down
 #     sits on DIAG_EN_Q, chip side: GPIO2 must be low for download and the chips' DIAG_EN
 #     must be defined.  DIAG_SEL0/1 get no pull (GPIO5/15 strapping, harmless while DIAG_EN low).
 RX = round(U5["24"][0] + 25.4, 4)                   # series resistors start here, clear of labels
@@ -295,7 +295,7 @@ for ref, pnum, net in (("R30", "24", "DIAG_EN"), ("R31", "29", "DIAG_SEL0"),
         jn = (round(up[0] + 2.54, 4), top[1])
         end = (round(jn[0] + 2.54, 4), top[1])
         w(b, up); w(up, top); w(top, jn); w(jn, end); j(jn)
-        c, d = vpart("R33", "Device:R", "10k", jn[0], jn[1]); gnd(*d)
+        c, d = vpart("R33", "Device:R", "47k", jn[0], jn[1]); gnd(*d)
         hlab(net + "_Q", "output", end[0], end[1], 0)
     else:
         end = (round(b[0] + 5.08, 4), b[1])

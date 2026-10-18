@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN-pcb\\hardware\\mccan.kicad_sch")
-		(date "2026-10-18T12:00:33")
+		(date "2026-10-18T12:29:55")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -734,7 +734,7 @@
 		)
 		(comp
 			(ref "C66")
-			(value "100nF")
+			(value "100nF 100V")
 			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
@@ -1387,10 +1387,10 @@
 		(comp
 			(ref "NT1")
 			(value "NetTie_2")
-			(footprint "NetTie:NetTie-2_SMD_Pad0.5mm")
+			(footprint "NetTie:NetTie-2_SMD_Pad2.0mm")
 			(fields
 				(field
-					(name "Footprint") "NetTie:NetTie-2_SMD_Pad0.5mm")
+					(name "Footprint") "NetTie:NetTie-2_SMD_Pad2.0mm")
 				(field
 					(name "Datasheet")
 				)
@@ -3472,7 +3472,7 @@
 		)
 		(comp
 			(ref "R33")
-			(value "10k")
+			(value "47k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -11772,6 +11772,12 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "NT1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
 				(ref "R3")
 				(pin "1")
 				(pintype "passive")
@@ -12254,12 +12260,6 @@
 				(ref "L2")
 				(pin "3")
 				(pinfunction "~_3")
-				(pintype "passive")
-			)
-			(node
-				(ref "NT1")
-				(pin "2")
-				(pinfunction "2_2")
 				(pintype "passive")
 			)
 			(node

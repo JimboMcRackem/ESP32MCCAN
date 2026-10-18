@@ -183,7 +183,7 @@ MCU_PADS = {  # D2: bare net -> U5 pad
 
 FEED_B = {  # D6: ref -> (value token, {role: net})
     "R108": ("100k", {"1|2": ("GATE_B", "GND_B")}),
-    "C66": ("100nF", {"1|2": ("VBAT_B", "GND_B")}),
+    "C66": ("100nF 100V", {"1|2": ("VBAT_B", "GND_B")}),
 }
 
 HARNESS = {  # D5: ref -> (footprint, [net per pin 1..n])
@@ -295,8 +295,8 @@ def chk_c66(nl):
     if not has_part(nl, "C66"):
         return ["C66 (100 nF VBAT_B-GND_B) is not in the netlist"]
     f = []
-    if not value_is(nl, "C66", "100nF"):
-        f.append("C66 value is %r, want 100nF" % nl.parts["C66"].value)
+    if not value_is(nl, "C66", "100nF 100V"):
+        f.append("C66 value is %r, want 100nF 100V" % nl.parts["C66"].value)
     got = set(nl.part_pins["C66"].values())
     if got != {"VBAT_B", "GND_B"}:
         f.append("C66 should sit between VBAT_B and GND_B, found %s" % sorted(got))
@@ -305,11 +305,18 @@ def chk_c66(nl):
 
 def chk_nt1(nl):
     if not has_part(nl, "NT1"):
-        return ["NT1 (NetTie GND_B-GND) is not in the netlist"]
-    got = set(nl.part_pins["NT1"].values())
+        return ["NT1 (NetTie GND_B-GND_IN) is not in the netlist"]
+    pins = nl.part_pins["NT1"]
+    got = set(pins.values())
     f = []
-    if got != {"GND_B", "GND"}:
-        f.append("NT1 should tie GND_B to GND, found nets %s" % sorted(got))
+    # GND_IN, the connector side of L2, not GND: tying to GND would let each feed's return
+    # current bypass L2's return winding (DC common-mode imbalance on the choke).
+    if got != {"GND_B", "GND_IN"} or len(pins) != 2:
+        f.append("NT1 should have one pin on GND_B and the other on GND_IN, found %s" % sorted(pins.items()))
+    for ref, p in sorted(nl.part_pins.items()):
+        nets = set(p.values())
+        if ref != "NT1" and "GND_B" in nets and nets & {"GND", "GND_IN"}:
+            f.append("%s has pins on GND_B and a ground net (only NT1 may bridge them)" % ref)
     if "NetTie" not in nl.parts["NT1"].footprint:
         f.append("NT1 footprint is %r, want a NetTie footprint" % nl.parts["NT1"].footprint)
     return f
@@ -576,8 +583,8 @@ def chk_diag(nl):
             f.append("%s reaches U5 directly (%s); only through the series resistor" % (q, u5))
         pulls = [(r, o) for r, o in resistors_on(nl, q) if o != mcu]
         if q == "DIAG_EN_Q":
-            if not resistors_between(nl, q, "GND", "10k"):
-                f.append("DIAG_EN_Q has no 10k pull-down to GND")
+            if not resistors_between(nl, q, "GND", "47k"):
+                f.append("DIAG_EN_Q has no 47k pull-down to GND")
         elif pulls:
             f.append("%s should have no pull resistor, found %s" % (q, pulls))
     return f

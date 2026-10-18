@@ -146,7 +146,7 @@ split is that a pod R fault cannot reach the controller.
 Each fuse is at least 120% of its own feed's worst case (140% on A, 121% on B) and below the circuit's 5 A, so it can act before
 the bike's fuse does (spec §4.1.1). The fuses are **harness-side**, in the cable, not on the
 board; feed A's board-side protection (LTC4380 U10 with Q10/Q11) and feed B's P-FET Q13 and 24 V
-TVS D25 handle reverse polarity and surge, not the cable. Fuse position along each run is
+TVS D25 handle reverse polarity and surge, not the cable. Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed disconnected, and when the whole harness is reversed. One feed reversed while the other is connected drives fault current through the shared return, via NT1 (a 2.0 mm net tie, sized to outlast the fuse), until the reversed feed's harness fuse clears. `GND_B` joins `GND_IN`, the connector side of choke L2, at NT1, so neither feed's return current bypasses L2's return winding. Fuse position along each run is
 **[TO CONFIRM]**; nearest the supply end protects the most cable (§6).
 
 **Known gap:** U10's current limit, set by R100 (5.6 mOhm), is about 9 A, behind a 4 A fuse, so it

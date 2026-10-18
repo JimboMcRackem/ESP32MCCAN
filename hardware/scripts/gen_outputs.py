@@ -394,11 +394,11 @@ re-use U13 ch3 for anything else: the kit plan needs it.""")
 note("""|INPUTS -- WHY EVERY IN NET IS LOW AT RESET
 Each OUT_* GPIO reaches its IN pin through R_IN_SERIES (4.7 kOhm, TI 7.3.7.5) and the IN net
 carries R_IN_PULLDOWN (47 kOhm) to GND, so no channel can light while the ESP32 is in reset, in
-download mode or asleep.  Driven high: 3.3 V x 37.0 k / (37.0 k + 4.7 k) = 2.93 V against
-VIH = 2.0 V (47 k in parallel with the 175 k minimum internal pull-down).  Series R40-R49,
+download mode or asleep.  Driven high: 3.3 V x 32.0 k / (32.0 k + 4.7 k) = 2.88 V against
+VIH = 2.0 V (47 k in parallel with the 100 k minimum internal pull-down).  Series R40-R49,
 pull-downs R50-R61.""",
 """DIAG_EN_Q, DIAG_SEL0_Q and DIAG_SEL1_Q are shared by all three chips.  Their 4.7 kOhm series
-resistors and the 10 kOhm DIAG_EN_Q pull-down live on mcu_can; SEL0/SEL1 have no external pull
+resistors and the 47 kOhm DIAG_EN_Q pull-down live on mcu_can; SEL0/SEL1 have no external pull
 (their level is irrelevant while DIAG_EN is low).""")
 
 note("""|CURRENT LIMIT, THERMAL MODE, FAULT, GROUND
@@ -416,7 +416,7 @@ then carry (6.5 - 3.3 - 0.3) / 4.7 k = 0.6 mA into the BAT54 (D8-D10, anode SNS_
 +3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS
 node it would have no series resistor to limit its current.""",
 """C44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is
-47 us, so firmware settles >= 250 us after changing DIAG_SEL before reading.  A reading above
+tau = (4.7 k + 1.8 k) x 10 nF = 65 us, so firmware waits >= 400 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above
 ~3.0 V means fault, not current.""")
 
 note("""|AUX OUTPUTS -- PLACEHOLDERS ONLY (spec 9.1, kit-gated)

@@ -1,8 +1,8 @@
 # MCCAN Hardware
 
 KiCad 10.0.2 project for the ESP32 MCCAN lighting controller.
-Spec: `../docs/superpowers/specs/2026-09-11-esp32-mccan-pcb-hardware-design.md`
-Plan: `../docs/superpowers/plans/2026-09-11-esp32-mccan-pcb-hardware.md`
+Spec: `../docs/superpowers/specs/2026-10-17-emarked-module-redesign-design.md`
+Plan: `../docs/superpowers/plans/2026-10-18-board-schematic-phase-a.md`
 
 ## kicad-cli is not on PATH
 
@@ -75,7 +75,7 @@ Reference designators are on F.Fab, except J*, F*, TP*, U*, Q*, D* and L*.
 
 | Sheet | Contents |
 |---|---|
-| power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` meets `GND` only at net-tie NT1 |
+| power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` meets `GND_IN` (the connector side of choke L2) only at net-tie NT1, so neither feed's return current bypasses L2's return winding |
 | rails | Low-Iq buck -> `+3V3_ALW`, gated `+5V` (`EN_5V`). No boost and no `+3V3_SW` |
 | mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, status LED, 4.7 k series resistors on the diagnostic lines |
 | outputs | Three TPS4H160-Q1 quads U11-U13 (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. The aux/pod switch is **not drawn**: it waits on the Oxford kit |
@@ -92,10 +92,13 @@ sense, PWM nets) described a board that no longer exists and have been removed.
 - ADC2 fails while Wi-Fi is up, so the sense inputs are all ADC1.
 - Strapping pins, and what this board ties them to:
   - GPIO 0 is `BOOT_N`: the BOOT button SW1 and the auto-reset transistor Q3.
-  - GPIO 2 is `DIAG_EN`: 4.7 k series, with R33 10 k pull-down on the chip side. It must be low
-    for download, and the same pull-down holds the switches' `DIAG_EN` low.
+  - GPIO 2 is `DIAG_EN`: 4.7 k series, with R33 47 k pull-down on the chip side. It must be low
+    for download, and the same pull-down holds the switches' `DIAG_EN` low. High level: 47 k ∥ 33.3 k
+    (three chips at 100 k min) = 19.5 k, so 3.3 × 19.5 / (19.5 + 4.7) = 2.66 V against VIH 2.0 V.
   - GPIO 5 and 15 are `DIAG_SEL0` / `DIAG_SEL1`: 4.7 k series, **no pull** (their level is
-    irrelevant while `DIAG_EN` is low, and a pull-down on GPIO 15 would mute the boot log).
+    irrelevant while `DIAG_EN` is low). The three SEH internal pull-downs (100 k min each) load
+    GPIO 15 against its internal pull-up, so the ROM boot log will probably be muted; that is
+    harmless. Optional fix: a 10 k pull-up on the MCU side of R32 (not fitted).
   - GPIO 12 is `IO12_STRAP`: R36 10 k to GND (flash voltage select; also the firmware's TWAI TX pin).
 - No lamp output sits on a strapping pin or on GPIO 14.
 
@@ -115,7 +118,14 @@ The **schematic** is complete except the kit-gated aux/pod switch. The **layout 
 - **U10 (LTC4380) `ON` is deliberately left open** on its internal 1 Mohm pull-up. The layout must
   keep that pin's leakage to ground under 1 uA (LTC4380 Rev. C, Pin Functions): no flux-prone
   gap, guard or close ground copper beside the pad.
-- `NT1` is the deliberate `GND_B` / `GND` star point; place it deliberately (spec §4.1.1).
+- `NT1` is the deliberate `GND_B` / `GND_IN` star point (connector side of L2, so no return current bypasses L2's return winding); place it deliberately (spec §4.1.1). It is a 2.0 mm tie so it outlasts the harness fuse when one feed is reversed while the other is connected.
+
+### Phase-A bring-up checklist (additions)
+
+- **ROM boot log may be absent.** The three SEH internal pull-downs load GPIO 15 (MTDO), so the boot ROM log is probably muted. Harmless. Optional fix: a 10 k pull-up on the MCU side of R32 (not fitted).
+- **GPIO12 / flash voltage.** TWAI holds GPIO12 (the MTDI strap) high while running. R36 makes every reset safe. The optional permanent remedy is `espefuse.py set_flash_voltage 3.3V`, which is **IRREVERSIBLE** and is the owner's decision; it has not been run.
+- **Diagnostics settling.** After any `DIAG_SEL` or `DIAG_EN` change wait >= 400 us before reading `SNS_x`.
+- **Reverse polarity.** Test one feed reversed with the other disconnected, and the whole harness reversed. Test one feed reversed with the other connected only on a current-limited bench supply: that drives fault current through NT1 and the shared return until the harness fuse clears.
 - `R100` sets about 9 A behind a 4 A fuse and is re-sized once pod inrush is measured (spec §9.1 item 2a).
 
 > The two sections below, "Project status (Task 1)" and the 2026-09-11 revision, are plan3 history

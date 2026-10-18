@@ -2170,15 +2170,15 @@ which is the only place a pad number is written.
 |---|---|---|---|
 | 1 | 4 channels | p.1 "Quad-channel 160 mΩ" | **PASS** |
 | 2 | Survives `VBAT` | p.6 abs. max VS **48 V** (t < 400 ms); p.7 operating 4–40 V | **PASS.** `VBAT` sits behind the LTC4380-2, whose 31.5 V gate clamp (SEL grounded, row "LTC4380" above) holds it near **27 V**. *Margin note:* the SMBJ24A's 8/20 µs clamp at full I<sub>PP</sub> is 50.6 V, 2.6 V over 48 V; that figure is the passive-part rule, not a level `VBAT` reaches behind the surge stopper |
-| 3 | Off with input open | p.4 Table 5-1: every logic pin "internal pulldown"; p.8 R(logic,pd) 175–250 kΩ | **PASS** — and the board adds 47 kΩ (spec §3.2) |
-| 4 | 3.3 V logic | p.8 VIH **2 V**, VIL 0.8 V | **PASS** — 2.93 V reaches the pin through 4.7 kΩ (quadpins.py) |
+| 3 | Off with input open | p.4 Table 5-1: every logic pin "internal pulldown"; p.8 R(logic,pd) 100 k min / 175 k typ / 250 k max | **PASS** — and the board adds 47 kΩ (spec §3.2) |
+| 4 | 3.3 V logic | p.8 VIH **2 V**, VIL 0.8 V | **PASS** — 2.88 V reaches the pin through 4.7 kΩ (47 k ∥ 100 k min = 32.0 k; quadpins.py) |
 | 5 | Protection, fault reported | p.1, p.8: adjustable current limit, thermal shutdown 175 °C, CS goes to VCS(H) 4.5–6.5 V in fault | **PASS** |
-| 6 | Indicator inrush | p.18 Eq. 4: limit set by R(CL); 0.5 A chosen, ±15 % in 0.5–7 A | **PASS** — 6× the 80 mA load, above the ~0.08 A reservoir inrush (spec §2.1.1) |
+| 6 | Indicator inrush | p.18 Eq. 4: limit set by R(CL); 0.5 A chosen, ±15 % in 0.5–7 A | **PASS** — 6× the 80 mA load, the indicator's 0.08 A is its steady current and its inrush is unmeasured (spec §9.2), so the 0.5 A limit simply clamps whatever it is |
 | 7 | Diagnostics shape | p.4: DIAG_EN, SEL (low bit), SEH (high bit), one CS per chip | **PASS** — exactly D2's shared-bus layout |
 | 8 | Off-state supply | p.7 I(off) **0.5 µA** max at 25 °C, VIN = DIAG_EN = 0 | **PASS** — 1.5 µA for three |
 | 9 | Qualification | p.1 AEC-Q100, grade 1 | **PASS** |
 | 10 | Footprint | p.38 PWP0028V, EP 2.24–2.94 × 4.92–5.62 mm | **PASS** — `Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm`, pads 1–29 match; re-check against the p.39 land pattern in the layout phase |
-| tiebreak | Open-load | p.8: off-state open-load only (VS − VOUT < 2.6 V); on-state via CS, accuracy ±15 % at ≥ 25 mA, ±65 % at 5 mA | 80 mA **resolvable** on CS (0.48 V). 20 mA rear `*_DRL` reads 0.12 V at ±15–65 %: **marginal**, per spec §6 item 4 |
+| tiebreak | Open-load | p.8: off-state open-load only (VS − VOUT < 2.6 V); on-state via CS, accuracy ±15 % at ≥ 25 mA, ±65 % at 5 mA | Off-state open-load needs an external pull-up (Table 7-2 note 1, p.22), which this board does not have, so **only on-state CS resolves lamp-out**. 80 mA **resolvable** on CS (0.48 V). 20 mA rear `*_DRL` reads 0.12 V at ±15–65 %: **marginal**, per spec §6 item 4 |
 
 **Application values** (arithmetic in `quadpins.py`): 4.7 kΩ series on every MCU line — TI §7.3.7.5
 p.26 recommends it at 3.3 V to protect the MCU from a negative GND-pin pulse, so it applies to the

@@ -3354,10 +3354,10 @@
 		)
 		(uuid "7ab1e7f9-3283-5702-822c-9622ce532b23")
 	)
-	(text_box "FEED B (J9 -> Q13) -- SERVES AUX_R ONLY.  NEVER DIODE-OR IT WITH VBAT.\nFeed B is a second, independent 12 V pigtail for the AUX_R pod switch.  It has no eFuse, no buck and no\nfilter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.\n  * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.\n    R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the\n    +/-20 V rating at the 50.6 V clamp.\n  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF.  D25 is drawn with\n    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.\n  * NT1 joins GND_B to GND at one deliberate point (the star point for the layout phase).  GND_B is local\n    to this sheet and must not touch GND_IN or the plane anywhere else.\n  * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.\n  * The 3 A fuse for feed B is HARNESS-SIDE, below the bike's 5 A circuit fuse.  There is no fuse here.\nQ13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L\nfootprint's five pads; its Value field is SQJ461EP.  Worst case 2.48 A at 10.5 V is 0.10 W in Q13."
+	(text_box "FEED B (J9 -> Q13) -- SERVES AUX_R ONLY.  NEVER DIODE-OR IT WITH VBAT.\nFeed B is a second, independent 12 V pigtail for the AUX_R pod switch.  It has no eFuse, no buck and no\nfilter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.\n  * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.\n    R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the\n    +/-20 V rating at the 50.6 V clamp.\n  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with\n    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.\n  * NT1 joins GND_B to GND_IN (the connector side of choke L2) at one deliberate point, the star point for\n    the layout phase.  It is NOT tied to GND: that would let feed B's return wire carry part of feed A's load\n    current and bypass L2's return winding (DC common-mode imbalance), and the reverse for feed B's own\n    load.  On GND_IN all board current passes through L2's return winding, balanced.  GND_B must touch\n    nothing else.  NT1 is a wide (2.0 mm) tie: with one feed reversed and the other connected, fault current\n    runs through it until the reversed feed's harness fuse clears, and it must outlast the fuse.\n  * Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed\n    disconnected, and when the whole harness is reversed.  One feed reversed while the other is connected\n    shorts through the shared return (via NT1) until that harness fuse clears.\n  * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.\n  * The 3 A fuse for feed B is HARNESS-SIDE, below the bike's 5 A circuit fuse.  There is no fuse here.\nQ13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L\nfootprint's five pads; its Value field is SQJ461EP.  Worst case 2.48 A at 10.5 V is 0.10 W in Q13."
 		(exclude_from_sim no)
 		(at 240.03 231.14 0)
-		(size 171.45 27.94)
+		(size 171.45 39.37)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
 			(width 0)
@@ -4052,6 +4052,16 @@
 	)
 	(wire
 		(pts
+			(xy 220.98 147.32) (xy 226.06 147.32)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "943bf751-f0ab-5682-9c5d-4dec510e3643")
+	)
+	(wire
+		(pts
 			(xy 93.98 143.51) (xy 93.98 147.32)
 		)
 		(stroke
@@ -4539,6 +4549,16 @@
 			(justify left bottom)
 		)
 		(uuid "1e377346-30d6-5aa0-86ff-18d7dc744f6f")
+	)
+	(label "GND_IN"
+		(at 226.06 147.32 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1ebdf8d7-dd9a-5eff-836d-6558d5be289e")
 	)
 	(label "SNS"
 		(at 113.03 83.82 0)
@@ -5591,7 +5611,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "NetTie:NetTie-2_SMD_Pad0.5mm"
+		(property "Footprint" "NetTie:NetTie-2_SMD_Pad2.0mm"
 			(at 218.44 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -6796,7 +6816,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100nF"
+		(property "Value" "100nF 100V"
 			(at 204.47 120.65 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7670,85 +7690,6 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/bb7f7a86-b153-4a57-9167-66f1a7c26371"
 					(reference "R2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
-		(at 220.98 147.32 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "e807ef69-e91c-5691-978d-d021954972be")
-		(property "Reference" "#PWR07"
-			(at 220.98 153.67 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "GND"
-			(at 220.98 151.13 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 220.98 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 220.98 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 220.98 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "61a4c0fb-2c8e-50e7-852d-cd4163a10a57")
-		)
-		(instances
-			(project "mccan"
-				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/bb7f7a86-b153-4a57-9167-66f1a7c26371"
-					(reference "#PWR07")
 					(unit 1)
 				)
 			)

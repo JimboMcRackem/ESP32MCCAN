@@ -182,7 +182,7 @@ EXPLICIT = {
     "Q13": "Package_SO:PowerPAK_SO-8L_Single",     # SQJ461EP, same package plan3's Q1 used
     "D24": "Diode_SMD:D_SOD-123",              # MMSZ5245B 15 V zener, Q13 gate clamp
     "D25": "Diode_SMD:D_SMB",                  # SMBJ24A on VBAT_B -- DO-214AA, as D2
-    "NT1": "NetTie:NetTie-2_SMD_Pad0.5mm",     # GND_B <-> GND star point
+    "NT1": "NetTie:NetTie-2_SMD_Pad2.0mm",     # GND_B <-> GND_IN star point; wide so it outlasts the harness fuse
 }
 # D8-D10: BAT54 sense-line clamps, one per signal quad (SNS_A/B/C -> +3V3_ALW).
 for _i in range(8, 11):

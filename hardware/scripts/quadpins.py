@@ -43,17 +43,17 @@ PINS = {
 }
 
 # ---------------------------------------------------------------- application values
-# Logic input.  VIH = 2 V, VIL = 0.8 V; internal pull-down R(logic,pd) 175 k min / 250 k max
+# Logic input.  VIH = 2 V, VIL = 0.8 V; internal pull-down R(logic,pd) 100 k min / 175 k typ / 250 k max
 # (s.6.5 p.8).  TI s.7.3.7.5 (p.26) recommends 4.7 k in series with every MCU line at 3.3 V.
-#   Rpd || Rint(min) = 47 k || 175 k = 37.0 k
-#   VIN(high) = 3.3 x 37.0 / (37.0 + 4.7) = 2.93 V  >=  VIH + 0.5 = 2.5 V
+#   Rpd || Rint(min) = 47 k || 100 k = 32.0 k
+#   VIN(high) = 3.3 x 32.0 / (32.0 + 4.7) = 2.88 V  >=  VIH + 0.5 = 2.5 V
 R_IN_SERIES = "4.7k"
 R_IN_PULLDOWN = "47k"
 
 # Current limit, one per chip (shared by its four channels).  Eq.4 p.18:
 #   R(CL) = VCL(th) x K(CL) / I_CL = 0.8 V x 2500 / 0.5 A = 4.0 k  ->  4.02 k (E96) = 0.498 A
-# 0.5 A is 6x the 80 mA steady load and above the indicator's ~0.08 A reservoir inrush (spec
-# 2.1.1), and accuracy is +/-15 % in the 0.5-7 A band.
+# 0.5 A is 6x the 80 mA steady load and above the indicator's 0.08 A steady current (its inrush
+# is unmeasured, spec 9.2), and accuracy is +/-15 % in the 0.5-7 A band.
 R_CL = "4.02k"
 
 # Current sense.  K(CS) = 300 (s.6.5 p.8).  Linear full scale at the current limit:

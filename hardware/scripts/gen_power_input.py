@@ -326,7 +326,7 @@ nets = {
     "VLOGIC_IN":  [("D3", "1"), ("C5", "1")],
     # GND_IN is the connector-side return.  It carries no power symbol by design -- see the
     # split-ground note on the sheet -- so every member reaches it through a local label.
-    "GND_IN":     [("J1", "2"), ("D2", "2"), ("L2", "2"), ("R3", "1"),
+    "GND_IN":     [("J1", "2"), ("D2", "2"), ("L2", "2"), ("R3", "1"), ("NT1", "2"),
                    ("C63", "2"), ("D21", "2"), ("C64", "2"), ("C65", "2"),
                    ("C62", "2"), ("D23", "2"), ("U10", "8"), ("U10", "6")],
     "GND(board)": [("L2", "3"), ("R3", "2"), ("C1", "2"), ("C2", "2"), ("C3", "2"),
@@ -341,7 +341,6 @@ nets = {
     "VBAT_B":     [("Q13", "1"), ("Q13", "2"), ("Q13", "3"), ("D24", "1"), ("C66", "1"), ("D25", "1")],
     "GATE_B":     [("Q13", "4"), ("D24", "2"), ("R108", "1")],
     "GND_B":      [("J9", "2"), ("R108", "2"), ("C66", "2"), ("D25", "2"), ("NT1", "1")],
-    "GND(feed B)": [("NT1", "2")],
 }
 lookup = {r: (lid, x, y, rot) for (r, lid, x, y, rot, v, fp) in COMPS}
 print("\nexpected pin coordinates:")

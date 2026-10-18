@@ -2156,7 +2156,7 @@
 			(embedded_fonts no)
 		)
 	)
-	(text_box "SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)\nR68-R70 = 1.8 kOhm set the scale: 3.0 V at the 0.5 A limit (K = 300), 0.48 V at 80 mA.\nOn a short or over-temperature the CS pin goes to its 4.5-6.5 V fault level.  R71-R73 (4.7 kOhm)\nthen carry (6.5 - 3.3 - 0.3) / 4.7 k = 0.6 mA into the BAT54 (D8-D10, anode SNS_x, cathode\n+3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS\nnode it would have no series resistor to limit its current.\nC44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is 47 us, so firmware settles >= 250 us\nafter changing DIAG_SEL before reading.  A reading above ~3.0 V means fault, not current."
+	(text_box "SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)\nR68-R70 = 1.8 kOhm set the scale: 3.0 V at the 0.5 A limit (K = 300), 0.48 V at 80 mA.\nOn a short or over-temperature the CS pin goes to its 4.5-6.5 V fault level.  R71-R73 (4.7 kOhm)\nthen carry (6.5 - 3.3 - 0.3) / 4.7 k = 0.6 mA into the BAT54 (D8-D10, anode SNS_x, cathode\n+3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS\nnode it would have no series resistor to limit its current.\nC44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is tau = (4.7 k + 1.8 k) x 10 nF = 65 us,\nso firmware waits >= 400 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above ~3.0 V means fault, not current."
 		(exclude_from_sim no)
 		(at 460.0 65.48 0)
 		(size 103.19 13.84)
@@ -2196,7 +2196,7 @@
 		)
 		(uuid "5f0b530b-7201-5d81-b549-678f201fa7c3")
 	)
-	(text_box "INPUTS -- WHY EVERY IN NET IS LOW AT RESET\nEach OUT_* GPIO reaches its IN pin through R_IN_SERIES (4.7 kOhm, TI 7.3.7.5) and the IN net\ncarries R_IN_PULLDOWN (47 kOhm) to GND, so no channel can light while the ESP32 is in reset, in\ndownload mode or asleep.  Driven high: 3.3 V x 37.0 k / (37.0 k + 4.7 k) = 2.93 V against\nVIH = 2.0 V (47 k in parallel with the 175 k minimum internal pull-down).  Series R40-R49,\npull-downs R50-R61.\nDIAG_EN_Q, DIAG_SEL0_Q and DIAG_SEL1_Q are shared by all three chips.  Their 4.7 kOhm series resistors and the 10 kOhm DIAG_EN_Q pull-\ndown live on mcu_can; SEL0/SEL1 have no external pull (their level is irrelevant while DIAG_EN is low)."
+	(text_box "INPUTS -- WHY EVERY IN NET IS LOW AT RESET\nEach OUT_* GPIO reaches its IN pin through R_IN_SERIES (4.7 kOhm, TI 7.3.7.5) and the IN net\ncarries R_IN_PULLDOWN (47 kOhm) to GND, so no channel can light while the ESP32 is in reset, in\ndownload mode or asleep.  Driven high: 3.3 V x 32.0 k / (32.0 k + 4.7 k) = 2.88 V against\nVIH = 2.0 V (47 k in parallel with the 100 k minimum internal pull-down).  Series R40-R49,\npull-downs R50-R61.\nDIAG_EN_Q, DIAG_SEL0_Q and DIAG_SEL1_Q are shared by all three chips.  Their 4.7 kOhm series resistors and the 47 kOhm DIAG_EN_Q pull-\ndown live on mcu_can; SEL0/SEL1 have no external pull (their level is irrelevant while DIAG_EN is low)."
 		(exclude_from_sim no)
 		(at 460.0 36.28 0)
 		(size 103.19 13.84)
