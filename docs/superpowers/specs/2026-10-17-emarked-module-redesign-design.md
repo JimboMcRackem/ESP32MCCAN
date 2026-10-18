@@ -186,12 +186,15 @@ loom from 14 wires to 12.
 
 | Connector | Pins | Contents |
 |---|---|---|
-| Front | 5 | 2× DRL, 2× IND, 1 shared return (250 mA worst case) |
-| Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (250 mA worst case) |
+| Front | 5 | 2× DRL, 2× IND, 1 shared return (160 mA worst case) |
+| Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (200 mA worst case) |
 | Pods | 4 (+1) | per-pod +12 V and return; pod returns do **not** share with signal returns |
 | CAN | 2 | CAN H / CAN L |
 | Feed A | 2 | aux circuit +, − — logic, the ten signal channels, `AUX_L` |
 | Feed B | 2 | aux circuit +, − — `AUX_R` only (§4.1.1) |
+
+(Shared-return currents are two modules of §2.1's worst case each: front 2 × 0.08 A = 160 mA,
+rear 2 × 0.10 A = 200 mA. Not the 250 mA that 2 × 125 mA/channel gives.)
 
 ### 3.2 Boot safety
 
@@ -217,7 +220,7 @@ defect.
  +-------------+   +-----------------+  +------------------+
  | 3V3 BUCK    |   | QUAD SMART HS   |  | SMART HS  AUX_L  |
  | +3V3_ALW    |   | x2 -> 10 ch     |  | limit 3.0-3.5 A: |
- | + 5V gated  |   | 80/20mA, see §3 |  | MUST trip before |
+ | + 5V gated  |   | 80/20 mA, see §3|  | MUST trip before |
  +------+------+   +-----------------+  | feed A's 4 A fuse|
         |                  ^ 10 GPIO    +------------------+
         |     +------------+------------+        ^ 1 GPIO
