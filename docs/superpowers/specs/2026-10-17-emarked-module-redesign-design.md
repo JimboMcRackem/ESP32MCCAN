@@ -208,7 +208,7 @@ defect.
 ## 4. Hardware architecture
 
 ```
- FEED A --[4 A]--+   1 of 2 available aux circuits (5 A each). 2.77 A @ 12 V
+ FEED A --[4 A]--+   1 of 2 available aux circuits (5 A each). 2.63 A @ 12 V
                  v
        +------------------+
        | INPUT PROTECTION |  LTC4380 + 2 FETs, rev. polarity + overcurrent
@@ -270,7 +270,7 @@ and the answer is the opposite of what a wattage limit would imply.
 
 **The pods are constant-power, so their current rises as the voltage falls.** At 26 W a pod
 draws 1.81 A at 14.4 V but 2.48 A at 10.5 V. The resistor-ballasted 2835 signal modules (2.1)
-move the other way, drawing more as voltage climbs, but at ~6 W total they are a minor term
+move the other way, drawing more as voltage climbs, but at ~4.3 W total they are a minor term
 against the pods' 52 W. The pods therefore dominate, and the worst case for the fuse is a
 **sagging battery, not charging voltage** -- cranking, or a long idle with the lights on.
 
