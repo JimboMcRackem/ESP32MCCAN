@@ -1,7 +1,7 @@
 #include <unity.h>
 #include "domain/config.h"
 
-void test_default_timing_and_colors() {
+void test_default_timing() {
   Config c = defaultConfig();
   TEST_ASSERT_EQUAL_UINT32(340, c.blinkPeriodMs);
   TEST_ASSERT_EQUAL_UINT32(800, c.spotHoldMs);
@@ -80,7 +80,7 @@ void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
-  RUN_TEST(test_default_timing_and_colors);
+  RUN_TEST(test_default_timing);
   RUN_TEST(test_experia_indicator_mapping);
   RUN_TEST(test_experia_highbeam_is_and_of_two_bits);
   RUN_TEST(test_run_and_daynight_unassigned);

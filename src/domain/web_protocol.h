@@ -13,6 +13,14 @@
 // single 12-bit output mask.
 constexpr int kProtocolVersion = 3;
 
+// Wire-name asymmetry, deliberate and load-bearing: an INBOUND test request
+// names its mode in "mode" (read at web_protocol.cpp:47), while the OUTBOUND
+// test_state names the same concept in "kind" (written at :131). Both sides
+// are in step with the app today; renaming either is a wire break for no
+// functional gain, so leave them. Separately, "zones" (the key),
+// TestKind::Zones and TestMode::zones all now mean one 12-bit output mask --
+// the name predates the per-corner colour triples it used to carry.
+
 struct ProtocolAction {
   bool        sendConfig   = false;
   bool        applyConfig  = false;

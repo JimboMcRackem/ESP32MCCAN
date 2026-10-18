@@ -30,6 +30,10 @@ inline bool operator==(const OutputIntent& a, const OutputIntent& b) { return a.
 inline bool operator!=(const OutputIntent& a, const OutputIntent& b) { return !(a == b); }
 
 // Mask literal helper, for expected values in tests and for presets.
+// Precondition: every argument is a real output, i.e. < OUT_COUNT. The fold
+// shifts by the raw value with no constraint, so outMask(OUT_COUNT) would
+// yield bit 12 -- a bit no output has. Not checked: a runtime check does not
+// belong in a constexpr helper, and nothing in production passes a value in.
 constexpr uint16_t outMask() { return 0; }
 template <typename... Rest>
 constexpr uint16_t outMask(OutputIndex first, Rest... rest) {

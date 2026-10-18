@@ -63,7 +63,7 @@ ProtocolAction handleRequest(const std::string& json) {
       // "energise nothing" while still reporting success, which contradicts
       // the reasoning below for the out-of-range case.
       if (!doc["zones"].is<uint32_t>()) {
-        act.error = "zones request missing a numeric zones field";
+        act.error = "zones field missing or not a non-negative integer";
         return act;
       }
       const uint32_t mask = doc["zones"];

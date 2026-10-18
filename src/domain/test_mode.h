@@ -27,7 +27,7 @@ extern const int         kScenarioCount;
 // `out` untouched — an unknown scenario must be an error, not a silent no-op.
 bool scenarioByName(const char* name, LogicalState& out);
 
-// The single seam between the behaviour engine and the PWM outputs.
+// The single seam between the behaviour engine and the output bitmask.
 //   Off      -> computeOutputs(real, ..., est)        exactly today's path
 //   Scenario -> computeOutputs(t.scenario, ..., testEst)
 //   Zones    -> t.zones verbatim

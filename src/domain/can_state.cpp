@@ -9,25 +9,25 @@ const CanState::Frame* CanState::find(uint32_t id) const {
 }
 
 void CanState::update(uint32_t id, const uint8_t data[8], uint32_t nowMs) {
+  Frame* slot = nullptr;
   for (auto& f : frames_) {                 // update existing
-    if (f.seen && f.id == id) {
-      std::memcpy(f.data, data, 8);
-      anyRx_    = true;
-      lastRxMs_ = nowMs;
-      return;
+    if (f.seen && f.id == id) { slot = &f; break; }
+  }
+  if (!slot) {
+    for (auto& f : frames_) {               // insert into free slot
+      if (!f.seen) { f.seen = true; f.id = id; slot = &f; break; }
     }
   }
-  for (auto& f : frames_) {                 // insert into free slot
-    if (!f.seen) {
-      f.seen = true;
-      f.id = id;
-      std::memcpy(f.data, data, 8);
-      anyRx_    = true;
-      lastRxMs_ = nowMs;
-      return;
-    }
-  }
-  // table full: ignore new ids (16 distinct ids is ample for this use).
+  // Table full: ignore new ids (16 distinct ids is ample for this use). The
+  // traffic bookkeeping is skipped with the frame, unchanged from before --
+  // flipping that would change what stale() means and needs its own test.
+  if (!slot) return;
+
+  // One place that records traffic, so a future third path cannot skip it and
+  // silently break stale().
+  std::memcpy(slot->data, data, 8);
+  anyRx_    = true;
+  lastRxMs_ = nowMs;
 }
 
 bool CanState::getBit(uint32_t id, uint8_t bit) const {
