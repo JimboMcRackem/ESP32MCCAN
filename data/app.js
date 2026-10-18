@@ -3,37 +3,28 @@
 // Function keys must match config_json.cpp kFuncNames order/spelling.
 const FUNCS = ["run","leftInd","rightInd","frontBrake","rearBrake",
                "lowBeam","highBeam","highBeamFlash","dayNight","kickStand"];
-const COLORS = ["drlWhiteDay","drlWhiteNight","drlDimRedDay","drlDimRedNight",
-                "indicatorOrange","brakeRed"];
-const DENALI = ["day","low","high","spot"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
 const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
-const PROTOCOL_VERSION = 2;   // must match kProtocolVersion in web_protocol.h
+const PROTOCOL_VERSION = 3;   // must match kProtocolVersion in web_protocol.h
 // Must match kScenarioNames in test_mode.cpp — the firmware table is
 // authoritative and rejects anything it does not know.
 const SCENARIOS = ["allOff","drlDay","drlNight","leftInd","rightInd",
                    "hazards","brake","brakeNight","lowBeam","highBeam"];
-// ChannelIndex corner order.
-const ZONES = ["front L","front R","rear L","rear R"];
-// Which zones each appearance entry drives while Preview is on. Preview is an
-// ordinary zones override whose contents the UI computes — the firmware needs
-// no concept of it.
-const PREVIEW_ZONES = {
-  drlWhiteDay:     [0, 1],
-  drlWhiteNight:   [0, 1],
-  drlDimRedDay:    [2, 3],
-  drlDimRedNight:  [2, 3],
-  brakeRed:        [2, 3],
-  indicatorOrange: [0, 1, 2, 3],
-};
+// Must match OutputIndex in src/domain/outputs.h, in order. The firmware's
+// enum is authoritative; this mirrors it only for labels.
+const OUTPUT_NAMES = [
+  "Front L - DRL",  "Front L - indicator",
+  "Front R - DRL",  "Front R - indicator",
+  "Rear L - DRL",   "Rear L - indicator", "Rear L - brake",
+  "Rear R - DRL",   "Rear R - indicator", "Rear R - brake",
+  "Aux pod L",      "Aux pod R",
+];
 
 let cfg = null;         // last config from device
 let ws = null;
 let testState = { active: false, kind: "off", remainingMs: 0 };
 let activeScenario = null;
-let testZoneState = [0, 0, 0, 0].map(() => ({ hue: [255, 255, 255], level: 0 }));
-let testDenali = 0;
-let previewOn = false;
+let testMask = 0;
 
 function setStatus(connected) {
   const el = document.getElementById("status");
@@ -55,7 +46,12 @@ function send(obj) {
 function onMessage(msg) {
   if (msg.type === "config") { checkVersion(msg.protocolVersion); cfg = msg.config; render(); }
   else if (msg.type === "frames") { renderFrames(msg.frames); }
-  else if (msg.type === "test_state") { testState = msg; renderTestBanner(); }
+  else if (msg.type === "test_state") {
+    testState = msg;
+    testMask = msg.zones | 0;
+    renderTestBanner();
+    renderTestOutputs();
+  }
   else if (msg.type === "error") { alert("Device error: " + msg.message); }
   // Anything else is ignored on purpose: a newer firmware broadcasting a
   // message this app does not know must be inert, not fatal.
@@ -78,68 +74,11 @@ function render() {
   document.getElementById("blinkPeriodMs").value = cfg.blinkPeriodMs;
   document.getElementById("spotHoldMs").value = cfg.spotHoldMs;
   document.getElementById("testMaxMs").value = cfg.testMaxMs;
-  renderDenali();
-  renderColors();
+  document.getElementById("flashSource").value = cfg.flashSource || "auto";
   renderScenarios();
-  renderTestZones();
+  renderTestOutputs();
   renderMaps();
   renderDiscFuncOptions();
-}
-
-function renderDenali() {
-  const host = document.getElementById("denali");
-  host.innerHTML = "<h3>Denali levels (0-255)</h3>";
-  DENALI.forEach((k) => {
-    const lab = document.createElement("label");
-    lab.textContent = "Denali " + k;
-    const inp = document.createElement("input");
-    inp.type = "number"; inp.min = 0; inp.max = 255; inp.value = cfg.denali[k];
-    inp.oninput = () => { cfg.denali[k] = clamp(inp.value, 0, 255); };
-    lab.appendChild(inp); host.appendChild(lab);
-  });
-}
-
-function renderColors() {
-  const host = document.getElementById("colors");
-  host.innerHTML = "";
-  COLORS.forEach((k) => {
-    const e = cfg.colors[k];
-    const row = document.createElement("div");
-    row.className = "row";
-
-    const name = document.createElement("span"); name.textContent = k;
-    const picker = document.createElement("input");
-    picker.type = "color"; picker.value = rgbToHex(e.hue);
-    const level = document.createElement("input");
-    level.type = "range"; level.min = 0; level.max = 100;
-    level.value = levelToPct(e.level);
-    const pct = document.createElement("span");
-    pct.className = "pct"; pct.textContent = level.value + "%";
-
-    const update = () => {
-      // The stored hue is always normalized so brightness lives entirely in
-      // the level. The picker's own value is deliberately NOT written back:
-      // snapping the swatch mid-drag fights the user, and the level slider
-      // already shows the brightness the normalization moved there.
-      e.hue = normalizeHue(hexToRgb(picker.value));
-      e.level = pctToLevel(level.value);
-      pct.textContent = level.value + "%";
-      if (previewOn) previewEntry(k, e);
-    };
-    picker.oninput = update;
-    level.oninput = update;
-
-    row.appendChild(name); row.appendChild(picker);
-    row.appendChild(level); row.appendChild(pct);
-    host.appendChild(row);
-  });
-}
-
-function previewEntry(k, e) {
-  const zones = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
-  const duty = resolveJs(e.hue, e.level);
-  (PREVIEW_ZONES[k] || []).forEach((i) => { zones[i] = duty; });
-  scheduleSend(() => send({ type: "test", mode: "zones", zones, denali: 0 }));
 }
 
 function renderTestBanner() {
@@ -147,8 +86,6 @@ function renderTestBanner() {
   el.hidden = !testState.active;
   if (!testState.active) {
     activeScenario = null;
-    previewOn = false;
-    document.getElementById("previewToggle").checked = false;
     renderScenarios();
     return;
   }
@@ -186,45 +123,22 @@ function renderScenarios() {
   });
 }
 
-function sendTestZones() {
-  activeScenario = null;
-  scheduleSend(() => send({
-    type: "test",
-    mode: "zones",
-    zones: testZoneState.map((z) => resolveJs(z.hue, z.level)),
-    denali: testDenali,
-  }));
-}
-
-function renderTestZones() {
-  const host = document.getElementById("testZones");
+function renderTestOutputs() {
+  const host = document.getElementById("testOutputs");
   host.innerHTML = "";
-  ZONES.forEach((label, i) => {
-    const z = testZoneState[i];
-    const box = document.createElement("div"); box.className = "zone";
-    const h = document.createElement("h4"); h.textContent = label; box.appendChild(h);
-
-    const row = document.createElement("div"); row.className = "row";
-    const picker = document.createElement("input");
-    picker.type = "color"; picker.value = rgbToHex(z.hue);
-    const level = document.createElement("input");
-    level.type = "range"; level.min = 0; level.max = 100;
-    level.value = levelToPct(z.level);
-    const pct = document.createElement("span");
-    pct.className = "pct"; pct.textContent = level.value + "%";
-
-    const update = () => {
-      z.hue = normalizeHue(hexToRgb(picker.value));
-      z.level = pctToLevel(level.value);
-      pct.textContent = level.value + "%";
-      sendTestZones();
-      renderScenarios();     // a zone edit clears the active scenario
+  OUTPUT_NAMES.forEach((name, i) => {
+    const lab = document.createElement("label");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = (testMask & (1 << i)) !== 0;
+    box.onchange = () => {
+      if (box.checked) testMask |= (1 << i);
+      else             testMask &= ~(1 << i);
+      send({ type: "test", mode: "zones", zones: testMask });
     };
-    picker.oninput = update;
-    level.oninput = update;
-
-    row.appendChild(picker); row.appendChild(level); row.appendChild(pct);
-    box.appendChild(row); host.appendChild(box);
+    lab.appendChild(box);
+    lab.appendChild(document.createTextNode(" " + name));
+    host.appendChild(lab);
   });
 }
 
@@ -316,6 +230,7 @@ function collect() {
   cfg.blinkPeriodMs = clamp(document.getElementById("blinkPeriodMs").value, 50, 5000);
   cfg.spotHoldMs = clamp(document.getElementById("spotHoldMs").value, 100, 10000);
   cfg.testMaxMs = clamp(document.getElementById("testMaxMs").value, 10000, 3600000);
+  cfg.flashSource = document.getElementById("flashSource").value;
   return cfg;
 }
 
@@ -339,42 +254,6 @@ function importConfig(file) {
 
 // ---- helpers ----
 function clamp(v, lo, hi) { v = Number(v) | 0; return v < lo ? lo : v > hi ? hi : v; }
-function rgbToHex(a) {
-  const h = (n) => ("0" + (n & 255).toString(16)).slice(-2);
-  return "#" + h(a[0]) + h(a[1]) + h(a[2]);
-}
-function hexToRgb(s) {
-  return [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
-}
-
-// Mirrors resolveColor()/colorFromRgb() in color.h. Zone overrides are sent
-// as raw duty, so the app applies gamma itself.
-function gamma8Js(level) { return Math.round(255 * Math.pow(level / 255, 2.2)); }
-
-function normalizeHue(rgb) {
-  const m = Math.max(rgb[0], rgb[1], rgb[2]);
-  return m ? rgb.map((c) => Math.round((c * 255) / m)) : [255, 255, 255];
-}
-
-function resolveJs(hue, level) {
-  const g = gamma8Js(level);
-  return normalizeHue(hue).map((c) => Math.floor((c * g) / 255));
-}
-
-function pctToLevel(p) { return Math.round((Number(p) * 255) / 100); }
-function levelToPct(l) { return Math.round((l * 100) / 255); }
-
-// One send per animation frame, so dragging a slider cannot flood the socket.
-let pendingSend = null, rafId = 0;
-function scheduleSend(fn) {
-  pendingSend = fn;
-  if (rafId) return;
-  rafId = requestAnimationFrame(() => {
-    rafId = 0;
-    const f = pendingSend; pendingSend = null;
-    if (f) f();
-  });
-}
 
 // ---- wiring ----
 document.querySelectorAll("nav button").forEach((b) => {
@@ -396,16 +275,5 @@ document.getElementById("discToggle").onchange = (e) => {
 };
 
 document.getElementById("testExitBtn").onclick = exitTest;
-document.getElementById("testDenali").oninput = (e) => {
-  testDenali = pctToLevel(e.target.value);
-  document.getElementById("testDenaliPct").textContent = e.target.value + "%";
-  sendTestZones();
-};
-document.getElementById("previewToggle").onchange = (e) => {
-  previewOn = e.target.checked;
-  // Turning preview off releases the override rather than leaving the last
-  // previewed colour latched on the bike.
-  if (!previewOn) send({ type: "test", mode: "off" });
-};
 
 connect();

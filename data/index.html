@@ -23,7 +23,6 @@
 
   <nav>
     <button data-tab="tunables" class="active">Tunables</button>
-    <button data-tab="appearance">Appearance</button>
     <button data-tab="test">Test</button>
     <button data-tab="mapping">Mapping</button>
     <button data-tab="discovery">Discovery</button>
@@ -41,13 +40,13 @@
       <label>Test mode auto-exit (ms)
         <input type="number" id="testMaxMs" min="10000" max="3600000" step="10000">
       </label>
-      <div id="denali"></div>
-    </section>
-
-    <section id="tab-appearance" class="tab">
-      <label><input type="checkbox" id="previewToggle">
-        Preview on the bike's lights while editing</label>
-      <div id="colors"></div>
+      <label>Indicator flash source
+        <select id="flashSource">
+          <option value="auto">Auto (follow the bike, fall back to 340 ms)</option>
+          <option value="follow">Follow the bike's indicator signal</option>
+          <option value="generate">Generate our own flash</option>
+        </select>
+      </label>
     </section>
 
     <section id="tab-test" class="tab">
@@ -55,11 +54,10 @@
       own brake and indicator signals are ignored while it is active.</small></p>
       <h3>Scenarios</h3>
       <div id="scenarios" class="scenarios"></div>
-      <h3>Zones</h3>
-      <div id="testZones"></div>
-      <label>Denali <span id="testDenaliPct">0%</span>
-        <input type="range" id="testDenali" min="0" max="100" value="0">
-      </label>
+      <h3>Outputs</h3>
+      <p><small>One wire per checkbox. Walking these one at a time confirms
+      every module is on the pin the firmware thinks it is.</small></p>
+      <div id="testOutputs" class="outputs"></div>
     </section>
 
     <section id="tab-mapping" class="tab">

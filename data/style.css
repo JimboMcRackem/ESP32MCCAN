@@ -50,3 +50,6 @@ input[type=range] { width: 100%; margin-top: .25rem; }
 .scenarios button { padding: .5rem .7rem; border: none; border-radius: .4rem;
                     background: #2e3340; color: #eee; font-size: .85rem; }
 .scenarios button.active { background: #4b8bff; color: #fff; }
+
+.outputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.outputs label { display: flex; align-items: center; gap: 6px; }
