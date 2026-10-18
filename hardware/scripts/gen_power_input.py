@@ -32,8 +32,12 @@ libsyms = open(os.path.join(HERE, "power_input_libsyms.txt"), encoding="utf-8").
 # ---------------------------------------------------------------- pin geometry
 # library pin coordinates (lib frame, Y-up), keyed by lib_id -> {number: (x, y)}
 PINS = {
-    "Connector:Conn_01x03_Pin": {"1": (5.08, 2.54), "2": (5.08, 0.0),
-                             "3": (5.08, -2.54)},
+    "Connector:Conn_01x02_Pin": {"1": (5.08, 0.0), "2": (5.08, -2.54)},
+    # Transistor_FET:Si7141DP (used for Q13, value SQJ461EP) -- PowerPAK SO-8L: S = 1,2,3 (stacked
+    # at one point), G = 4, D = 5.  Matches the SQJ461EP footprint's five pads.
+    "Transistor_FET:Si7141DP": {"1": (2.54, -5.08), "2": (2.54, -5.08), "3": (2.54, -5.08),
+                                "4": (-5.08, 0.0), "5": (2.54, 5.08)},
+    "Device:NetTie_2": {"1": (-2.54, 0.0), "2": (2.54, 0.0)},
     "Device:Fuse":              {"1": (0.0, 3.81), "2": (0.0, -3.81)},
     # Transistor_FET:Q_PMOS_GSD -- 1 = G, 2 = S, 3 = D (numeric, maps to real footprints)
     "Transistor_FET:Q_PMOS_GSD": {"1": (-5.08, 0.0), "2": (2.54, -5.08), "3": (2.54, 5.08)},
@@ -306,8 +310,7 @@ print("wrote", OUT, len(L), "lines")
 # what blocks reverse current.  Common source passes ERC, DRC and the pad count and is
 # wrong.  Spec section 4.2 requires this to be read by hand after every regeneration.
 nets = {
-    "IGN_IN":     [("J1", "1")],
-    "FEED_P":     [("J1", "2"), ("R104", "1"), ("Q10", "2"), ("R105", "1"), ("Q12", "2")],
+    "FEED_P":     [("J1", "1"), ("R104", "1"), ("Q10", "2"), ("R105", "1"), ("Q12", "2")],
     "VCC10":      [("R104", "2"), ("C63", "1"), ("D21", "1"), ("U10", "2")],
     "MID":        [("Q10", "3"), ("Q11", "3"), ("R101", "1")],
     "U10_DRN":    [("R101", "2"), ("U10", "1")],
@@ -323,7 +326,7 @@ nets = {
     "VLOGIC_IN":  [("D3", "1"), ("C5", "1")],
     # GND_IN is the connector-side return.  It carries no power symbol by design -- see the
     # split-ground note on the sheet -- so every member reaches it through a local label.
-    "GND_IN":     [("J1", "3"), ("D2", "2"), ("L2", "2"), ("R3", "1"),
+    "GND_IN":     [("J1", "2"), ("D2", "2"), ("L2", "2"), ("R3", "1"),
                    ("C63", "2"), ("D21", "2"), ("C64", "2"), ("C65", "2"),
                    ("C62", "2"), ("D23", "2"), ("U10", "8"), ("U10", "6")],
     "GND(board)": [("L2", "3"), ("R3", "2"), ("C1", "2"), ("C2", "2"), ("C3", "2"),
@@ -333,6 +336,12 @@ nets = {
     "R106_D23":   [("R106", "2"), ("D23", "1")],
     "R103_C64":   [("R103", "2"), ("C64", "1")],
     "U10_TMR":    [("U10", "10"), ("C62", "1")],
+    # feed B (D6)
+    "FEED_B_P":   [("J9", "1"), ("Q13", "5")],
+    "VBAT_B":     [("Q13", "1"), ("Q13", "2"), ("Q13", "3"), ("D24", "1"), ("C66", "1"), ("D25", "1")],
+    "GATE_B":     [("Q13", "4"), ("D24", "2"), ("R108", "1")],
+    "GND_B":      [("J9", "2"), ("R108", "2"), ("C66", "2"), ("D25", "2"), ("NT1", "1")],
+    "GND(feed B)": [("NT1", "2")],
 }
 lookup = {r: (lid, x, y, rot) for (r, lid, x, y, rot, v, fp) in COMPS}
 print("\nexpected pin coordinates:")

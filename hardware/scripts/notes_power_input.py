@@ -159,12 +159,20 @@ SOA arithmetic depends on: the 23.6 V-at-7 A clamp case is computed with the TVS
 Moving D2 to FEED_P would protect Q10/Q11 from the surge directly and is arguably better -- it is logged
 as an open question for spec 4.3, and it invalidates the SOA numbers if it is done without redoing them.""")
 
-_box("right", """NOT DRAWN: THE DNP SECOND FEED AND SECOND SCHOTTKY (spec section 4.4)
-Spec 4.4 asks for a second 12 V feed and a second Schottky as FOOTPRINTS ONLY, fitted Do-Not-Populate, so
-that an ideal-diode OR can be retrofitted without a board respin.  Those parts (J2 / F2 on net VBAT_B,
-and a second Schottky from VBAT_B into VLOGIC_IN) are intentionally absent here.  Add them as DNP symbols
-before PCB layout if you want them in the netlist -- a footprint that is not in the netlist will not be
-placed on the board.""")
+_box("right", """FEED B (J9 -> Q13) -- SERVES AUX_R ONLY.  NEVER DIODE-OR IT WITH VBAT.
+Feed B is a second, independent 12 V pigtail for the AUX_R pod switch.  It has no eFuse, no buck and no
+filter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.
+  * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.
+    R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the
+    +/-20 V rating at the 50.6 V clamp.
+  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF.  D25 is drawn with
+    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.
+  * NT1 joins GND_B to GND at one deliberate point (the star point for the layout phase).  GND_B is local
+    to this sheet and must not touch GND_IN or the plane anywhere else.
+  * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.
+  * The 3 A fuse for feed B is HARNESS-SIDE, below the bike's 5 A circuit fuse.  There is no fuse here.
+Q13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L
+footprint's five pads; its Value field is SQJ461EP.  Worst case 2.48 A at 10.5 V is 0.10 W in Q13.""")
 
 # ---------------------------------------------------------------- split ground
 _box("below", '''COMMON-MODE CHOKE AND THE SPLIT GROUND -- DO NOT "TIDY" THIS
