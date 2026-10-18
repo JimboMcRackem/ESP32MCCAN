@@ -17,15 +17,25 @@ static const int kCanTxPin = 17;
 static const uint32_t kCanBitrate = 500000;
 
 // Provisional GPIO assignment in OutputIndex order - finalized against the PCB
-// in the board plan. All twelve are plain outputs; none is a strapping pin that
-// would float a lamp on at reset.
-static const uint8_t kOutputPins[OUT_COUNT] = {
+// in the board plan. These avoid the strapping pins (0, 2, 5, 12, 15), but that
+// is hygiene, not the safety guarantee: nothing lights a lamp at reset because
+// spec 3.2 mandates a hard pull-down on every switch input, and that covers a
+// floating or strapping-pin GPIO either way. Do not read a pin choice here as
+// doing that work.
+static const uint8_t kOutputPins[] = {
   13, 14,        // FL_DRL, FL_IND
   25, 26,        // FR_DRL, FR_IND
   27, 32, 33,    // RL_DRL, RL_IND, RL_BRK
   18, 19, 23,    // RR_DRL, RR_IND, RR_BRK
-   4,  5,        // AUX_L, AUX_R
+   4, 21,        // AUX_L, AUX_R   (21 was I2C; free since the PCA9685 went)
 };
+// Catches a dropped line, which would otherwise zero-fill the tail onto GPIO 0
+// and shift every later output onto the wrong wire. It does NOT check order --
+// only the comments above and the on-device output walk do that. main.cpp is
+// excluded from the native build, so the ESP32 build is the only thing that
+// ever compiles this.
+static_assert(sizeof(kOutputPins) / sizeof(kOutputPins[0]) == (size_t)OUT_COUNT,
+              "kOutputPins must have one pin per OutputIndex");
 static GpioOutputs g_out(kOutputPins, OUT_COUNT);
 
 static Config      g_cfg;
