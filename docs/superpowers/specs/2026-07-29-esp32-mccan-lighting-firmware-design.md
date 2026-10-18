@@ -6,7 +6,10 @@
 > 5's appearance block and 7 (PWM channel count) are replaced by
 > `2026-10-17-emarked-module-redesign-design.md`: the lighting modules are now bought,
 > E-marked and on/off, so there is no colour and no PWM. Sections 1-3, 6 and 8 — the CAN
-> mapping model, connectivity and the testing approach — remain current.
+> mapping model, connectivity and the testing approach — remain current. So does 4.3 (run
+> gating). 4.4 (timing & tunables) is mixed: the blink period and spot-hold threshold survive,
+> its brightness/colour tunables do not. Sections 9 and 10 are open questions and downstream
+> notes predating this redesign — neither current nor superseded, just historical.
 
 **Scope:** Firmware + configuration web app for the ESP32 lighting controller.
 **Out of scope (future sessions):** PCB/hardware design, and app packaging beyond the self-hosted web app.

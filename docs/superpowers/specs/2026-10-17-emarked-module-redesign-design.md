@@ -389,15 +389,29 @@ state. If no suitable part exists, the fallback is deliberate gate slew-rate lim
 expected to be the largest datasheet effort in the build, and it is the same part whose sense
 output would provide pod lamp-out.
 
-The **quad** parts carrying the ten signal outputs are not under that constraint: 2835-based
-modules (§2.1) are resistive rather than capacitive loads, so those channels can be chosen on
-steady-state 125 mA and protection alone. The absence of bulk capacitance also helps the
-lamp-out nice-to-have, since there is no charging current to confuse an open-load threshold —
-though whether any threshold resolves 125 mA is still the open question.
+The **quad** parts carrying the ten signal outputs are not under the pods' inrush constraint,
+but the resistive-load reasoning behind that only holds for six of the ten. `FL_DRL`/`FR_DRL`,
+`RL_DRL`/`RR_DRL` and `RL_BRK`/`RR_BRK` are the white and red 2835-based functions (§2.1), which
+are resistive rather than capacitive loads, so those six can be chosen on steady-state current
+and protection alone. The four `*_IND` channels cannot be grouped with them: §2.1.1 item 3 finds
+that the module's internal sequencer very likely carries a reservoir capacitor, so the
+no-bulk-capacitance reasoning is unsafe for them. §2.1.1 also finds the resulting inrush too
+small, at 0.08 A, to trouble switch selection — so this does not reopen the part decision, only
+the lamp-out reasoning below.
+
+The absence of bulk capacitance also helps the lamp-out nice-to-have on the six resistive
+channels, since there is no charging current to confuse an open-load threshold — though whether
+any threshold resolves the channel's own current (80 mA, or 20 mA on the two rear `*_DRL`
+channels per §3) is still the open question, and it is the 20 mA rear pair where that is hardest
+to resolve (§6.4). On the four `*_IND` channels the absence of bulk capacitance cannot be
+assumed in the first place (§2.1.1): a sequencer's draw varies through the sweep, so there may be
+no steady current at all for an open-load threshold to compare against. Lamp-out there is not
+merely harder to resolve — it may not be a well-posed check.
 
 **Lamp-out detection is a nice-to-have, not a requirement.** It influences part selection only
-as a tiebreaker and is dropped without ceremony if the open-load threshold cannot resolve
-125 mA. It is report-only (§6) so it can never become a failure mode.
+as a tiebreaker and is dropped without ceremony, channel by channel, wherever the open-load
+threshold cannot resolve that channel's current (or, on `*_IND`, wherever there is no steady
+current to resolve at all). It is report-only (§6) so it can never become a failure mode.
 
 ### 4.5 Board and enclosure
 

@@ -11,7 +11,10 @@
 > longer exists. The RGB-triples-plus-`denali` wire example in "Design 3: protocol" is likewise
 > superseded by protocol v3's numeric `zones` mask. "Design 2: test-mode core" (scenario table,
 > exit paths), the single-holder/last-writer-wins rule and the protocol-version banner in
-> "Design 3", and the rest of "Design 4" (warning banner, test tab) remain current.
+> "Design 3", and the warning banner in "Design 4" remain current. Within "Design 4"'s test tab,
+> the nav entry and the scenario buttons remain current; its four zone controls of hue picker
+> plus level slider and its Denali level slider are superseded by the same redesign, replaced by
+> twelve on/off checkboxes, one per output.
 
 **Scope:** firmware (`src/`) and web app (`data/`). No hardware changes.
 
@@ -319,6 +322,10 @@ It sits outside the tabs deliberately: in the test tab it could be navigated awa
 bike's lights are still lying about brake and indicator state.
 
 ### Test tab
+
+> **Superseded in part, 2026-10-17** — see the banner at the top of this document. The nav
+> entry and the scenario buttons below are current; the four zone controls and the Denali
+> slider are not — the shipped tab is twelve on/off checkboxes, one per output.
 
 New nav entry. Contains scenario buttons (from a JS const mirroring the firmware table, carrying
 the same "must match" comment style as `FUNCS` at `app.js:4`), four zone controls of hue picker
