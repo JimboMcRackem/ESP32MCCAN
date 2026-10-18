@@ -152,7 +152,8 @@ Expected: export succeeds. (`$SCRATCH` is the session scratchpad.)
 - Produces, in `quadpins.py`:
   - `PART: str` (orderable part number), `LIB_ID: str` (`"mccan_parts:<name>"`), `FOOTPRINT: str`
   - `PINS: dict[str, list[str]]` with keys `"IN1".."IN4"`, `"OUT1".."OUT4"` (each a list: multi-pad outputs), `"VS"`, `"GND"`, `"DIAG_EN"`, `"SEL0"`, `"SEL1"`, `"SNS"`, and `"OTHER"` (every remaining pad, with its required strap as a comment)
-  - `R_IN_SERIES: str`, `R_IN_PULLDOWN: str`, `R_SNS: str`, `C_OUT: str | None`, `C_VS: str` — value strings as they will appear on the sheet
+  - `R_IN_SERIES: str`, `R_IN_PULLDOWN: str`, `R_SNS: str`, `R_CL: str`, `R_THER: str`, `C_OUT: str | None`, `C_VS: str` — value strings as they will appear on the sheet
+  - `PINS` also carries `"CL"`, `"THER"`, `"FAULT"` and `"EP"` when the part has them
 
 - [ ] **Step 1: Get the datasheets**
 
@@ -163,7 +164,7 @@ Ask the user to download into `hardware/datasheets/`: **TI TPS4H160-Q1** (first 
 | # | Criterion | Pass if |
 |---|---|---|
 | 1 | Channels | 4 |
-| 2 | Survives the feed | VS abs. max or load-dump rating covers **50.6 V** for 8/20 µs |
+| 2 | Survives the feed | VS rating covers `VBAT`, which the LTC4380-2's **31.5 V gate clamp** (SEL grounded) holds near **27 V**; record the abs. max against the TVS's 50.6 V full-I<sub>PP</sub> clamp as a margin note, not a gate (corrected 2026-10-18: the 50.6 V rule is for passives, and no 12 V smart switch meets it) |
 | 3 | Off with input open | internal input pull-down **and** output off with IN floating (spec §3.2) |
 | 4 | 3.3 V logic | VIH(max) ≤ 2.0 V |
 | 5 | Protection | per-channel current limit and thermal shutdown, fault reported on the sense output |
@@ -178,7 +179,7 @@ Write the graded table into `part-selection.md` with the datasheet page for ever
 
 - [ ] **Step 3: Write `quadpins.py` from the winner's pin table**
 
-Every pad number is copied from the datasheet's pin-function table, with the table's name and page in a comment. `R_IN_SERIES`/`R_IN_PULLDOWN` default to `"1k"`/`"47k"` unless the application section specifies otherwise; check `3.3 × Rpd / (Rpd + Rs) ≥ VIH(max) + 0.5 V` and record the arithmetic. `R_SNS` is chosen so the **fault-level** sense voltage stays ≤ 3.1 V (ESP32 ADC at 11 dB) and record that arithmetic too. `C_OUT` is the application circuit's output capacitor or `None`.
+Every pad number is copied from the datasheet's pin-function table, with the table's name and page in a comment. `R_IN_SERIES`/`R_IN_PULLDOWN` default to `"4.7k"`/`"47k"` (TI §7.3.7.5 recommends 4.7 kΩ for a 3.3 V MCU); check `3.3 × (Rpd ∥ Rint) / ((Rpd ∥ Rint) + Rs) ≥ VIH + 0.5 V` and record the arithmetic. A sense output's **fault level is a fixed voltage**, not set by `R_SNS`, and the Schottky clamp handles it; `R_SNS` instead puts the **linear full-scale at the current limit ≤ 3.0 V** (ESP32 ADC at 11 dB), so a reading above that means fault. Also record `R_CL` (current-limit resistor), `THER` handling and any pin left unconnected. `C_OUT` is the application circuit's output capacitor or `None`.
 
 - [ ] **Step 4: Verify the module imports and the pin set is complete**
 
@@ -214,7 +215,7 @@ Values come from D1–D6 and `quadpins`; each group is a list of small functions
 - `feed_b`: D6's table, pin by pin (Q13 pin roles taken from the symbol's G/S/D map); `VBAT` and `VBAT_B` are different nets; **no part has one pin on `VBAT` and another on `VBAT_B`**; `GND_B` contains only J9.2, R108, D25, C66 and NT1.
 - `rails`: `EN_5V` contains U5.26, the 5 V buck's `EN/UVLO` pin and a resistor whose other pin is on `GND`; `+5V` still reaches U6 `VCC`.
 - `mcu`: every row of D2 — `U5.<pad>` is on the named net; `CAN_RXD` is on U5.7; `IO12_STRAP` has a resistor to `GND`; `U6.1` (`TXD`) is on a net with no U5 pin and a resistor to `+3V3_ALW` (R24 — the hardware listen-only guarantee); `CAN_STB` has a resistor to `+3V3_ALW` (R25, standby by default).
-- `outputs`: for each of the 12 `(chip, channel)` cells of D1 that carries a function: `OUT_<fn>` contains U5's pad, the series resistor, and nothing else on the MCU side; the chip's `IN<ch>` pin is on a net with the series resistor's other pin and an `R_IN_PULLDOWN` resistor to `GND`; the chip's `OUT<ch>` pads are all on net `<fn>`. Spare channels: `IN` pulled down, `OUT` unconnected. `OUT_AUX_L`/`OUT_AUX_R`: U5's pad plus a pull-down to `GND`, nothing else. Each chip's `SNS` pin sits on a net with `R_SNS` to `GND` and a series resistor whose other end is on `SNS_A|B|C`, and that net also has a Schottky whose cathode is on `+3V3_ALW`. `DIAG_EN`, `DIAG_SEL0`, `DIAG_SEL1` each reach all three chips; `DIAG_EN` has a pull-down; `DIAG_SEL0`/`DIAG_SEL1` have none. Each chip's `VS` pins are on `VBAT`, `GND` pins on `GND`.
+- `outputs`: for each of the 12 `(chip, channel)` cells of D1 that carries a function: `OUT_<fn>` contains U5's pad, the series resistor, and nothing else on the MCU side; the chip's `IN<ch>` pin is on a net with the series resistor's other pin and an `R_IN_PULLDOWN` resistor to `GND`; the chip's `OUT<ch>` pads are all on net `<fn>`. Spare channels: `IN` pulled down, `OUT` unconnected. `OUT_AUX_L`/`OUT_AUX_R`: U5's pad plus a pull-down to `GND`, nothing else. Each chip's `SNS` pin sits on a net with `R_SNS` to `GND` and a series resistor whose other end is on `SNS_A|B|C`, and that net also has a Schottky whose cathode is on `+3V3_ALW`. Each chip's `CL` pin has `R_CL` to `GND`; its `THER` pin has `R_THER` to `+5V`; its `FAULT` pin is unconnected; its `EP` is on `GND`. `DIAG_EN`, `DIAG_SEL0`, `DIAG_SEL1` each reach all three chips; `DIAG_EN` has a pull-down; `DIAG_SEL0`/`DIAG_SEL1` have none. Each chip's `VS` pins are on `VBAT`, `GND` pins on `GND`.
 - `harness`: D5's table, pin by pin.
 - `boot_safety`: every net containing any chip's `IN*` pin has at least one resistor to `GND` and no part pin on `+3V3_ALW`, `+5V`, `VBAT` or `VBAT_B`; no `OUT_*` net contains U5 pads 13, 14, 23, 24, 25 or 29 (GPIO 14, 12, 15, 2, 0, 5).
 
@@ -361,7 +362,7 @@ Expected: no diff on the second run; `PASS mcu`. `boot_safety` may still fail un
 
 - [ ] **Step 3: Place U11–U13 per D1**, each with `C_VS` (≥ 63 V) on `VS`. Per used channel: GPIO net → `R_IN_SERIES` → `IN` net with `R_IN_PULLDOWN` to `GND`; `OUT` pads → the function net → its tail pin per D5; `C_OUT` to `GND` if `quadpins.C_OUT` is not `None` (≥ 63 V). Spare channels: `IN` pulled down, `OUT` pads no-connect; a sheet note on U13 ch3 saying it is reserved for `AUX_MODE` (spec §3) and wired in the kit plan.
 
-- [ ] **Step 4: Sense paths.** Per chip: `SNS` → `R_SNS` to `GND`; series 1 kΩ → `SNS_A|B|C`; BAT54 anode on `SNS_x`, cathode on `+3V3_ALW`; 10 nF 0603 `SNS_x` → `GND`.
+- [ ] **Step 4: Sense and control paths.** Per chip: `SNS` → `R_SNS` to `GND`; series 4.7 kΩ → `SNS_A|B|C` (limits the clamp current from the 6.5 V fault level to ~0.6 mA); BAT54 anode on `SNS_x`, cathode on `+3V3_ALW`; 10 nF 0603 `SNS_x` → `GND`. `CL` → `R_CL` → `GND`. `THER` → `R_THER` → `+5V` (latch mode, so the firmware owns retry with backoff per spec §6.3; tied to the **gated** `+5V` so the pin's internal pull-down draws nothing in sleep). `FAULT` unconnected (no GPIO left; the per-chip sense line reports faults). `GND` pins and the exposed pad straight to `GND`: feed A's LTC4380 already blocks reverse polarity, so TI's GND network is not fitted.
 
 - [ ] **Step 5: Aux placeholders.** `OUT_AUX_L` and `OUT_AUX_R` each end in a 47 kΩ pull-down to `GND` and a sheet note: switch stage, pod tail and `R100` re-size are kit-gated (spec §9.1).
 
