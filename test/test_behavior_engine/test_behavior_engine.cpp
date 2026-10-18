@@ -76,6 +76,21 @@ void test_brake_plus_left_indicator_kills_the_indicating_corners_brake() {
     run(s, PHASE_ON));
 }
 
+void test_brake_plus_left_indicator_dark_phase_keeps_the_rear_brake_dropped() {
+  // The rear module ORs DRL and brake onto one light engine, so a brake left
+  // asserted would light the indicating corner through the dark half and
+  // destroy the flash contrast R48 requires. Pinning flashSource to Generate
+  // is the only way to reach that dark half here: under the default Auto a
+  // freshly-asserted bit is followed lit, which hides the distinction between
+  // keying the drop off the request and keying it off the phase.
+  Config cfg = defaultConfig();
+  cfg.flashSource = FlashSource::Generate;
+  EngineState est;
+  LogicalState s; s.run = true; s.frontBrake = true; s.leftInd = true;
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FR_DRL, OUT_RR_DRL, OUT_RR_BRK),
+                            computeOutputs(s, cfg, PHASE_OFF, est).on);
+}
+
 void test_brake_plus_right_indicator_mirrors_it() {
   LogicalState s; s.run = true; s.rearBrake = true; s.rightInd = true;
   TEST_ASSERT_EQUAL_UINT16(
@@ -209,6 +224,28 @@ void test_auto_watchdog_survives_millis_rollover() {
   TEST_ASSERT_FALSE(computeOutputs(s, cfg, 0x500u, est).isOn(OUT_FL_IND));
 }
 
+// The watchdog test's post-wrap samples catch a `nowMs > t.sinceMs` sanity
+// guard, but NOT the other banned rollover form, `now >= then + threshold`:
+// both forms answer "generate" at 0x200 and at 0x500. Only a PRE-wrap sample
+// separates them, and only one whose generated phase is dark -- a pre-wrap
+// sample in the lit half reads the same either way, which is why this test
+// does not reuse the watchdog test's 0xFFFFFF00 (phase 0, so every pre-wrap
+// offset lands in the lit half).
+//
+// 0xFFFFFB60 is 1184 ms short of the wrap, so `since + 1200` overflows to 16
+// and the banned form compares against that. At since + 0x50 only 80 ms have
+// elapsed, so Auto is still following and the lamp is lit; the banned form
+// reads 0xFFFFFBB0 >= 16, falls through to generating, and
+// 0xFFFFFBB0 % 680 == 512 >= 340 is a dark half, so it answers dark.
+void test_auto_watchdog_does_not_fire_early_just_before_rollover() {
+  Config cfg = defaultConfig();            // Auto, 1200 ms window, 340 ms blink
+  EngineState est;
+  LogicalState s; s.run = true; s.leftInd = true;
+  const uint32_t since = 0xFFFFFB60u;
+  computeOutputs(s, cfg, since, est);      // rising edge, pre-wrap
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, since + 0x50u, est).isOn(OUT_FL_IND));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_default_lights_four_drl);
@@ -219,6 +256,7 @@ int main(int, char**) {
   RUN_TEST(test_brake_adds_both_rear_brakes_to_the_drls);
   RUN_TEST(test_rear_brake_also_counts_as_brake);
   RUN_TEST(test_brake_plus_left_indicator_kills_the_indicating_corners_brake);
+  RUN_TEST(test_brake_plus_left_indicator_dark_phase_keeps_the_rear_brake_dropped);
   RUN_TEST(test_brake_plus_right_indicator_mirrors_it);
   RUN_TEST(test_brake_plus_hazards_is_indicators_only);
   RUN_TEST(test_run_clear_keeps_indicators_and_drops_everything_else);
@@ -232,6 +270,6 @@ int main(int, char**) {
   RUN_TEST(test_auto_restarts_its_window_on_each_rising_edge);
   RUN_TEST(test_spot_hold_survives_millis_rollover);
   RUN_TEST(test_auto_watchdog_survives_millis_rollover);
-  UNITY_END();
-  return 0;
+  RUN_TEST(test_auto_watchdog_does_not_fire_early_just_before_rollover);
+  return UNITY_END();
 }
