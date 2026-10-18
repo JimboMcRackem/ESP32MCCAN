@@ -11,6 +11,9 @@ PowerShell: & "C:\Program Files\KiCad\10.0\bin\kicad-cli.exe" <args>
 
 ## Verification gates
 
+ERC applies to the current schematic. The DRC commands below apply to the abandoned plan3 board
+until the layout phase produces a new one.
+
 ERC (must exit 0):
   "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" sch erc \
     --severity-error --exit-code-violations \
@@ -72,74 +75,36 @@ Reference designators are on F.Fab, except J*, F*, TP*, U*, Q*, D* and L*.
 
 | Sheet | Contents |
 |---|---|
-| power_input | Single feed: 10 A fuse, P-FET, TVS, pi+CM filter -> VBAT. Second feed + Schottky OR as DNP footprints |
-| rails | Sync boost, low-Iq buck, 3V3 load switch |
-| mcu_can | ESP32 module, TJA1042, programming header, status LED |
-| outputs | PCA9685, **12x MOSFET + 1 ohm shunt (2512, >=1 W), 12x 10k series + clamp, ADG706 16:1 mux**, dual PROFET, PTCs, connectors |
+| power_input | Feed A (J1): fuse-side protection chain, LTC4380 U10 + Q10/Q11, 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): P-FET Q13, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` meets `GND` only at net-tie NT1 |
+| rails | Low-Iq buck -> `+3V3_ALW`, gated `+5V` (`EN_5V`). No boost and no `+3V3_SW` |
+| mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, status LED, 4.7 k series resistors on the diagnostic lines |
+| outputs | Three TPS4H160-Q1 quads U11-U13 (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. The aux/pod switch is **not drawn**: it waits on the Oxford kit |
 
-## Net naming contract
+The pin map and net names are the generators' (`scripts/gen_*.py`, `scripts/quadpins.py`) and the
+netlist `output/netlist.net`. The plan3 pin tables that used to be here (PCA9685, mux, ignition
+sense, PWM nets) described a board that no longer exists and have been removed.
 
-Sheets connect ONLY through these names. See the plan's Global Constraints for the
-full list and for the mandatory passive-default biasing table.
+## Phase-A board status (2026-10-18)
 
-**Pin assignment — use exactly these**
+The **schematic** is complete except the kit-gated aux/pod switch. The **layout has not started**.
 
-| Net | GPIO | Constraint |
-|---|---|---|
-| `CAN_RXD` | 35 | Input-only **and RTC-capable** — EXT0 wake |
-| `IGN_SENSE` | 36 | RTC-capable — EXT1 `ANY_HIGH` wake |
-| `CAN_TXD` | 17 | |
-| `CAN_STB` | 14 | RTC-capable |
-| `I2C_SDA` / `I2C_SCL` | 21 / 22 | |
-| `PWM_DEN_A` / `PWM_DEN_B` | 18 / 19 | LEDC |
-| `RGB_ISNS` (mux output) | 32 | **ADC1_CH4** — RGB sense chain |
-| `MUX_S0` / `S1` / `S2` / `S3` | 23 / 4 / 16 / 5 | GPIO 5 is a strapping pin — pulldown mandatory |
-| `ISNS_DEN` (**one** multiplexed output) | 34 | **ADC1 only** — ADC2 fails while WiFi is active |
-| `DEN_DSEL` — PROFET channel select | 33 | **ADDED (C1)** — the BTS7008-2EPA has ONE `IS` output |
-| `EN_BOOST` | 25 | |
-| `EN_3V3SW` | 26 | |
-| `EN_DIAG` | 27 | |
-| `LED_STAT` | 13 | |
-| Programming | 0, 1, 3, EN | Reserved |
+- `mccan.kicad_pcb` and `output/gerbers/` are the **abandoned plan3 board**. They no longer match
+  the schematic and must not be fabricated or used as a layout starting point. The DRC commands
+  and counts under "Verification gates" describe that board.
+- `scripts/layout_*.py` and `scripts/route_*` (also `routes_signal.json`) still reference plan3
+  parts that phase A deleted -- `layout_pcb.py` lists refs such as U7, U8, U9, J6 and J7 -- and
+  must be reworked in the layout phase. Do not run them, or `gen_pcb.py`, until then.
 
-Spare: GPIO 2, 12, 15, **39**. Never use GPIO 6–11 (flash).
+### Layout-phase notes
 
-**GPIO 37 and 38 do not exist on WROOM-32 modules** — they are not bonded out. Leave GPIO 12
-unused: it selects flash voltage at boot.
+- **U10 (LTC4380) `ON` is deliberately left open** on its internal 1 Mohm pull-up. The layout must
+  keep that pin's leakage to ground under 1 uA (LTC4380 Rev. C, Pin Functions): no flux-prone
+  gap, guard or close ground copper beside the pad.
+- `NT1` is the deliberate `GND_B` / `GND` star point; place it deliberately (spec §4.1.1).
+- `R100` sets about 9 A behind a 4 A fuse and is re-sized once pod inrush is measured (spec §9.1 item 2a).
 
-**Passive-default biasing — mandatory on every one of these nets**
-
-| Net | Bias | Floating state |
-|---|---|---|
-| `EN_BOOST` | pulldown to GND | Boost off |
-| `EN_3V3SW` | pulldown to GND | Peripheral rail off |
-| `CAN_STB` | pull-up to VIO | Transceiver in standby |
-| All 14 `PWM_*` | pulldown to GND | All outputs off |
-| **`IGN_SENSE`** | **pulldown, ALWAYS POPULATED** | **Defined low.** GPIO 34–39 have NO internal pulls and EXT1 `ANY_HIGH` is armed here — floating, it wakes the board on noise (C2) |
-| `DEN_DSEL` | pulldown to GND | Defined channel selection |
-| **`EN_DIAG`** (GPIO 27) | **pulldown to GND** | PROFET Sleep mode needs ALL of `INn`/`DEN`/`DSEL` low; GPIO 27 is not RTC-capable so it floats in sleep |
-| `MUX_S0`–`S3` | pulldown to GND | Defined channel; **required on GPIO 5** (strapping pin) |
-
-**Net naming contract** — sheets connect only through these names. Use them exactly.
-
-```
-Power:    VBAT  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
-          (VBAT_B exists only on the DNP second-feed footprints — spec 4.4)
-Per-str:  +24V_FL  +24V_FR  +24V_RL  +24V_RR          (after each PTC)
-RGB PWM:  PWM_FL_R PWM_FL_G PWM_FL_B PWM_FR_R PWM_FR_G PWM_FR_B
-          PWM_RL_R PWM_RL_G PWM_RL_B PWM_RR_R PWM_RR_G PWM_RR_B
-RGB ret:  RET_FL_R RET_FL_G RET_FL_B RET_FR_R RET_FR_G RET_FR_B
-          RET_RL_R RET_RL_G RET_RL_B RET_RR_R RET_RR_G RET_RR_B
-Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN  DEN_DSEL
-Control:  EN_BOOST EN_3V3SW EN_DIAG LED_STAT IGN_SENSE
-          (EN_3V3SW gates BOTH +3V3_SW and +5V — one enable, no extra GPIO)
-Bus:      I2C_SDA I2C_SCL
-Sense:    SENSE_FL_R SENSE_FL_G SENSE_FL_B SENSE_FR_R SENSE_FR_G SENSE_FR_B
-          SENSE_RL_R SENSE_RL_G SENSE_RL_B SENSE_RR_R SENSE_RR_G SENSE_RR_B
-          MUX_S0 MUX_S1 MUX_S2 MUX_S3  RGB_ISNS
-CAN:      CAN_TXD CAN_RXD CAN_STB CANH CANL
-Prog:     UART_TX UART_RX BOOT_N EN_MCU
-```
+> The two sections below, "Project status (Task 1)" and the 2026-09-11 revision, are plan3 history
+> kept for the record; the phase-A status above supersedes them.
 
 ## Project status (Task 1)
 
