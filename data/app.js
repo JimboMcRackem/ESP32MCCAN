@@ -49,6 +49,10 @@ function onMessage(msg) {
   else if (msg.type === "test_state") {
     testState = msg;
     testMask = msg.zones | 0;
+    // The firmware is the source of truth for which mode is active. If a
+    // second client (or this one, via the checkboxes) switched to zones or
+    // off, the scenario highlight here must not keep lying about it.
+    if (msg.kind !== "scenario") { activeScenario = null; renderScenarios(); }
     renderTestBanner();
     renderTestOutputs();
   }
@@ -84,11 +88,9 @@ function render() {
 function renderTestBanner() {
   const el = document.getElementById("testBanner");
   el.hidden = !testState.active;
-  if (!testState.active) {
-    activeScenario = null;
-    renderScenarios();
-    return;
-  }
+  // activeScenario is cleared by onMessage whenever the device reports a
+  // non-scenario kind (which includes "off"), so this only has to render.
+  if (!testState.active) return;
   const s = Math.max(0, Math.round(testState.remainingMs / 1000));
   const mm = String(Math.floor(s / 60)).padStart(2, "0");
   const ss = String(s % 60).padStart(2, "0");
@@ -134,6 +136,8 @@ function renderTestOutputs() {
     box.onchange = () => {
       if (box.checked) testMask |= (1 << i);
       else             testMask &= ~(1 << i);
+      activeScenario = null;      // a checkbox edit leaves scenario mode
+      renderScenarios();
       send({ type: "test", mode: "zones", zones: testMask });
     };
     lab.appendChild(box);

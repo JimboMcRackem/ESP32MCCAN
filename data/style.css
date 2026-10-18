@@ -40,12 +40,6 @@ header { flex-direction: column; align-items: stretch; }
 .banner.danger { background: #a11; color: #fff; }
 .banner.warn { background: #7a5b00; color: #fff; }
 
-input[type=range] { width: 100%; margin-top: .25rem; }
-.row input[type=range] { flex: 2; margin-top: 0; }
-.row .pct { flex: 0 0 3rem; text-align: right; font-variant-numeric: tabular-nums; }
-
-.zone { border: 1px solid #333; border-radius: .4rem; padding: .5rem; margin: .5rem 0; }
-.zone h4 { margin: 0 0 .3rem; font-size: .9rem; }
 .scenarios { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
 .scenarios button { padding: .5rem .7rem; border: none; border-radius: .4rem;
                     background: #2e3340; color: #eee; font-size: .85rem; }
