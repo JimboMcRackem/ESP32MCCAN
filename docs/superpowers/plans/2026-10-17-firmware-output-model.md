@@ -982,7 +982,9 @@ The DRL and brake lines are unchanged: they already key off `li` / `ri`, not the
 python -m platformio test -e native -f test_behavior_engine
 ```
 
-Expected: PASS, 21 tests.
+Expected: PASS, 21 tests. (21 was correct when this step ran. The final fix dispatch later added
+two tests to this suite — the R48 brake dark-phase case and a pre-wrap rollover sample — so
+re-running it today gives 23.)
 
 - [x] **Step 7: Confirm the rollover tests actually exercise the wrap**
 
