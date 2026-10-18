@@ -282,6 +282,16 @@ Everything on one 5 A circuit, computed rather than estimated:
 | 12.0 V nominal | 4.33 A | 0.36 A | 0.10 A | **4.79 A** | **96%** | **128%** |
 | 10.5 V sag | 4.95 A | ~0.27 A | 0.11 A | **5.33 A** | **107%** | **142%** |
 
+(The signal figures marked `~` are **computed, not measured**: they scale 2.1's measured 0.36 A
+at 12 V under a resistor-ballast model, `I(V) = 0.36 x (V - Vf) / (12 - Vf)`. Both fit
+`Vf ~= 5.9-6.0 V`; solving from the two figures' ratio alone, without presupposing a value,
+gives 5.92 V. That forward drop is **inferred from these figures and has not been measured** --
+a ~6 V string is plausible for these modules but atypical for a three-in-series 12 V automotive
+strip (~9 V), so read it as the model's implied value, never as a part parameter. Note also that
+the 14.4 V figure is numerically identical to the **discarded** four-corner 0.50 A total. It is
+not that total, and nothing in this section rests on it. The same model carries 4.1.1's signal
+figures.)
+
 A 5 A fuse wants no more than 75% of its rating continuously, so 3.75 A is the usable figure.
 This load is 112-142% of that and crosses the absolute rating outright below about 11.3 V. It
 is not a tight fit to be managed; it does not fit. Note too that the **pods alone** need = 10.4 V

@@ -984,7 +984,7 @@ python -m platformio test -e native -f test_behavior_engine
 
 Expected: PASS, 21 tests.
 
-- [ ] **Step 7: Confirm the rollover tests actually exercise the wrap**
+- [x] **Step 7: Confirm the rollover tests actually exercise the wrap**
 
 A rollover test that would also pass under broken arithmetic proves nothing, so mutate the code
 and watch the tests catch it.
@@ -1017,13 +1017,15 @@ Expected: FAIL on `test_spot_hold_survives_millis_rollover` and
 `nowMs = 0x500`, 1536 ms has genuinely elapsed, but the guard suppresses the comparison so the
 watchdog never falls back and the spot latch never releases. Remove the guards and confirm PASS.
 
-> **Left unticked (Task 7 docs review).** The step's original mutation — swapping the
-> `(uint32_t)` casts for `(int32_t)` — was found invalid (ruling R5 / commit 6eb81a5): both
-> operands are already `uint32_t`, so the subtraction wraps before the cast runs, and comparing
-> the cast `int32_t` against the `uint32_t` threshold promotes it straight back to unsigned —
-> the mutation is a no-op and proves nothing. The step was corrected in place to the
-> `nowMs > sinceMs` guard mutation above, but nobody has run the corrected version since. It
-> remains outstanding.
+> **Ticked.** The whole-branch reviewer ran the corrected `nowMs > sinceMs` guard mutation
+> above: both rollover tests failed, and both passed with the guards removed.
+>
+> That mutation is only one of the two banned forms. The final fix dispatch found that neither
+> rollover test discriminated against the other one, `now >= then + threshold`, because both
+> sample only post-wrap, where the correct and the banned form agree.
+> `test_auto_watchdog_does_not_fire_early_just_before_rollover` was added to close that: it
+> samples pre-wrap, at a point whose generated phase is dark, which is the only kind of sample
+> that separates them.
 
 - [x] **Step 8: Serialize `flashSource` in `src/domain/config_json.cpp`**
 
