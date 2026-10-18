@@ -4,7 +4,7 @@
 import os, re, uuid
 import fpmap
 
-HW = r"D:\Projects\ESP32MCCAN\hardware"
+HW = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 STOCK = r"C:\Program Files\KiCad\10.0\share\kicad\symbols"
 SHEET_UUID = "41ca87d7-21c7-4e64-9af2-9cbb98c5af77"          # keep existing
 INST_PATH = "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4a66277e-62b8-454b-8781-170494cf9f57"

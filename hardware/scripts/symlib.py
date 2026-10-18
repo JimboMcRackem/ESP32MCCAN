@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Fix LM51571-Q1 pin electrical types and add the DML3017LDC smart load switch."""
-import io, re
+import io, os, re
 
-LIB = r"D:\Projects\ESP32MCCAN\hardware\symbols\mccan_parts.kicad_sym"
+# Resolved from this file, not hard-coded, so a worktree regenerates its own library.
+LIB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "symbols", "mccan_parts.kicad_sym")
 s = io.open(LIB, encoding="utf-8").read()
 
 # ---------------------------------------------------------------- 1. pin types
