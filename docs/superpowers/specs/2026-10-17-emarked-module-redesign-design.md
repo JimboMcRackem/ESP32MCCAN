@@ -399,7 +399,7 @@ chosen so that one dead chip never takes out both sides' indicators and brake su
 chip failing: chip A left side — `FL_DRL`, `FL_IND`, `RL_DRL`, `RL_IND`; chip B right side — the
 `FR`/`RR` equivalents; chip C — `RL_BRK`, `RR_BRK`, with the two spare channels reserved for
 `AUX_MODE`. The part is the TI TPS4H160-Q1, U11–U13.)* Chosen over discrete P-FETs because each channel brings
-short-circuit protection, thermal shutdown and open-load detection in silicon, which replaces
+short-circuit protection and thermal shutdown in silicon, which replaces
 the stage the previous design built by hand out of twelve shunts and a mux — the subsystem that
 generated more review findings than any other in plan3.
 
@@ -430,7 +430,7 @@ assumed in the first place (§2.1.1): a sequencer's draw varies through the swee
 no steady current at all for an open-load threshold to compare against. Lamp-out there is not
 merely harder to resolve — it may not be a well-posed check.
 
-**Lamp-out detection is a nice-to-have, not a requirement.** It influences part selection only
+**Lamp-out detection is a nice-to-have, not a requirement.** On this board only on-state CS resolves lamp-out: the TPS4H160's off-state open-load detection needs an external pull-up (Table 7-2 note 1, p.22), which the board does not have. It influences part selection only
 as a tiebreaker and is dropped without ceremony, channel by channel, wherever the open-load
 threshold cannot resolve that channel's current (or, on `*_IND`, wherever there is no steady
 current to resolve at all). It is report-only (§6) so it can never become a failure mode.
@@ -570,7 +570,7 @@ In priority order:
    without closing it: it rules out any always-on-bus reading of Run-clear, so the row is
    reachable only in a key-on-but-not-ready-to-ride state, if the Experia has one. Confirm on
    the bike whether such a state exists and what Run reads in it.
-3. **Switch fault** (overcurrent latch-off reported by the part) — log, retry with backoff,
+3. **Switch fault** (current limit, then thermal latch-off (THER high), reported by the part) — log, retry with backoff,
    surface on the Status screen. A shorted harness neither blows a fuse nor takes the controller
    down.
 4. **Lamp-out**, where resolvable — **report only**, never alters behavior. The rear
