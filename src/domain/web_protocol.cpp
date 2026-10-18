@@ -58,11 +58,18 @@ ProtocolAction handleRequest(const std::string& json) {
       }
       tm.kind = TestKind::Scenario;
     } else if (m == "zones") {
-      // NOTE: this firmware speaks the new 12-bit output mask; the wire
-      // format (protocol version bump, flashSource field) is finished by a
-      // later task, but the mask parse has to land here because the type
-      // underneath TestMode::zones already changed with OutputIntent.
-      const uint32_t mask = doc["zones"] | 0u;
+      // A missing or non-numeric zones field must be rejected, not treated
+      // as mask 0: that would silently turn a malformed request into
+      // "energise nothing" while still reporting success, which contradicts
+      // the reasoning below for the out-of-range case.
+      if (!doc["zones"].is<uint32_t>()) {
+        act.error = "zones request missing a numeric zones field";
+        return act;
+      }
+      const uint32_t mask = doc["zones"];
+      // Reject rather than truncate: a client sending a bit we do not have is
+      // out of sync with the firmware, and silently dropping it would make the
+      // test tab lie about what it just energised.
       if (mask >= (1u << (uint32_t)OUT_COUNT)) {
         act.error = "zones mask has bits above OUT_COUNT";
         return act;

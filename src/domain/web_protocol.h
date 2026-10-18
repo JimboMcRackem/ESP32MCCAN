@@ -8,8 +8,10 @@
 // Bumped whenever a message shape changes incompatibly. The app and the
 // LittleFS image are separate flashes and can diverge; the app compares this
 // and refuses rather than half-working. Version 1 did not send the field, so
-// a missing value reads as 1.
-constexpr int kProtocolVersion = 2;
+// a missing value reads as 1. Version 3 removed the colour and denali blocks
+// entirely and changed `zones` from four per-corner colour triples to a
+// single 12-bit output mask.
+constexpr int kProtocolVersion = 3;
 
 struct ProtocolAction {
   bool        sendConfig   = false;

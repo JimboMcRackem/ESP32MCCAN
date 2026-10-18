@@ -156,6 +156,27 @@ void test_test_state_message_reports_the_zone_mask() {
   TEST_ASSERT_NOT_NULL(strstr(m.c_str(), want));
 }
 
+void test_zones_request_rejects_a_missing_zones_field() {
+  // No "zones" key at all: must error, not default to mask 0 and report
+  // success for a request that never said what to energise.
+  ProtocolAction a = handleRequest("{\"type\":\"test\",\"mode\":\"zones\"}");
+  TEST_ASSERT_FALSE(a.setTest);
+  TEST_ASSERT_FALSE(a.error.empty());
+}
+
+void test_protocol_version_is_three() {
+  TEST_ASSERT_EQUAL_INT(3, kProtocolVersion);
+}
+
+void test_config_message_carries_flash_source_and_no_colours() {
+  Config c = defaultConfig();
+  c.flashSource = FlashSource::Follow;
+  const std::string m = configMessage(c);
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"flashSource\":\"follow\""));
+  TEST_ASSERT_NULL(strstr(m.c_str(), "colors"));
+  TEST_ASSERT_NULL(strstr(m.c_str(), "denali"));
+}
+
 void test_test_rejects_an_unknown_mode(void) {
   ProtocolAction a = handleRequest("{\"type\":\"test\",\"mode\":\"strobe\"}");
   TEST_ASSERT_FALSE(a.setTest);
@@ -167,7 +188,7 @@ void test_config_message_carries_the_protocol_version(void) {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_INT(kProtocolVersion, doc["protocolVersion"].as<int>());
-  TEST_ASSERT_EQUAL_INT(2, kProtocolVersion);
+  TEST_ASSERT_EQUAL_INT(3, kProtocolVersion);
 }
 
 void test_test_state_message_shape(void) {
@@ -223,9 +244,12 @@ int main(int, char**) {
   RUN_TEST(test_unknown_scenario_is_an_error);
   RUN_TEST(test_zones_request_parses_a_twelve_bit_mask);
   RUN_TEST(test_zones_request_rejects_bits_above_the_output_count);
+  RUN_TEST(test_zones_request_rejects_a_missing_zones_field);
   RUN_TEST(test_test_state_message_reports_the_zone_mask);
   RUN_TEST(test_test_rejects_an_unknown_mode);
   RUN_TEST(test_config_message_carries_the_protocol_version);
+  RUN_TEST(test_protocol_version_is_three);
+  RUN_TEST(test_config_message_carries_flash_source_and_no_colours);
   RUN_TEST(test_test_state_message_shape);
   RUN_TEST(test_test_state_message_when_off);
   RUN_TEST(test_test_state_remaining_clamps_at_zero);

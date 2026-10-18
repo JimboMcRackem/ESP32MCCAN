@@ -67,6 +67,18 @@ void test_zones_pass_through_verbatim(void) {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_BRK, OUT_AUX_L), o.on);
 }
 
+void test_a_stale_bus_does_not_disturb_a_held_test_session(void) {
+  // CAN stale: every logical input reads false (Task 4's staleness rule).
+  // A held zones override must survive that, or the lights drop out mid-test
+  // for no reason the rider can see.
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.zones.on = outMask(OUT_AUX_L, OUT_AUX_R);
+  LogicalState stale;                           // bus-stale: all false
+  OutputIntent o = resolveOutputs(stale, t, cfg, 5000, est, testEst);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_AUX_L, OUT_AUX_R), o.on);
+}
+
 void test_scenario_cannot_corrupt_the_real_engine_state(void) {
   // A held 'flash' latches the spot lights. Run it as a scenario for well
   // past spotHoldMs and the REAL EngineState must be untouched, or exiting
@@ -129,6 +141,7 @@ int main(int, char**) {
   RUN_TEST(test_scenario_ignores_the_real_state);
   RUN_TEST(test_scenario_blinks_at_the_configured_rate);
   RUN_TEST(test_zones_pass_through_verbatim);
+  RUN_TEST(test_a_stale_bus_does_not_disturb_a_held_test_session);
   RUN_TEST(test_scenario_cannot_corrupt_the_real_engine_state);
   RUN_TEST(test_expiry_is_false_when_off);
   RUN_TEST(test_expiry_at_the_cap);
