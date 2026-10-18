@@ -703,10 +703,11 @@ These are verification items, not assumptions. Each names who or what can settle
    `git stash`** (labelled "plan3 gerber regeneration ... parked by SDD Task 0"). `git stash pop`
    on the plan3 line recovers them; nothing was committed, because that board is being
    redesigned from scratch regardless.
-9. The latent `gen_pcb.py` defect where In1/In3/In6 all carry the user-facing layer name "GND",
-   which collapses three ground planes into one gerber filename, is **fixed by this redesign
-   incidentally** — a 4-layer board has one internal ground plane. The underlying naming bug in
-   the generator should still be fixed rather than outgrown.
+9. ~~The latent `gen_pcb.py` defect where In1/In3/In6 all carry the user-facing layer name
+   "GND"~~ **RESOLVED.** The names were made unique (`GND_In1`/`GND_In3`/`GND_In6`) in `1f1ff87`
+   on `plan4-emarked-modules`, and `5cf99cc` added `_check_layer_names()`, which fails generation
+   whenever two layers would plot to the same gerber filename (compared case-insensitively). So
+   the new 4-layer table cannot bring the bug back silently.
 
 ---
 
