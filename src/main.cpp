@@ -11,23 +11,30 @@
 #include "domain/web_protocol.h"
 #include "hal/web_server.h"
 
-// Pin/bus assignments — provisional, finalized against the PCB (PCB plan).
-static const int kCanRxPin = 16;            // CAN transceiver GPIOs (moved off the I2C pins)
-static const int kCanTxPin = 17;
+// Pin/bus assignments: these match the phase-A board schematic (hardware/scripts/
+// gen_mcu_can.py, ESP32 pin map D2). Change them only together with that sheet.
+static const int kCanRxPin = 35;            // RTC-capable, so CAN traffic can wake deep sleep
+// TWAI TX idles HIGH, so it must never share a lamp pin. GPIO12 carries only its
+// strap pull-down (R36): the transceiver's TXD is pulled up and not wired to the
+// MCU at all (hardware listen-only), so this pin drives nothing on the board.
+static const int kCanTxPin = 12;
 static const uint32_t kCanBitrate = 500000;
 
-// Provisional GPIO assignment in OutputIndex order - finalized against the PCB
-// in the board plan. These avoid the strapping pins (0, 2, 5, 12, 15), but that
-// is hygiene, not the safety guarantee: nothing lights a lamp at reset because
-// spec 3.2 mandates a hard pull-down on every switch input, and that covers a
-// floating or strapping-pin GPIO either way. Do not read a pin choice here as
-// doing that work.
+static const int kEn5vPin   = 4;    // +5V enable: the CAN transceiver's VCC and the quads' THER
+static const int kCanStbPin = 14;   // TJA1042 STB, pulled up on the board (floating = standby)
+static const int kDiagEnPin = 2;    // quad switches' DIAG_EN, pulled down on the chip side
+
+// GPIO assignment in OutputIndex order. These avoid the strapping pins
+// (0, 2, 5, 12, 15), but that is hygiene, not the safety guarantee: nothing
+// lights a lamp at reset because spec 3.2 mandates a hard pull-down on every
+// switch input, and that covers a floating or strapping-pin GPIO either way.
+// Do not read a pin choice here as doing that work.
 static const uint8_t kOutputPins[] = {
-  13, 14,        // FL_DRL, FL_IND
-  25, 26,        // FR_DRL, FR_IND
-  27, 32, 33,    // RL_DRL, RL_IND, RL_BRK
-  18, 19, 23,    // RR_DRL, RR_IND, RR_BRK
-   4, 21,        // AUX_L, AUX_R   (21 was I2C; free since the PCA9685 went)
+  25, 26,        // FL_DRL, FL_IND
+  32, 33,        // FR_DRL, FR_IND
+  27, 16, 17,    // RL_DRL, RL_IND, RL_BRK
+  18, 19, 21,    // RR_DRL, RR_IND, RR_BRK
+  22, 23,        // AUX_L, AUX_R
 };
 // Catches a dropped line, which would otherwise zero-fill the tail onto GPIO 0
 // and shift every later output onto the wrong wire. It does NOT check order --
@@ -63,6 +70,13 @@ void setup() {
   Serial.begin(115200);
 
   g_out.begin();   // all twelve outputs LOW before anything else
+
+  pinMode(kDiagEnPin, OUTPUT);
+  digitalWrite(kDiagEnPin, LOW);    // switch diagnostics off until something reads them
+  pinMode(kCanStbPin, OUTPUT);
+  digitalWrite(kCanStbPin, LOW);    // transceiver normal mode
+  pinMode(kEn5vPin, OUTPUT);
+  digitalWrite(kEn5vPin, HIGH);     // transceiver VCC: without it nothing is received
 
   storage::begin();
   bool ok = false;
