@@ -73,7 +73,7 @@ would rewrite a stale firmware and discard the test-mode work.
 
 **Files:** none modified; this task only moves commits.
 
-- [ ] **Step 1: Deal with the dirty working tree**
+- [x] **Step 1: Deal with the dirty working tree**
 
 `plan4-emarked-modules` carries uncommitted regenerated gerbers under `hardware/output/`
 (extension-style files renamed to `.gbr`, plus three now-distinct GND planes). They block a
@@ -91,7 +91,7 @@ git checkout -- hardware/output hardware/mccan.kicad_pro
 git clean -fd hardware/output/gerbers
 ```
 
-- [ ] **Step 2: Cut the firmware branch off main and carry the docs across**
+- [x] **Step 2: Cut the firmware branch off main and carry the docs across**
 
 Both doc commits currently sit on `plan4-emarked-modules`, which was cut from the PCB line
 before the divergence was measured. Carry both across:
@@ -109,7 +109,7 @@ Expected: both docs present, `src/domain/test_mode.h` exists. Once this lands,
 `plan4-emarked-modules` holds nothing unique and can be deleted — the user's call, not the
 implementer's.
 
-- [ ] **Step 3: Verify the inherited baseline is green before changing anything**
+- [x] **Step 3: Verify the inherited baseline is green before changing anything**
 
 ```bash
 python -m platformio test -e native
@@ -117,7 +117,7 @@ python -m platformio test -e native
 
 Expected: PASS. Record the test count — it is the baseline every later task compares against.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-10-17-firmware-output-model.md
@@ -144,7 +144,7 @@ deleted in Task 2.
   `constexpr uint16_t outMask(...)`; `class IOutputs { virtual void setOutput(uint8_t, bool) = 0; }`;
   `void applyIntent(IOutputs&, const OutputIntent&)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `test/test_output_map/test_output_map.cpp`:
 
@@ -215,7 +215,7 @@ int main(int, char**) {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 python -m platformio test -e native -f test_output_map
@@ -223,7 +223,7 @@ python -m platformio test -e native -f test_output_map
 
 Expected: FAIL — `domain/output_map.h: No such file or directory`.
 
-- [ ] **Step 3: Write `src/domain/outputs.h`**
+- [x] **Step 3: Write `src/domain/outputs.h`**
 
 ```cpp
 #pragma once
@@ -265,7 +265,7 @@ constexpr uint16_t outMask(OutputIndex first, Rest... rest) {
 }
 ```
 
-- [ ] **Step 4: Write `src/hal/ioutputs.h`**
+- [x] **Step 4: Write `src/hal/ioutputs.h`**
 
 ```cpp
 #pragma once
@@ -280,7 +280,7 @@ public:
 };
 ```
 
-- [ ] **Step 5: Write `src/domain/output_map.h`**
+- [x] **Step 5: Write `src/domain/output_map.h`**
 
 ```cpp
 #pragma once
@@ -292,7 +292,7 @@ public:
 void applyIntent(IOutputs& out, const OutputIntent& o);
 ```
 
-- [ ] **Step 6: Write `src/domain/output_map.cpp`**
+- [x] **Step 6: Write `src/domain/output_map.cpp`**
 
 ```cpp
 #include "domain/output_map.h"
@@ -303,7 +303,7 @@ void applyIntent(IOutputs& out, const OutputIntent& o) {
 }
 ```
 
-- [ ] **Step 7: Run the test to verify it passes**
+- [x] **Step 7: Run the test to verify it passes**
 
 ```bash
 python -m platformio test -e native -f test_output_map
@@ -311,7 +311,7 @@ python -m platformio test -e native -f test_output_map
 
 Expected: PASS, 5 tests.
 
-- [ ] **Step 8: Confirm nothing else regressed**
+- [x] **Step 8: Confirm nothing else regressed**
 
 ```bash
 python -m platformio test -e native
@@ -319,7 +319,7 @@ python -m platformio test -e native
 
 Expected: PASS — the Task 0 baseline count plus 5.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/domain/outputs.h src/hal/ioutputs.h src/domain/output_map.h \
@@ -357,7 +357,7 @@ build. A reviewer gates this as one thing: "the firmware now speaks the new outp
   `class GpioOutputs : public IOutputs { GpioOutputs(const uint8_t* pins, uint8_t count); bool
   begin(); void setOutput(uint8_t, bool) override; }`.
 
-- [ ] **Step 1: Write the failing engine test**
+- [x] **Step 1: Write the failing engine test**
 
 Replace `test/test_behavior_engine/test_behavior_engine.cpp` entirely:
 
@@ -503,7 +503,7 @@ int main(int, char**) {
 }
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 ```bash
 python -m platformio test -e native -f test_behavior_engine
@@ -512,7 +512,7 @@ python -m platformio test -e native -f test_behavior_engine
 Expected: FAIL — `outMask` and `OUT_FL_DRL` are not visible through
 `behavior_engine.h` yet, which still includes `output_intent.h`.
 
-- [ ] **Step 3: Rewrite `src/domain/behavior_engine.h`**
+- [x] **Step 3: Rewrite `src/domain/behavior_engine.h`**
 
 ```cpp
 #pragma once
@@ -531,7 +531,7 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
                             uint32_t nowMs, EngineState& est);
 ```
 
-- [ ] **Step 4: Rewrite `src/domain/behavior_engine.cpp`**
+- [x] **Step 4: Rewrite `src/domain/behavior_engine.cpp`**
 
 ```cpp
 #include "domain/behavior_engine.h"
@@ -592,7 +592,7 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
 }
 ```
 
-- [ ] **Step 5: Strip `src/domain/config.h`**
+- [x] **Step 5: Strip `src/domain/config.h`**
 
 Remove `#include "domain/color.h"`, the six `ColorLevel` members
 (`drlWhiteDay`, `drlWhiteNight`, `drlDimRedDay`, `drlDimRedNight`,
@@ -609,20 +609,20 @@ struct Config {
 };
 ```
 
-- [ ] **Step 6: Strip `src/domain/config_json.cpp`**
+- [x] **Step 6: Strip `src/domain/config_json.cpp`**
 
 Delete `colorTo`, `colorFrom` and the `colors` and `denali` blocks from both
 `configToJson` and `configFromJson`. Leave the rest untouched. Unknown keys in an
 inbound document are already ignored by ArduinoJson, which is what makes an old
 config load (Step 9).
 
-- [ ] **Step 7: Point `src/domain/test_mode.h` at the new header**
+- [x] **Step 7: Point `src/domain/test_mode.h` at the new header**
 
 Change `#include "domain/output_intent.h"` to `#include "domain/outputs.h"`. Nothing else in
 that file changes: `TestMode::zones` is already an `OutputIntent`, so it becomes a 12-bit mask
 for free.
 
-- [ ] **Step 8: Write the GPIO HAL**
+- [x] **Step 8: Write the GPIO HAL**
 
 Create `src/hal/outputs_gpio.h`:
 
@@ -669,7 +669,7 @@ void GpioOutputs::setOutput(uint8_t index, bool on) {
 }
 ```
 
-- [ ] **Step 9: Add the old-config regression test (Review Focus 2)**
+- [x] **Step 9: Add the old-config regression test (Review Focus 2)**
 
 Append to `test/test_config_json/test_config_json.cpp`:
 
@@ -695,7 +695,7 @@ void test_config_written_by_the_previous_firmware_still_loads() {
 
 Register it with `RUN_TEST(test_config_written_by_the_previous_firmware_still_loads);`.
 
-- [ ] **Step 10: Update the remaining stale tests and delete the dead suites**
+- [x] **Step 10: Update the remaining stale tests and delete the dead suites**
 
 ```bash
 git rm -r test/test_channel_map test/test_color_level
@@ -712,7 +712,7 @@ delete the `denaliSpot` and `indicatorOrange` round-trip assertions. In
 `TEST_ASSERT_EQUAL_UINT16(0, OutputIntent{}.on);`. In `test/test_smoke/test_smoke.cpp`
 replace the `Rgb` equality test with the same one-line default-state check.
 
-- [ ] **Step 11: Rewire `src/main.cpp`**
+- [x] **Step 11: Rewire `src/main.cpp`**
 
 Replace the PCA9685/I2C block. Remove `#include <Wire.h>`,
 `#include "hal/pwm_pca9685.h"`, `#include "domain/channel_map.h"`, `kI2cSda`, `kI2cScl`,
@@ -745,7 +745,7 @@ at the earliest possible moment:
 
 In `loop()`, change `applyIntent(g_pwm, o);` to `applyIntent(g_out, o);`.
 
-- [ ] **Step 12: Drop the PWM dependencies from `platformio.ini`**
+- [x] **Step 12: Drop the PWM dependencies from `platformio.ini`**
 
 Remove these two lines from `[env:esp32]` `lib_deps`:
 
@@ -754,7 +754,7 @@ Remove these two lines from `[env:esp32]` `lib_deps`:
     adafruit/Adafruit BusIO@^1.14
 ```
 
-- [ ] **Step 13: Run the full native suite**
+- [x] **Step 13: Run the full native suite**
 
 ```bash
 python -m platformio test -e native
@@ -763,7 +763,7 @@ python -m platformio test -e native
 Expected: PASS. `test_behavior_engine` reports 14 tests; `test_channel_map` and
 `test_color_level` are gone.
 
-- [ ] **Step 14: Verify the ESP32 build**
+- [x] **Step 14: Verify the ESP32 build**
 
 ```bash
 py -3.13 -m platformio run -e esp32
@@ -772,7 +772,7 @@ py -3.13 -m platformio run -e esp32
 Expected: SUCCESS. Flash usage should fall against the last recorded figure — the PCA9685 and
 BusIO libraries are gone.
 
-- [ ] **Step 15: Commit**
+- [x] **Step 15: Commit**
 
 ```bash
 git add -A src test platformio.ini
@@ -797,7 +797,7 @@ git commit -m "feat(engine): drive twelve on/off outputs, delete the colour path
   `constexpr uint32_t kFlashFollowTimeoutMs = 1200`;
   `EngineState::leftTimer` / `rightTimer` of type `IndTimer { bool prev; uint32_t sinceMs; }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `test/test_behavior_engine/test_behavior_engine.cpp`:
 
@@ -886,7 +886,7 @@ void test_auto_watchdog_survives_millis_rollover() {
 
 Register all seven with `RUN_TEST(...)` lines in `main`.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 ```bash
 python -m platformio test -e native -f test_behavior_engine
@@ -894,7 +894,7 @@ python -m platformio test -e native -f test_behavior_engine
 
 Expected: FAIL — `FlashSource` is not declared.
 
-- [ ] **Step 3: Add the enum and the field to `src/domain/config.h`**
+- [x] **Step 3: Add the enum and the field to `src/domain/config.h`**
 
 Above `struct Config`:
 
@@ -916,7 +916,7 @@ And inside `struct Config`, after `spotHoldMs`:
   FlashSource flashSource = FlashSource::Auto;
 ```
 
-- [ ] **Step 4: Add the per-side timers to `src/domain/behavior_engine.h`**
+- [x] **Step 4: Add the per-side timers to `src/domain/behavior_engine.h`**
 
 ```cpp
 // Tracks how long one indicator request has been continuously asserted.
@@ -934,7 +934,7 @@ struct EngineState {
 };
 ```
 
-- [ ] **Step 5: Implement the phase selection in `src/domain/behavior_engine.cpp`**
+- [x] **Step 5: Implement the phase selection in `src/domain/behavior_engine.cpp`**
 
 Add above `computeOutputs`:
 
@@ -976,7 +976,7 @@ Then replace the four indicator lines in `computeOutputs`. Delete
 
 The DRL and brake lines are unchanged: they already key off `li` / `ri`, not the phase.
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 ```bash
 python -m platformio test -e native -f test_behavior_engine
@@ -1017,7 +1017,15 @@ Expected: FAIL on `test_spot_hold_survives_millis_rollover` and
 `nowMs = 0x500`, 1536 ms has genuinely elapsed, but the guard suppresses the comparison so the
 watchdog never falls back and the spot latch never releases. Remove the guards and confirm PASS.
 
-- [ ] **Step 8: Serialize `flashSource` in `src/domain/config_json.cpp`**
+> **Left unticked (Task 7 docs review).** The step's original mutation — swapping the
+> `(uint32_t)` casts for `(int32_t)` — was found invalid (ruling R5 / commit 6eb81a5): both
+> operands are already `uint32_t`, so the subtraction wraps before the cast runs, and comparing
+> the cast `int32_t` against the `uint32_t` threshold promotes it straight back to unsigned —
+> the mutation is a no-op and proves nothing. The step was corrected in place to the
+> `nowMs > sinceMs` guard mutation above, but nobody has run the corrected version since. It
+> remains outstanding.
+
+- [x] **Step 8: Serialize `flashSource` in `src/domain/config_json.cpp`**
 
 Add to `configToJson`, after `doc["spotHoldMs"]`:
 
@@ -1041,7 +1049,7 @@ And to `configFromJson`, alongside the other scalars:
 
 Add `#include <cstring>` to the top of the file.
 
-- [ ] **Step 9: Write the config tests, including Review Focus 4**
+- [x] **Step 9: Write the config tests, including Review Focus 4**
 
 Append to `test/test_config_json/test_config_json.cpp`:
 
@@ -1076,7 +1084,7 @@ void test_default_flash_source_is_auto() {
 
 Register all three.
 
-- [ ] **Step 10: Run the full native suite**
+- [x] **Step 10: Run the full native suite**
 
 ```bash
 python -m platformio test -e native
@@ -1084,7 +1092,7 @@ python -m platformio test -e native
 
 Expected: PASS.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add src/domain/config.h src/domain/config_json.cpp \
@@ -1116,7 +1124,7 @@ adds the clock to `CanState` rather than to `main.cpp`, so the rule is host-test
   site in `main.cpp` and in `test/test_can_state/` and `test/test_can_snapshot/` must be
   updated.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `test/test_can_state/test_can_state.cpp`:
 
@@ -1174,7 +1182,7 @@ timestamp: `cs.update(id, data)` becomes `cs.update(id, data, 0)` and
 `cs.evaluate(cfg)` becomes `cs.evaluate(cfg, 0)`. With a timestamp of 0 and a frame recorded at
 0 the state is fresh, so existing assertions keep their meaning.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 ```bash
 python -m platformio test -e native -f test_can_state
@@ -1182,7 +1190,7 @@ python -m platformio test -e native -f test_can_state
 
 Expected: FAIL — `stale` is not a member of `CanState`, and `update` takes 2 arguments.
 
-- [ ] **Step 3: Extend `src/domain/can_state.h`**
+- [x] **Step 3: Extend `src/domain/can_state.h`**
 
 ```cpp
 class CanState {
@@ -1211,7 +1219,7 @@ private:
 };
 ```
 
-- [ ] **Step 4: Implement in `src/domain/can_state.cpp`**
+- [x] **Step 4: Implement in `src/domain/can_state.cpp`**
 
 At the end of the existing `update`, record the arrival:
 
@@ -1240,7 +1248,7 @@ LogicalState CanState::evaluate(const Config& cfg, uint32_t nowMs) const {
 }
 ```
 
-- [ ] **Step 5: Update the two call sites in `src/main.cpp`**
+- [x] **Step 5: Update the two call sites in `src/main.cpp`**
 
 ```cpp
   while (g_bus.receive(id, data)) g_can.update(id, data, millis());
@@ -1252,7 +1260,7 @@ and, inside the 10 ms tick:
     LogicalState s = g_can.evaluate(g_cfg, now);
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 ```bash
 python -m platformio test -e native -f test_can_state
@@ -1260,7 +1268,7 @@ python -m platformio test -e native -f test_can_state
 
 Expected: PASS.
 
-- [ ] **Step 7: Run the full native suite and the ESP32 build**
+- [x] **Step 7: Run the full native suite and the ESP32 build**
 
 ```bash
 python -m platformio test -e native
@@ -1270,7 +1278,7 @@ py -3.13 -m platformio run -e esp32
 Expected: both PASS/SUCCESS. If `test_can_snapshot` fails to compile, a call site there was
 missed in Step 1.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/domain/can_state.h src/domain/can_state.cpp src/main.cpp test
@@ -1299,7 +1307,7 @@ git commit -m "feat(can): a bus quiet for 500ms reads as all inputs false"
 on **`"mode"`**, not `"kind"` (`web_protocol.cpp:47`), and the file reports failures by assigning
 `act.error` and returning `act` — there is no `error()` helper. Match both.
 
-- [ ] **Step 1: Write the failing protocol tests**
+- [x] **Step 1: Write the failing protocol tests**
 
 Append to `test/test_web_protocol/test_web_protocol.cpp`:
 
@@ -1349,7 +1357,7 @@ void test_test_state_message_reports_the_zone_mask() {
 Add `#include <cstring>` and `#include <cstdio>` to the test file if absent, and register all
 five.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 ```bash
 python -m platformio test -e native -f test_web_protocol
@@ -1357,13 +1365,23 @@ python -m platformio test -e native -f test_web_protocol
 
 Expected: FAIL — `kProtocolVersion` is still 2.
 
-- [ ] **Step 3: Bump the protocol version**
+- [x] **Step 3: Bump the protocol version**
 
 In `src/domain/web_protocol.h`, change `constexpr int kProtocolVersion = 2;` to `3`, and extend
 the comment to say that v3 removed the colour and denali blocks and changed `zones` from
 per-corner colours to a 12-bit output mask.
 
-- [ ] **Step 4: Update `configMessage` and `handleRequest`**
+- [x] **Step 4: Update `configMessage` and `handleRequest`**
+
+> **Ticked with provenance (Task 7 docs review).** This step's `handleRequest` mask-parsing
+> change landed early, in Task 2's commit (60987e9) — that commit's own message says so:
+> "web_protocol.cpp and two of its test suites were updated here, not in the later protocol
+> task," because pointing `test_mode.h` at `outputs.h` broke them and Task 2 was required to
+> leave the native suite green. `configMessage`'s colour/denali removal and `flashSource`
+> addition needed no direct edit here at all: it forwards `configToJson(c)` verbatim, so Task 2's
+> strip of `config.h`/`config_json.cpp` and Task 3's `flashSource` serialization already cover
+> it. The deliverable described below is real; this task's own commit (1feb9c4) only tightened
+> the mask-parse's handling of a missing `zones` field.
 
 In `src/domain/web_protocol.cpp`, delete every `colors` and `denali` field from
 `configMessage` (they now reference members that no longer exist, so this is also what makes the
@@ -1391,7 +1409,14 @@ table and the loop over triples — with:
 `web_protocol.cpp:49`; keep using it rather than writing to `act.testOut` directly, because the
 code after the if-chain is what copies `tm` into the action.
 
-- [ ] **Step 5: Update `testStateMessage`**
+- [x] **Step 5: Update `testStateMessage`**
+
+> **Ticked with provenance (Task 7 docs review).** `doc["zones"] = t.zones.on;` was already
+> landed, along with test coverage, by the review-finding commit f80573f ("test(protocol): cover
+> the zones mask parse, assert whole-word outputs") — raised and fixed between Task 2 and Task
+> 3 because the old 4-rgb-triple tests had been deleted without replacement coverage for the new
+> mask parse. Same situation as Step 4: the deliverable is real, landed early to keep the branch's
+> test coverage honest rather than in this task's own commit.
 
 Emit `zones` as the raw mask:
 
@@ -1401,14 +1426,14 @@ Emit `zones` as the raw mask:
 
 Delete the per-corner colour serialization and the denali field.
 
-- [ ] **Step 6: Review the scenario presets**
+- [x] **Step 6: Review the scenario presets**
 
 Open `src/domain/test_mode.cpp` and check each entry of the scenario table. The presets are
 `LogicalState` values, so they are unaffected by the output-model change — but any preset that
 existed to exercise a colour or a denali level should be removed, and the table should cover the
 nine rows of the behavior matrix. Keep `kScenarioNames` and `kScenarioCount` consistent.
 
-- [ ] **Step 7: Write the test-mode tests, including Review Focus 5**
+- [x] **Step 7: Write the test-mode tests, including Review Focus 5**
 
 Append to `test/test_test_mode/test_test_mode.cpp`:
 
@@ -1453,7 +1478,7 @@ void test_scenario_mode_never_touches_the_real_engine_state() {
 
 Register all three.
 
-- [ ] **Step 8: Run the full native suite**
+- [x] **Step 8: Run the full native suite**
 
 ```bash
 python -m platformio test -e native
@@ -1461,7 +1486,7 @@ python -m platformio test -e native
 
 Expected: PASS.
 
-- [ ] **Step 9: Verify the ESP32 build**
+- [x] **Step 9: Verify the ESP32 build**
 
 ```bash
 py -3.13 -m platformio run -e esp32
@@ -1469,7 +1494,7 @@ py -3.13 -m platformio run -e esp32
 
 Expected: SUCCESS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/domain/web_protocol.h src/domain/web_protocol.cpp src/domain/test_mode.cpp test
@@ -1491,13 +1516,13 @@ the protocol version banner as the gate: a mismatch means the app and the firmwa
   `testStateMessage` with a numeric `zones`; `{"type":"test","mode":"zones","zones":<mask>}`.
 - Produces: no code interface; the UI surface the spec's §5.6 describes.
 
-- [ ] **Step 1: Remove the Appearance tab from `data/index.html`**
+- [x] **Step 1: Remove the Appearance tab from `data/index.html`**
 
 Delete the `<button data-tab="appearance">Appearance</button>` nav entry and the whole
 `<section id="tab-appearance">` block, including the `previewToggle` checkbox and the `#colors`
 host. Delete the `<div id="denali"></div>` from the Tunables section.
 
-- [ ] **Step 2: Add the flash-source control to Tunables**
+- [x] **Step 2: Add the flash-source control to Tunables**
 
 Inside `<section id="tab-tunables">`, after the `spotHoldMs` label:
 
@@ -1511,7 +1536,7 @@ Inside `<section id="tab-tunables">`, after the `spotHoldMs` label:
       </label>
 ```
 
-- [ ] **Step 3: Rebuild the Test tab for twelve outputs**
+- [x] **Step 3: Rebuild the Test tab for twelve outputs**
 
 Replace the contents of `<section id="tab-test">` after the `<p><small>...</small></p>` note:
 
@@ -1527,13 +1552,13 @@ Replace the contents of `<section id="tab-test">` after the `<p><small>...</smal
 The `testDenali` slider and its `testDenaliPct` label are deleted — the pods are on/off and
 appear as two of the twelve checkboxes.
 
-- [ ] **Step 4: Strip the colour machinery from `data/app.js`**
+- [x] **Step 4: Strip the colour machinery from `data/app.js`**
 
 Delete the `COLORS` array, `renderDenali()`, `renderColors()` (or whatever builds `#colors`),
 `hexToRgb()`, `rgbToHex()` if present, the `previewToggle` handler, and every reference to
 `cfg.colors` and `cfg.denali`. Remove the `renderDenali()` call from the render path.
 
-- [ ] **Step 5: Add the output names table and the checkbox renderer**
+- [x] **Step 5: Add the output names table and the checkbox renderer**
 
 ```js
 // Must match OutputIndex in src/domain/outputs.h, in order. The firmware's
@@ -1570,18 +1595,18 @@ function renderTestOutputs() {
 
 Use the file's own existing `send()` helper rather than introducing a new one; match its name.
 
-- [ ] **Step 6: Reflect inbound test state**
+- [x] **Step 6: Reflect inbound test state**
 
 Where the app handles the `testState` message, set `testMask = msg.zones | 0;` and call
 `renderTestOutputs()` so a second client taking the mode updates this one's checkboxes.
 
-- [ ] **Step 7: Wire `flashSource` into load and save**
+- [x] **Step 7: Wire `flashSource` into load and save**
 
 In the config-load path, `document.getElementById("flashSource").value = cfg.flashSource ||
 "auto";`. In the save path, read it back into `cfg.flashSource`. Follow the pattern the existing
 `blinkPeriodMs` field uses.
 
-- [ ] **Step 8: Remove the dead CSS**
+- [x] **Step 8: Remove the dead CSS**
 
 In `data/style.css`, delete the colour-picker and swatch rules that no longer have markup. Add a
 rule for the new checkbox grid:
@@ -1591,7 +1616,7 @@ rule for the new checkbox grid:
 .outputs label { display: flex; align-items: center; gap: 6px; }
 ```
 
-- [ ] **Step 9: Verify there are no stale references**
+- [x] **Step 9: Verify there are no stale references**
 
 ```bash
 grep -rn "denali\|colors\|hexToRgb\|previewToggle\|testDenali" data/
@@ -1599,7 +1624,7 @@ grep -rn "denali\|colors\|hexToRgb\|previewToggle\|testDenali" data/
 
 Expected: no output.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add data
@@ -1607,6 +1632,9 @@ git commit -m "feat(app): twelve-output test tab, flash source, Appearance gone"
 ```
 
 - [ ] **Step 11: On-device check — needs the user, and both images**
+
+> **Left unticked (Task 7 docs review).** This is a user action over a COM port no agent can
+> reach. Outstanding.
 
 The firmware and the LittleFS image are separate flashes. Ask the user to run both, in their own
 shell, because the assistant's tools cannot reach host COM ports:
@@ -1629,7 +1657,7 @@ checkboxes on the Test tab, and the flash-source select showing `auto`.
 - Modify: `docs/superpowers/specs/2026-09-21-test-mode-and-brightness-design.md`
 - Modify: `docs/superpowers/plans/2026-10-17-firmware-output-model.md` (tick the boxes)
 
-- [ ] **Step 1: Mark the superseded sections of the 2026-07-29 firmware spec**
+- [x] **Step 1: Mark the superseded sections of the 2026-07-29 firmware spec**
 
 Add a banner under its `**Status:**` line:
 
@@ -1641,13 +1669,13 @@ Add a banner under its `**Status:**` line:
 > mapping model, connectivity and the testing approach — remain current.
 ```
 
-- [ ] **Step 2: Mark the brightness half of the test-mode spec superseded**
+- [x] **Step 2: Mark the brightness half of the test-mode spec superseded**
 
 Add the equivalent banner naming which of its sections survive: test mode, the single-holder
 override and the version banner survive; everything about brightness, gamma and the hue/level
 split does not, because nothing dims any more.
 
-- [ ] **Step 3: Record the measured outcome**
+- [x] **Step 3: Record the measured outcome**
 
 Append a short section to the new spec recording what the firmware actually came out at: the
 native test count, and the ESP32 flash figure from Task 2 Step 14 against the 84.3% the previous
@@ -1657,11 +1685,11 @@ Also record the protocol version bump (2 → 3) and what changed in it, since th
 LittleFS image are separate flashes and the version banner is the only thing that catches a
 mismatch.
 
-- [ ] **Step 4: Tick this plan's checkboxes**
+- [x] **Step 4: Tick this plan's checkboxes**
 
 Mark every completed step. An unticked box in a committed plan is a lie about what was done.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs

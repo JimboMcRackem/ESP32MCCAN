@@ -165,13 +165,17 @@ design.
 
 | Output | Load | Why it is a separate output |
 |---|---|---|
-| `FL_DRL`, `FR_DRL` | 125 mA | must drop independently when that side indicates (§5.3) |
-| `RL_DRL`, `RR_DRL` | 125 mA | as above |
-| `FL_IND`, `FR_IND` | 125 mA | left/right independent |
-| `RL_IND`, `RR_IND` | 125 mA | as above |
-| `RL_BRK`, `RR_BRK` | 125 mA | matrix requires brake on the *non*-indicating side only |
+| `FL_DRL`, `FR_DRL` | 80 mA | must drop independently when that side indicates (§5.3) |
+| `RL_DRL`, `RR_DRL` | 20 mA | the rear module has no DRL wire — this channel drives its *tail* function (§2.1), a quarter of the front's draw |
+| `FL_IND`, `FR_IND` | 80 mA | left/right independent |
+| `RL_IND`, `RR_IND` | 80 mA | as above |
+| `RL_BRK`, `RR_BRK` | 80 mA | matrix requires brake on the *non*-indicating side only |
 | `AUX_L`, `AUX_R` | 2.17 A | per-pod, for fault isolation and future asymmetry |
 | `AUX_MODE` | — | **unpopulated provision**, fitted only if Plug C/D exposes a mode input |
+
+(Currents are the measured per-function figures of §2.1, not the 125 mA/channel an earlier draft
+assumed from the 1.5 W headline. The rear `*_DRL` channels are not the same load as the front
+ones — see §2.1's wire table.)
 
 Every one of the ten signal outputs is justified by a row of §5.2. None exists for symmetry.
 
@@ -213,7 +217,7 @@ defect.
  +-------------+   +-----------------+  +------------------+
  | 3V3 BUCK    |   | QUAD SMART HS   |  | SMART HS  AUX_L  |
  | +3V3_ALW    |   | x2 -> 10 ch     |  | limit 3.0-3.5 A: |
- | + 5V gated  |   | 125 mA each     |  | MUST trip before |
+ | + 5V gated  |   | 80/20mA, see §3 |  | MUST trip before |
  +------+------+   +-----------------+  | feed A's 4 A fuse|
         |                  ^ 10 GPIO    +------------------+
         |     +------------+------------+        ^ 1 GPIO
@@ -533,7 +537,13 @@ In priority order:
 3. **Switch fault** (overcurrent latch-off reported by the part) — log, retry with backoff,
    surface on the Status screen. A shorted harness neither blows a fuse nor takes the controller
    down.
-4. **Lamp-out**, where resolvable — **report only**, never alters behavior.
+4. **Lamp-out**, where resolvable — **report only**, never alters behavior. The rear
+   `RL_DRL`/`RR_DRL` channels now carry only 20 mA (§2.1's tail function), not the 125 mA an
+   earlier draft of §3 assumed and not even the 80 mA every other signal channel carries, so a
+   usable threshold on those two channels specifically has to resolve 20 mA. That makes §4.4's
+   caveat — dropped without ceremony if the open-load threshold cannot resolve the channel's
+   current — considerably more likely to bite on these two channels than it looked when every
+   channel was assumed to be the same 125 mA.
 
 **Test mode becomes a harness-verification tool.** Walking the 12 outputs one at a time
 energises exactly one wire per step, which confirms that every module and every function is on
@@ -685,3 +695,35 @@ These are verification items, not assumptions. Each names who or what can settle
 | Lamp-out is a **nice-to-have** | Must not drive part selection or block the design; report-only so it cannot become a failure mode |
 | `flashSource` is a config switch, default `auto` | User asked for the choice to be settable; `auto` still reaches the right answer on an unknown bus without intervention |
 | 4 layers, no thermal plate | ~1.2 W board dissipation does not justify either the eighth layer or a machined base |
+
+---
+
+## 11. Firmware outcome, measured (2026-10-18)
+
+The firmware half of this redesign (`2026-10-17-firmware-output-model.md`, Tasks 1-6) is
+implemented and landed on `plan4-firmware-outputs`. Figures below are measured, not estimated.
+
+**Native tests:** 93 cases across 10 suites, all passing (`python -m platformio test -e
+native`).
+
+**ESP32 build:** flash usage fell to **81.5%**, against the **84.3%** the previous (colour/PWM)
+firmware used — a 2.8-point reduction, from deleting the PCA9685 and Adafruit BusIO
+dependencies along with the colour and gamma code. RAM usage is **14.8%**.
+
+**Protocol version: 2 → 3.** `configMessage` no longer carries a `colors` or `denali` block;
+`zones` changed from four per-corner colour triples to a single 12-bit numeric output mask; and
+`flashSource` was added. Two things about this bump are worth recording here, because they are
+exactly what the version banner exists to catch:
+
+1. **The firmware and the LittleFS image are separate flashes**, and can disagree — a user can
+   reflash one without the other.
+2. **The protocol version is stored in two places**: `kProtocolVersion` in
+   `src/domain/web_protocol.h`, and a mirror `PROTOCOL_VERSION` in `data/app.js:8`. During the
+   web-app task the mirror was found still reading `2` after the firmware had moved to `3`; left
+   unfixed, every working app would have permanently shown the mismatch banner it exists to
+   avoid showing. Both constants must move together.
+
+**Also worth recording:** the wire protocol uses two different key names for one concept. The
+app *sends* `"mode"` (`{"type":"test","mode":"zones",...}`) and *receives* `"kind"` (in
+`test_state`). Both are correct against the current firmware; the asymmetry is simply how the
+protocol grew and is a trap for the next reader rather than a bug.

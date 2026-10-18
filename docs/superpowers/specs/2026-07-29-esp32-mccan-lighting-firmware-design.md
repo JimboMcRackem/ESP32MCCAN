@@ -1,6 +1,13 @@
 # ESP32 MCCAN — Dynamic CAN-Driven Lighting Firmware
 
 **Status:** Design approved (2026-07-29)
+
+> **SUPERSEDED IN PART, 2026-10-17.** Sections 4.1 (corner colour matrix), 4.2 (Denali levels),
+> 5's appearance block and 7 (PWM channel count) are replaced by
+> `2026-10-17-emarked-module-redesign-design.md`: the lighting modules are now bought,
+> E-marked and on/off, so there is no colour and no PWM. Sections 1-3, 6 and 8 — the CAN
+> mapping model, connectivity and the testing approach — remain current.
+
 **Scope:** Firmware + configuration web app for the ESP32 lighting controller.
 **Out of scope (future sessions):** PCB/hardware design, and app packaging beyond the self-hosted web app.
 

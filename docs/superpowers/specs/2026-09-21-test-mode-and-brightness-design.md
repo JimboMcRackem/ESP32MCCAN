@@ -2,6 +2,17 @@
 
 **Date:** 2026-09-21
 **Status:** approved, ready for implementation planning
+
+> **SUPERSEDED IN PART, 2026-10-17.** "Design 1: the colour model" (the `ColorLevel` hue/level
+> split, the gamma table and its migration, and "Denali stays raw") is replaced by
+> `2026-10-17-emarked-module-redesign-design.md`: the lighting modules are bought, E-marked and
+> on/off, so there is nothing left to dim and no colour to separate brightness from. The
+> "Appearance tab preview" part of "Design 4: web app" goes with it, since the Appearance tab no
+> longer exists. The RGB-triples-plus-`denali` wire example in "Design 3: protocol" is likewise
+> superseded by protocol v3's numeric `zones` mask. "Design 2: test-mode core" (scenario table,
+> exit paths), the single-holder/last-writer-wins rule and the protocol-version banner in
+> "Design 3", and the rest of "Design 4" (warning banner, test tab) remain current.
+
 **Scope:** firmware (`src/`) and web app (`data/`). No hardware changes.
 
 ---
