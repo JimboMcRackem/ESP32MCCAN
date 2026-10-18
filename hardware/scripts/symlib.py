@@ -525,5 +525,50 @@ blk = blk[:_e] + "\n" + _ind + _pin3 + blk[_e:] + "\n"
 LIBTXT, how = install(LIBTXT, "D_SCHOTTKY_TAB", blk)
 print("D_SCHOTTKY_TAB", how, "(TO-277A cathode tab = hidden pin 3)")
 
+# ---------------------------------------------------------------- TPS4H160B_Q1
+# Built FROM quadpins.PINS so a pad number is written exactly once (quadpins.py).  Pin names
+# are the PINS keys; a multi-pad key repeats its name on every pad, so the netlist
+# pinfunction reads e.g. OUT1_27.  The exposed pad (29) is a pin so the symbol's pin count
+# matches the footprint's 29 pads; the NC pads (2, 19, 24) are no_connect pins named NC.
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quadpins as _qp
+
+_QTYPE = {"IN1": "input", "IN2": "input", "IN3": "input", "IN4": "input",
+          "DIAG_EN": "input", "SEL0": "input", "SEL1": "input", "THER": "input",
+          "OUT1": "output", "OUT2": "output", "OUT3": "output", "OUT4": "output",
+          "SNS": "output", "FAULT": "open_collector", "CL": "passive",
+          "VS": "power_in", "GND": "power_in", "EP": "passive", "OTHER": "no_connect"}
+# (key, x, y, angle) per pad slot, 2.54 mm grid.  Left: inputs and control.  Right: outputs,
+# SNS, FAULT, NC.  Top: VS.  Bottom: GND and the exposed pad.
+_QLAYOUT = [
+    ("IN1", -12.7, 12.7, 0), ("IN2", -12.7, 10.16, 0), ("IN3", -12.7, 7.62, 0),
+    ("IN4", -12.7, 5.08, 0), ("DIAG_EN", -12.7, 0.0, 0), ("SEL0", -12.7, -2.54, 0),
+    ("SEL1", -12.7, -5.08, 0), ("THER", -12.7, -7.62, 0), ("CL", -12.7, -10.16, 0),
+    ("OUT1", 12.7, 12.7, 180), ("OUT1", 12.7, 10.16, 180),
+    ("OUT2", 12.7, 7.62, 180), ("OUT2", 12.7, 5.08, 180),
+    ("OUT3", 12.7, 2.54, 180), ("OUT3", 12.7, 0.0, 180),
+    ("OUT4", 12.7, -2.54, 180), ("OUT4", 12.7, -5.08, 180),
+    ("SNS", 12.7, -7.62, 180), ("FAULT", 12.7, -10.16, 180),
+    ("OTHER", 12.7, -12.7, 180), ("OTHER", 12.7, -15.24, 180), ("OTHER", 12.7, -17.78, 180),
+    ("VS", -7.62, 20.32, 270), ("VS", -2.54, 20.32, 270),
+    ("VS", 2.54, 20.32, 270), ("VS", 7.62, 20.32, 270),
+    ("GND", -5.08, -22.86, 90), ("EP", 0.0, -22.86, 90), ("GND", 5.08, -22.86, 90),
+]
+_qnext = {k: list(v) for k, v in _qp.PINS.items()}
+_quad = []
+for _k, _x, _y, _a in _QLAYOUT:
+    _quad.append((_qnext[_k].pop(0), "NC" if _k == "OTHER" else _k, _QTYPE[_k], _x, _y, _a))
+assert all(not v for v in _qnext.values()), "quadpins.PINS has pads the layout does not place"
+assert len(_quad) == 29 and len({q[0] for q in _quad}) == 29
+_qname = _qp.LIB_ID.split(":")[-1]
+blk = emit(_qname, "TPS4H160B-Q1",
+           "Quad-channel 160 mOhm smart high-side switch, adjustable current limit, current-sense "
+           "analog output (Version B), HTSSOP-28 with exposed pad (pin 29, GND)",
+           "https://www.ti.com/lit/ds/symlink/tps4h160-q1.pdf",
+           {1: _quad}, rect=(-10.16, 17.78, 10.16, -20.32))
+LIBTXT, how = install(LIBTXT, _qname, blk)
+print(_qname, how, "(from quadpins.PINS, SLVSCV8E Table 5-1)")
+
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
 print("written")

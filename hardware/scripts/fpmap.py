@@ -25,6 +25,8 @@ than 0805: a 63 V part in 0805 either does not exist at these values or derates 
 under DC bias that it is not the capacitance the design assumes.
 """
 
+import quadpins
+
 # ---------------------------------------------------------------- stock libraries
 R_0603 = "Resistor_SMD:R_0603_1608Metric"
 R_1206 = "Resistor_SMD:R_1206_3216Metric"
@@ -104,6 +106,10 @@ C_OVERRIDE["C64"] = C_0805
 # picked yet; 6.3 x 7.7 mm is the smallest body that holds 22 uF at 63 V, and the
 # footprint must be re-checked against whatever part is actually chosen.
 C_OVERRIDE["C65"] = "Capacitor_SMD:CP_Elec_6.3x7.7"
+# C66: 100 nF on VBAT_B, behind Q13 and ahead of the SMBJ24A's 50.6 V clamp -- same reasoning
+# as C2/C5/C7: a 100 V part, and 0805 is where 100 nF at 100 V fits.
+C_OVERRIDE["C66"] = C_0805
+# R108 (100 k, GATE_B pull-down) is a signal passive on a gate node: 0603 default, no entry.
 
 # ---------------------------------------------------------------- everything else
 EXPLICIT = {
@@ -201,10 +207,14 @@ EXPLICIT = {
     #
     # Hole sizes are chosen by the LARGEST conductor in each cable, so mixed-gauge tails
     # (J1 and J7 both mix 16 and 18/22 AWG) still seat.
-    "J1":  "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief",     # PWR, 16 AWG
-    "J3":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # FL, 22 AWG
-    "J4":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # FR
-    "J5":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # RL
+    # Phase A (plan4, D5): J1 is feed A, 2-pin since the ignition cavity went; J9 is feed B;
+    # J3 is the front tail (4 lamps + GND); J4/J5 are the two parts of the rear 7-core run
+    # (KiCad's Connector_Wire relief footprints stop at 1x06, so one cable is two tails).
+    "J1":  "Connector_Wire:SolderWire-1.5sqmm_1x02_P6mm_D1.7mm_OD3mm_Relief",     # feed A: FEED_P, GND_IN
+    "J9":  "Connector_Wire:SolderWire-1.5sqmm_1x02_P6mm_D1.7mm_OD3mm_Relief",     # feed B: FEED_B_P, GND_B
+    "J3":  "Connector_Wire:SolderWire-0.5sqmm_1x05_P4.6mm_D0.9mm_OD2.1mm_Relief", # front: FL/FR DRL+IND, GND
+    "J4":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # rear 1: RL DRL/IND/BRK, GND
+    "J5":  "Connector_Wire:SolderWire-0.5sqmm_1x03_P4.6mm_D0.9mm_OD2.1mm_Relief", # rear 2: RR DRL/IND/BRK
     "J6":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # RR
     "J7":  "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief",     # Denali, 16 AWG gnd
     "J8":  "Connector_Wire:SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief", # CAN twisted pair
@@ -220,6 +230,17 @@ EXPLICIT = {
     "L6":  "mccan:TDK_ACT45B",
     "SW1": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # BOOT
     "SW2": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # EN/RESET
+
+    # --- plan4 phase A.  The three signal-output quads (TPS4H160B-Q1, PWP HTSSOP-28): the
+    # footprint and its EP caveat live next to the pad table in quadpins.py.
+    "U11": quadpins.FOOTPRINT,                 # quad A (left)
+    "U12": quadpins.FOOTPRINT,                 # quad B (right)
+    "U13": quadpins.FOOTPRINT,                 # quad C (brake)
+    # --- feed B reverse-polarity circuit (D6)
+    "Q13": "Package_SO:PowerPAK_SO-8L_Single",     # SQJ461EP, same package plan3's Q1 used
+    "D24": "Diode_SMD:D_SOD-123",              # MMSZ5245B 15 V zener, Q13 gate clamp
+    "D25": "Diode_SMD:D_SMB",                  # SMBJ24A on VBAT_B -- DO-214AA, as D2
+    "NT1": "NetTie:NetTie-2_SMD_Pad0.5mm",     # GND_B <-> GND star point
 }
 # Q4-Q9: NX5020UNBKS, "a very small SOT363 (SC-88)" per its datasheet section 1.
 for _i in range(4, 10):
