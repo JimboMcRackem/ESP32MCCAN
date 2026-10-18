@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 """Generate hardware/sheets/outputs.kicad_sch (KiCad 10.0.2, format 20260306).
 
-Task 6: PCA9685, 12 RGB switching channels with sense shunts, the 16:1 analog mux
-and its sense-path protection, the dual PROFET, four PTCs and the panel connectors.
+Plan4 phase A, Task 7: ten signal outputs on three TI TPS4H160B-Q1 quad smart high-side
+switches (U11-U13, channel allocation D1), their input, sense and control networks, the two
+kit-gated aux placeholders, and the harness tails J3/J4/J5 (D5) plus the CAN tail J8.
+Pads and application values come from quadpins.py; nothing is re-typed here.
 """
 import os, re, sys, uuid, textwrap
 import fpmap
@@ -75,22 +77,37 @@ def from_library(path, name, libid):
                      lambda mm: '(symbol "%s_%s"' % (short, mm.group(1)), blk)
     return reindent(blk, 2, 1)
 
+
+import quadpins
+from quadpins import PINS
+
+def pins_of(blk):
+    """{pad number: (x, y)} from an embedded lib_symbols block (library coords, y up)."""
+    out = {}
+    for mm in re.finditer(r'\(pin \w+ \w+\s*\(at ([-\d.]+) ([-\d.]+) \d+\).*?\(number "([^"]+)"',
+                          blk, re.S):
+        out[mm.group(3)] = (float(mm.group(1)), float(mm.group(2)))
+    return out
+
 LIBS = []
 for lid in ("Device:C", "Device:D_Schottky", "Device:R", "power:GND"):
     LIBS.append(from_schematic("power_input.kicad_sch", lid))
-LIBS.append(from_library(os.path.join(STOCK, "Device.kicad_sym"), "Polyfuse", "Device:Polyfuse"))
-LIBS.append(from_library(os.path.join(STOCK, "Driver_LED.kicad_sym"), "PCA9685PW",
-                         "Driver_LED:PCA9685PW"))
-LIBS.append(from_library(os.path.join(STOCK, "Connector.kicad_sym"), "Conn_01x02_Pin",
-                         "Connector:Conn_01x02_Pin"))
-LIBS.append(from_library(os.path.join(STOCK, "Connector.kicad_sym"), "Conn_01x03_Pin",
-                         "Connector:Conn_01x03_Pin"))
-LIBS.append(from_library(os.path.join(STOCK, "Connector.kicad_sym"), "Conn_01x04_Pin",
-                         "Connector:Conn_01x04_Pin"))
-for nm in ("ADG706", "NX5020UNBKS", "BTS7008_2EPA"):
-    LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
-                             nm, "mccan_parts:" + nm))
+CONN = {}
+for n in (2, 3, 4, 5):
+    blk = from_library(os.path.join(STOCK, "Connector.kicad_sym"), "Conn_01x%02d_Pin" % n,
+                       "Connector:Conn_01x%02d_Pin" % n)
+    LIBS.append(blk)
+    CONN[n] = pins_of(blk)
+_qblk = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
+                     quadpins.LIB_ID.split(":")[1], quadpins.LIB_ID)
+LIBS.append(_qblk)
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
+
+# The quad's pin offsets, read from the symbol itself, and cross-checked against quadpins so
+# a pad that moved in one place and not the other stops the build.
+QUAD = pins_of(_qblk)
+assert sorted(QUAD, key=int) == sorted((p for v in PINS.values() for p in v), key=int), \
+    "symbol pads %s do not match quadpins.PINS" % sorted(QUAD, key=int)
 
 # ---------------------------------------------------------------- geometry
 def pin(x, y, rot, px, py):
@@ -100,37 +117,8 @@ def pin(x, y, rot, px, py):
     if rot == 270:  return (round(x + py, 4), round(y + px, 4))
     raise ValueError(rot)
 
-TWOPIN = {"1": (0, 3.81), "2": (0, -3.81)}          # R, C, Polyfuse
+TWOPIN = {"1": (0, 3.81), "2": (0, -3.81)}          # R, C
 DIODE  = {"1": (-3.81, 0), "2": (3.81, 0)}          # 1 = K, 2 = A
-NFET   = {"1": (-5.08, 0), "2": (2.54, -5.08), "3": (2.54, 5.08)}   # G, S, D (unit map below)
-PCA = {"1": (-17.78, -5.08), "2": (-17.78, -7.62), "3": (-17.78, -10.16),
-       "4": (-17.78, -12.7), "5": (-17.78, -15.24), "6": (17.78, 17.78),
-       "7": (17.78, 15.24), "8": (17.78, 12.7), "9": (17.78, 10.16),
-       "10": (17.78, 7.62), "11": (17.78, 5.08), "12": (17.78, 2.54),
-       "13": (17.78, 0), "14": (0, -27.94), "15": (17.78, -2.54),
-       "16": (17.78, -5.08), "17": (17.78, -7.62), "18": (17.78, -10.16),
-       "19": (17.78, -12.7), "20": (17.78, -15.24), "21": (17.78, -17.78),
-       "22": (17.78, -20.32), "23": (-17.78, 10.16), "24": (-17.78, -17.78),
-       "25": (-17.78, 12.7), "26": (-17.78, 17.78), "27": (-17.78, 15.24),
-       "28": (0, 25.4)}
-ADG = {}
-_SN = {1: "19", 2: "20", 3: "21", 4: "22", 5: "23", 6: "24", 7: "25", 8: "26",
-       9: "11", 10: "10", 11: "9", 12: "8", 13: "7", 14: "6", 15: "5", 16: "4"}
-for _i in range(1, 17):
-    ADG[_SN[_i]] = (-15.24, 17.78 - (_i - 1) * 2.54)
-ADG.update({"28": (15.24, 17.78), "18": (15.24, 7.62), "17": (15.24, 2.54),
-            "16": (15.24, 0), "15": (15.24, -2.54), "14": (15.24, -5.08),
-            "2": (15.24, -12.7), "3": (15.24, -15.24), "13": (15.24, -17.78),
-            "1": (0, 25.4), "12": (-5.08, -27.94), "27": (5.08, -27.94)})
-# BTS7008-2EPA, Rev. 1.21 Table 2.  Order matches symlib.py's pin order.
-BTS = {"2": (-12.7, 10.16), "6": (-12.7, 5.08), "3": (-12.7, -2.54), "5": (-12.7, -7.62),
-       "14": (12.7, 10.16), "13": (12.7, 7.62), "12": (12.7, 5.08),
-       "10": (12.7, 0), "9": (12.7, -2.54), "8": (12.7, -5.08),
-       "4": (12.7, -12.7), "7": (12.7, -17.78), "11": (12.7, -20.32),
-       "15": (0, 22.86), "1": (0, -25.4)}
-CONN = {2: {"1": (5.08, 0), "2": (5.08, -2.54)},
-        3: {"1": (5.08, 2.54), "2": (5.08, 0), "3": (5.08, -2.54)},
-        4: {"1": (5.08, 2.54), "2": (5.08, 0), "3": (5.08, -2.54), "4": (5.08, -5.08)}}
 
 SYMS, WIRES, JUNCS, LABELS, HLABELS, NOTES, NOCONN = [], [], [], [], [], [], []
 PINMAP, GNDN = {}, [0]
@@ -196,271 +184,187 @@ def lab(name, x, y, rot=0):
 def hlab(name, shape, x, y, rot=0):
     ongrid(x, y); HLABELS.append((name, shape, x, y, rot))
 
-# ---------------------------------------------------------------- channel table
-# ChannelIndex order.  Firmware is already written and tested against this order;
-# scrambling it produces a board whose colours and corners do not match the app.
-CH = [(c, k) for c in ("FL", "FR", "RL", "RR") for k in ("R", "G", "B")]
+# A net that crosses to another sheet gets ONE hierarchical label (so the root grows one sheet
+# pin for it, Task 8); every further appearance on this sheet is a local label of the same name,
+# which KiCad joins to it.  Shapes follow the other generators: supplies and nets driven from
+# mcu_can are inputs here, the sense lines this sheet drives are outputs.
+SHAPE = {"VBAT": "input", "+3V3_ALW": "input", "+5V": "input",
+         "DIAG_EN_Q": "input", "DIAG_SEL0_Q": "input", "DIAG_SEL1_Q": "input",
+         "SNS_A": "output", "SNS_B": "output", "SNS_C": "output"}
+_SEEN = set()
+def xlab(name, x, y, rot=0):
+    if name in _SEEN:
+        lab(name, x, y, rot)
+    else:
+        _SEEN.add(name)
+        hlab(name, SHAPE[name], x, y, rot)
 
-# ================================================================ BLOCK A: PCA9685
-# Value is the /Q900 ordering variant -- the ONLY AEC-Q100-compliant PCA9685 in the
-# ordering table (datasheet Table 3 footnote 1).  The lib_id stays Driver_LED:PCA9685PW
-# because that is the stock symbol's name; the package is the same TSSOP28 (SOT361-1).
-U7 = place("U7", "Driver_LED:PCA9685PW", "PCA9685PW/Q900", 60.96, 63.5, 0, PCA,
-           [("Reference", "U7", 60.96, 33.02, 0), ("Value", "PCA9685PW/Q900", 60.96, 96.52, 0)],
-           desc="16-channel, 12-bit PWM Fm+ I2C-bus LED controller, TSSOP-28")
-# VDD from the SWITCHED rail: the driver is unpowered in sleep, which is half of why
-# the outputs cannot come on by accident.  See the ~OE note.
-w(U7["28"], (U7["28"][0], 33.02)); w((U7["28"][0], 33.02), (25.4, 33.02))
-hlab("+3V3_SW", "input", 25.4, 33.02, 180)
-a, b = vpart("C41", "Device:C", "10uF", 53.34, 33.02); gnd(*b); j(a)
-a, b = vpart("C42", "Device:C", "100nF", 45.72, 33.02); gnd(*b); j(a)
-gnd(*U7["14"])
-# I2C out as short stubs; the pull-ups live in block A2 and join by label
-w(U7["27"], (33.02, U7["27"][1])); hlab("I2C_SDA", "bidirectional", 33.02, U7["27"][1], 180)
-w(U7["26"], (33.02, U7["26"][1])); hlab("I2C_SCL", "bidirectional", 33.02, U7["26"][1], 180)
-# EXTCLK tied to GND rather than left floating
-w(U7["25"], (35.56, U7["25"][1])); gnd(35.56, U7["25"][1])
-# ~OE pulled LOW = outputs enabled.  "Disabled by default" comes from the switched rail
-# and the PCA9685's own power-on state, not from this pin -- see the note.
-w(U7["23"], (40.64, U7["23"][1]))
-a, b = vpart("R78", "Device:R", "10k", 40.64, U7["23"][1]); gnd(*b)
-# A0-A5 to GND -> I2C address 0x40
-for pnum in ("1", "2", "3", "4", "5", "24"):
-    p = U7[pnum]
-    w(p, (38.1, p[1])); j((38.1, p[1]))
-w((38.1, U7["1"][1]), (38.1, U7["24"][1]))
-w((38.1, U7["24"][1]), (38.1, 91.44)); gnd(38.1, 91.44)
-# LED0-11 -> the 12 PWM nets, in ChannelIndex order.  LED12-15 unused.
-for i, (corner, colour) in enumerate(CH):
-    p = U7[str(6 + i)] if i < 8 else U7[str(15 + i - 8)]
-    end = (round(p[0] + 7.62, 4), p[1])
-    w(p, end); lab("PWM_%s_%s" % (corner, colour), end[0], end[1])
-for pnum in ("19", "20", "21", "22"):
-    nc(U7[pnum])
+# ================================================================ channel table (D1)
+# Chip -> (ref, sense line, [function per channel 1..4]).  None = spare.  One dead chip never
+# takes out both sides' indicators, and brake survives a side chip failing.
+CHIPS = [("U11", "A", ["FL_DRL", "FL_IND", "RL_DRL", "RL_IND"]),
+         ("U12", "B", ["FR_DRL", "FR_IND", "RR_DRL", "RR_IND"]),
+         ("U13", "C", ["RL_BRK", "RR_BRK", None, None])]
 
-# ---------------------------------------------------------------- BLOCK A2: I2C pull-ups
-for k, (net, rref) in enumerate((("I2C_SDA", "R76"), ("I2C_SCL", "R77"))):
-    x = round(20.32 + k * 7.62, 4)
-    w((x, 104.14), (x, 109.22)); lab(net, x, 104.14, 90)
-    vpart(rref, "Device:R", "4.7k", x, 109.22)
-    w((x, 116.84), (x, 121.92)); lab("+3V3_SW", x, 121.92, 90)
+# Reference allocation (all on this sheet; R40-R75, C41-C46, D8-D10 were freed by deleting
+# the plan3 RGB stage):
+#   R40-R49  IN series (R_IN_SERIES), used channels in CHIPS order
+#   R50-R61  IN pull-downs (R_IN_PULLDOWN), all twelve channels in CHIPS order
+#   R62-R64  R_CL, R65-R67 R_THER, R68-R70 R_SNS, R71-R73 sense series 4.7k  (U11, U12, U13)
+#   R74/R75  OUT_AUX_L / OUT_AUX_R pull-downs
+#   C41-C43  C_VS, C44-C46 sense filter 10 nF, D8-D10 BAT54 clamps            (U11, U12, U13)
+SER = iter("R%d" % i for i in range(40, 50))
+PD = iter("R%d" % i for i in range(50, 62))
 
-# ================================================================ BLOCK B: 12 channels
-# Each channel: PWM -> gate (with pulldown); drain -> RET to the corner connector;
-# source -> sense node -> 10 ohm shunt -> GND.
-UNIT_PINS = {1: {"G": "2", "S": "1", "D": "6"}, 2: {"G": "5", "S": "4", "D": "3"}}
-for i, (corner, colour) in enumerate(CH):
-    y = round(30.48 + i * 25.4, 4)
-    ref = "Q%d" % (4 + i // 2)
-    unit = (i % 2) + 1
-    pm = UNIT_PINS[unit]
-    pins = {pm["G"]: NFET["1"], pm["S"]: NFET["2"], pm["D"]: NFET["3"]}
-    key = "%s_%d" % (ref, unit)
-    Q = place(ref, "mccan_parts:NX5020UNBKS", "NX5020UNBKS", 165.1, y, 0, pins,
-              [("Reference", "%s%s" % (ref, "AB"[unit - 1]), 168.91, y - 1.27, 0),
-               ("Value", "NX5020UNBKS", 168.91, y + 1.27, 0)],
-              desc="50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363",
-              unit=unit, key=key)
-    G, S, D = Q[pm["G"]], Q[pm["S"]], Q[pm["D"]]
-    # gate
-    w((142.24, y), G); lab("PWM_%s_%s" % (corner, colour), 142.24, y)
-    j((149.86, y)); w((149.86, y), (149.86, round(y + 5.08, 4)))
-    vpart("R%d" % (40 + i), "Device:R", "10k", 149.86, round(y + 5.08, 4))
-    gnd(149.86, round(y + 12.7, 4))
-    # drain -> RET
-    w(D, (D[0], round(y - 12.7, 4))); lab("RET_%s_%s" % (corner, colour), D[0], round(y - 12.7, 4), 90)
-    # source -> sense node -> shunt -> GND
-    w(S, (S[0], round(y + 7.62, 4)))
-    vpart("R%d" % (52 + i), "Device:R", "10R", S[0], round(y + 7.62, 4))
-    gnd(S[0], round(y + 15.24, 4))
-    j((S[0], round(y + 7.62, 4)))
-    w((S[0], round(y + 7.62, 4)), (182.88, round(y + 7.62, 4)))
-    lab("SENSE_%s_%s" % (corner, colour), 182.88, round(y + 7.62, 4))
+# Sense path: series resistor between the chip's CS node and the ADC line.  At the 6.5 V
+# worst-case fault level it holds the clamp current to (6.5 - 3.3 - 0.3) / 4.7k = 0.6 mA.
+R_SNS_SERIES = "4.7k"
+C_SNS_FILTER = "10nF"
+CLAMP = "BAT54"
 
-# ================================================================ BLOCK B2: sense protection
-# 10 kOhm in series with every sense node, and a clamp to +3V3_SW.  The series resistor
-# is what actually bounds a fault: at 24 V on a sense node it admits 2 mA, far inside the
-# mux's input rating.  The clamp is redundancy, and a quad array may replace the
-# discretes at layout to save area.
-for i, (corner, colour) in enumerate(CH):
-    y = round(30.48 + i * 19.05, 4)
-    w((233.68, y), (241.3, y)); lab("SENSE_%s_%s" % (corner, colour), 233.68, y)
-    a, b = hpart("R%d" % (64 + i), "Device:R", "10k", 241.3, y)
-    w(b, (259.08, y))
-    lab("MUXIN_%s_%s" % (corner, colour), 259.08, y)
-    j((254.0, y))
-    place("D%d" % (8 + i), "Device:D_Schottky", "BAT54", 254.0, round(y - 3.81, 4), 270, DIODE,
-          [("Reference", "D%d" % (8 + i), 256.54, round(y - 5.08, 4), 0),
-           ("Value", "BAT54", 256.54, round(y - 2.54, 4), 0)],
+assert quadpins.C_OUT is None, \
+    "quadpins.C_OUT is set: add the output capacitors (>= 63 V, 0805+) before regenerating"
+
+def in_net(fn, ref, ch):
+    return ("IN_" + fn) if fn else ("IN_%s_CH%d_SPARE" % (ref, ch))
+
+# ================================================================ BLOCK A: input chains
+# OUT_<fn> (the ESP32 pad, from mcu_can) -> R_IN_SERIES -> IN_<fn> (the chip pin) with
+# R_IN_PULLDOWN to GND on the chip side: every IN net is low while the ESP32 is in reset, and
+# no IN net has a path to a supply (Review Focus 1).  Spares get the pull-down only.
+ROW0, PITCH = 30.48, 15.24
+row = 0
+for ref, _s, fns in CHIPS:
+    for ch, fn in enumerate(fns, 1):
+        y = round(ROW0 + row * PITCH, 4)
+        row += 1
+        net = in_net(fn, ref, ch)
+        rpd = next(PD)
+        if fn:
+            hlab("OUT_" + fn, "input", 25.4, y, 180)
+            w((25.4, y), (33.02, y))
+            hpart(next(SER), "Device:R", quadpins.R_IN_SERIES, 33.02, y)
+            w((40.64, y), (45.72, y)); w((45.72, y), (50.8, y)); j((45.72, y))
+        else:
+            w((45.72, y), (50.8, y))
+        vpart(rpd, "Device:R", quadpins.R_IN_PULLDOWN, 45.72, y); gnd(45.72, round(y + 7.62, 4))
+        lab(net, 50.8, y)
+
+# ================================================================ BLOCK B: aux placeholders
+# OUT_AUX_L / OUT_AUX_R: the switch stage is kit-gated (spec 9.1).  Until then each GPIO ends in
+# one pull-down and nothing else, so the pin is defined and the net exists for the kit plan.
+for net, rref in (("OUT_AUX_L", "R74"), ("OUT_AUX_R", "R75")):
+    y = round(ROW0 + row * PITCH, 4)
+    row += 1
+    hlab(net, "input", 25.4, y, 180)
+    w((25.4, y), (45.72, y))
+    vpart(rref, "Device:R", quadpins.R_IN_PULLDOWN, 45.72, y); gnd(45.72, round(y + 7.62, 4))
+
+# ================================================================ BLOCK C: the three quads
+X0, Y0, DY = 152.4, 63.5, 101.6
+for k, (ref, sx, fns) in enumerate(CHIPS):
+    X, Y = X0, round(Y0 + k * DY, 4)
+    Q = place(ref, quadpins.LIB_ID, quadpins.PART, X, Y, 0, QUAD,
+              [("Reference", ref, X + 2.54, Y + 29.21, 0),
+               ("Value", quadpins.PART, X + 2.54, Y + 31.75, 0)],
+              desc="TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable "
+                   "current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+    P = lambda name, i=0: Q[PINS[name][i]]
+
+    # VS: all four pads on one bus, C_VS at its right end, VBAT at its left end
+    yb = round(Y - 30.48, 4)
+    xs = sorted(P("VS", i)[0] for i in range(len(PINS["VS"])))
+    for p in PINS["VS"]:
+        w(Q[p], (Q[p][0], yb)); j((Q[p][0], yb))
+    pts = [round(X - 17.78, 4)] + xs + [round(X + 17.78, 4)]
+    for a, b in zip(pts, pts[1:]):
+        w((a, yb), (b, yb))
+    xlab("VBAT", pts[0], yb, 180)
+    _, cb = vpart("C%d" % (41 + k), "Device:C", quadpins.C_VS, pts[-1], yb); gnd(*cb)
+
+    # GND pads and the exposed pad straight to GND (no TI GND network: feed A's LTC4380
+    # already blocks reverse polarity)
+    for p in PINS["GND"] + PINS["EP"]:
+        gnd(*Q[p])
+
+    # left side: every control pin out to a label
+    xl = round(X - 20.32, 4)
+    for ch, fn in enumerate(fns, 1):
+        p = P("IN%d" % ch); w(p, (xl, p[1])); lab(in_net(fn, ref, ch), xl, p[1], 180)
+    for name, net in (("DIAG_EN", "DIAG_EN_Q"), ("SEL0", "DIAG_SEL0_Q"), ("SEL1", "DIAG_SEL1_Q")):
+        p = P(name); w(p, (xl, p[1])); xlab(net, xl, p[1], 180)
+    for name in ("THER", "CL"):
+        p = P(name); w(p, (xl, p[1])); lab("%s_%s" % (name, sx), xl, p[1], 180)
+
+    # right side: both OUT pads of a used channel to its function net; spares no-connect
+    xr = round(X + 20.32, 4)
+    for ch, fn in enumerate(fns, 1):
+        for p in PINS["OUT%d" % ch]:
+            if fn:
+                w(Q[p], (xr, Q[p][1])); lab(fn, xr, Q[p][1])
+            else:
+                nc(Q[p])
+    nc(P("FAULT"))                                       # R6: no GPIO left; CS reports faults
+    for p in PINS["OTHER"]:
+        nc(Q[p])                                         # R6: NC pads
+
+    # sense: CS_x -> R_SNS to GND; -> 4.7k -> SNS_x; on SNS_x only, the BAT54 clamp (anode
+    # SNS_x, cathode +3V3_ALW) and the 10 nF ADC charge reservoir
+    p = P("SNS"); ys = p[1]
+    w(p, (xr, ys)); lab("CS_" + sx, xr, ys)
+    xa = round(X + 27.94, 4)
+    w((xr, ys), (xa, ys)); j((xa, ys))
+    _, b = vpart("R%d" % (68 + k), "Device:R", quadpins.R_SNS, xa, ys); gnd(*b)
+    w((xa, ys), (round(X + 33.02, 4), ys))
+    hpart("R%d" % (71 + k), "Device:R", R_SNS_SERIES, round(X + 33.02, 4), ys)
+    xd, xc, xh = round(X + 45.72, 4), round(X + 53.34, 4), round(X + 60.96, 4)
+    w((round(X + 40.64, 4), ys), (xd, ys)); w((xd, ys), (xc, ys)); w((xc, ys), (xh, ys))
+    j((xd, ys)); j((xc, ys))
+    dref = "D%d" % (8 + k)
+    place(dref, "Device:D_Schottky", CLAMP, xd, round(ys - 3.81, 4), 270, DIODE,
+          [("Reference", dref, xd + 2.54, round(ys - 5.08, 4), 0),
+           ("Value", CLAMP, xd + 2.54, round(ys - 2.54, 4), 0)],
           desc="Schottky diode")
-    w((254.0, round(y - 7.62, 4)), (254.0, round(y - 12.7, 4)))
-    lab("+3V3_SW", 254.0, round(y - 12.7, 4), 90)
+    w((xd, round(ys - 7.62, 4)), (xd, round(ys - 12.7, 4)))
+    xlab("+3V3_ALW", xd, round(ys - 12.7, 4), 90)
+    _, b = vpart("C%d" % (44 + k), "Device:C", C_SNS_FILTER, xc, ys); gnd(*b)
+    xlab("SNS_" + sx, xh, ys, 0)
 
-# ================================================================ BLOCK C: ADG706 mux
-U8 = place("U8", "mccan_parts:ADG706", "ADG706", 355.6, 91.44, 0, ADG,
-           [("Reference", "U8", 355.6, 60.96, 0), ("Value", "ADG706", 355.6, 124.46, 0)],
-           desc="16-to-1 analog multiplexer, 1.8 V to 5.5 V single supply, TSSOP-28")
-for i, (corner, colour) in enumerate(CH):
-    p = U8[_SN[i + 1]]
-    w((330.2, p[1]), p); lab("MUXIN_%s_%s" % (corner, colour), 330.2, p[1], 180)
-# S13-S16 unused: tied to GND, per the datasheet's guidance for unused inputs
-for i in range(13, 17):
-    p = U8[_SN[i]]
-    w((335.28, p[1]), p); j((335.28, p[1]))
-w((335.28, U8[_SN[13]][1]), (335.28, U8[_SN[16]][1]))
-w((335.28, U8[_SN[16]][1]), (335.28, 127.0)); gnd(335.28, 127.0)
-# address lines
-for pnum, net in (("17", "MUX_S0"), ("16", "MUX_S1"), ("15", "MUX_S2"), ("14", "MUX_S3")):
-    p = U8[pnum]
-    w(p, (388.62, p[1])); hlab(net, "input", 388.62, p[1], 0)
-# EN tied enabled
-w(U8["18"], (388.62, U8["18"][1])); lab("+3V3_SW", 388.62, U8["18"][1])
-# supply
-w(U8["1"], (U8["1"][0], 60.96)); w((U8["1"][0], 60.96), (335.28, 60.96))
-lab("+3V3_SW", 335.28, 60.96, 180)
-a, b = vpart("C43", "Device:C", "100nF", 342.9, 60.96); gnd(*b); j(a)
-gnd(*U8["12"]); gnd(*U8["27"])
-for pnum in ("2", "3", "13"):
-    nc(U8[pnum])
-# output -> RGB_ISNS, with the SAR sample-and-hold buffer cap
-w(U8["28"], (401.32, U8["28"][1])); hlab("RGB_ISNS", "output", 401.32, U8["28"][1], 0)
-j((396.24, U8["28"][1])); w((396.24, U8["28"][1]), (396.24, 114.3))
-a, b = vpart("C44", "Device:C", "10nF", 396.24, 114.3); gnd(*b)
+    # CL -> R_CL -> GND;  +5V -> R_THER -> THER (latch mode while awake)
+    xcl, xth, yt = round(X + 76.2, 4), round(X + 86.36, 4), round(Y - 12.7, 4)
+    w((xcl, yt), (xcl, round(yt + 5.08, 4))); lab("CL_" + sx, xcl, yt, 90)
+    _, b = vpart("R%d" % (62 + k), "Device:R", quadpins.R_CL, xcl, round(yt + 5.08, 4)); gnd(*b)
+    w((xth, yt), (xth, round(yt + 5.08, 4))); xlab("+5V", xth, yt, 90)
+    _, b = vpart("R%d" % (65 + k), "Device:R", quadpins.R_THER, xth, round(yt + 5.08, 4))
+    w(b, (xth, round(b[1] + 5.08, 4))); lab("THER_" + sx, xth, round(b[1] + 5.08, 4), 270)
 
-# ================================================================ BLOCK D: PROFET
-# Pin numbers VERIFIED 2026-09-15 against Infineon BTS7008-2EPA Rev. 1.21 Table 2 -- see
-# symlib.py for the full mapping.  VS is the EXPOSED PAD (pin 15); there is no other supply
-# pin.  OUT0 is pins 12-14 and OUT1 is pins 8-10, tied together here because Table 2 note 1
-# requires it: "All output pins of the channel must be connected together on the PCB."
-U9 = place("U9", "mccan_parts:BTS7008_2EPA", "BTS7008-2EPA", 368.3, 190.5, 0, BTS,
-           [("Reference", "U9", 353.06, 170.18, 0),
-            ("Value", "BTS7008-2EPA", 398.78, 218.44, 0)],
-           desc="Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by "
-                "DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
-w(U9["15"], (368.3, 157.48)); w((368.3, 157.48), (340.36, 157.48))
-hlab("VBAT", "input", 340.36, 157.48, 180)
-a, b = vpart("C45", "Device:C", "10uF", 355.6, 157.48); gnd(*b); j(a)
-a, b = vpart("C46", "Device:C", "100nF", 347.98, 157.48); gnd(*b); j(a)
-gnd(*U9["1"])
-
-# control lines.  Each carries a 4.7 kOhm series resistor per the datasheet's Table 24
-# (RIN / RDEN / RDSEL): protects the MCU during overvoltage and reverse polarity, and is
-# what lets the outputs switch OFF on loss of ground.  The 10 kOhm pulldowns sit on the
-# MCU SIDE of those resistors -- putting them on the device side would make a divider that
-# lands 2.24 V on a pin whose guaranteed-high threshold is 2.0 V.  See the note.
-# EN_DIAG and DEN_DSEL are already held low by R35 and R34 in mcu_can's passive-defaults
-# block, so only the two PWM lines need a pulldown adding here.
-for i, (pnum, net, rser, rpd) in enumerate((("2", "PWM_DEN_A", "R79", "R86"),
-                                            ("6", "PWM_DEN_B", "R80", "R87"),
-                                            ("3", "EN_DIAG",   "R84", None),
-                                            ("5", "DEN_DSEL",  "R85", None))):
-    p = U9[pnum]
-    xl = 337.82 if i % 2 == 0 else 347.98
-    hlab(net, "input", 327.66, p[1], 180)
-    w((327.66, p[1]), (xl, p[1]))
-    _, bb = hpart(rser, "Device:R", "4.7k", xl, p[1])
-    if bb != p:
-        w(bb, p)
-    if rpd:
-        x = round(325.12 + i * 10.16, 4)
-        w((x, 220.98), (x, 226.06)); lab(net, x, 220.98, 90)
-        vpart(rpd, "Device:R", "10k", x, 226.06); gnd(x, 233.68)
-
-# outputs, three pins per channel
-for pnums, net in ((("14", "13", "12"), "DEN_A_OUT"), (("10", "9", "8"), "DEN_B_OUT")):
-    ys = [U9[n][1] for n in pnums]
-    for y in ys:
-        w((381.0, y), (388.62, y))
-    w((388.62, ys[0]), (388.62, ys[-1]))
-    j((388.62, ys[1])); w((388.62, ys[1]), (401.32, ys[1]))
-    lab(net, 401.32, ys[1])
-
-# pins 7 and 11 are internally not bonded
-for pnum in ("7", "11"):
-    nc(U9[pnum])
-
-# IS -- ONE multiplexed sense output, the channel chosen by DSEL.  Chain follows the
-# datasheet's Figure 43 application diagram: RIS_PROT, then RSENSE to ground sets the
-# scale, then RADC isolates the ADC pin from a node that reaches VS - 1 V under fault.
-p = U9["4"]
-w(p, (388.62, p[1]))
-_, bb = hpart("R82", "Device:R", "4.7k", 388.62, p[1])          # RIS_PROT
-w(bb, (411.48, p[1]))
-j((398.78, p[1])); w((398.78, p[1]), (398.78, 208.28))
-_, b2 = vpart("R81", "Device:R", "2.2k", 398.78, 208.28); gnd(*b2)     # RSENSE
-j((406.4, p[1])); w((406.4, p[1]), (406.4, 208.28))
-_, b3 = vpart("C47", "Device:C", "220pF", 406.4, 208.28); gnd(*b3)     # CSENSE
-_, b4 = hpart("R83", "Device:R", "4.7k", 411.48, p[1])          # RADC
-w(b4, (431.8, p[1]))
-j((421.64, p[1])); w((421.64, p[1]), (421.64, 208.28))
-_, b5 = vpart("C48", "Device:C", "10nF", 421.64, 208.28); gnd(*b5)
-j((426.72, p[1]))
-place("D20", "Device:D_Schottky", "BAT54", 426.72, round(p[1] - 3.81, 4), 270, DIODE,
-      [("Reference", "D20", 429.26, round(p[1] - 5.08, 4), 0),
-       ("Value", "BAT54", 429.26, round(p[1] - 2.54, 4), 0)],
-      desc="Schottky diode")
-w((426.72, round(p[1] - 7.62, 4)), (426.72, round(p[1] - 12.7, 4)))
-hlab("+3V3_ALW", "input", 426.72, round(p[1] - 12.7, 4), 90)
-hlab("ISNS_DEN", "output", 431.8, p[1], 0)
-
-# ================================================================ BLOCK E: PTCs
-# Isolates a shorted string so one crushed cable cannot extinguish all four corners.
-for i, corner in enumerate(("FL", "FR", "RL", "RR")):
-    x = round(45.72 + i * 15.24, 4)
-    w((x, 132.08), (x, 137.16)); lab("+24V", x, 132.08, 90)
-    place("F%d" % (2 + i), "Device:Polyfuse", "1206L050/24", x, 140.97, 0, TWOPIN,
-          [("Reference", "F%d" % (2 + i), x + 1.651, 139.7, 0),
-           ("Value", "1206L050/24", x + 1.651, 142.24, 0)],
-          desc="Resettable fuse, polymeric positive temperature coefficient")
-    w((x, 144.78), (x, 149.86)); lab("+24V_%s" % corner, x, 149.86, 90)
-w((96.52, 132.08), (106.68, 132.08)); lab("+24V", 96.52, 132.08)
-hlab("+24V", "input", 106.68, 132.08, 0)
-
-# ================================================================ BLOCK F: connectors
-# Four corner connectors are IDENTICAL 4-way parts and CAN be mis-mated; each carries a
-# distinct keying/colour code, recorded here because firmware cannot detect a swap.
-KEYCODE = {"FL": "key A / black", "FR": "key B / grey",
-           "RL": "key C / brown", "RR": "key D / natural"}
-for i, corner in enumerate(("FL", "FR", "RL", "RR")):
-    x, y = 60.96, round(179.07 + i * 33.02, 4)
-    _v = "%s pigtail -> SS1.0 %s" % (corner, KEYCODE[corner])
-    Jn = place("J%d" % (3 + i), "Connector:Conn_01x04_Pin", _v,
-               x, y, 0, CONN[4],
-               [("Reference", "J%d" % (3 + i), x - 5.08, round(y - 11.43, 4), 0),
-                ("Value", _v, x - 5.08, round(y - 8.89, 4), 0)],
-               desc="Soldered wire tail, 4 x 22 AWG, to a Superseal 1.0 4-way OUT ON THE HARNESS")
-    for k, net in enumerate(("+24V_%s" % corner, "RET_%s_R" % corner,
-                             "RET_%s_G" % corner, "RET_%s_B" % corner)):
-        p = Jn[str(k + 1)]
-        w(p, (81.28, p[1])); lab(net, 81.28, p[1])
-# Denali: two switched positives and a shared ground
-J7 = place("J7", "Connector:Conn_01x03_Pin", "DENALI pigtail -> SS1.5 3w", 60.96, 320.04, 0, CONN[3],
-           [("Reference", "J7", 55.88, 308.61, 0),
-            ("Value", "DENALI pigtail -> SS1.5 3w", 55.88, 311.15, 0)],
-           desc="Soldered wire tail: 2 x 18 AWG switched, 1 x 16 AWG shared return (6.6 A)")
-for k, net in enumerate(("DEN_A_OUT", "DEN_B_OUT")):
-    p = J7[str(k + 1)]
-    w(p, (81.28, p[1])); lab(net, 81.28, p[1])
-gnd(*J7["3"])
-# CAN
-J8 = place("J8", "Connector:Conn_01x02_Pin", "CAN pigtail -> SS1.0 2w", 60.96, 347.98, 0, CONN[2],
-           [("Reference", "J8", 55.88, 337.82, 0),
-            ("Value", "CAN pigtail -> SS1.0 2w", 55.88, 340.36, 0)],
-           desc="Soldered wire tail, 22 AWG twisted pair -- keep the twist to the pads")
-for k, net in enumerate(("CANH", "CANL")):
-    p = J8[str(k + 1)]
-    w(p, (81.28, p[1])); hlab(net, "bidirectional", 81.28, p[1], 0)
-
-# ================================================================ BLOCK G: DNP snubbers
-# Series RC to GND on every RET net, all DNP, in case the long corner runs need taming
-# during EMC work.  Fitting them is a stuff-option, not a board change.
-for i, (corner, colour) in enumerate(CH):
-    y = round(254.0 + i * 12.7, 4)
-    w((233.68, y), (241.3, y)); lab("RET_%s_%s" % (corner, colour), 233.68, y)
-    a, b = hpart("R%d" % (88 + i), "Device:R", "100R", 241.3, y, dnp=True)
-    a2, b2 = hpart("C%d" % (49 + i), "Device:C", "10nF", 248.92, y, dnp=True)
-    w(b2, (259.08, y)); w((259.08, y), (259.08, round(y + 5.08, 4)))
-    gnd(259.08, round(y + 5.08, 4))
+# ================================================================ BLOCK D: harness tails (D5)
+# Soldered wire tails, not connectors: the Superseal joints are out on the harness.
+TAILS = [("J3", ["FL_DRL", "FL_IND", "FR_DRL", "FR_IND", "GND"], "FRONT tail",
+          "Soldered wire tail, front run: FL/FR DRL and indicator, shared return"),
+         ("J4", ["RL_DRL", "RL_IND", "RL_BRK", "GND"], "REAR tail 1 (7-core)",
+          "Soldered wire tail, rear 7-core run part 1: RL DRL/indicator/brake, shared return"),
+         ("J5", ["RR_DRL", "RR_IND", "RR_BRK"], "REAR tail 2 (7-core)",
+          "Soldered wire tail, rear 7-core run part 2: RR DRL/indicator/brake"),
+         ("J8", ["CANH", "CANL"], "CAN pigtail -> SS1.0 2w",
+          "Soldered wire tail, 22 AWG twisted pair -- keep the twist to the pads")]
+TX, ty = 279.4, 63.5
+for jref, nets, val, desc in TAILS:
+    n = len(nets)
+    top = min(-py for _, py in CONN[n].values())
+    Jn = place(jref, "Connector:Conn_01x%02d_Pin" % n, val, TX, ty, 0, CONN[n],
+               [("Reference", jref, TX - 5.08, round(ty + top - 6.35, 4), 0),
+                ("Value", val, TX - 5.08, round(ty + top - 3.81, 4), 0)],
+               desc=desc)
+    for i, net in enumerate(nets, 1):
+        p = Jn[str(i)]
+        if net == "GND":
+            gnd(*p)
+        elif net in ("CANH", "CANL"):
+            w(p, (round(TX + 20.32, 4), p[1])); hlab(net, "bidirectional", round(TX + 20.32, 4), p[1], 0)
+        else:
+            w(p, (round(TX + 20.32, 4), p[1])); lab(net, round(TX + 20.32, 4), p[1])
+    ty = round(ty + 38.1, 4)
 
 # ================================================================ NOTES
 NOTEW = 135
@@ -473,124 +377,60 @@ def note(*parts):
             out.extend(textwrap.wrap(para, NOTEW) or [""])
     NOTES.append("\n".join(out))
 
-note("""|ACCEPTANCE (spec 5, 9.1, 9.2)
-- PCA9685 on +3V3_SW, I2C, LED0-11 -> the 12 RGB switch inputs IN ChannelIndex ORDER:
-  LED0,1,2 = FL R,G,B;  LED3,4,5 = FR R,G,B;  LED6,7,8 = RL R,G,B;  LED9,10,11 = RR R,G,B.
-  LED12-15 UNUSED.
-- 12x discrete logic-level N-MOSFET, gate direct from PCA9685, sense shunt in each source leg
-- 12 SENSE_* nodes -> 16:1 analog mux (MUX_S0-S3) -> RGB_ISNS -> GPIO 32 (ADC1_CH4)
-- NO SPI anywhere on this board
-- Dual PROFET from VBAT, inputs PWM_DEN_A/B from ESP32 LEDC on GPIO 18/19, NOT the PCA9685
-- PROFET: ONE sense output -> ISNS_DEN (GPIO 34) with scaling resistor; DEN_DSEL selects
-  which channel IS reports
-- 4x PTC, one per string, on the +24V feeds
-- All 14 PWM_* nets have a pulldown to GND
-- 4 corner connectors, keyed/colour-coded differently from each other
-- Denali connector: 2 switched positives + 1 shared ground
-- Output snubber footprints present but DNP""")
+note("""|SIGNAL OUTPUTS (spec 4.4, plan4 decision D1) -- three TI TPS4H160B-Q1 quads, ten channels, two spare
+         CH1        CH2        CH3        CH4        sense
+  U11    FL_DRL     FL_IND     RL_DRL     RL_IND     SNS_A   (left)
+  U12    FR_DRL     FR_IND     RR_DRL     RR_IND     SNS_B   (right)
+  U13    RL_BRK     RR_BRK     spare      spare      SNS_C   (brake)""",
+"""One dead chip never takes out both sides' indicators, and brake survives a side chip failing.
+Both OUT pads of each channel are tied to the channel's net.  No output capacitor: TI's typical
+application (Fig. 8-1) shows none.  VS is VBAT (feed A, behind the LTC4380) with one 100 nF
+100 V 0805 per chip (C41-C43) -- the SMBJ24A clamps at 50.6 V, so nothing on VBAT is under 63 V.""")
 
-note("""|SENSE CHAIN (spec 5.1) -- VALUES REVISED, THE PLAN TEXT IS STALE
-10 ohm x 26.7 mA = 267 mV at full channel current (133 mV if the 6 cm strip length is used).
-ADC1 at 0 dB attenuation (0-1.1 V range).  Classification is open (~0 mV) / working (~267 mV) /
-shorted (saturated) -- NOT precision current metering.""",
-"""Task 6 of the plan still says "1 ohm" and "140 mV", and asks for 2512 >= 1 W shunts.  Those
-figures predate the RGB load being corrected downward by about 4x (spec 2.2); part-selection.md
-rows 1b.1-1b.3 carry the current values and explicitly WITHDRAW the 2512 requirement.""",
-"""Sampling is on-demand: firmware drives one channel to 100%, steps the mux, reads, advances.
-The same sweep serves as the installation self-test.""")
+note("""|U13 CH3 -- RESERVED FOR AUX_MODE (spec 3), WIRED IN THE KIT PLAN.  U13 CH4 -- SPARE.
+Both spare inputs are pulled down (R60, R61) and both spare outputs are no-connect.  Do not
+re-use U13 ch3 for anything else: the kit plan needs it.""")
 
-note("""|SHUNT RATING DEPENDS ON A FIRMWARE BEHAVIOUR -- READ THIS BEFORE CHANGING EITHER
-Normal dissipation in a 10 ohm shunt is 26.7 mA^2 x 10 = 7 mW, so an 0805 or 1206 is ample.""",
-"""A SHORTED channel is different.  The boost then current-limits at roughly 0.5 A, which puts
-about 2.5 W into that one shunt -- ten times a 1206's rating.  It survives only because the
-diagnostic sweep is brief and because firmware LATCHES A SHORTED CHANNEL OFF once it classifies
-one.  That makes the shunt package rating conditional on firmware behaviour, which is exactly
-the kind of cross-domain dependency that gets lost between disciplines.""",
-"""It is written down in three places on purpose: here, in part-selection.md, and it belongs in
-the firmware spec (spec section 12) when that is written.  If firmware does NOT latch off, move
-the shunts to 2512 1 W.""")
+note("""|INPUTS -- WHY EVERY IN NET IS LOW AT RESET
+Each OUT_* GPIO reaches its IN pin through R_IN_SERIES (4.7 kOhm, TI 7.3.7.5) and the IN net
+carries R_IN_PULLDOWN (47 kOhm) to GND, so no channel can light while the ESP32 is in reset, in
+download mode or asleep.  Driven high: 3.3 V x 37.0 k / (37.0 k + 4.7 k) = 2.93 V against
+VIH = 2.0 V (47 k in parallel with the 175 k minimum internal pull-down).  Series R40-R49,
+pull-downs R50-R61.""",
+"""DIAG_EN_Q, DIAG_SEL0_Q and DIAG_SEL1_Q are shared by all three chips.  Their 4.7 kOhm series
+resistors and the 10 kOhm DIAG_EN_Q pull-down live on mcu_can; SEL0/SEL1 have no external pull
+(their level is irrelevant while DIAG_EN is low).""")
 
-note("""|WHY ~OE IS PULLED LOW (R78) RATHER THAN HIGH
-The plan says "OE tied so outputs are disabled by default".  Taken literally that means pulling
-~OE HIGH -- but no GPIO is allocated to release it, so the board would be permanently dark.""",
-""""Disabled by default" is already delivered twice over without this pin: the PCA9685 sits on
-+3V3_SW so it is unpowered in sleep, and it powers up with MODE1 SLEEP set and every LEDn
-register cleared, i.e. outputs off.  R78 holds ~OE low so the part is usable; the safe state
-comes from the rail and the power-on register defaults.""")
+note("""|CURRENT LIMIT, THERMAL MODE, FAULT, GROUND
+CL: R62-R64 = 4.02 kOhm -> 0.8 V x 2500 / 4.02 k = 0.50 A per channel (Eq. 4).
+THER: R65-R67 = 10 kOhm to the GATED +5V -> latch-off while awake, so the firmware owns retry with
+backoff (spec 6.3); with +5V off in sleep the pin's internal pull-down draws nothing.
+FAULT: not connected -- no GPIO left; the per-chip sense line reports faults (4.5-6.5 V level).
+GND pads and the exposed pad go straight to GND: feed A's LTC4380 already blocks reverse
+polarity, so TI's GND resistor/diode network is not fitted.""")
 
-note("""|SENSE-PATH PROTECTION (I15)
-Each sense node reaches its mux input through 10 kOhm (R64-R75) with a clamp to +3V3_SW.
-The SERIES RESISTOR is what actually bounds a fault: at 24 V on a sense node it admits 2 mA,
-far inside the ADG706's input rating.  The clamps (D9-D20) are redundancy.""",
-"""C44, 10 nF at the mux output, supplies the ADC's sample-and-hold charge locally, which is what
-makes 10 kOhm series resistors harmless.  tau = 100 us, so firmware must wait >= 500 us after
-each mux step before reading.  100 nF would stretch that to 1 ms.""",
-"""A quad diode array may replace D9-D20 at layout to save area.""")
+note("""|SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)
+R68-R70 = 1.8 kOhm set the scale: 3.0 V at the 0.5 A limit (K = 300), 0.48 V at 80 mA.
+On a short or over-temperature the CS pin goes to its 4.5-6.5 V fault level.  R71-R73 (4.7 kOhm)
+then carry (6.5 - 3.3 - 0.3) / 4.7 k = 0.6 mA into the BAT54 (D8-D10, anode SNS_x, cathode
++3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS
+node it would have no series resistor to limit its current.""",
+"""C44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is
+47 us, so firmware settles >= 250 us after changing DIAG_SEL before reading.  A reading above
+~3.0 V means fault, not current.""")
 
-note("""|PROFET U9 -- PINOUT VERIFIED, Infineon BTS7008-2EPA Rev. 1.21 Table 2 (2024-07-29)
-EP/15 VS (exposed pad, the ONLY supply pin)   1 GND   2 IN0   3 DEN   4 IS   5 DSEL
-6 IN1   7, 11 n.c. (internally not bonded)    8-10 OUT1   12-14 OUT0""",
-"""Table 2 note 1: "All output pins of the channel must be connected together on the PCB."
-All three pins of each channel are therefore modelled and tied on this sheet, and the layout
-must carry the full channel current on every one of them.""",
-"""FOOTPRINT (Task 8): Package_SO:Infineon_PG-TSDSO-14-22, which ships with KiCad.  Its pad 15
-is the 2.65 x 4 mm thermal pad, which is why VS is numbered 15 here.  PG-TSDSO-14-22 is the
-former name of the same package -- the datasheet's revision history records the rename.""")
+note("""|AUX OUTPUTS -- PLACEHOLDERS ONLY (spec 9.1, kit-gated)
+OUT_AUX_L and OUT_AUX_R each end in one 47 kOhm pull-down (R74, R75) and nothing else.  The
+switch stage, the pod tail and the R100 re-size are kit-gated (spec 9.1) and are added in the
+kit plan, not here.""")
 
-note("""|PROFET SENSE CHAIN -- HOW R81 WAS SIZED
-kILIS = 5400 (Table 22, at IL14 = 2.8 A, +/-5.8%; 5450 at 5.5 A).  At the Denali's 3.3 A per
-channel (spec 2.2) the IS pin therefore sources IL / kILIS = 611 uA.""",
-"""R81 = 2.2 kOhm puts that at 1.34 V, comfortably mid-scale for ADC1 at 11 dB attenuation
-(useful range ~0.15 to 2.45 V on GPIO 34).  Full scale then corresponds to 6.0 A -- above the
-3.3 A working point, below the 7.5 A nominal rating, so a genuine overcurrent still reads on
-scale instead of pinning.  The 0.15 V ADC floor corresponds to 368 mA, so an open channel
-(IL(OL) is ~21 mA, Table 22) reads as a hard zero and is unambiguous.""",
-"""R82 (RIS_PROT) and R83 (RADC) are NOT optional.  Under a fault the IS pin saturates: Table 20
-gives IIS(SAT) = 4.1 to 15 mA and VSIS_F = VS - VIS of only 0.5 V typ / 1 V max, so the sense
-node sits within a volt of battery -- about 12.5 V.  R83 is what keeps that off GPIO 34, with
-D21 clamping the remainder to +3V3_ALW at under 2 mA.""",
-"""C47 (220 pF) with R83 gives the ~1 us time constant the datasheet asks for.  C48 (10 nF) at
-the ADC end supplies the SAR sample-and-hold charge locally, which is what makes a 4.7 kOhm
-series resistor harmless; tau = 47 us, so firmware must settle >= 250 us after selecting a
-channel with DSEL before reading.""")
-
-note("""|PROFET CONTROL LINES -- WHY THE PULLDOWNS ARE ON THE MCU SIDE
-R79/R80/R84/R85 are the datasheet's RIN, RDEN and RDSEL (Table 24, 4.7 kOhm): they protect the
-MCU during overvoltage and reverse polarity, and they are what allows the outputs to switch
-OFF if the module loses its ground.""",
-"""All four inputs must be held low while the ESP32 is in reset or deep sleep -- that is also
-what keeps the PROFET in Sleep mode (0.6 uA) rather than Stand-by, which needs INn, DEN and
-DSEL all low, and GPIO 18/19 float in reset.  R86/R87 do that for the two PWM lines; EN_DIAG
-and DEN_DSEL already have R35 and R34 in mcu_can's passive-defaults block, so they are not
-duplicated here.""",
-"""They are deliberately on the MCU side of the series resistors.  In series the two would form
-a divider: 3.3 V x 10 / 14.7 = 2.24 V at the pin, against a guaranteed-high threshold of 2.0 V
-max (Table 7).  A 240 mV margin over temperature and tolerance is not a margin.  On the MCU
-side the pin is driven through 4.7 kOhm into a microamp input, so the drop is negligible.""")
-
-note("""|PROFET -- WHAT IS DELIBERATELY NOT FITTED
-No RPD (47 kOhm output pulldown), ROL or T1.  Those exist only for OFF-state open-load
-diagnosis, which spec 5.3 does not ask for; ON-state sense through IS covers what this design
-needs.  RPD would also draw ~290 uA per channel whenever the output is on.""")
-
-note("""|CORNER MIS-MATING -- STILL A SAFETY ITEM, BUT ONE MATING POINT FEWER (spec 9.2)
-J3-J6 are NOT connectors.  They are soldered 4-wire tails that leave the box through cable
-glands; the Superseal 1.0 4-way joints sit out on the harness.  TE Superseal is a wire-to-wire
-series with no panel-mount board-side housing, so the panel connectors this sheet used to
-show could not have been built.""",
-"""What that buys: the corner-to-board mapping is now fixed at ASSEMBLY and cannot be swapped
-at the box.  Of the two places a front/rear swap could happen, the easy one -- four identical
-shells side by side on a panel -- is gone.  Swapping at the far end is still possible, so the
-keying stays: FL key A / black, FR key B / grey, RL key C / brown, RR key D / natural, applied
-to the harness-side joint and the sleeve label.  Spec 9.2's install self-test still applies.""",
-"""Wire tails need the _Relief footprint variant and they need it fitted properly: the second,
-unplated hole per conductor is what takes a pull instead of the pad.  Nothing else mechanically
-restrains these wires.""")
-
-note("""|PTCs (F2-F5), one per string
-Isolates a shorted string so one crushed cable cannot extinguish all four corners (spec 5.2).
-Littelfuse 1206L050/24: Ihold 0.50 A at 23 C, 0.31 A at 65 C, against an 80 mA per-string load.
-That is a 3.9x margin at the hot internal temperature, which is the case that matters.""")
+note("""|HARNESS TAILS (D5) -- SOLDERED WIRE, NOT CONNECTORS
+J3 front: FL_DRL, FL_IND, FR_DRL, FR_IND, GND.  J4 rear part 1: RL_DRL, RL_IND, RL_BRK, GND.
+J5 rear part 2: RR_DRL, RR_IND, RR_BRK.  J8: CAN twisted pair.""",
+"""J4 and J5 are one 7-core cable through one gland, split across two tails only because KiCad's
+Connector_Wire relief footprints stop at 1x06; the 7-core run has one return (spec 3.1), on J4.
+The Superseal joints sit out on the harness.  The _Relief footprints' second, unplated hole per
+conductor is the strain relief: nothing else mechanically restrains these wires.""")
 
 # ================================================================ emit
 def fs(x):
@@ -676,7 +516,7 @@ for name, x, y, rot in LABELS:
     A("\t\t\t(font")
     A("\t\t\t\t(size 1.27 1.27)")
     A("\t\t\t)")
-    A("\t\t\t(justify left bottom)")
+    A("\t\t\t(justify %s bottom)" % ("right" if rot in (180, 270) else "left"))
     A("\t\t)")
     A('\t\t(uuid "%s")' % U("l%s%s%s" % (name, x, y)))
     A("\t)")

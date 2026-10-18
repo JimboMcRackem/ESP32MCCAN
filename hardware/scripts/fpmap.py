@@ -46,20 +46,6 @@ R_OVERRIDE = {
     "R2": R_2512,
     "R3": R_2512,
 }
-# R52-R63: the twelve RGB sense shunts, 10 ohm.  Normal dissipation is 7 mW at 26.7 mA,
-# which a 0402 would carry.  1206 is here for the FAULT case: a channel shorted to +24 V
-# puts ~2.5 W into one shunt.  1206 does not survive that either -- the package is sized
-# on the understanding that FIRMWARE LATCHES A SHORTED CHANNEL OFF, which is recorded as a
-# cross-domain dependency in part-selection.md and belongs in the section 12 firmware plan.
-# If that latch is ever dropped, these must become 2512 1 W parts.
-for _i in range(52, 64):
-    R_OVERRIDE["R%d" % _i] = R_1206
-# R88-R99: output snubber resistors, DNP footprints only.  1206 because a snubber that is
-# ever actually fitted is dissipating real power at the switching frequency, and because
-# the matching snubber capacitors C49-C60 are 1206 -- a snubber RC wants to be one
-# compact pair, not a 0603 next to a 1206.
-for _i in range(88, 100):
-    R_OVERRIDE["R%d" % _i] = R_1206
 # R100-R107: the eFuse (spec 4.2).  Two reasons break the 0603 default here.
 #   R100 is the 5.6 mOhm current-sense shunt and carries the whole 7.0 A night load:
 #   0.27 W steady, and the datasheet's current-limit loop reads across it, so it wants its
@@ -82,15 +68,16 @@ C_OVERRIDE = {
 }
 # Ceramics on the raw feed.  These see the TVS clamp, so they are 63 V+ parts and sized
 # by what that actually costs in package:
-for _r in ("C2", "C5", "C7", "C13", "C46"):       # 100 nF -- 0805 covers 100 nF at 100 V
+for _r in ("C2", "C5", "C7", "C13"):              # 100 nF -- 0805 covers 100 nF at 100 V
     C_OVERRIDE[_r] = C_0805
 for _r in ("C4", "C6", "C12"):                     # 1-2.2 uF at 63 V does not fit 0805
     C_OVERRIDE[_r] = C_1206
-for _r in ("C45",):                   # 10 uF at 63 V needs 1210
-    C_OVERRIDE[_r] = C_1210
-# C49-C60: output snubber capacitors, DNP.  Pairs with R88-R99; see that note.
-for _i in range(49, 61):
-    C_OVERRIDE["C%d" % _i] = C_1206
+# C41-C43: C_VS, one 100 nF per signal quad (U11-U13) on VBAT -- the raw feed behind the
+# LTC4380, so it sees the SMBJ24A's 50.6 V clamp: a 100 V part (quadpins.C_VS), and 0805 is
+# where 100 nF at 100 V fits, same reasoning as C2/C5/C7.  C44-C46 (10 nF on the 3.3 V SNS_x
+# lines) and every other passive on the outputs sheet are 0603 signal parts: no entry.
+for _r in ("C41", "C42", "C43"):
+    C_OVERRIDE[_r] = C_0805
 # C62-C65: the eFuse.  C62 (C_TMR) and C63 (VCC, clamped to 22 V by D21) are ordinary
 # 0603 parts.  C64 hangs off the GATE node, which rides at OUT + 11.5 V and therefore up
 # to ~40 V against GND_IN -- 0805 for a 63 V part, same reasoning as C2/C5/C7.
@@ -138,9 +125,6 @@ EXPLICIT = {
     "U2":  "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm",
     "U5":  "RF_Module:ESP32-WROOM-32E",        # ships with KiCad; 18.0 x 25.5 mm
     "U6":  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",   # TJA1042T/3
-    "U7":  "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm", # PCA9685PW/Q900, SOT361-1
-    "U8":  "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm", # ADG706BRU
-    "U9":  "Package_SO:Infineon_PG-TSDSO-14-22",    # BTS7008-2EPA, pad 15 = the EP (VS)
     # LTC4380HMS-2: the MS package is MSOP-10 with NO exposed pad.  The DD (DFN) package
     # does have one and numbers it 11; the symbol has ten pins, so ordering DD would leave
     # the pad unlanded.  Order the MS part.
@@ -150,11 +134,6 @@ EXPLICIT = {
     "L2":  "mccan:Wurth_WE-CMBNC_7448031002",       # vendor footprint, pads verified
     "L4":  "Inductor_SMD:L_Coilcraft_XAL7070-XXX",  # XAL7070-223ME, 22 uH
     "L5":  "Inductor_SMD:L_Coilcraft_XAL7070-XXX",
-    # --- protection
-    "F2":  "Fuse:Fuse_1206_3216Metric",        # 1206L050/24 PTC, one per RGB string
-    "F3":  "Fuse:Fuse_1206_3216Metric",
-    "F4":  "Fuse:Fuse_1206_3216Metric",
-    "F5":  "Fuse:Fuse_1206_3216Metric",
     # --- connectors and switches
     "J2":  "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical",  # internal prog
 
@@ -171,7 +150,7 @@ EXPLICIT = {
     # else mechanically restrains these wires.
     #
     # Hole sizes are chosen by the LARGEST conductor in each cable, so mixed-gauge tails
-    # (J1 and J7 both mix 16 and 18/22 AWG) still seat.
+    # still seat.
     # Phase A (plan4, D5): J1 is feed A, 2-pin since the ignition cavity went; J9 is feed B;
     # J3 is the front tail (4 lamps + GND); J4/J5 are the two parts of the rear 7-core run
     # (KiCad's Connector_Wire relief footprints stop at 1x06, so one cable is two tails).
@@ -180,8 +159,6 @@ EXPLICIT = {
     "J3":  "Connector_Wire:SolderWire-0.5sqmm_1x05_P4.6mm_D0.9mm_OD2.1mm_Relief", # front: FL/FR DRL+IND, GND
     "J4":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # rear 1: RL DRL/IND/BRK, GND
     "J5":  "Connector_Wire:SolderWire-0.5sqmm_1x03_P4.6mm_D0.9mm_OD2.1mm_Relief", # rear 2: RR DRL/IND/BRK
-    "J6":  "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief", # RR
-    "J7":  "Connector_Wire:SolderWire-1.5sqmm_1x03_P6mm_D1.7mm_OD3mm_Relief",     # Denali, 16 AWG gnd
     "J8":  "Connector_Wire:SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief", # CAN twisted pair
 
     # L6: drawn 2026-09-19 from the RECOMMENDED LAND PATTERN figure of
@@ -207,11 +184,8 @@ EXPLICIT = {
     "D25": "Diode_SMD:D_SMB",                  # SMBJ24A on VBAT_B -- DO-214AA, as D2
     "NT1": "NetTie:NetTie-2_SMD_Pad0.5mm",     # GND_B <-> GND star point
 }
-# Q4-Q9: NX5020UNBKS, "a very small SOT363 (SC-88)" per its datasheet section 1.
-for _i in range(4, 10):
-    EXPLICIT["Q%d" % _i] = "Package_TO_SOT_SMD:SOT-363_SC-70-6"
-# D7-D20: BAT54 clamps.
-for _i in range(7, 21):
+# D8-D10: BAT54 sense-line clamps, one per signal quad (SNS_A/B/C -> +3V3_ALW).
+for _i in range(8, 11):
     EXPLICIT["D%d" % _i] = "Diode_SMD:D_SOD-123"
 
 # ---------------------------------------------------------------- BLOCKED
