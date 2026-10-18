@@ -33,71 +33,58 @@ UUIDS = {
 # name -> (x, y, w, h)
 BOX = {
     "power_input": (40.64,  40.64,  60.96, 45.72),
-    "rails":       (165.1, 40.64,  60.96, 66.04),
-    "mcu_can":     (40.64, 132.08, 60.96, 68.58),
+    "rails":       (165.1, 40.64,  60.96, 45.72),
+    "mcu_can":     (40.64, 132.08, 60.96, 78.74),
     "outputs":     (165.1, 132.08, 60.96, 78.74),
 }
 
+OUT12 = ["OUT_FL_IND", "OUT_FR_IND", "OUT_RL_IND", "OUT_RR_IND",
+         "OUT_FL_DRL", "OUT_FR_DRL", "OUT_RL_DRL", "OUT_RR_DRL",
+         "OUT_RL_BRK", "OUT_RR_BRK", "OUT_AUX_L", "OUT_AUX_R"]
+DIAGQ = ["DIAG_EN_Q", "DIAG_SEL0_Q", "DIAG_SEL1_Q"]
+
 # name -> list of (pin, kind, edge)   edge in {"L", "R"}
+# Every hierarchical label any child carries needs a pin here (ruling R4).
 PINS = {
     "power_input": [
         ("VBAT",      "output", "R"),
         ("VLOGIC_IN", "output", "R"),
-        # J1 cavity 1, topology B only (spec 8.1a); plugged on the Experia build
-        ("IGN_IN",    "output", "R"),
+        # second feed, no consumer yet: root label + PWR_FLAG (see FLAG_NETS)
+        ("VBAT_B",    "output", "R"),
     ],
     "rails": [
         ("VBAT",      "input",  "L"),
         ("VLOGIC_IN", "input",  "L"),
-        ("EN_3V3SW",  "input",  "L"),
-        ("EN_BOOST",  "input",  "L"),
+        ("EN_5V",     "input",  "L"),
         ("+3V3_ALW",  "output", "R"),
-        ("+3V3_SW",   "output", "R"),
         ("+5V",       "output", "R"),
-        ("+24V",      "output", "R"),
     ],
     "mcu_can": [
         ("+3V3_ALW",  "input",         "L"),
         ("+5V",       "input",         "L"),
-        ("RGB_ISNS",  "input",         "L"),
-        ("ISNS_DEN",  "input",         "L"),
-        ("IGN_IN",    "input",         "L"),
-        ("EN_BOOST",  "output",        "L"),
-        ("EN_3V3SW",  "output",        "L"),
-        ("I2C_SDA",   "bidirectional", "R"),
-        ("I2C_SCL",   "bidirectional", "R"),
-        ("MUX_S0",    "output",        "R"),
-        ("MUX_S1",    "output",        "R"),
-        ("MUX_S2",    "output",        "R"),
-        ("MUX_S3",    "output",        "R"),
-        ("PWM_DEN_A", "output",        "R"),
-        ("PWM_DEN_B", "output",        "R"),
-        ("DEN_DSEL",  "output",        "R"),
-        ("EN_DIAG",   "output",        "R"),
+        ("SNS_A",     "input",         "L"),
+        ("SNS_B",     "input",         "L"),
+        ("SNS_C",     "input",         "L"),
+        ("EN_5V",     "output",        "R"),
+    ] + [(n, "output", "R") for n in OUT12 + DIAGQ] + [
         ("CANH",      "bidirectional", "R"),
         ("CANL",      "bidirectional", "R"),
     ],
-    "outputs": [
-        ("+3V3_SW",   "input",         "L"),
+    "outputs": [(n, "input", "L") for n in OUT12 + DIAGQ] + [
         ("+3V3_ALW",  "input",         "L"),
-        ("+24V",      "input",         "L"),
+        ("+5V",       "input",         "L"),
         ("VBAT",      "input",         "L"),
-        ("MUX_S0",    "input",         "L"),
-        ("MUX_S1",    "input",         "L"),
-        ("MUX_S2",    "input",         "L"),
-        ("MUX_S3",    "input",         "L"),
-        ("PWM_DEN_A", "input",         "L"),
-        ("PWM_DEN_B", "input",         "L"),
-        ("EN_DIAG",   "input",         "L"),
-        ("DEN_DSEL",  "input",         "L"),
-        ("I2C_SDA",   "bidirectional", "R"),
-        ("I2C_SCL",   "bidirectional", "R"),
-        ("RGB_ISNS",  "output",        "R"),
-        ("ISNS_DEN",  "output",        "R"),
+        ("SNS_A",     "output",        "R"),
+        ("SNS_B",     "output",        "R"),
+        ("SNS_C",     "output",        "R"),
         ("CANH",      "bidirectional", "R"),
         ("CANL",      "bidirectional", "R"),
     ],
 }
+
+# Nets that need a PWR_FLAG at root: supplied from connector pins (passive) and
+# otherwise unflagged at root scope.
+FLAG_NETS = ["VBAT_B"]
 
 GRID = 1.27
 STUB = 8.89
@@ -181,7 +168,31 @@ A('\t\t(title "MCCAN Root")')
 A('\t\t(comment 1 "Net naming contract: see hardware/README.md")')
 A('\t\t(comment 2 "Sheet pins are joined by root-level labels, not by wires between boxes")')
 A("\t)")
-A("\t(lib_symbols)")
+STOCK = r"C:\Program Files\KiCad\10.0\share\kicad\symbols"
+def _block(text, header):
+    i = text.index("(", text.index(header))
+    d = 0
+    j = i
+    while True:
+        c = text[j]
+        if c == '"':
+            j += 1
+            while text[j] != '"' or text[j - 1] == "\\":
+                j += 1
+        elif c == "(":
+            d += 1
+        elif c == ")":
+            d -= 1
+            if d == 0:
+                return text[i:j + 1]
+        j += 1
+_lib = open(os.path.join(STOCK, "power.kicad_sym"), encoding="utf-8").read()
+_flag = _block(_lib, '\t(symbol "PWR_FLAG"\n').replace('(symbol "PWR_FLAG"\n', '(symbol "power:PWR_FLAG"\n', 1)
+# library top level is 1 tab, schematic lib_symbols is 2
+_flag = "\n".join("\t" + l for l in _flag.split("\n"))
+A("\t(lib_symbols")
+A("\t" + _flag)
+A("\t)")
 
 blocks = [sheet(n) for n in ("power_input", "rails", "mcu_can", "outputs")]
 
@@ -209,8 +220,63 @@ for nm, x, y, rot in LABELS:
     A('\t\t(uuid "%s")' % U("l%s%s%s" % (nm, x, y)))
     A("\t)")
 
+def flag(n, nm, x, y):
+    ref = "#FLG%02d" % n
+    A("	(symbol")
+    A('		(lib_id "power:PWR_FLAG")')
+    A("		(at %s %s 0)" % (fs(x), fs(y)))
+    A("		(unit 1)")
+    A("		(body_style 1)")
+    A("		(exclude_from_sim no)")
+    A("		(in_bom yes)")
+    A("		(on_board yes)")
+    A("		(in_pos_files yes)")
+    A("		(dnp no)")
+    A('		(uuid "%s")' % U("flag" + nm))
+    for prop, val, dy in (("Reference", ref, -5.08), ("Value", "PWR_FLAG", -2.54)):
+        A('		(property "%s" "%s"' % (prop, val))
+        A("			(at %s %s 0)" % (fs(x), fs(y + dy)))
+        A("			(hide yes)")
+        A("			(show_name no)")
+        A("			(do_not_autoplace no)")
+        A("			(effects")
+        A("				(font")
+        A("					(size 1.27 1.27)")
+        A("				)")
+        A("			)")
+        A("		)")
+    for prop, val in (("Footprint", ""), ("Datasheet", ""),
+                      ("Description", "Special symbol for telling ERC where power comes from")):
+        A('		(property "%s" "%s"' % (prop, val))
+        A("			(at %s %s 0)" % (fs(x), fs(y)))
+        A("			(hide yes)")
+        A("			(show_name no)")
+        A("			(do_not_autoplace no)")
+        A("			(effects")
+        A("				(font")
+        A("					(size 1.27 1.27)")
+        A("				)")
+        A("			)")
+        A("		)")
+    A('		(pin "1"')
+    A('			(uuid "%s")' % U("flagpin" + nm))
+    A("		)")
+    A("		(instances")
+    A('			(project "mccan"')
+    A('				(path "/%s"' % ROOT_UUID)
+    A('					(reference "%s")' % ref)
+    A("					(unit 1)")
+    A("				)")
+    A("			)")
+    A("		)")
+    A("	)")
+
 for b in blocks:
     A(b)
+for k, nm in enumerate(FLAG_NETS, 1):
+    for lbl, lx, ly, _r in LABELS:
+        if lbl == nm:
+            flag(k, nm, lx, ly)
 
 A("\t(sheet_instances")
 A('\t\t(path "/"')

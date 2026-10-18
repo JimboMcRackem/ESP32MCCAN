@@ -534,9 +534,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import quadpins as _qp
 
+# OUTn are passive: each channel has two pads that are one output tied together on the sheet,
+# and two Output-type pins on one net is a pin_to_pin error that is not in the circuit
+# (same treatment as the BTS7008 OUTn pads above).
 _QTYPE = {"IN1": "input", "IN2": "input", "IN3": "input", "IN4": "input",
           "DIAG_EN": "input", "SEL0": "input", "SEL1": "input", "THER": "input",
-          "OUT1": "output", "OUT2": "output", "OUT3": "output", "OUT4": "output",
+          "OUT1": "passive", "OUT2": "passive", "OUT3": "passive", "OUT4": "passive",
           "SNS": "output", "FAULT": "open_collector", "CL": "passive",
           "VS": "power_in", "GND": "power_in", "EP": "passive", "OTHER": "no_connect"}
 # (key, x, y, angle) per pad slot, 2.54 mm grid.  Left: inputs and control.  Right: outputs,

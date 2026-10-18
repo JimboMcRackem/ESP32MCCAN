@@ -1678,7 +1678,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 12.7 180)
 					(length 2.54)
 					(name "OUT1"
@@ -1696,7 +1696,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 10.16 180)
 					(length 2.54)
 					(name "OUT1"
@@ -1714,7 +1714,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 7.62 180)
 					(length 2.54)
 					(name "OUT2"
@@ -1732,7 +1732,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 5.08 180)
 					(length 2.54)
 					(name "OUT2"
@@ -1750,7 +1750,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 2.54 180)
 					(length 2.54)
 					(name "OUT3"
@@ -1768,7 +1768,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 0 180)
 					(length 2.54)
 					(name "OUT3"
@@ -1786,7 +1786,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 -2.54 180)
 					(length 2.54)
 					(name "OUT4"
@@ -1804,7 +1804,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin passive line
 					(at 12.7 -5.08 180)
 					(length 2.54)
 					(name "OUT4"
