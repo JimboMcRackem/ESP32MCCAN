@@ -26,8 +26,8 @@ Use **automotive-grade TXL or GXL** (thin-wall, cross-linked, 125 deg C) -- not 
 | Pod run (+12 V and return per pod) | 2.17 A nominal, 2.48 A at 10.5 V | **18 AWG minimum** | **KIT-GATED: not on the board yet.** Connector, count and routing wait on the Oxford kit (spec §9.1 items 1-2). Pod returns do **not** share with signal returns |
 | CAN H / CAN L | signal | **22 AWG twisted pair** | Twist is required, not optional -- see §5 |
 
-**Fuse each feed at its own wire, not above it.** 4 A and 3 A are 125% of each feed's own worst
-case (spec §4.1.1) and both sit below the Experia circuit's 5 A, so a harness fuse can act where
+**Fuse each feed at its own wire, not above it.** 4 A is 140% of feed A's worst
+case (2.86 A) and 3 A is 121% of feed B's (2.48 A) (spec §4.1.1) and both sit below the Experia circuit's 5 A, so a harness fuse can act where
 the bike's cannot. 18 AWG carries either with a wide margin.
 
 **The shared returns are the one easy mistake.** Each carries two modules' worth (160 mA front,
@@ -143,7 +143,7 @@ split is that a pod R fault cannot reach the controller.
 | **A** (J1) | pod L + ten signal channels + logic | **2.86 A** (57% of 5 A, 72% of the fuse) | **4 A** | 18 AWG min |
 | **B** (J9) | pod R only | **2.48 A** (50% of 5 A) | **3 A** | 18 AWG min |
 
-Each fuse is 125% of its own feed's worst case and below the circuit's 5 A, so it can act before
+Each fuse is at least 120% of its own feed's worst case (140% on A, 121% on B) and below the circuit's 5 A, so it can act before
 the bike's fuse does (spec §4.1.1). The fuses are **harness-side**, in the cable, not on the
 board; feed A's board-side protection (LTC4380 U10 with Q10/Q11) and feed B's P-FET Q13 and 24 V
 TVS D25 handle reverse polarity and surge, not the cable. Fuse position along each run is

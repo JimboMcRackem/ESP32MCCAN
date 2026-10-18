@@ -75,7 +75,7 @@ Reference designators are on F.Fab, except J*, F*, TP*, U*, Q*, D* and L*.
 
 | Sheet | Contents |
 |---|---|
-| power_input | Feed A (J1): fuse-side protection chain, LTC4380 U10 + Q10/Q11, 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): P-FET Q13, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` meets `GND` only at net-tie NT1 |
+| power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` meets `GND` only at net-tie NT1 |
 | rails | Low-Iq buck -> `+3V3_ALW`, gated `+5V` (`EN_5V`). No boost and no `+3V3_SW` |
 | mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, status LED, 4.7 k series resistors on the diagnostic lines |
 | outputs | Three TPS4H160-Q1 quads U11-U13 (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. The aux/pod switch is **not drawn**: it waits on the Oxford kit |
@@ -83,6 +83,21 @@ Reference designators are on F.Fab, except J*, F*, TP*, U*, Q*, D* and L*.
 The pin map and net names are the generators' (`scripts/gen_*.py`, `scripts/quadpins.py`) and the
 netlist `output/netlist.net`. The plan3 pin tables that used to be here (PCA9685, mux, ignition
 sense, PWM nets) described a board that no longer exists and have been removed.
+
+### ESP32 pin rules that still hold
+
+- GPIO 6-11 are the module's flash and are unusable. GPIO 37 and 38 are not bonded out.
+- GPIO 34-39 are input-only and have **no internal pulls**. Here: 34 `SNS_A`, 35 `CAN_RXD`
+  (RTC, EXT1 wake), 36 `SNS_B`, 39 `SNS_C`.
+- ADC2 fails while Wi-Fi is up, so the sense inputs are all ADC1.
+- Strapping pins, and what this board ties them to:
+  - GPIO 0 is `BOOT_N`: the BOOT button SW1 and the auto-reset transistor Q3.
+  - GPIO 2 is `DIAG_EN`: 4.7 k series, with R33 10 k pull-down on the chip side. It must be low
+    for download, and the same pull-down holds the switches' `DIAG_EN` low.
+  - GPIO 5 and 15 are `DIAG_SEL0` / `DIAG_SEL1`: 4.7 k series, **no pull** (their level is
+    irrelevant while `DIAG_EN` is low, and a pull-down on GPIO 15 would mute the boot log).
+  - GPIO 12 is `IO12_STRAP`: R36 10 k to GND (flash voltage select; also the firmware's TWAI TX pin).
+- No lamp output sits on a strapping pin or on GPIO 14.
 
 ## Phase-A board status (2026-10-18)
 

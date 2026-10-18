@@ -222,7 +222,7 @@ defect.
         v                  v                  v
  +-------------+   +-----------------+  +------------------+
  | 3V3 BUCK    |   | QUAD SMART HS   |  | SMART HS  AUX_L  |
- | +3V3_ALW    |   | x2 -> 10 ch     |  | limit 3.0-3.5 A: |
+ | +3V3_ALW    |   | x3: 10 ch+2 spr |  | limit 3.0-3.5 A: |
  | + 5V gated  |   | 80/20 mA, see §3|  | MUST trip before |
  +------+------+   +-----------------+  | feed A's 4 A fuse|
         |                  ^ 10 GPIO    +------------------+
@@ -318,8 +318,9 @@ single feed. One pod has to ride with the logic and signals.
 earlier draft inferred from the 1.5 W headline. The pods still dominate feed A entirely.)
 
 Worst case is 57% of a circuit's absolute rating and 76% of the 3.75 A it carries continuously.
-Fuse each feed below its circuit, at 125% of its own worst-case load: **4 A on feed A** (72% of
-the fuse at 2.86 A) and **3 A on feed B**. A board fuse rated above the upstream 5 A could never
+Fuse each feed below its circuit, at not less than 120% of its own worst-case load: **4 A on feed A**
+(140% of 2.86 A, so the load is 72% of the fuse) and **3 A on feed B** (121% of 2.48 A, 83% of the
+fuse). A board fuse rated above the upstream 5 A could never
 act, since the bike's fuse would always trip first.
 
 **The fault-containment problem, and where it is solved.** Sharing feed A between a pod and the
