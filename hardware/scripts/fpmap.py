@@ -86,13 +86,8 @@ for _r in ("C2", "C5", "C7", "C13", "C46"):       # 100 nF -- 0805 covers 100 nF
     C_OVERRIDE[_r] = C_0805
 for _r in ("C4", "C6", "C12"):                     # 1-2.2 uF at 63 V does not fit 0805
     C_OVERRIDE[_r] = C_1206
-for _r in ("C18", "C19", "C45"):                   # 10 uF at 63 V needs 1210
+for _r in ("C45",):                   # 10 uF at 63 V needs 1210
     C_OVERRIDE[_r] = C_1210
-# C20-C22: 4.7 uF on the +24 V rail.  Not a clamp-voltage case -- this is DC BIAS.  A
-# 25 V X7R at 24 V keeps 40-60% of nameplate (review observation O1), so the boost's
-# output capacitance is only what the package can actually hold.  1206 in a 50 V part.
-for _r in ("C20", "C21", "C22"):
-    C_OVERRIDE[_r] = C_1206
 # C49-C60: output snubber capacitors, DNP.  Pairs with R88-R99; see that note.
 for _i in range(49, 61):
     C_OVERRIDE["C%d" % _i] = C_1206
@@ -116,7 +111,6 @@ EXPLICIT = {
     # --- diodes
     "D2":  "Diode_SMD:D_SMB",                  # SMBJ24A -- DO-214AA (SMB) per smbj.pdf
     "D3":  "Diode_SMD:D_SMA",                  # 40 V Schottky, logic-rail OR
-    "D4":  "Package_TO_SOT_SMD:TO-277A",       # SS5PH102 -- SMPC/TO-277A per its datasheet
     "D5":  "LED_SMD:LED_0603_1608Metric",      # status LED
     # --- eFuse, spec 4.2.  D1/Q1/F1 used to be the front end and are gone: one LTC4380
     # and its pass pair now do reverse polarity, overcurrent and overvoltage together.
@@ -142,34 +136,6 @@ EXPLICIT = {
     # before fabrication -- this is a thermally critical part and the EP is its heatsink.
     "U1":  "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm",
     "U2":  "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm",
-    # LM51571-Q1 RTE = WQFN-16 3x3 P0.5, exposed pad 1.66 +/-0.1 mm square (Figure 7-1
-    # and the package drawing).  KiCad's EP1.675x1.675 is within tolerance.
-    "U3":  "Package_DFN_QFN:QFN-16-1EP_3x3mm_P0.5mm_EP1.675x1.675mm",
-    # DML3017LDC, V-DFN3030-12 (Type B).  RESOLVED 2026-09-21; it had been BLOCKED since
-    # Task 8 step 0 because the pin-1 corner appeared to differ between two figures of
-    # DS46371.  It does not.  The Suggested Pad Layout drawing is a bare land pattern with
-    # no pin names on it, drawn in a different orientation from the Package Outline; the
-    # three figures that DO carry pin names all agree, and they are what fixes the part:
-    #   - Pin Descriptions (page 1, Top View): VIN top-left, VCC two places below it on the
-    #     left, and the five VOUT labels in a column down the right-hand side.
-    #   - Application connection diagram: 1..6 = VIN EN VCC GND SR PG down one side, then
-    #     7 = BLEED at the near corner and 8..12 = VOUT back up the other.  Six per side.
-    #   - Pin Descriptions table: 1 and 13 VIN, 2 EN, 3 VCC, 4 GND, 5 SR, 6 PG, 7 BLEED,
-    #     8-12 VOUT.  13 is the exposed pad and it is VIN, not GND -- do not pour it to
-    #     ground.  Section 7 of the layout notes says the same: "The copper polygons and
-    #     exposed pad shall connect to VIN".
-    # So: pin 1 top-left in top view, counter-clockwise.  A mirrored part would put the
-    # VOUT block on the same side as VIN, which the page-1 figure rules out.
-    #
-    # The KiCad land pattern is a dimensional match to the package outline, not just the
-    # right size class:  e 0.50 BSC and six per side -> pads on 0.50 pitch at +-1.25/+-0.75
-    # /+-0.25;  EP D2 x E2 = 2.70 x 2.00 -> pad 13 is 2.86 x 2.05 against the suggested
-    # layout's X2 2.86 / Y1 2.10;  and the EP-to-pad gap comes out at 1.225 - 1.025 =
-    # 0.200 mm, which is k exactly.  Pad heel 1.225 sits just inside the lead's inner end
-    # (body 1.50 - L 0.30 = 1.20).  The toe is longer than Diodes' own figure (3.75 mm
-    # toe-to-toe vs Y2 3.30) because KiCad draws the IPC nominal fillet; that is extra
-    # solder fillet to inspect, not a different land.
-    "U4":  "Package_DFN_QFN:DFN-12-1EP_3x3mm_P0.5mm_EP2.05x2.86mm",
     "U5":  "RF_Module:ESP32-WROOM-32E",        # ships with KiCad; 18.0 x 25.5 mm
     "U6":  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",   # TJA1042T/3
     "U7":  "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm", # PCA9685PW/Q900, SOT361-1
@@ -182,7 +148,6 @@ EXPLICIT = {
     # --- magnetics
     "L1":  "Inductor_SMD:L_Vishay_IHLP-4040",       # IHLP-4040DZ-01, 1.5 uH
     "L2":  "mccan:Wurth_WE-CMBNC_7448031002",       # vendor footprint, pads verified
-    "L3":  "Inductor_SMD:L_Coilcraft_XAL4030-XXX",  # XAL4030-682ME, 6.8 uH boost
     "L4":  "Inductor_SMD:L_Coilcraft_XAL7070-XXX",  # XAL7070-223ME, 22 uH
     "L5":  "Inductor_SMD:L_Coilcraft_XAL7070-XXX",
     # --- protection
@@ -259,8 +224,8 @@ BLOCKED = {
     # with a plausible-looking wrong package, and every part on this board now has a
     # footprint that was either shipped with KiCad or drawn from a held datasheet.
     #
-    # The last two out were L6 (ACT45B, drawn 2026-09-19 from the recommended land pattern
-    # read as vector geometry) and U4 (DML3017LDC, 2026-09-21 -- see its entry above).
+    # The last one out was L6 (ACT45B, drawn 2026-09-19 from the recommended land pattern
+    # read as vector geometry).
     #
     # F1 IS GONE, and is not a candidate to come back.  It was a blade fuse, then briefly a
     # board-mounted eFuse with no part selected; spec 4.2 resolved it by making U10
