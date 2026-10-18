@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 """Generate hardware/sheets/mcu_can.kicad_sch (KiCad 10.0.2, format 20260306).
 
-Task 5: ESP32-WROOM-32E-N8, TJA1042T/3 with hardware-enforced listen-only,
-programming header with auto-reset, status LED, ignition-sense divider.
+ESP32-WROOM-32E-N8 on the plan4 pin map (twelve outputs, shared diagnostics, three sense
+inputs), TJA1042T/3 with hardware-enforced listen-only, programming header with auto-reset,
+status LED.
 """
 import os, re, sys, uuid
 import fpmap
+import quadpins
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 HW = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -88,10 +90,9 @@ def from_library(path, name, libid):
     return reindent(blk, 2, 1)
 
 LIBS = []
-# Device:D_TVS dropped 2026-09-19 -- the placeholder D6/D7 pair were its only users on
-# this sheet, and they are now one mccan_parts:PESD2CANFD24U.
-for lid in ("Device:C", "Device:D_Schottky",
-            "Device:R", "power:GND"):
+# Device:D_TVS dropped 2026-09-19 (the placeholder D6/D7 pair became one
+# mccan_parts:PESD2CANFD24U); Device:D_Schottky dropped with the ignition clamp (plan4).
+for lid in ("Device:C", "Device:R", "power:GND"):
     LIBS.append(from_schematic(lid))
 LIBS.append(from_library(os.path.join(STOCK, "Device.kicad_sym"), "LED", "Device:LED"))
 LIBS.append(from_library(os.path.join(STOCK, "RF_Module.kicad_sym"),
@@ -234,49 +235,72 @@ a, b = vpart("C37", "Device:C", "1uF", 114.3, EN_Y); gnd(*b)
 w((124.46, EN_Y), a)
 lab("EN_MCU", 128.27, EN_Y)
 
-# --- IGN_SENSE in on GPIO 36; GPIO 39 left spare
-w(U5["4"], (127.0, U5["4"][1])); lab("IGN_SENSE", 127.0, U5["4"][1])
-nc(U5["5"])
+# --- SNS_B / SNS_C: input-only SENSOR_VP / SENSOR_VN, out to the outputs sheet's clamp/filter
+for pnum, net in (("4", "SNS_B"), ("5", "SNS_C")):
+    w(U5[pnum], (127.0, U5[pnum][1]))
+    hlab(net, "input", 127.0, U5[pnum][1], 180)
 
-# --- right-hand fan-out.  Every net name is from the plan's Global Constraints
-#     table; nothing is invented.  (pin, net, hier shape or None for a local label)
+# Pads with no function: the module's NC pads 17-22 and 32.
+for pnum in ("17", "18", "19", "20", "21", "22", "32"):
+    nc(U5[pnum])
+
+# --- right-hand fan-out, D2 row by row.  (pad, net, hier shape or None for a local label)
 FANOUT = [
     ("25", "BOOT_N",     None),
     ("35", "UART_TX",    None),
-    ("24", None,         None),      # GPIO 2  spare
     ("34", "UART_RX",    None),
-    ("26", "MUX_S1",     "output"),
-    ("29", "MUX_S3",     "output"),
+    ("26", "EN_5V",      "output"),   # pull-down R19 is on the rails sheet
     ("14", "IO12_STRAP", None),
     ("16", "LED_STAT",   None),
     ("13", "CAN_STB",    None),
-    ("23", None,         None),      # GPIO 15 spare
-    ("27", "MUX_S2",     "output"),
-    ("28", "CAN_TXD",    None),
-    ("30", "PWM_DEN_A",  "output"),
-    ("31", "PWM_DEN_B",  "output"),
-    ("33", "I2C_SDA",    "bidirectional"),
-    ("36", "I2C_SCL",    "bidirectional"),
-    ("37", "MUX_S0",     "output"),
-    ("10", "EN_BOOST",   "output"),
-    ("11", "EN_3V3SW",   "output"),
-    ("12", "EN_DIAG",    "output"),
-    ("8",  "RGB_ISNS",   "input"),
-    ("9",  "DEN_DSEL",   "output"),
-    ("6",  "ISNS_DEN",   "input"),
+    ("27", "OUT_RL_IND", "output"),
+    ("28", "OUT_RL_BRK", "output"),
+    ("30", "OUT_RR_DRL", "output"),
+    ("31", "OUT_RR_IND", "output"),
+    ("33", "OUT_RR_BRK", "output"),
+    ("36", "OUT_AUX_L",  "output"),
+    ("37", "OUT_AUX_R",  "output"),
+    ("10", "OUT_FL_DRL", "output"),
+    ("11", "OUT_FL_IND", "output"),
+    ("12", "OUT_RL_DRL", "output"),
+    ("8",  "OUT_FR_DRL", "output"),
+    ("9",  "OUT_FR_IND", "output"),
+    ("6",  "SNS_A",      "input"),
     ("7",  "CAN_RXD",    None),
 ]
 for pnum, net, shape in FANOUT:
     p = U5[pnum]
-    if net is None:
-        nc(p)
-        continue
     end = (round(p[0] + 7.62, 4), p[1])
     w(p, end)
     if shape:
         hlab(net, shape, end[0], end[1], 0)
     else:
         lab(net, end[0], end[1])
+
+# --- shared diagnostic lines (R1): U5 pad -> 4.7k series -> *_Q to the outputs sheet.  One
+#     series resistor per shared line, at the MCU (TI TPS4H160 7.3.7.5).  The 10k pull-down
+#     sits on DIAG_EN_Q, chip side: GPIO2 must be low for download and the chips' DIAG_EN
+#     must be defined.  DIAG_SEL0/1 get no pull (GPIO5/15 strapping, harmless while DIAG_EN low).
+RX = round(U5["24"][0] + 25.4, 4)                   # series resistors start here, clear of labels
+for ref, pnum, net in (("R30", "24", "DIAG_EN"), ("R31", "29", "DIAG_SEL0"),
+                       ("R32", "23", "DIAG_SEL1")):
+    p = U5[pnum]
+    mid = (round(p[0] + 2.54, 4), p[1])
+    w(p, mid); lab(net, mid[0], mid[1])
+    a, b = hpart(ref, "Device:R", quadpins.R_IN_SERIES, RX, p[1])
+    w(mid, a)
+    if net == "DIAG_EN":
+        up = (round(b[0] + 2.54, 4), b[1])
+        top = (up[0], round(b[1] - 5.08, 4))
+        jn = (round(up[0] + 2.54, 4), top[1])
+        end = (round(jn[0] + 2.54, 4), top[1])
+        w(b, up); w(up, top); w(top, jn); w(jn, end); j(jn)
+        c, d = vpart("R33", "Device:R", "10k", jn[0], jn[1]); gnd(*d)
+        hlab(net + "_Q", "output", end[0], end[1], 0)
+    else:
+        end = (round(b[0] + 5.08, 4), b[1])
+        w(b, end)
+        hlab(net + "_Q", "output", end[0], end[1], 0)
 
 # ================================================================ BLOCK B: CAN
 U6 = place("U6", "Interface_CAN_LIN:TJA1042T-3", "TJA1042T/3", 261.62, 95.25, 0, TJA,
@@ -304,11 +328,8 @@ a, b = vpart("R25", "Device:R", "10k", 236.22, 104.14)
 w(a, (236.22, VIO_Y)); j((236.22, VIO_Y))
 lab("CAN_STB", 241.3, 111.76)
 
-# --- TXD path: DNP 0 ohm link + pull-up to VIO.  See the listen-only note.
-a, b = hpart("R23", "Device:R", "0R", 236.22, TXD_Y, dnp=True)
-w(b, U6["1"])
-w(a, (224.79, TXD_Y)); lab("CAN_TXD", 224.79, TXD_Y, 180)
-j((246.38, TXD_Y)); w((246.38, TXD_Y), (246.38, 82.55))
+# --- TXD path: pull-up to VIO only.  No GPIO reaches TXD (D4); see the listen-only note.
+w(U6["1"], (246.38, TXD_Y)); w((246.38, TXD_Y), (246.38, 82.55))
 c, d = vpart("R24", "Device:R", "10k", 246.38, 74.93)   # pin2 lands on the wire above
 w(c, (246.38, 69.85)); lab("+3V3_ALW", 246.38, 69.85, 90)
 
@@ -399,48 +420,11 @@ w(D5["2"], a)
 w(b, (231.14, 160.02)); lab("LED_STAT", 231.14, 160.02)
 w(D5["1"], (199.39, 160.02)); gnd(199.39, 160.02)
 
-# ================================================================ BLOCK E: ignition sense
-# Fallback wake path if the Experia CAN bus never idles (spec 8.3).  The divider is
-# DNP; the pulldown is NOT.  GPIO 36 has no internal pull and EXT1 ANY_HIGH is armed
-# on it, so a floating pin wakes the board on noise (review finding C2).
-IGN_Y = 111.76
-hlab("IGN_IN", "input", 39.37, 104.14, 180)
-w((39.37, 104.14), (60.96, 104.14))
-a, b = vpart("R37", "Device:R", "90.9k", 60.96, 104.14, dnp=True)
-c, d = vpart("R38", "Device:R", "33k", 60.96, IGN_Y, dnp=True); gnd(*d)
-j((60.96, IGN_Y)); lab("IGN_SENSE", 62.23, IGN_Y)
-w((60.96, IGN_Y), (72.39, IGN_Y))
-e, f = vpart("R39", "Device:R", "100k", 72.39, IGN_Y); gnd(*f)
-j((72.39, IGN_Y))
-# C40 forms an RC with R37: Rthev = 90.9k || 24.8k = 19.5k, so tau ~ 2 ms.  IGN_IN is
-# an unshielded 12 V wire entering a sealed box onto a high-impedance node; ignition
-# state changes over seconds, so the filter costs nothing in wake latency.
-a2, b2 = vpart("C40", "Device:C", "100nF", 78.74, IGN_Y); gnd(*b2)
-j((78.74, IGN_Y))
-w((72.39, IGN_Y), (78.74, IGN_Y))
-w((78.74, IGN_Y), (83.82, IGN_Y))
-place("D7", "Device:D_Schottky", "BAT54", 83.82, 107.95, 270, DIODE,
-      [("Reference", "D7", 86.36, 106.68, 0), ("Value", "BAT54", 86.36, 109.22, 0)],
-      desc="Schottky diode")
-w((83.82, 104.14), (83.82, 99.06)); lab("+3V3_ALW", 83.82, 99.06, 90)
-
 # ================================================================ BLOCK F: passive defaults
-# Every net the plan's biasing table requires to have a defined floating state, in one
-# place so an omission is visible rather than buried in the fan-out.  These cost nothing
-# in sleep: the GPIO is driven low, so there is no potential across them.
-DEFAULTS = [
-    ("R30", "MUX_S0",     "10k"),
-    ("R31", "MUX_S1",     "10k"),
-    ("R32", "MUX_S2",     "10k"),
-    ("R33", "MUX_S3",     "10k"),   # GPIO 5 is a strapping pin - boot requirement
-    ("R34", "DEN_DSEL",   "10k"),
-    ("R35", "EN_DIAG",    "10k"),
-    ("R36", "IO12_STRAP", "10k"),   # GPIO 12 selects flash voltage at boot
-]
-for i, (ref, net, val) in enumerate(DEFAULTS):
-    x = round(40.64 + i * 15.24, 4)
-    w((x, 215.9), (x, 220.98)); lab(net, x, 215.9, 90)
-    a, b = vpart(ref, "Device:R", val, x, 220.98); gnd(*b)
+# R36 is a boot requirement: GPIO 12 (MTDI) selects the flash voltage when sampled at reset.
+# It costs nothing in sleep.  (R30-R33, the diagnostic parts, sit in block A beside their pads.)
+w((132.08, 215.9), (132.08, 220.98)); lab("IO12_STRAP", 132.08, 215.9, 90)
+a, b = vpart("R36", "Device:R", "10k", 132.08, 220.98); gnd(*b)
 
 # ================================================================ NOTES
 NOTEW = 135
@@ -457,25 +441,21 @@ def note(*parts):
 note("""|ACCEPTANCE (spec 7, 8.1)
 - ESP32-WROOM-32E-N8 (8 MB).  NOT the 4 MB variant, NOT the -32UE (U.FL) variant.
 - Module powered from +3V3_ALW so it stays up in sleep.
-- Pin assignment EXACTLY per the plan's Global Constraints table.
-- CAN_RXD on GPIO 35 (RTC-capable, EXT0 wake); IGN_SENSE on GPIO 36 (EXT1 ANY_HIGH).
-- ISNS_DEN on GPIO 34 (ADC1 ONLY); DEN_DSEL on GPIO 33 - the PROFET has ONE
-  multiplexed IS output, not two.  GPIO 39 is spare.
+- Pin assignment EXACTLY per the plan4 pin map (D2): twelve OUT_* lamp outputs, EN_5V,
+  three shared diagnostic lines, SNS_A/B/C on ADC1 (GPIO 34/36/39, input-only).
+- CAN_RXD on GPIO 35 (RTC-capable, EXT0 wake).  Ignition sense is gone (spec 6.2).
 - CAN_STB on GPIO 14, PULLED UP to VIO (floating = standby).
-- TJA1042T/3 TXD through an UNPOPULATED 0 ohm link, TXD pulled to VIO.
+- TJA1042T/3 TXD has NO connection to any GPIO; it is only pulled up to VIO.
 - NO 120 ohm terminator populated; unpopulated footprint present.
 - CAN common-mode choke + ESD protection on CANH/CANL.
-- Programming header with DTR/RTS auto-reset pair, BOOT and EN buttons.
-- IGN_SENSE divider footprint present but UNPOPULATED.""")
+- Programming header with DTR/RTS auto-reset pair, BOOT and EN buttons.""")
 
 note("""|HARDWARE-ENFORCED LISTEN-ONLY
-R23 (0 ohm) is DNP.  With it unpopulated the transceiver TXD is held recessive by R24
-and the board is PHYSICALLY INCAPABLE of transmitting on the vehicle bus.  Populate R23
-only for deliberate bench TX.""",
-"""This is not a firmware setting that can be got wrong, and not a fuse that can be blown by
-accident.  The link is the only conductive path from GPIO 17 to the transceiver, so a
-board built to the BOM cannot assert a dominant bit on a moving motorcycle's bus no matter
-what the firmware does.""")
+The transceiver TXD is held recessive by R24 and is connected to nothing else, so the board
+is PHYSICALLY INCAPABLE of transmitting on the vehicle bus.  The former DNP 0 ohm link from
+a GPIO (R23) is deleted: GPIO 17 is now a lamp output, and the TWAI peripheral idles its TX
+pin high, which would have lit that lamp.  The firmware points TWAI TX at GPIO 12, which has
+no connection but its strap pull-down.""")
 
 note("""|TWO SUPPLIES, ON PURPOSE - DO NOT TIE THEM TOGETHER
 VIO (pin 5) -> +3V3_ALW, always on.  VCC (pin 3) -> +5V, gated off in sleep.""",
@@ -498,35 +478,23 @@ monitor - which asserts one line on open - from dropping the board into the boot
 """esptool drives DTR=0/RTS=1 to assert reset, then DTR=1/RTS=0 to hold IO0 low while EN
 releases.  Q2 pulls EN low in the first state; Q3 pulls IO0 low in the second.""")
 
-note("""|PASSIVE DEFAULTS (block F) - MANDATORY, NOT OPTIONAL
-Every resistor in block F is required by the plan's biasing table.  Two are boot
-requirements rather than merely safe defaults:""",
-"""R33 on MUX_S3: GPIO 5 is a STRAPPING pin.  It is sampled at reset and must be defined.""",
-"""R36 on IO12_STRAP: GPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it
-selects 1.8 V, which will not run the module's 3.3 V flash.  Most WROOM-32E parts ship
-with the eFuse already burned so the strap is ignored, but that is not guaranteed across
-date codes and it is not worth a 10k resistor to find out.  ADDED 2026-09-14 - this one
-is not in the plan; drop it if you would rather follow the plan exactly.""",
-"""These draw ZERO current in sleep: the GPIO is driven low, so there is no potential
-across them.""")
+note("""|DIAGNOSTIC LINES (block A)
+DIAG_EN, DIAG_SEL0 and DIAG_SEL1 are shared by all three quad switches.  Each leaves the
+module through its own 4.7k series resistor (R30-R32, one per shared line, not per chip) and
+continues as DIAG_EN_Q / DIAG_SEL0_Q / DIAG_SEL1_Q to the outputs sheet.""",
+"""R33 pulls DIAG_EN_Q low (10k, chip side).  GPIO 2 is a strapping pin that must be low for
+download, and the pull-down serves both that and the switches' DIAG_EN input.  DIAG_SEL0 and
+DIAG_SEL1 have NO pull: their level is irrelevant while DIAG_EN is low, and a pull-down on
+GPIO 15 would mute the boot ROM log.""")
 
-note("""|IGNITION SENSE (block E) - divider DNP, pulldown POPULATED
-R37 and R38 are DNP.  R39 is NOT.  GPIO 36 has no internal pull-up or pull-down and EXT1
-ANY_HIGH wake is armed on it, so a floating pin wakes the board on noise and flattens the
-battery.  R39 defines it low whether or not the divider is fitted.""",
-"""If the divider is ever populated: 90.9k over (33k || 100k = 24.8k) gives 2.57 V at
-12.0 V in and 2.96 V at 13.8 V, both above the 2.48 V input-high threshold, with D8
-clamping anything above the rail.  Current draw is 104 uA, but only while the ignition
-line is live, so it does not touch the parked budget.""")
+note("""|R36 ON IO12_STRAP IS A BOOT REQUIREMENT
+GPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it selects 1.8 V, which will
+not run the module's 3.3 V flash.  Most WROOM-32E parts ship with the eFuse already burned so
+the strap is ignored, but that is not guaranteed across date codes.  It draws no current in
+sleep.""")
 
-note("""|NET NAMED IGN_IN IS AN ADDITION TO THE CONTRACT
-The plan says the divider is fed from "a VBAT-side input" but names no net.  IGN_IN is the
-ignition-switched 12 V sense wire from the harness; it must land on a connector pin on the
-outputs sheet.  Rename or remove it if the contract should stay closed.""")
-
-note("""|EN_BOOST AND EN_3V3SW PULLDOWNS ARE ON THE RAILS SHEET, NOT HERE
-The plan's Task 5 Step 4 asks for them here.  They are already fitted as R19 and R20 next
-to the converters they gate, which is where they do the most good - the enable stays
+note("""|EN_5V PULL-DOWN IS ON THE RAILS SHEET, NOT HERE
+EN_5V (GPIO 4) is pulled down by R19 next to the converter it gates, so the enable stays
 defined even if the inter-sheet net is open.  One resistor per net; do not add a second.""")
 
 # ================================================================ emit
