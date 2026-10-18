@@ -23,6 +23,7 @@ static const uint32_t kCanBitrate = 500000;
 static const int kEn5vPin   = 4;    // +5V enable: the CAN transceiver's VCC and the quads' THER
 static const int kCanStbPin = 14;   // TJA1042 STB, pulled up on the board (floating = standby)
 static const int kDiagEnPin = 2;    // quad switches' DIAG_EN, pulled down on the chip side
+static const int kLedStatPin = 13;  // status LED D5; nothing signals on it yet, so it is held off
 
 // GPIO assignment in OutputIndex order. These avoid the strapping pins
 // (0, 2, 5, 12, 15), but that is hygiene, not the safety guarantee: nothing
@@ -77,6 +78,8 @@ void setup() {
   digitalWrite(kCanStbPin, LOW);    // transceiver normal mode
   pinMode(kEn5vPin, OUTPUT);
   digitalWrite(kEn5vPin, HIGH);     // transceiver VCC: without it nothing is received
+  pinMode(kLedStatPin, OUTPUT);
+  digitalWrite(kLedStatPin, LOW);
 
   storage::begin();
   bool ok = false;
