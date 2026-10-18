@@ -8,8 +8,8 @@ const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
 const PROTOCOL_VERSION = 3;   // must match kProtocolVersion in web_protocol.h
 // Must match kScenarioNames in test_mode.cpp — the firmware table is
 // authoritative and rejects anything it does not know.
-const SCENARIOS = ["allOff","drlDay","drlNight","leftInd","rightInd",
-                   "hazards","brake","brakeNight","lowBeam","highBeam"];
+const SCENARIOS = ["allOff","drlDay","leftInd","rightInd",
+                   "hazards","brake","lowBeam","highBeam"];
 // Must match OutputIndex in src/domain/outputs.h, in order. The firmware's
 // enum is authoritative; this mirrors it only for labels.
 const OUTPUT_NAMES = [

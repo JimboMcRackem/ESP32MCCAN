@@ -127,7 +127,7 @@ void test_scenario_lookup_rejects_unknown_names(void) {
 void test_every_advertised_scenario_name_resolves(void) {
   // kScenarioNames is what the UI mirrors; a name in the list that does not
   // resolve would be a dead button.
-  TEST_ASSERT_EQUAL_INT(10, kScenarioCount);
+  TEST_ASSERT_EQUAL_INT(8, kScenarioCount);
   LogicalState s;
   for (int i = 0; i < kScenarioCount; ++i) {
     TEST_ASSERT_TRUE_MESSAGE(scenarioByName(kScenarioNames[i], s),

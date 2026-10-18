@@ -22,12 +22,13 @@ constexpr LogicalState mk(bool run, bool night, bool left, bool right,
 constexpr LogicalState kScenarios[] = {
   /* allOff     */ mk(false, false, false, false, false, false, false),
   /* drlDay     */ mk(true,  false, false, false, false, false, false),
-  /* drlNight   */ mk(true,  true,  false, false, false, false, false),
   /* leftInd    */ mk(true,  false, true,  false, false, false, false),
   /* rightInd   */ mk(true,  false, false, true,  false, false, false),
   /* hazards    */ mk(true,  false, true,  true,  false, false, false),
   /* brake      */ mk(true,  false, false, false, true,  false, false),
-  /* brakeNight */ mk(true,  true,  false, false, true,  false, false),
+  // lowBeam's outputs are identical to drlDay's: s.night is recorded but no
+  // longer drives anything, and low beam itself is not an output. It stays
+  // because it is the only preset that exercises the spot latch's auto-drop.
   /* lowBeam    */ mk(true,  true,  false, false, false, true,  false),
   /* highBeam   */ mk(true,  true,  false, false, false, false, true ),
 };
@@ -37,8 +38,8 @@ constexpr LogicalState kScenarios[] = {
 // Index-aligned with kScenarios above. test_every_advertised_scenario_name
 // _resolves is what keeps the two in step if either is edited.
 const char* const kScenarioNames[] = {
-  "allOff", "drlDay", "drlNight", "leftInd", "rightInd",
-  "hazards", "brake", "brakeNight", "lowBeam", "highBeam",
+  "allOff", "drlDay", "leftInd", "rightInd",
+  "hazards", "brake", "lowBeam", "highBeam",
 };
 const int kScenarioCount =
     (int)(sizeof(kScenarioNames) / sizeof(kScenarioNames[0]));
