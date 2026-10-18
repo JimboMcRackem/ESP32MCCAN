@@ -92,8 +92,26 @@ def norm(v):
     return re.sub(r"[\s_]", "", v).lower()
 
 
+def _tokens(v):
+    """Whitespace tokens, lower-cased; a capacitance token loses its trailing F (100nF == 100n)."""
+    out = []
+    for t in v.lower().split():
+        if re.fullmatch(r"\d+(\.\d+)?[pnumµ]f", t):
+            t = t[:-1]
+        out.append(t)
+    return out
+
+
 def value_is(nl, ref, want):
-    return ref in nl.parts and norm(want) in norm(nl.parts[ref].value)
+    """Exact match of the leading value token, and of any further tokens `want` names.
+
+    "47k" does not match "147k"; want "100nF" matches "100nF 100V" (extra voltage token allowed
+    when want omits it); want "100nF 100V" requires that voltage token exactly.
+    """
+    if ref not in nl.parts:
+        return False
+    have, need = _tokens(nl.parts[ref].value), _tokens(want)
+    return bool(need) and have[:len(need)] == need
 
 
 def resistors_between(nl, net, other, value=None):
@@ -165,7 +183,7 @@ MCU_PADS = {  # D2: bare net -> U5 pad
 
 FEED_B = {  # D6: ref -> (value token, {role: net})
     "R108": ("100k", {"1|2": ("GATE_B", "GND_B")}),
-    "C66": ("100n", {"1|2": ("VBAT_B", "GND_B")}),
+    "C66": ("100nF", {"1|2": ("VBAT_B", "GND_B")}),
 }
 
 HARNESS = {  # D5: ref -> (footprint, [net per pin 1..n])
@@ -277,7 +295,7 @@ def chk_c66(nl):
     if not has_part(nl, "C66"):
         return ["C66 (100 nF VBAT_B-GND_B) is not in the netlist"]
     f = []
-    if not value_is(nl, "C66", "100n"):
+    if not value_is(nl, "C66", "100nF"):
         f.append("C66 value is %r, want 100nF" % nl.parts["C66"].value)
     got = set(nl.part_pins["C66"].values())
     if got != {"VBAT_B", "GND_B"}:
@@ -451,12 +469,16 @@ def chk_aux_outputs(nl):
         if not m:
             f.append("net %s does not exist" % net)
             continue
-        rs = [x for x in m if re.fullmatch(r"R\d+", x.split(".")[0])]
+        rs = sorted(x for x in m if re.fullmatch(r"R\d+", x.split(".")[0]))
         others = sorted(x for x in m if x != "U5." + pad and x not in rs)
+        if "U5." + pad not in m:
+            f.append("%s should hold U5.%s" % (net, pad))
         if others:
             f.append("%s holds %s besides U5.%s and its pull-down" % (net, others, pad))
-        if not resistors_between(nl, net, "GND"):
-            f.append("%s has no pull-down resistor to GND" % net)
+        if len(rs) != 1:
+            f.append("%s should hold exactly one resistor (the pull-down), found %s" % (net, rs))
+        elif nl.parts[rs[0].split(".")[0]].dnp or not resistors_between(nl, net, "GND"):
+            f.append("%s: resistor %s is not a live pull-down to GND" % (net, rs[0]))
     return f
 
 
@@ -476,11 +498,10 @@ def chk_sense(nl):
         series = [r for r, o in resistors_on(nl, n) if o == "SNS_" + sns]
         if not series:
             f.append("%s net %s has no series resistor to SNS_%s" % (tag, n, sns))
-        # Schottky clamp: anode on the sense node, cathode on +3V3_ALW.  The brief puts it on the
-        # chip's SNS net; it protects the ADC equally on the MCU side of the series resistor, so
-        # either net is accepted.
-        if not (_clamp(nl, n) or _clamp(nl, "SNS_" + sns)):
-            f.append("%s: no Schottky (cathode +3V3_ALW) on %s or SNS_%s" % (tag, n, sns))
+        # Schottky clamp on SNS_x only: anode on SNS_x (ADC side of the series resistor, which
+        # limits the clamp current from the 4.5-6.5 V fault level), cathode on +3V3_ALW.
+        if not _clamp(nl, "SNS_" + sns):
+            f.append("%s: no Schottky (anode SNS_%s, cathode +3V3_ALW) on SNS_%s" % (tag, sns, sns))
     return f
 
 
@@ -618,7 +639,7 @@ def chk_out_strapping(nl):
 
 
 GROUPS = {
-    "deleted": [chk_net_name_collisions, chk_deleted_parts, chk_deleted_nets, chk_deleted_refs],
+    "deleted": [chk_deleted_parts, chk_deleted_nets, chk_deleted_refs],
     "feed_b": [chk_feed_b_nets, chk_feed_b_no_bridge, chk_q13, chk_gate_network, chk_tvs,
                chk_c66, chk_nt1, chk_gnd_b_members],
     "rails": [chk_en_5v, chk_5v_reaches_u6],
@@ -646,6 +667,12 @@ def main(argv=None):
         ap.error("unknown group(s) %s; choose from %s" % (unknown, list(GROUPS)))
     nl = load(path)
     failed = False
+    coll = chk_net_name_collisions(nl)      # always checked, whatever --only selects
+    if coll:
+        failed = True
+        print("FAIL net_names (%d)" % len(coll))
+        for x in coll:
+            print("  " + x)
     for group, checks in GROUPS.items():
         if only and group not in only:
             continue
