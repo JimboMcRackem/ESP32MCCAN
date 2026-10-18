@@ -9,6 +9,15 @@ Full read-out of what each one settled is in `../docs/part-selection.md`, "Parts
 
 ---
 
+## 2026-10-18 — board phase A
+
+**`tps4h160-q1.pdf` supplied by the owner** (TI SLVSCV8E, rev. June 2025) and graded in
+`../docs/part-selection.md`, "Signal-output quad switch, 2026-10-18": **selected**. The ST
+VNQ9080AJ alternate is **not needed**. Still needed, kit-gated: the `AUX_L`/`AUX_R` dual switch's
+datasheet, once the pod's inrush is measured (spec §9.1).
+
+---
+
 ## Blocking — nothing
 
 **Closed 2026-09-19, both items, within hours of being opened.** The owner supplied the two

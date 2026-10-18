@@ -2157,3 +2157,33 @@ rating.
    somewhat; it needs reading off the curve to confirm 7.0 A is still inside it. Given 10 A at 20 °C
    and a 125 °C limit, 7.0 A at 65 °C is very likely fine, but it should be checked rather than
    assumed.
+
+## Signal-output quad switch, 2026-10-18
+
+**Selected: TI TPS4H160-Q1, Version B — orderable `TPS4H160BQPWPRQ1`, three required** (U11–U13,
+plan `2026-10-18-board-schematic-phase-a.md` D1). Graded against datasheet SLVSCV8E (rev. June
+2025), held locally as `hardware/datasheets/tps4h160-q1.pdf`. The alternate, ST VNQ9080AJ, was not
+needed and was not graded. Pin table and application values live in `../scripts/quadpins.py`,
+which is the only place a pad number is written.
+
+| # | Criterion | Datasheet | Result |
+|---|---|---|---|
+| 1 | 4 channels | p.1 "Quad-channel 160 mΩ" | **PASS** |
+| 2 | Survives `VBAT` | p.6 abs. max VS **48 V** (t < 400 ms); p.7 operating 4–40 V | **PASS.** `VBAT` sits behind the LTC4380-2, whose 31.5 V gate clamp (SEL grounded, row "LTC4380" above) holds it near **27 V**. *Margin note:* the SMBJ24A's 8/20 µs clamp at full I<sub>PP</sub> is 50.6 V, 2.6 V over 48 V; that figure is the passive-part rule, not a level `VBAT` reaches behind the surge stopper |
+| 3 | Off with input open | p.4 Table 5-1: every logic pin "internal pulldown"; p.8 R(logic,pd) 175–250 kΩ | **PASS** — and the board adds 47 kΩ (spec §3.2) |
+| 4 | 3.3 V logic | p.8 VIH **2 V**, VIL 0.8 V | **PASS** — 2.93 V reaches the pin through 4.7 kΩ (quadpins.py) |
+| 5 | Protection, fault reported | p.1, p.8: adjustable current limit, thermal shutdown 175 °C, CS goes to VCS(H) 4.5–6.5 V in fault | **PASS** |
+| 6 | Indicator inrush | p.18 Eq. 4: limit set by R(CL); 0.5 A chosen, ±15 % in 0.5–7 A | **PASS** — 6× the 80 mA load, above the ~0.08 A reservoir inrush (spec §2.1.1) |
+| 7 | Diagnostics shape | p.4: DIAG_EN, SEL (low bit), SEH (high bit), one CS per chip | **PASS** — exactly D2's shared-bus layout |
+| 8 | Off-state supply | p.7 I(off) **0.5 µA** max at 25 °C, VIN = DIAG_EN = 0 | **PASS** — 1.5 µA for three |
+| 9 | Qualification | p.1 AEC-Q100, grade 1 | **PASS** |
+| 10 | Footprint | p.38 PWP0028V, EP 2.24–2.94 × 4.92–5.62 mm | **PASS** — `Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm`, pads 1–29 match; re-check against the p.39 land pattern in the layout phase |
+| tiebreak | Open-load | p.8: off-state open-load only (VS − VOUT < 2.6 V); on-state via CS, accuracy ±15 % at ≥ 25 mA, ±65 % at 5 mA | 80 mA **resolvable** on CS (0.48 V). 20 mA rear `*_DRL` reads 0.12 V at ±15–65 %: **marginal**, per spec §6 item 4 |
+
+**Application values** (arithmetic in `quadpins.py`): 4.7 kΩ series on every MCU line — TI §7.3.7.5
+p.26 recommends it at 3.3 V to protect the MCU from a negative GND-pin pulse, so it applies to the
+shared `DIAG_EN`/`SEL0`/`SEL1` lines as well as each `IN`; 47 kΩ input pull-down; R(CL) 4.02 kΩ →
+0.498 A; R(CS) 1.8 kΩ → 3.0 V at the limit; THER 10 kΩ to gated `+5V` (latch while awake, nothing
+drawn in sleep); FAULT unconnected; no output capacitor (p.28 Fig. 8-1 shows none); 100 nF 100 V on
+VS. **No GND network**: TI's 1 kΩ ∥ diode (p.26) is for reverse polarity, which feed A's LTC4380
+already blocks, so GND and the thermal pad go straight to GND (p.31 layout guidance).
