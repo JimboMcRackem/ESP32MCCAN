@@ -187,11 +187,14 @@ loom from 14 wires to 12.
 | Connector | Pins | Contents |
 |---|---|---|
 | Front | 5 | 2× DRL, 2× IND, 1 shared return (160 mA worst case) |
-| Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (200 mA worst case) |
+| Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (200 mA worst case). **One 7-core cable through one gland, landed on the board as two tails**: J4 (4 pins: `RL_DRL`, `RL_IND`, `RL_BRK`, return) and J5 (3 pins: `RR_DRL`, `RR_IND`, `RR_BRK`), because KiCad's wire-relief footprints stop at 1×06. The return stays single |
 | Pods | 4 (+1) | per-pod +12 V and return; pod returns do **not** share with signal returns |
 | CAN | 2 | CAN H / CAN L |
 | Feed A | 2 | aux circuit +, − — logic, the ten signal channels, `AUX_L` |
 | Feed B | 2 | aux circuit +, − — `AUX_R` only (§4.1.1) |
+
+(Board references, 2026-10-18: Feed A J1, Feed B J9, Front J3 (5 pins), Rear J4 + J5, CAN J8.
+The pod tail is not on the board; it waits on the kit.)
 
 (Shared-return currents are two modules of §2.1's worst case each: front 2 × 0.08 A = 160 mA,
 rear 2 × 0.10 A = 200 mA. Not the 250 mA that 2 × 125 mA/channel gives.)
@@ -388,8 +391,13 @@ three: `+3V3_ALW`, gated `+5V`, and raw protected `VBAT`.
 
 ### 4.4 Output stage
 
-**Multi-channel smart high-side switches** — two quad-channel parts for the ten signal outputs,
-one dual-channel part for the pods. Chosen over discrete P-FETs because each channel brings
+**Multi-channel smart high-side switches** — three quad-channel parts for the ten signal outputs
+(12 channels, 2 spare), one dual-channel part for the pods. *(Amended 2026-10-18: this said
+"two", which is eight channels, not ten. Three is the user's decision, and the allocation is
+chosen so that one dead chip never takes out both sides' indicators and brake survives a side
+chip failing: chip A left side — `FL_DRL`, `FL_IND`, `RL_DRL`, `RL_IND`; chip B right side — the
+`FR`/`RR` equivalents; chip C — `RL_BRK`, `RR_BRK`, with the two spare channels reserved for
+`AUX_MODE`. The part is the TI TPS4H160-Q1, U11–U13.)* Chosen over discrete P-FETs because each channel brings
 short-circuit protection, thermal shutdown and open-load detection in silicon, which replaces
 the stage the previous design built by hand out of twelve shunts and a mux — the subsystem that
 generated more review findings than any other in plan3.
@@ -642,6 +650,12 @@ These are verification items, not assumptions. Each names who or what can settle
 2. **Pod inrush** — measured, against the candidate dual-channel switch's current limit and
    capacitive-load rating (§4.4). **Needs the kit in hand.**
 
+2a. **Re-size the feed-A current limit.** The LTC4380's sense resistor `R100` (5.6 mΩ) sets
+   50 mV / 5.6 mΩ ≈ 9 A (LTC4380 VSNS 45–55 mV), behind feed A's 4 A fuse, so the limit can
+   never act. It is recorded and left as built; once pod L's start-up current on feed A is
+   measured (item 2), `R100` is re-sized to a limit that can act below the fuse. **Needs the
+   kit in hand.**
+
 ### 9.2 Blocking the signal modules
 
 3. ~~**Module part selection**~~ **DONE — part chosen and specified in §2.1** (eBay
@@ -691,6 +705,10 @@ These are verification items, not assumptions. Each names who or what can settle
    not fully settle parked hazards: §5.2's "Run clear" row is now reachable only in a
    key-on-but-not-ready-to-ride state, if the Experia has one. **Still to check:** whether such
    a state exists and what the Run bit reads in it.
+   **Consequence for the board (2026-10-18): ignition sense is deleted.** `IGN_IN` (J1's former
+   cavity 1), `IGN_SENSE` (GPIO 36) and their divider and clamp parts are gone, J1 is a 2-pin
+   feed-A connector, and GPIO 36 is now `SNS_B`. The wake source is CAN bus activity alone
+   (§6.2, EXT1 on `CAN_RXD` at GPIO 35).
 6. The CAN-mapping open questions from the original firmware spec §9 (Run bit, day/night bit,
    `0x400` bit 16, bit-numbering convention) are **unchanged and still open**. Note that
    day/night no longer drives anything, so that one has dropped from blocking to cosmetic.
