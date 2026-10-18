@@ -1635,10 +1635,11 @@ git add data
 git commit -m "feat(app): twelve-output test tab, flash source, Appearance gone"
 ```
 
-- [ ] **Step 11: On-device check — needs the user, and both images**
+- [x] **Step 11: On-device check — needs the user, and both images**
 
-> **Left unticked (Task 7 docs review).** This is a user action over a COM port no agent can
-> reach. Outstanding.
+> **Done 2026-10-18 by the user.** Both images flashed (board enumerated as COM3, not COM4), and
+> all four checks passed: no version banner, no Appearance tab, twelve Test checkboxes,
+> flash-source `auto`.
 
 The firmware and the LittleFS image are separate flashes. Ask the user to run both, in their own
 shell, because the assistant's tools cannot reach host COM ports:
