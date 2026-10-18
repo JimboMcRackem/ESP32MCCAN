@@ -1080,6 +1080,25 @@ LAYERS = """	(layers
 		(33 "B.Fab" user)
 	)"""
 
+
+def _check_layer_names(layers):
+    """Fail generation if two layers would plot to the same gerber filename.
+
+    A layer plots under its user name when it has one and its canonical name otherwise, so
+    those effective names must be unique -- case-insensitively, since the files land on a
+    Windows filesystem.  This is the regression guard for the collapse described above: it
+    happened once silently, and a hand-written LAYERS table can repeat a name again."""
+    seen = {}
+    for canon, user in re.findall(r'\(\d+ "([^"]+)" \w+(?: "([^"]+)")?\)', layers):
+        name = user or canon
+        prev = seen.setdefault(name.lower(), canon)
+        assert prev == canon, (
+            f"layers {prev} and {canon} both plot as {name!r}: their gerbers would overwrite "
+            f"each other.  Give each a unique user name in LAYERS.")
+
+
+_check_layer_names(LAYERS)
+
 # The layers a track may legally sit on, and the layers where one is a slot cut through a
 # reference plane.  Kept here rather than in the autorouter section because they are a fact
 # about the STACKUP, not about any one router: check_geometry.py grades against them and
