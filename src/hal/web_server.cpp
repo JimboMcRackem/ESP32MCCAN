@@ -19,6 +19,7 @@ static WebServerHal::MessageCb s_cb;
 static WebServerHal::DisconnectCb s_disc;
 static std::function<bool()>      s_parked;
 static std::function<void(bool)>  s_committed;
+static std::function<void()>      s_uploadTick;
 
 static void onWsEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
   if (type == WStype_TEXT && s_cb) {
@@ -101,7 +102,8 @@ static void discardUpload() {
   s_up.reset();
 }
 
-static void replyUpdate(const char* error) {
+// 200 {"ok":true} when error is null, else failCode {"ok":false,"error":...}.
+static void replyJson(const char* error, int failCode) {
   if (!error) {
     s_http.send(200, "application/json", "{\"ok\":true}");
     return;
@@ -111,18 +113,27 @@ static void replyUpdate(const char* error) {
   doc["error"] = error;
   String body;
   serializeJson(doc, body);
-  s_http.send(400, "application/json", body);
+  s_http.send(failCode, "application/json", body);
 }
 
-static void onUpdateChunk() {
-  HTTPUpload& up = s_http.upload();
+static void replyUpdate(const char* error) { replyJson(error, 400); }
+
+// GET /update/ready: the app asks before uploading, so a refusal carries a
+// reason it can show (the upload itself hangs up early when not parked).
+static void onUpdateReady() {
+  const bool parked = s_parked && s_parked();   // the callback drains CAN first
+  replyJson(parked ? nullptr : kNotParkedText, 409);
+}
+
+// `up` is the server's current upload, passed in by UpdateRequestHandler.
+static void onUpdateChunk(HTTPUpload& up) {
   switch (up.status) {
     case UPLOAD_FILE_START: {
       // Parked is checked first, before anything else is decided.
       if (!s_parked || !s_parked()) {
-        // Refuse now and hang up rather than read the rest of the file: the
-        // lighting tick cannot run while this request is being read, and the
-        // bike is not parked. The client may see the 400 or a reset connection.
+        // Refuse now and hang up rather than read the rest of a file we will
+        // not install. The client may see the 400 or a reset connection; the
+        // app asks GET /update/ready first to get the reason reliably.
         Serial.println("update: refused, not parked");
         discardUpload();
         replyUpdate(kNotParkedText);
@@ -173,8 +184,9 @@ static void onUpdateChunk() {
 
 static void onUpdateDone() {
   if (!s_up) {
-    // No "update" file part arrived (or the request was already answered).
-    replyUpdate(updateErrorText(UpdateError::Truncated));
+    // No "update" file part arrived: a raw or non-multipart POST, or a form
+    // without the file (or the request was already answered).
+    replyUpdate(updateErrorText(UpdateError::BadMagic));
     return;
   }
   const bool reset = s_up->reset;
@@ -183,7 +195,7 @@ static void onUpdateDone() {
     UpdateError e = s_up->rx ? s_up->rx->finish() : UpdateError::Truncated;  // idempotent
     if (e != UpdateError::None) {
       error = updateErrorText(e);
-    } else if (!Update.end(true)) {
+    } else if (!Update.end()) {       // no evenIfRemaining: a short image fails
       error = updateErrorText(UpdateError::WriteFailed);
     }
   }
@@ -202,6 +214,46 @@ static void onUpdateDone() {
   if (s_committed) s_committed(reset);
 }
 
+// POST /update. Not registered with s_http.on(): FunctionRequestHandler says
+// canRaw() for any non-GET handler with an upload function, so a raw or
+// text/plain POST would reach the upload function with no HTTPUpload, and
+// s_http.upload() would dereference null (a panic and a reboot). This handler
+// refuses raw bodies and uses the HTTPUpload the server passes in.
+class UpdateRequestHandler : public RequestHandler {
+ public:
+  bool canHandle(HTTPMethod method, const String& uri) override {
+    return method == HTTP_POST && uri == "/update";
+  }
+  bool canHandle(WebServer& server, HTTPMethod method, const String& uri) override {
+    (void)server;
+    return canHandle(method, uri);
+  }
+  bool canUpload(const String& uri) override { return uri == "/update"; }
+  bool canUpload(WebServer& server, const String& uri) override {
+    (void)server;
+    return canUpload(uri);
+  }
+  bool canRaw(const String& uri) override { (void)uri; return false; }
+  bool canRaw(WebServer& server, const String& uri) override {
+    (void)server; (void)uri;
+    return false;
+  }
+  bool handle(WebServer& server, HTTPMethod method, const String& uri) override {
+    (void)server;
+    if (!canHandle(method, uri)) return false;
+    onUpdateDone();
+    return true;
+  }
+  void upload(WebServer& server, const String& uri, HTTPUpload& up) override {
+    (void)server;
+    if (!canUpload(uri)) return;
+    onUpdateChunk(up);
+    // Keep the lamps following the bike between chunks.
+    if (up.status != UPLOAD_FILE_ABORTED && s_uploadTick) s_uploadTick();
+  }
+};
+static UpdateRequestHandler s_updateHandler;
+
 bool WebServerHal::begin(const char* ssid, const char* password) {
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(s_apIP, s_apIP, IPAddress(255, 255, 255, 0));
@@ -211,7 +263,8 @@ bool WebServerHal::begin(const char* ssid, const char* password) {
   s_dns.start(53, "*", s_apIP);
 
   // Embedded SPA; the not-found handler serves the app for captive-portal probes.
-  s_http.on("/update", HTTP_POST, onUpdateDone, onUpdateChunk);
+  s_http.on("/update/ready", HTTP_GET, onUpdateReady);
+  s_http.addHandler(&s_updateHandler);
   s_http.onNotFound(serveAsset);
   s_http.begin();
 
@@ -226,6 +279,8 @@ void WebServerHal::restartAp(const char* ssid, const char* password) {
   bool ok = WiFi.softAP(ssid, password);
   Serial.println(ok ? "AP restarted with the new password" : "AP restart FAILED");
 }
+
+void WebServerHal::onUploadTick(std::function<void()> tick) { s_uploadTick = tick; }
 
 void WebServerHal::onUpdate(std::function<bool()> parked,
                             std::function<void(bool resetSettings)> committed) {

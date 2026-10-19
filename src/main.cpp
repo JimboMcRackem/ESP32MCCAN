@@ -92,7 +92,34 @@ static DeviceInfo currentDeviceInfo() {
   return d;
 }
 
+// Move every pending TWAI frame into the state cache.
+static void drainCan() {
+  uint32_t id;
+  uint8_t data[8];
+  while (g_bus.receive(id, data)) g_can.update(id, data, millis());
+}
+
+// Drain CAN, then evaluate -> compute -> drive on the ~10 ms tick. Called
+// from loop() and, during an update upload, after every upload chunk, so the
+// lamps keep following the bike while the HTTP server holds the main task.
+static void serviceLighting() {
+  drainCan();
+  const uint32_t now = millis();
+  static uint32_t last = 0;
+  if (now - last >= 10) {            // unsigned subtraction: wrap-safe
+    last = now;
+    LogicalState s = g_can.evaluate(g_cfg, now);
+    OutputIntent o = resolveOutputs(s, g_test, g_cfg, now, g_engine, g_testEngine);
+    applyIntent(g_out, o);
+    g_tickRan = true;
+  }
+}
+
+// The update gate. It runs inside an HTTP request, after the server has
+// blocked loop() to read the request: it must NEVER read the CAN cache
+// without draining first, or a live bus looks stale and "parked".
 static bool parkedNow() {
+  drainCan();
   const uint32_t now = millis();
   return parkedForUpdate(g_can.stale(now), g_can.evaluate(g_cfg, now).kickstand);
 }
@@ -112,6 +139,27 @@ static void factoryReset() {
     delay(50);
   }
   storage::eraseAll();
+
+  // Restarting with GPIO0 still held boots the ROM download mode (lamps dead
+  // until a power cycle), so wait for a steady release. LED solid = let go.
+  digitalWrite(kLedStatPin, HIGH);
+  Serial.println("factory reset done: release the button to restart");
+  uint32_t highSince = millis();
+  bool wasHigh = false;
+  for (;;) {
+    for (uint8_t i = 0; i < OUT_COUNT; ++i) g_out.setOutput(i, false);
+    const bool high = digitalRead(kResetBtnPin) == HIGH;
+    const uint32_t t = millis();
+    if (!high) {
+      wasHigh = false;
+    } else if (!wasHigh) {
+      wasHigh = true;
+      highSince = t;
+    } else if (t - highSince >= 200) {
+      break;
+    }
+    delay(5);
+  }
   Serial.flush();
   ESP.restart();
 }
@@ -209,6 +257,7 @@ void setup() {
     }
   });
 
+  g_web.onUploadTick(serviceLighting);
   g_web.onUpdate(
       [] { return parkedNow(); },
       [](bool resetSettings) {
@@ -232,24 +281,12 @@ void setup() {
 void loop() {
   g_web.loop();                                   // DNS + HTTP + WS (fires onMessage inline)
 
-  // Drain all pending CAN frames into the state cache.
-  uint32_t id;
-  uint8_t data[8];
-  while (g_bus.receive(id, data)) g_can.update(id, data, millis());
-
+  drainCan();
   uint32_t now = millis();
 
   if (testExpired(g_test, g_cfg, now)) releaseTest(now);
 
-  // Evaluate -> compute -> drive, on a ~10 ms tick.
-  static uint32_t last = 0;
-  if (now - last >= 10) {
-    last = now;
-    LogicalState s = g_can.evaluate(g_cfg, now);
-    OutputIntent o = resolveOutputs(s, g_test, g_cfg, now, g_engine, g_testEngine);
-    applyIntent(g_out, o);
-    g_tickRan = true;
-  }
+  serviceLighting();                              // drain -> evaluate -> drive, ~10 ms tick
 
   // Factory-reset button, sampled every pass.
   if (g_resetHold.update(digitalRead(kResetBtnPin) == LOW, now)) factoryReset();
