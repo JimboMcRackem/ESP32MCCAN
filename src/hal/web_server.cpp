@@ -3,7 +3,6 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WebSocketsServer.h>
-#include <LittleFS.h>
 
 static WebServer         s_http(80);
 static DNSServer         s_dns;
@@ -20,26 +19,28 @@ static void onWsEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t lengt
   }
 }
 
-// Serve the app's index.html (captive-portal landing). If the LittleFS image
-// was never flashed, send a plain diagnostic instead of an endless redirect.
-static void serveApp() {
-  if (LittleFS.exists("/index.html")) {
-    File f = LittleFS.open("/index.html", "r");
-    s_http.streamFile(f, "text/html");
-    f.close();
+#include "hal/web_assets.h"
+
+static const WebAsset* findAsset(const char* path) {
+  for (const WebAsset& a : kWebAssets) {
+    if (strcmp(a.path, path) == 0) return &a;
+  }
+  return nullptr;
+}
+
+// Serve an embedded asset (gzip, from flash). "/" and every unknown path
+// (OS captive-portal probes) get /index.html with 200: no redirect, no loop.
+static void serveAsset() {
+  String uri = s_http.uri();
+  const WebAsset* a = (uri == "/") ? nullptr : findAsset(uri.c_str());
+  if (!a) a = findAsset("/index.html");
+  if (!a) {
+    s_http.send(500, "text/plain", "MCCAN: web assets missing");
     return;
   }
-  String msg = "MCCAN: web filesystem not loaded.\n";
-  msg += "Run: py -3.13 -m platformio run -e esp32 -t uploadfs\n";
-  msg += "LittleFS used=";
-  msg += (unsigned long)LittleFS.usedBytes();
-  msg += " total=";
-  msg += (unsigned long)LittleFS.totalBytes();
-  msg += "\nindex.html=";
-  msg += LittleFS.exists("/index.html") ? "yes" : "no";
-  msg += " app.js=";
-  msg += LittleFS.exists("/app.js") ? "yes" : "no";
-  s_http.send(200, "text/plain", msg);
+  s_http.sendHeader("Content-Encoding", "gzip");
+  s_http.sendHeader("Cache-Control", "no-cache");
+  s_http.send_P(200, a->mime, reinterpret_cast<const char*>(a->gz), a->len);
 }
 
 bool WebServerHal::begin(const char* ssid, const char* password) {
@@ -47,24 +48,11 @@ bool WebServerHal::begin(const char* ssid, const char* password) {
   WiFi.softAPConfig(s_apIP, s_apIP, IPAddress(255, 255, 255, 0));
   bool ap = WiFi.softAP(ssid, password);
 
-  // Boot diagnostic: what does LittleFS actually contain at runtime?
-  Serial.printf("[web] LittleFS total=%u used=%u index.html=%s app.js=%s style.css=%s\n",
-                (unsigned)LittleFS.totalBytes(), (unsigned)LittleFS.usedBytes(),
-                LittleFS.exists("/index.html") ? "yes" : "no",
-                LittleFS.exists("/app.js") ? "yes" : "no",
-                LittleFS.exists("/style.css") ? "yes" : "no");
-
   // Captive portal: resolve every hostname to us.
   s_dns.start(53, "*", s_apIP);
 
-  // Serve the SPA from LittleFS. serveStatic infers content types from extensions.
-  s_http.serveStatic("/app.js", LittleFS, "/app.js");
-  s_http.serveStatic("/style.css", LittleFS, "/style.css");
-  // Root and every unknown path (OS captive-portal probes) -> serve the app
-  // (or a diagnostic if the FS is missing). No redirect => no redirect loop.
-  s_http.on("/", serveApp);
-  s_http.on("/index.html", serveApp);
-  s_http.onNotFound(serveApp);
+  // Embedded SPA; the not-found handler serves the app for captive-portal probes.
+  s_http.onNotFound(serveAsset);
   s_http.begin();
 
   s_ws.begin();
