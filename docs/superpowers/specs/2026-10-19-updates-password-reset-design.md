@@ -1,6 +1,6 @@
 # Phone updates, Wi-Fi password and factory reset — design
 
-Status: draft for approval, 2026-10-19.
+Status: approved by the owner, 2026-10-19.
 Builds on: `2026-07-29-esp32-mccan-lighting-firmware-design.md` (firmware), plan 2
 (connectivity + web app), and `2026-10-17-emarked-module-redesign-design.md` (current board).
 
