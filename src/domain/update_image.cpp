@@ -26,7 +26,7 @@ UpdateReceiver::UpdateReceiver(uint32_t runningBuild, uint32_t slotBytes,
                                const uint8_t* pubKey64, IUpdateSink& sink)
     : runningBuild_(runningBuild), slotBytes_(slotBytes), pub_(pubKey64), sink_(sink),
       err_(UpdateError::None), headerOk_(false), hdr_{}, head_{}, headLen_(0),
-      imageGot_(0), sig_{}, sigLen_(0) {}
+      imageGot_(0), sig_{}, sigLen_(0), finished_(false) {}
 
 bool UpdateReceiver::fail(UpdateError e) {
   if (err_ == UpdateError::None) err_ = e;
@@ -56,7 +56,7 @@ bool UpdateReceiver::parseHeader() {
 }
 
 bool UpdateReceiver::feed(const uint8_t* data, size_t len) {
-  if (err_ != UpdateError::None) return false;
+  if (err_ != UpdateError::None || finished_) return false;
   while (len > 0) {
     if (headLen_ < 64) {
       size_t n = 64 - headLen_;
@@ -83,7 +83,8 @@ bool UpdateReceiver::feed(const uint8_t* data, size_t len) {
 }
 
 UpdateError UpdateReceiver::finish() {
-  if (err_ != UpdateError::None) return err_;
+  if (finished_ || err_ != UpdateError::None) return err_;
+  finished_ = true;
   if (!headerOk_ || imageGot_ < hdr_.imageLen || sigLen_ < 64) {
     fail(UpdateError::Truncated);
     return err_;

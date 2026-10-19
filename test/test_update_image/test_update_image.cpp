@@ -179,6 +179,25 @@ void test_errors_latch_and_sink_not_called_again() {
   TEST_ASSERT_EQUAL(UpdateError::WriteFailed, r.error());
 }
 
+void test_finish_twice_keeps_verdict() {
+  FakeSink s;
+  UpdateReceiver r(5, 100000, kTestPubKey, s);
+  TEST_ASSERT_TRUE(feedChunks(r, kMcupBuild7, kMcupBuild7Len, 37));
+  TEST_ASSERT_EQUAL(UpdateError::None, r.finish());
+  TEST_ASSERT_EQUAL(UpdateError::None, r.finish());
+}
+
+void test_feed_after_finish_ignored() {
+  FakeSink s;
+  UpdateReceiver r(5, 100000, kTestPubKey, s);
+  TEST_ASSERT_TRUE(feedChunks(r, kMcupBuild7, kMcupBuild7Len, 37));
+  TEST_ASSERT_EQUAL(UpdateError::None, r.finish());
+  const uint8_t x = 0;
+  TEST_ASSERT_FALSE(r.feed(&x, 1));
+  TEST_ASSERT_EQUAL(UpdateError::None, r.error());
+  TEST_ASSERT_EQUAL(UpdateError::None, r.finish());
+}
+
 void test_parked_rule() {
   TEST_ASSERT_FALSE(parkedForUpdate(false, false));
   TEST_ASSERT_TRUE(parkedForUpdate(true, false));
@@ -214,6 +233,8 @@ int main() {
   RUN_TEST(test_display_without_nul_rejected);
   RUN_TEST(test_sink_failure_reported);
   RUN_TEST(test_errors_latch_and_sink_not_called_again);
+  RUN_TEST(test_finish_twice_keeps_verdict);
+  RUN_TEST(test_feed_after_finish_ignored);
   RUN_TEST(test_parked_rule);
   RUN_TEST(test_not_parked_text);
   RUN_TEST(test_error_texts);

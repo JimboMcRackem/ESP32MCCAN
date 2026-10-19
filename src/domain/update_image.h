@@ -51,6 +51,7 @@ class UpdateReceiver {
   uint8_t sig_[64];
   size_t sigLen_;
   Sha256 sha_;
+  bool finished_;
 };
 
 bool parkedForUpdate(bool canStale, bool kickstandDown);  // true if either
