@@ -3,14 +3,26 @@
 #include <functional>
 #include <cstdint>
 
-// SoftAP + captive-portal DNS + HTTP static file server (LittleFS) + synchronous
-// WebSocket server. The WS event callback runs inline on the main task during loop().
+// SoftAP + captive-portal DNS + HTTP server (embedded app, POST /update) + synchronous
+// WebSocket server. Every callback runs inline on the main task during loop().
+// NOTE: an HTTP request is handled to completion inside loop(), so while a phone
+// uploads an update the lighting tick does not run; that is why uploads are gated
+// on the bike being parked.
 class WebServerHal {
 public:
   using MessageCb = std::function<void(uint8_t clientId, const std::string& text)>;
   using DisconnectCb = std::function<void(uint8_t clientId)>;
 
   bool begin(const char* ssid, const char* password);
+  // Re-applies the SoftAP config with a new password. The IP config, DNS, HTTP
+  // and WebSocket servers keep running; connected stations are dropped and must
+  // rejoin with the new password.
+  void restartAp(const char* ssid, const char* password);
+  // POST /update?reset=0|1 (multipart, field "update"). `parked` gates the start
+  // of an upload; `committed` runs after a verified image is set to boot and the
+  // 200 reply is sent. It must not restart: the reply has to flush first.
+  void onUpdate(std::function<bool()> parked,
+                std::function<void(bool resetSettings)> committed);
   void loop();                                  // call every main-loop iteration
   void onMessage(MessageCb cb);
   // Fires when a WebSocket client goes away. Test mode uses this so a phone
