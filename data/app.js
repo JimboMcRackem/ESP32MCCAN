@@ -71,7 +71,7 @@ function checkVersion(v) {
     ? "Firmware is older than this web app (device v" + v + ", app v" + PROTOCOL_VERSION +
       "). Reflash the firmware: py -3.13 -m platformio run -e esp32 -t upload"
     : "This web app is older than the firmware (device v" + v + ", app v" + PROTOCOL_VERSION +
-      "). Reflash the web files: py -3.13 -m platformio run -e esp32 -t uploadfs";
+      "). Reflash the device: py -3.13 -m platformio run -e esp32 -t upload";
   el.hidden = false;
 }
 
