@@ -75,10 +75,17 @@ The owner's words:
 - NVS writes are atomic per key, which closes plan 2's "config write not atomic" item.
 - **Migration:** on first boot of the new firmware, if NVS holds no config and
   `/config.json` exists in LittleFS, import it once. A rider who updates keeps their bits.
-- *My call:* the partition table stays the `esp32dev` default: `nvs`, `otadata`, two 1.25 MB
-  app slots, and the `spiffs` data partition left in place. Changing the partition table needs a
-  USB flash, and the default already has everything OTA needs. Today's image (81.5 % of one
-  slot) leaves about 240 KB, enough for the signature check and the embedded app.
+- *Amended 2026-10-20, owner's decision:* the partition table is `min_spiffs.csv`
+  (`board_build.partitions` in `platformio.ini`): `nvs` and `otadata` at the same offsets, two
+  1,966,080 B (1.875 MB) app slots, and a 128 KB `spiffs` partition moved to 0x3D0000. The
+  original call kept the `esp32dev` default (two 1.25 MB slots) to avoid a USB flash, but the
+  final review measured §9's HTTPS client at about 194 KB, which would leave 13,872 B (1.06 %) of
+  a 1.25 MB slot. The first USB flash is needed anyway, so the table changes now.
+  - NVS survives the change. The old LittleFS partition does not: its `/config.json` is no
+    longer where the new table looks, the legacy mount (`begin(false)`, no format) fails, and the
+    migration is skipped. The first USB flash therefore does **not** carry over legacy
+    settings: export them from the app's Backup tab before flashing and import them after.
+  - The migration code stays for any unit flashed from main with the old table.
 
 ### 5.3 Phone update (OTA)
 - The app gets an **Update** screen:
@@ -102,9 +109,9 @@ The owner's words:
     builder's call.
   - Shipping without rollback is not an option (§4).
 - **First install:** units already flashed (today, only the owner's dev board) get the new
-  firmware once over USB, bootloader included if needed. The partition table is unchanged, so
-  the old LittleFS partition and its `/config.json` survive for the migration in §5.2. Every
-  update after that goes over the phone.
+  firmware once over USB, bootloader included if needed. That flash also changes the partition
+  table (§5.2, amended), so legacy settings are exported from the Backup tab first and imported
+  after. Every update after that goes over the phone.
 - **Versions:**
   - The firmware carries a monotonic integer build number and a display string. Both go in the
     signed part of the update file.
@@ -127,7 +134,9 @@ The owner's words:
   - *My call,* because Run's meaning in a parked state is still open (spec 2026-10-17 §9.3.5).
     Revisit once that is confirmed on the bike.
 - **Lights during the upload:** the lighting tick keeps running as far as the upload allows. The
-  restart takes outputs dark for about a second, which the interlock makes acceptable.
+  parked check is repeated on every upload chunk; if the bike stops reading parked, the upload is
+  aborted (boot partition untouched) and the connection closed. The restart takes outputs dark
+  for about a second, which the interlock makes acceptable.
 - If the tick-box was set, the new firmware erases the settings namespace before first use, and
   the app reconnects to the default password.
 
@@ -167,17 +176,26 @@ The owner's words:
   Wi-Fi password." *My call.*
 
 ### 5.6 Factory reset button
-- **Trigger:** hold the button for 10 s while the controller is running. Erase the settings
-  namespace and restart. A short press does nothing.
-  - The hold must be continuous. Any release longer than a debounce interval restarts the count;
-    the interval is the builder's call.
+- **Trigger:** hold the button for 10 s while the controller is running; the LED then
+  fast-blinks. **Release within 5 s to confirm**: the settings namespace is erased once and the
+  controller restarts as soon as the bike reads parked. A short press does nothing.
+  - The hold must be continuous. Any release longer than the 50 ms debounce restarts the count.
+  - **Still held 5 s after the blink starts: cancelled.** The LED goes off and nothing happens
+    until the button has been released and a new full 10 s hold starts. A stuck or wet button
+    (the handlebar wire, a jet-wash) therefore never erases anything.
+  - **Lamps keep working throughout.** The lighting tick runs in every phase; nothing forces the
+    outputs off and nothing blocks. The trigger itself is not parked-gated, so recovery always
+    works, but the restart waits until parked (and until GPIO0 reads released). Erasing NVS
+    changes nothing in RAM, so the bike keeps its live config until then.
+  - The decision logic is `ResetSequence` (`src/domain/reset_sequence.h`), native-tested.
   - The reset erases the settings namespace only. The SSID suffix is derived from the MAC and is
     unaffected.
 - **Pin:** GPIO0 (`BOOT_N`), read only after boot.
   - Holding it at **power-up** enters the ROM USB-flashing mode instead. That is harmless (the
     controller just waits) and is why the reset is a hold while running, not a hold at power-on.
 - **Feedback:**
-  - status LED, GPIO13 on the new board: fast blink once the 10 s is reached
+  - status LED, GPIO13 on the new board: fast blink (10 Hz) once the 10 s is reached, solid
+    once confirmed and erased, off if cancelled. The dev board has no LED there.
   - serial log line
   - after the restart, the app's default-password banner
 - **Dev board today:** the existing BOOT button works as-is, so this is testable now.
@@ -197,8 +215,8 @@ The owner's words:
   validation, reset-hold timing, signature-check verdicts on fixed vectors, config migration.
 - **No eFuse is burned by anything in this design.** Secure Boot, flash encryption and the
   flash-voltage fuse remain the owner's separate, irreversible decisions.
-- Flash budget: stay inside one 1.25 MB app slot with headroom for §9's HTTPS client. Report the
-  measured size.
+- Flash budget: stay inside one 1,966,080 B app slot (`min_spiffs.csv`, §5.2) with headroom for
+  §9's HTTPS client. Report the measured size.
 
 ## 7. Left to the builder
 

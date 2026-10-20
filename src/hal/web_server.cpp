@@ -165,7 +165,19 @@ static void onUpdateChunk(HTTPUpload& up) {
       return;
     }
     case UPLOAD_FILE_WRITE:
-      if (s_up && s_up->inPart && s_up->rx && up.currentSize > 0)
+      if (!s_up || !s_up->inPart || !s_up->rx) return;   // refused or stopped: write nothing
+      // Re-check parked on every chunk, not just at START: each 64 KB flash
+      // erase stalls the lighting tick, which spec 5.3 accepts only while parked.
+      if (!s_parked || !s_parked()) {
+        Serial.println("update: aborted mid-upload, no longer parked");
+        if (s_up->sink.begun()) Update.abort();  // boot partition untouched
+        s_up->rx.reset();                        // no receiver: no more feed(), no Update.end()
+        s_up->inPart = false;
+        s_up->refusal = kNotParkedText;          // onUpdateDone, if reached, fails with this
+        s_http.client().stop();                  // the server then reports UPLOAD_FILE_ABORTED
+        return;
+      }
+      if (up.currentSize > 0)
         s_up->rx->feed(up.buf, up.currentSize);   // after an error this is a no-op
       return;
     case UPLOAD_FILE_END:

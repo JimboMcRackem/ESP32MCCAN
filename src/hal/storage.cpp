@@ -66,17 +66,24 @@ bool begin() {
     bool legacyHas = LittleFS.exists(kLegacyPath);
     if (legacyHas) {
       bool nvsHas = g_prefs.getBytesLength("config") > 0;
+      // Delete the legacy file only once NVS holds a config: either it already
+      // did (NVS wins), or the import below succeeded. A failed read or write
+      // keeps the file, so the next boot tries again.
+      bool done = true;
       if (pickConfigSource(nvsHas, legacyHas) == ConfigSource::Legacy) {
+        done = false;
         File f = LittleFS.open(kLegacyPath, "r");
         if (f) {
           std::string data;
           data.reserve(f.size());
           while (f.available()) data.push_back((char)f.read());
           f.close();
-          if (writeConfig(data)) Serial.println("storage: legacy config migrated to NVS");
+          done = writeConfig(data);
         }
+        Serial.println(done ? "storage: legacy config migrated to NVS"
+                            : "storage: legacy config import failed; /config.json kept");
       }
-      LittleFS.remove(kLegacyPath);
+      if (done) LittleFS.remove(kLegacyPath);
     }
     LittleFS.end();
   } else {

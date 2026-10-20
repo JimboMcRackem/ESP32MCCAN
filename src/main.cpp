@@ -12,7 +12,7 @@
 #include "hal/web_server.h"
 #include "domain/update_image.h"
 #include "domain/wifi_settings.h"
-#include "domain/reset_hold.h"
+#include "domain/reset_sequence.h"
 #include "version.h"
 #include <esp_ota_ops.h>
 #include <esp_mac.h>
@@ -29,8 +29,8 @@ static const uint32_t kCanBitrate = 500000;
 static const int kEn5vPin   = 4;    // +5V enable: the CAN transceiver's VCC and the quads' THER
 static const int kCanStbPin = 14;   // TJA1042 STB, pulled up on the board (floating = standby)
 static const int kDiagEnPin = 2;    // quad switches' DIAG_EN, pulled down on the chip side
-static const int kLedStatPin = 13;  // status LED D5; held off except for the factory-reset blink
-static const int kResetBtnPin = 0;  // BOOT button: hold 10 s for a factory reset (LOW = pressed)
+static const int kLedStatPin = 13;  // status LED D5; off except for the factory-reset gesture
+static const int kResetBtnPin = 0;  // BOOT button: hold 10 s, release within 5 s = factory reset (LOW = pressed)
 
 // GPIO assignment in OutputIndex order. These avoid the strapping pins
 // (0, 2, 5, 12, 15), but that is hygiene, not the safety guarantee: nothing
@@ -65,11 +65,12 @@ static bool         g_discovery = false;
 static uint8_t      g_discoveryOwner = 0;  // the client that turned Discovery on
 static std::string  g_ssid;                // "MCCAN-XXXX", from the SoftAP MAC
 static bool         g_apUp = false;
-static ResetHold    g_resetHold;
+static ResetSequence g_reset;
 
 // Deferred actions, run from loop() so a reply or broadcast can flush first.
-static bool         g_restartPending = false;   // a verified update is set to boot
+static bool         g_restartPending = false;   // an update is set to boot, or settings were erased
 static uint32_t     g_restartAt = 0;
+static const char*  g_restartWhy = "";
 static bool         g_restartHeldLogged = false;
 static bool         g_apRestartPending = false; // the Wi-Fi password changed
 static uint32_t     g_apRestartAt = 0;
@@ -128,40 +129,32 @@ static bool deadlinePassed(uint32_t now, uint32_t at) {
   return (int32_t)(now - at) >= 0;   // wrap-safe
 }
 
-// Factory reset from the button. Blocking is fine: the controller restarts.
-static void factoryReset() {
-  Serial.println("reset button held 10 s: factory reset");
-  for (uint8_t i = 0; i < OUT_COUNT; ++i) g_out.setOutput(i, false);  // every lamp off first
-  for (int i = 0; i < 10; ++i) {     // 10 Hz for 1 s
-    digitalWrite(kLedStatPin, HIGH);
-    delay(50);
-    digitalWrite(kLedStatPin, LOW);
-    delay(50);
-  }
-  storage::eraseAll();
-
-  // Restarting with GPIO0 still held boots the ROM download mode (lamps dead
-  // until a power cycle), so wait for a steady release. LED solid = let go.
-  digitalWrite(kLedStatPin, HIGH);
-  Serial.println("factory reset done: release the button to restart");
-  uint32_t highSince = millis();
-  bool wasHigh = false;
-  for (;;) {
-    for (uint8_t i = 0; i < OUT_COUNT; ++i) g_out.setOutput(i, false);
-    const bool high = digitalRead(kResetBtnPin) == HIGH;
-    const uint32_t t = millis();
-    if (!high) {
-      wasHigh = false;
-    } else if (!wasHigh) {
-      wasHigh = true;
-      highSince = t;
-    } else if (t - highSince >= 200) {
+// Factory-reset button, sampled every loop() pass. Nothing here blocks or
+// touches the lamps: serviceLighting() keeps running in every phase. The
+// erase happens only on a release inside the confirm window, so a stuck or
+// wet line cancels instead, and the restart waits for parked like an update.
+static void serviceResetButton(uint32_t now) {
+  switch (g_reset.update(digitalRead(kResetBtnPin) == LOW, now)) {
+    case ResetEvent::Armed:
+      Serial.println("reset button held 10 s: release within 5 s to factory reset");
       break;
-    }
-    delay(5);
+    case ResetEvent::Cancelled:
+      Serial.println("reset button still held after 5 s: cancelled (stuck button?)");
+      digitalWrite(kLedStatPin, LOW);
+      break;
+    case ResetEvent::Confirmed:
+      storage::eraseAll();
+      digitalWrite(kLedStatPin, HIGH);   // solid: erased, restart pending
+      Serial.println("factory reset: settings erased");
+      g_restartPending = true;
+      g_restartAt = now;
+      g_restartWhy = "factory reset";
+      break;
+    case ResetEvent::None:
+      break;
   }
-  Serial.flush();
-  ESP.restart();
+  if (g_reset.phase() == ResetPhase::Armed)
+    digitalWrite(kLedStatPin, ((now / 50) & 1) ? LOW : HIGH);   // 10 Hz blink
 }
 
 // Drop any active override and tell every client. Called on explicit exit,
@@ -264,6 +257,7 @@ void setup() {
         if (resetSettings) storage::requestResetOnNextBoot();
         g_restartPending = true;
         g_restartAt = millis() + 500;   // loop() restarts once the reply has flushed
+        g_restartWhy = "update installed";
       });
 
   uint8_t mac[6] = {0};
@@ -288,8 +282,7 @@ void loop() {
 
   serviceLighting();                              // drain -> evaluate -> drive, ~10 ms tick
 
-  // Factory-reset button, sampled every pass.
-  if (g_resetHold.update(digitalRead(kResetBtnPin) == LOW, now)) factoryReset();
+  serviceResetButton(now);
 
   // Mark a fresh OTA image good once it has shown it runs. Harmless on a
   // USB-flashed image.
@@ -305,18 +298,19 @@ void loop() {
     g_web.restartAp(g_ssid.c_str(), g_newWifiPass.c_str());
   }
 
-  // A verified update is set to boot. Restart only while parked: CAN was
-  // drained above, so this reading is current again after the upload stalled
-  // loop(). If the rider has moved off, the new image boots at the next
-  // power-up instead.
+  // A verified update is set to boot, or a factory reset erased the settings.
+  // Restart only while parked: CAN was drained above, so this reading is
+  // current again after an upload stalled loop(). If the rider has moved off,
+  // the restart waits (or happens at the next power-up). GPIO0 must also read
+  // released: restarting with it held boots the ROM download mode.
   if (g_restartPending && deadlinePassed(now, g_restartAt)) {
-    if (parkedNow()) {
-      Serial.println("update installed: restarting");
+    if (parkedNow() && digitalRead(kResetBtnPin) == HIGH) {
+      Serial.printf("%s: restarting\n", g_restartWhy);
       Serial.flush();
       ESP.restart();
     } else if (!g_restartHeldLogged) {
       g_restartHeldLogged = true;
-      Serial.println("update installed: restart held until parked");
+      Serial.printf("%s: restart held until parked\n", g_restartWhy);
     }
   }
 

@@ -38,8 +38,9 @@ button hold restores defaults.
 - **The assistant cannot reach COM ports.** Every flash and serial step is the owner's, typed
   as `! <command>`. The upload form is `! PYTHONIOENCODING=utf-8 py -3.13 -m platformio run -e
   esp32 -t upload --upload-port COM3`.
-- **Flash budget:** the image must fit one 1,310,720-byte app slot. Report the measured size in
-  Task 8. Stop and rule if it exceeds 1,200,000 bytes.
+- **Flash budget:** the image must fit one 1,966,080-byte app slot (`min_spiffs.csv`, owner's
+  decision 2026-10-20; was 1,310,720 B on the `esp32dev` default). Report the measured size in
+  Task 8. Stop and rule if it exceeds 1,769,472 bytes (90 % of the slot).
 - **`kProtocolVersion`** (`src/domain/web_protocol.h`) and **`PROTOCOL_VERSION`**
   (`data/app.js`) both become **4** in the same commit.
 - **Default Wi-Fi password:** `mccan1234`. **SSID:** `MCCAN-` followed by the last two MAC
