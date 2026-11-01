@@ -35,9 +35,8 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
 
   // Indicator/hazard beats brake beats DRL. An indicating corner shows ONLY
   // its indicator: the same-side DRL is off per ECE R48, and on the rear the
-  // brake is off too, because the module ORs DRL and brake onto one light
-  // engine -- leaving either asserted would light the corner through the dark
-  // phase and destroy the flash contrast.
+  // brake is off too. The rear rule predates the EL360's separate red and amber
+  // LEDs and is under review (spec 9.2 item 3d).
   //
   // Both the DRL drop and the brake drop key off the REQUEST (li / ri), never
   // off the phase. Keying them off the phase would blink them back on in the
