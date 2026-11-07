@@ -691,6 +691,13 @@ These are verification items, not assumptions. Each names who or what can settle
 1. **Plug C/D pinout on the Oxford pods** — conductor count, and what each pin sits at in run
    mode, in high-beam mode and across the dial's 5 stages. Settles whether `AUX_MODE` gets
    populated and whether direct drive loses the integrated DRL. **Needs the kit in hand.**
+   **Kit arrived 2026-11-07: four conductors per pod (black, red, yellow, blue)** in a sealed
+   2×2 connector with a red lock (photos in the untracked `hardware/Sockets/`). The extra two
+   conductors make a mode input likely, which is night-mode design §6 Branch A, but this is
+   unconfirmed. Still to measure: what each wire carries under Oxford's own harness, with the
+   dial at each of its five stages and with `ACC RUN` and `ACC HIGH BEAM` triggered. That shows
+   whether it is a steady level, a switched line or a pulsed signal. Oxford's instruction sheet
+   is unchanged and gives no pod pinout.
 2. **Pod inrush** — measured, against the candidate dual-channel switch's current limit and
    capacitive-load rating (§4.4). **Needs the kit in hand.**
 
