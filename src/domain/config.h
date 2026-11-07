@@ -29,6 +29,11 @@ enum class FlashSource : uint8_t { Auto = 0, Follow, Generate };
 // steady flag, not a flasher.
 constexpr uint32_t kFlashFollowTimeoutMs = 1200;
 
+// Shortest night-mode hold the engine accepts. Anything shorter, including 0,
+// is treated as the 800 ms default, so an ordinary flash-to-pass can never
+// toggle night mode and drop the daytime front light.
+constexpr uint32_t kMinNightHoldMs = 400;
+
 struct Config {
   FunctionMap map[(size_t)Function::COUNT];
 

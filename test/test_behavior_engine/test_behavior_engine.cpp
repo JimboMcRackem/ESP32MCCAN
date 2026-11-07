@@ -481,6 +481,17 @@ void test_night_hold_survives_millis_rollover() {
   TEST_ASSERT_TRUE(e.nightToggled);
 }
 
+void test_hold_below_400ms_falls_back_to_800ms() {
+  // A 100 ms hold (what an old config import produced) would let an ordinary
+  // flash-to-pass toggle night mode and drop the daytime front light.
+  Config c = defaultConfig(); c.nightHoldMs = 100; EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  hold(s, c, 0, 790, e);
+  TEST_ASSERT_FALSE(e.nightToggled);
+  hold(s, c, 800, 0, e);
+  TEST_ASSERT_TRUE(e.nightToggled);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_night_drops_front_white_and_puts_pods_at_low);
@@ -504,6 +515,7 @@ int main(int, char**) {
   RUN_TEST(test_mapped_daynight_ignores_the_long_press);
   RUN_TEST(test_bus_dropout_restarts_the_press);
   RUN_TEST(test_zero_hold_falls_back_to_800ms);
+  RUN_TEST(test_hold_below_400ms_falls_back_to_800ms);
   RUN_TEST(test_night_hold_survives_millis_rollover);
   RUN_TEST(test_generate_first_on_phase_is_full_from_any_start_time);
   RUN_TEST(test_reapplied_indicator_gets_a_new_full_on_phase);

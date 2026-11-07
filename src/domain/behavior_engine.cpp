@@ -68,7 +68,7 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
   // high beam at any point in a press spends it, or holding high beam would
   // toggle night mode. These bit states are unconfirmed on the bike.
   const bool dayNightMapped = mapFor(cfg, Function::DayNight).count != 0;
-  const uint32_t hold = cfg.nightHoldMs ? cfg.nightHoldMs : 800;
+  const uint32_t hold = cfg.nightHoldMs >= kMinNightHoldMs ? cfg.nightHoldMs : 800;
   if (s.flash && !est.flashPrev) { est.flashRisingMs = nowMs; est.pressUsed = false; }
   if (s.highBeam) est.pressUsed = true;
   if (s.flash && !est.pressUsed && s.run && !dayNightMapped &&

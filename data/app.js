@@ -165,7 +165,9 @@ function uploadUpdate(f, reset) {
 // ---- rendering ----
 function render() {
   document.getElementById("blinkPeriodMs").value = cfg.blinkPeriodMs;
-  document.getElementById("nightHoldMs").value = cfg.nightHoldMs;
+  // An old export has spotHoldMs only; an empty field would otherwise
+  // collect as the minimum and make every flash toggle night mode.
+  document.getElementById("nightHoldMs").value = cfg.nightHoldMs ?? cfg.spotHoldMs ?? 800;
   document.getElementById("auxDarkenOnIndicate").checked = !!cfg.auxDarkenOnIndicate;
   document.getElementById("testMaxMs").value = cfg.testMaxMs;
   document.getElementById("flashSource").value = cfg.flashSource || "generate";
@@ -322,7 +324,9 @@ function assignBit(id, bit) {
 // ---- outbound ----
 function collect() {
   cfg.blinkPeriodMs = clamp(document.getElementById("blinkPeriodMs").value, 50, 5000);
-  cfg.nightHoldMs = clamp(document.getElementById("nightHoldMs").value, 100, 10000);
+  const hold = Number(document.getElementById("nightHoldMs").value) | 0;
+  cfg.nightHoldMs = hold ? clamp(hold, 400, 5000) : 800;   // matches kMinNightHoldMs
+  delete cfg.spotHoldMs;
   cfg.auxDarkenOnIndicate = document.getElementById("auxDarkenOnIndicate").checked;
   cfg.testMaxMs = clamp(document.getElementById("testMaxMs").value, 10000, 3600000);
   cfg.flashSource = document.getElementById("flashSource").value;
