@@ -61,32 +61,46 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
   o.set(OUT_FR_IND, rp);
   o.set(OUT_RR_IND, rp);
 
+  // --- Night mode: flash long press, used only while DayNight is unassigned ---
+  // NOTE: on the Energica Experia, flash / high beam / low beam are mutually
+  // exclusive positions of ONE switch. HighBeam is bit 6 AND bit 16 and
+  // HighBeamFlash is bit 16, so s.flash also reads true on steady high beam:
+  // high beam at any point in a press spends it, or holding high beam would
+  // toggle night mode. These bit states are unconfirmed on the bike.
+  const bool dayNightMapped = mapFor(cfg, Function::DayNight).count != 0;
+  const uint32_t hold = cfg.nightHoldMs ? cfg.nightHoldMs : 800;
+  if (s.flash && !est.flashPrev) { est.flashRisingMs = nowMs; est.pressUsed = false; }
+  if (s.highBeam) est.pressUsed = true;
+  if (s.flash && !est.pressUsed && s.run && !dayNightMapped &&
+      (uint32_t)(nowMs - est.flashRisingMs) >= hold) {
+    est.nightToggled = !est.nightToggled;
+    est.pressUsed = true;
+  }
+  est.flashPrev = s.flash;
+  const bool night = dayNightMapped ? s.night : est.nightToggled;
+
   if (s.run) {
     const bool brakeOn = s.brake();
-    o.set(OUT_FL_DRL, !li);
+    // Front white is the day running light; at night the pods take over.
+    o.set(OUT_FL_DRL, !li && !night);
     o.set(OUT_RL_DRL, !li);
-    o.set(OUT_FR_DRL, !ri);
+    o.set(OUT_FR_DRL, !ri && !night);
     o.set(OUT_RR_DRL, !ri);
     o.set(OUT_RL_BRK, brakeOn && !li);
     o.set(OUT_RR_BRK, brakeOn && !ri);
   }
 
-  // --- Spot latch state machine (flash long-press) ---
-  // NOTE: on the Energica Experia, flash / high beam / low beam are mutually
-  // exclusive positions of ONE switch, so s.lowBeam and s.flash are never both
-  // true. The sequential auto-drop-then-latch below is safe under that
-  // assumption. Porting to a bike with independent flash and low-beam signals?
-  // Gate the latch with `&& !s.lowBeam` (or use else-if).
-  if (s.lowBeam) est.spotLatched = false;              // auto-drop on low beam
-  if (s.flash && !est.flashPrev) est.flashRisingMs = nowMs;
-  if (s.flash && (uint32_t)(nowMs - est.flashRisingMs) >= cfg.spotHoldMs)
-    est.spotLatched = true;
-  est.flashPrev = s.flash;
-
-  // Aux pods: on/off only. Oxford's 5 brightness stages are a mechanical dial
-  // on a switch this board replaces, so there is no level to select.
-  const bool aux = s.run && (s.highBeam || est.spotLatched);
-  o.set(OUT_AUX_L, aux);
-  o.set(OUT_AUX_R, aux);
+  // Aux pods are aux lights, not DRLs: full on high beam, low at night. The
+  // optional darkening keys off the request like the DRL drop, skips hazards
+  // (both pods would go out) and never touches full.
+  const AuxLevel base = !s.run      ? AuxLevel::Off
+                      : s.highBeam  ? AuxLevel::Full
+                      : night       ? AuxLevel::Low
+                                    : AuxLevel::Off;
+  const bool darken = cfg.auxDarkenOnIndicate && base == AuxLevel::Low && li != ri;
+  o.auxL = (darken && li) ? AuxLevel::Off : base;
+  o.auxR = (darken && ri) ? AuxLevel::Off : base;
+  o.set(OUT_AUX_L, o.auxL == AuxLevel::Full);
+  o.set(OUT_AUX_R, o.auxR == AuxLevel::Full);
   return o;
 }

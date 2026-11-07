@@ -13,11 +13,18 @@ enum OutputIndex : uint8_t {
   OUT_COUNT   // = 12
 };
 
-// Every output is on or off: this design contains no PWM. The whole state is
-// one word on purpose, so a test asserts it in a single comparison and fails
-// when an output nobody considered is also energised.
+// Aux pod brightness. How Low reaches a pod is decided by the Oxford kit's
+// wiring (night-mode spec section 6); until then it drives nothing.
+enum class AuxLevel : uint8_t { Off, Low, Full };
+
+// `on` is the whole switched state the HAL drives, one word on purpose, so a
+// test asserts it in a single comparison and fails when an output nobody
+// considered is also energised. An aux bit is set only at Full, so a pod can
+// never light at full because Low was asked for.
 struct OutputIntent {
   uint16_t on = 0;
+  AuxLevel auxL = AuxLevel::Off;
+  AuxLevel auxR = AuxLevel::Off;
 
   bool isOn(OutputIndex i) const { return ((on >> (uint8_t)i) & 1u) != 0u; }
   void set(OutputIndex i, bool v) {
@@ -26,7 +33,9 @@ struct OutputIntent {
   }
 };
 
-inline bool operator==(const OutputIntent& a, const OutputIntent& b) { return a.on == b.on; }
+inline bool operator==(const OutputIntent& a, const OutputIntent& b) {
+  return a.on == b.on && a.auxL == b.auxL && a.auxR == b.auxR;
+}
 inline bool operator!=(const OutputIntent& a, const OutputIntent& b) { return !(a == b); }
 
 // Mask literal helper, for expected values in tests and for presets.

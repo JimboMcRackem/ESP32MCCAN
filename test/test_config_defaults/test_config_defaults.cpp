@@ -4,7 +4,8 @@
 void test_default_timing() {
   Config c = defaultConfig();
   TEST_ASSERT_EQUAL_UINT32(340, c.blinkPeriodMs);
-  TEST_ASSERT_EQUAL_UINT32(800, c.spotHoldMs);
+  TEST_ASSERT_EQUAL_UINT32(800, c.nightHoldMs);
+  TEST_ASSERT_FALSE(c.auxDarkenOnIndicate);
   TEST_ASSERT_EQUAL_UINT32(600000, c.testMaxMs);
 }
 

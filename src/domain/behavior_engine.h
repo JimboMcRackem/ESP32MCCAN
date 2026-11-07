@@ -11,7 +11,8 @@ struct IndTimer {
 };
 
 struct EngineState {
-  bool     spotLatched   = false;
+  bool     nightToggled  = false;   // night mode from the flash long press
+  bool     pressUsed     = false;   // this flash press has toggled or met high beam
   bool     flashPrev     = false;
   uint32_t flashRisingMs = 0;
   IndTimer leftTimer;

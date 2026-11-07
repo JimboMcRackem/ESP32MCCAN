@@ -59,7 +59,7 @@ void test_discovery_enable_and_disable(void) {
 
 void test_config_message_round_trips(void) {
   Config c = defaultConfig();
-  c.spotHoldMs = 1234;
+  c.nightHoldMs = 1234;
   std::string msg = configMessage(c);
 
   // Envelope has type=config; nested config re-parses to the same value.
@@ -72,7 +72,7 @@ void test_config_message_round_trips(void) {
   bool ok = false;
   Config back = configFromJson(inner, ok);
   TEST_ASSERT_TRUE(ok);
-  TEST_ASSERT_EQUAL_UINT32(1234, back.spotHoldMs);
+  TEST_ASSERT_EQUAL_UINT32(1234, back.nightHoldMs);
 }
 
 void test_frames_message_serializes_ids_and_bytes(void) {

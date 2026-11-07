@@ -33,9 +33,10 @@ struct Config {
   FunctionMap map[(size_t)Function::COUNT];
 
   uint32_t blinkPeriodMs = 340;   // on-time == off-time
-  uint32_t spotHoldMs    = 800;   // flash long-press threshold
+  uint32_t nightHoldMs   = 800;   // flash long-press that toggles night mode
   FlashSource flashSource = FlashSource::Generate;
   uint32_t testMaxMs     = 600000;   // absolute cap on a test-mode session
+  bool     auxDarkenOnIndicate = false;   // indicating side's pod off at night
 };
 
 Config defaultConfig();

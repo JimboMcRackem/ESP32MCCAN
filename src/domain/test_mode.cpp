@@ -26,9 +26,7 @@ constexpr LogicalState kScenarios[] = {
   /* rightInd   */ mk(true,  false, false, true,  false, false, false),
   /* hazards    */ mk(true,  false, true,  true,  false, false, false),
   /* brake      */ mk(true,  false, false, false, true,  false, false),
-  // lowBeam's outputs are identical to drlDay's: s.night is recorded but no
-  // longer drives anything, and low beam itself is not an output. It stays
-  // because it is the only preset that exercises the spot latch's auto-drop.
+  // lowBeam is the night preset: front white off, pods at low.
   /* lowBeam    */ mk(true,  true,  false, false, false, true,  false),
   /* highBeam   */ mk(true,  true,  false, false, false, false, true ),
 };
@@ -64,6 +62,8 @@ OutputIntent resolveOutputs(const LogicalState& real, const TestMode& t,
                             EngineState& est, EngineState& testEst) {
   switch (t.kind) {
     case TestKind::Scenario:
+      // A night scenario must show night even with DayNight unassigned.
+      testEst.nightToggled = t.scenario.night;
       return computeOutputs(t.scenario, cfg, nowMs, testEst);
     case TestKind::Zones:
       return t.zones;

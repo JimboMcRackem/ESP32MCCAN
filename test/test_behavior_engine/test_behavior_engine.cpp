@@ -116,19 +116,6 @@ void test_aux_follows_high_beam_and_is_gated_by_run() {
   TEST_ASSERT_EQUAL_UINT16(0, run(s, PHASE_ON) & outMask(OUT_AUX_L, OUT_AUX_R));
 }
 
-void test_spot_latch_holds_aux_on_after_a_long_flash_press() {
-  Config cfg = defaultConfig();
-  EngineState est;
-  LogicalState s; s.run = true; s.flash = true;
-  computeOutputs(s, cfg, 0, est);                       // rising edge
-  OutputIntent o = computeOutputs(s, cfg, cfg.spotHoldMs, est);
-  TEST_ASSERT_TRUE(o.isOn(OUT_AUX_L));
-  s.flash = false;
-  TEST_ASSERT_TRUE(computeOutputs(s, cfg, cfg.spotHoldMs + 50, est).isOn(OUT_AUX_L));
-  s.lowBeam = true;                                     // auto-drop
-  TEST_ASSERT_FALSE(computeOutputs(s, cfg, cfg.spotHoldMs + 100, est).isOn(OUT_AUX_L));
-}
-
 void test_zero_blink_period_falls_back_to_340ms() {
   Config cfg = defaultConfig();
   cfg.blinkPeriodMs = 0;
@@ -193,21 +180,6 @@ void test_auto_restarts_its_window_on_each_rising_edge() {
   s.leftInd = true;
   computeOutputs(s, cfg, 3000, est);            // new rising edge at t=3000
   TEST_ASSERT_TRUE(computeOutputs(s, cfg, 3400, est).isOn(OUT_FL_IND));
-}
-
-void test_spot_hold_survives_millis_rollover() {
-  Config cfg = defaultConfig();            // spotHoldMs == 800 == 0x320
-  EngineState est;
-  LogicalState s; s.run = true; s.flash = true;
-  const uint32_t nearWrap = 0xFFFFFF00u;   // 256 ms short of the wrap
-  computeOutputs(s, cfg, nearWrap, est);   // rising edge, pre-wrap
-  TEST_ASSERT_FALSE(est.spotLatched);
-  // 0x200 - 0xFFFFFF00 == 0x300 == 768 ms elapsed: still short of 800.
-  computeOutputs(s, cfg, 0x200u, est);
-  TEST_ASSERT_FALSE(est.spotLatched);
-  // 0x220 - 0xFFFFFF00 == 0x320 == 800 ms exactly: latches.
-  computeOutputs(s, cfg, 0x220u, est);
-  TEST_ASSERT_TRUE(est.spotLatched);
 }
 
 void test_auto_watchdog_survives_millis_rollover() {
@@ -301,8 +273,238 @@ void test_generate_phase_survives_millis_rollover() {
   TEST_ASSERT_TRUE(computeOutputs(s, cfg, 0x200u, est).isOn(OUT_FL_IND));
 }
 
+static Config mappedNight() {
+  Config c = defaultConfig();
+  mapFor(c, Function::DayNight).count = 1;
+  return c;
+}
+static void hold(LogicalState s, const Config& c, uint32_t from, uint32_t ms, EngineState& e) {
+  for (uint32_t t = 0; t <= ms; t += 10) computeOutputs(s, c, from + t, e);
+}
+static int lvl(AuxLevel a) { return (int)a; }
+static const int OFF = (int)AuxLevel::Off;
+static const int LOW = (int)AuxLevel::Low;
+static const int FULL = (int)AuxLevel::Full;
+
+void test_night_drops_front_white_and_puts_pods_at_low() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.night = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL), o.on);
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+}
+
+void test_day_has_pods_off() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL), o.on);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
+}
+
+void test_high_beam_day_is_full_with_front_white() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.highBeam = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL,
+                                   OUT_AUX_L, OUT_AUX_R), o.on);
+  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
+}
+
+void test_high_beam_night_is_full_without_front_white() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.highBeam = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
+  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
+}
+
+void test_low_never_sets_an_aux_bit() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.night = true;
+  TEST_ASSERT_EQUAL_UINT16(0, computeOutputs(s, c, 0, e).on & outMask(OUT_AUX_L, OUT_AUX_R));
+}
+
+void test_night_indicator_shows_amber_only_and_pods_stay_low() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND), o.on);
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+}
+
+void test_run_clear_at_night_turns_pods_off() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.night = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
+}
+
+void test_short_flash_leaves_pods_alone() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL), o.on);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
+}
+
+void test_darken_turns_off_the_indicating_pod_only() {
+  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+}
+
+void test_darken_follows_the_request_not_the_phase() {
+  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
+  computeOutputs(s, c, 0, e);
+  OutputIntent o = computeOutputs(s, c, 345, e);   // dark half of the flash
+  TEST_ASSERT_FALSE(o.isOn(OUT_FL_IND));
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
+}
+
+void test_darken_skips_hazards() {
+  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.rightInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+}
+
+void test_darken_skips_high_beam() {
+  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.highBeam = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
+}
+
+void test_darken_is_off_by_default() {
+  Config c = mappedNight(); EngineState e;
+  TEST_ASSERT_FALSE(c.auxDarkenOnIndicate);
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+}
+
+void test_long_flash_toggles_night_once_per_press() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  hold(s, c, 0, 790, e);
+  TEST_ASSERT_FALSE(e.nightToggled);
+  hold(s, c, 800, 3000, e);                // still held: exactly one toggle
+  TEST_ASSERT_TRUE(e.nightToggled);
+  s.flash = false; computeOutputs(s, c, 4000, e);
+  s.flash = true;  hold(s, c, 4010, 800, e);
+  TEST_ASSERT_FALSE(e.nightToggled);
+}
+
+void test_toggle_sets_low_pods_on_the_same_tick() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(LOW, lvl(computeOutputs(s, c, 800, e).auxL));
+}
+
+void test_steady_high_beam_never_toggles() {
+  // HighBeam = bit 6 AND bit 16, HighBeamFlash = bit 16: flash reads true too.
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true; s.highBeam = true;
+  hold(s, c, 0, 120000, e);
+  TEST_ASSERT_FALSE(e.nightToggled);
+}
+
+void test_high_beam_at_any_point_cancels_the_press() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  hold(s, c, 0, 400, e);
+  s.highBeam = true;  computeOutputs(s, c, 410, e);
+  s.highBeam = false; hold(s, c, 420, 2000, e);  // flash never released
+  TEST_ASSERT_FALSE(e.nightToggled);
+}
+
+void test_toggled_press_moving_to_high_beam_does_not_toggle_back() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  hold(s, c, 0, 800, e);
+  TEST_ASSERT_TRUE(e.nightToggled);
+  s.highBeam = true; hold(s, c, 810, 2000, e);
+  TEST_ASSERT_TRUE(e.nightToggled);
+}
+
+void test_mapped_daynight_ignores_the_long_press() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  hold(s, c, 0, 2000, e);
+  TEST_ASSERT_FALSE(e.nightToggled);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(computeOutputs(s, c, 2010, e).auxL));
+}
+
+void test_bus_dropout_restarts_the_press() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  hold(s, c, 0, 700, e);
+  computeOutputs(LogicalState{}, c, 710, e);  // stale bus reads all false
+  hold(s, c, 720, 700, e);                    // 700 ms since the restart
+  TEST_ASSERT_FALSE(e.nightToggled);
+}
+
+void test_zero_hold_falls_back_to_800ms() {
+  Config c = defaultConfig(); c.nightHoldMs = 0; EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  hold(s, c, 0, 790, e);
+  TEST_ASSERT_FALSE(e.nightToggled);
+  hold(s, c, 800, 0, e);
+  TEST_ASSERT_TRUE(e.nightToggled);
+}
+
+void test_night_hold_survives_millis_rollover() {
+  Config c = defaultConfig(); EngineState e;
+  LogicalState s; s.run = true; s.flash = true;
+  computeOutputs(s, c, 0xFFFFFF00u, e);
+  // `now >= then + 800` compares with 0x220 and fires here, 16 ms in.
+  computeOutputs(s, c, 0xFFFFFF10u, e);
+  TEST_ASSERT_FALSE(e.nightToggled);
+  computeOutputs(s, c, 0x200u, e);            // 768 ms
+  TEST_ASSERT_FALSE(e.nightToggled);
+  computeOutputs(s, c, 0x220u, e);            // 800 ms
+  TEST_ASSERT_TRUE(e.nightToggled);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_night_drops_front_white_and_puts_pods_at_low);
+  RUN_TEST(test_day_has_pods_off);
+  RUN_TEST(test_high_beam_day_is_full_with_front_white);
+  RUN_TEST(test_high_beam_night_is_full_without_front_white);
+  RUN_TEST(test_low_never_sets_an_aux_bit);
+  RUN_TEST(test_night_indicator_shows_amber_only_and_pods_stay_low);
+  RUN_TEST(test_run_clear_at_night_turns_pods_off);
+  RUN_TEST(test_short_flash_leaves_pods_alone);
+  RUN_TEST(test_darken_turns_off_the_indicating_pod_only);
+  RUN_TEST(test_darken_follows_the_request_not_the_phase);
+  RUN_TEST(test_darken_skips_hazards);
+  RUN_TEST(test_darken_skips_high_beam);
+  RUN_TEST(test_darken_is_off_by_default);
+  RUN_TEST(test_long_flash_toggles_night_once_per_press);
+  RUN_TEST(test_toggle_sets_low_pods_on_the_same_tick);
+  RUN_TEST(test_steady_high_beam_never_toggles);
+  RUN_TEST(test_high_beam_at_any_point_cancels_the_press);
+  RUN_TEST(test_toggled_press_moving_to_high_beam_does_not_toggle_back);
+  RUN_TEST(test_mapped_daynight_ignores_the_long_press);
+  RUN_TEST(test_bus_dropout_restarts_the_press);
+  RUN_TEST(test_zero_hold_falls_back_to_800ms);
+  RUN_TEST(test_night_hold_survives_millis_rollover);
   RUN_TEST(test_generate_first_on_phase_is_full_from_any_start_time);
   RUN_TEST(test_reapplied_indicator_gets_a_new_full_on_phase);
   RUN_TEST(test_hazards_starting_one_tick_apart_stay_in_phase);
@@ -321,14 +523,12 @@ int main(int, char**) {
   RUN_TEST(test_brake_plus_hazards_is_indicators_only);
   RUN_TEST(test_run_clear_keeps_indicators_and_drops_everything_else);
   RUN_TEST(test_aux_follows_high_beam_and_is_gated_by_run);
-  RUN_TEST(test_spot_latch_holds_aux_on_after_a_long_flash_press);
   RUN_TEST(test_zero_blink_period_falls_back_to_340ms);
   RUN_TEST(test_follow_mirrors_the_bit_regardless_of_phase);
   RUN_TEST(test_generate_ignores_a_steady_bit_and_blinks);
   RUN_TEST(test_auto_follows_a_toggling_bit);
   RUN_TEST(test_auto_falls_back_to_generating_when_the_bit_sticks);
   RUN_TEST(test_auto_restarts_its_window_on_each_rising_edge);
-  RUN_TEST(test_spot_hold_survives_millis_rollover);
   RUN_TEST(test_auto_watchdog_survives_millis_rollover);
   RUN_TEST(test_auto_watchdog_does_not_fire_early_just_before_rollover);
   return UNITY_END();

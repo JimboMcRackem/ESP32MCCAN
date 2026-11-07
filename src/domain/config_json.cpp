@@ -24,7 +24,8 @@ std::string configToJson(const Config& c) {
   }
 
   doc["blinkPeriodMs"] = c.blinkPeriodMs;
-  doc["spotHoldMs"] = c.spotHoldMs;
+  doc["nightHoldMs"] = c.nightHoldMs;
+  doc["auxDarkenOnIndicate"] = c.auxDarkenOnIndicate;
   static const char* kFlashSourceNames[] = { "auto", "follow", "generate" };
   doc["flashSource"] = kFlashSourceNames[(uint8_t)c.flashSource];
   doc["testMaxMs"] = c.testMaxMs;
@@ -64,7 +65,10 @@ Config configFromJson(const std::string& json, bool& ok) {
   }
 
   c.blinkPeriodMs = doc["blinkPeriodMs"] | c.blinkPeriodMs;
-  c.spotHoldMs = doc["spotHoldMs"] | c.spotHoldMs;
+  // nightHoldMs replaced spotHoldMs; a config saved before the rename keeps
+  // its hold time.
+  c.nightHoldMs = doc["nightHoldMs"] | (doc["spotHoldMs"] | c.nightHoldMs);
+  c.auxDarkenOnIndicate = doc["auxDarkenOnIndicate"] | c.auxDarkenOnIndicate;
   // Unknown or non-string values resolve to the default, Generate, rather
   // than to an undefined enum value.
   const char* fs = doc["flashSource"].as<const char*>();
