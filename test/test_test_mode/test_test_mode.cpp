@@ -42,11 +42,8 @@ void test_scenario_blinks_at_the_configured_rate(void) {
   TestMode t;
   t.kind = TestKind::Scenario;
   TEST_ASSERT_TRUE(scenarioByName("hazards", t.scenario));
-  // Pin flashSource to Generate: this test exercises the generated blink
-  // phase specifically. Under the default Auto, the scenario's indicator
-  // request is freshly asserted (elapsed 0 < kFlashFollowTimeoutMs) and would
-  // be followed lit through the second sample, masking the dark half this
-  // test means to check.
+  // Generate's phase starts at the request, so the first sample is a full
+  // on-phase and the second lands in the dark half.
   cfg.flashSource = FlashSource::Generate;
 
   // On-phase and off-phase of one blink cycle at the configured period.

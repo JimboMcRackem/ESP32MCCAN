@@ -71,8 +71,8 @@ void test_experia_all_single_bit_mappings() {
   TEST_ASSERT_EQUAL_UINT8(13, kickStand.bits[0].bit);
 }
 
-void test_default_flash_source_is_auto() {
-  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)defaultConfig().flashSource);
+void test_default_flash_source_is_generate() {
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Generate, (int)defaultConfig().flashSource);
 }
 
 void setUp(void) {}
@@ -85,6 +85,6 @@ int main(int, char**) {
   RUN_TEST(test_experia_highbeam_is_and_of_two_bits);
   RUN_TEST(test_run_and_daynight_unassigned);
   RUN_TEST(test_experia_all_single_bit_mappings);
-  RUN_TEST(test_default_flash_source_is_auto);
+  RUN_TEST(test_default_flash_source_is_generate);
   return UNITY_END();
 }

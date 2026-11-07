@@ -16,6 +16,7 @@ struct EngineState {
   uint32_t flashRisingMs = 0;
   IndTimer leftTimer;
   IndTimer rightTimer;
+  uint32_t flashAnchorMs = 0;   // generated phase starts here (see computeOutputs)
 };
 
 OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,

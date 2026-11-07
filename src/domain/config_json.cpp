@@ -65,13 +65,13 @@ Config configFromJson(const std::string& json, bool& ok) {
 
   c.blinkPeriodMs = doc["blinkPeriodMs"] | c.blinkPeriodMs;
   c.spotHoldMs = doc["spotHoldMs"] | c.spotHoldMs;
-  // Unknown or non-string values resolve to Auto rather than to an undefined
-  // enum value: an unreadable setting must not change how the bike signals.
+  // Unknown or non-string values resolve to the default, Generate, rather
+  // than to an undefined enum value.
   const char* fs = doc["flashSource"].as<const char*>();
-  c.flashSource = FlashSource::Auto;
+  c.flashSource = FlashSource::Generate;
   if (fs) {
-    if (!strcmp(fs, "follow"))        c.flashSource = FlashSource::Follow;
-    else if (!strcmp(fs, "generate")) c.flashSource = FlashSource::Generate;
+    if (!strcmp(fs, "follow"))    c.flashSource = FlashSource::Follow;
+    else if (!strcmp(fs, "auto")) c.flashSource = FlashSource::Auto;
   }
   c.testMaxMs = doc["testMaxMs"] | c.testMaxMs;
 

@@ -7,8 +7,15 @@ static bool flashIsOn(const Config& cfg, uint32_t nowMs) {
 
 // The on/off phase for one indicator side. Elapsed time is computed with
 // unsigned subtraction, so it is correct across millis() rollover.
+// Generated phase measured from the anchor, so the first on-phase is full
+// whenever the request starts. Unsigned subtraction keeps it rollover-safe.
+static bool anchoredFlashIsOn(const Config& cfg, uint32_t nowMs, uint32_t anchorMs) {
+  const uint32_t period = cfg.blinkPeriodMs ? cfg.blinkPeriodMs : 340;
+  return ((uint32_t)(nowMs - anchorMs) % (2 * period)) < period;
+}
+
 static bool indicatorPhase(bool bit, const Config& cfg, uint32_t nowMs,
-                           IndTimer& t) {
+                           IndTimer& t, uint32_t anchorMs) {
   if (bit && !t.prev) t.sinceMs = nowMs;   // rising edge restarts the window
   t.prev = bit;
   if (!bit) return false;
@@ -17,7 +24,7 @@ static bool indicatorPhase(bool bit, const Config& cfg, uint32_t nowMs,
     case FlashSource::Follow:
       return true;
     case FlashSource::Generate:
-      return flashIsOn(cfg, nowMs);
+      return anchoredFlashIsOn(cfg, nowMs, anchorMs);
     case FlashSource::Auto:
     default:
       if ((uint32_t)(nowMs - t.sinceMs) >= kFlashFollowTimeoutMs)
@@ -30,8 +37,16 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
                             uint32_t nowMs, EngineState& est) {
   OutputIntent o;
   const bool li = s.leftInd, ri = s.rightInd;
-  const bool lp = indicatorPhase(li, cfg, nowMs, est.leftTimer);
-  const bool rp = indicatorPhase(ri, cfg, nowMs, est.rightTimer);
+
+  // A request starting from nothing anchors the generated phase. A side that
+  // starts while the other is already flashing joins it, so hazards stay in
+  // step even when the two bits arrive a tick apart.
+  const bool stillFlashing = (est.leftTimer.prev && li) || (est.rightTimer.prev && ri);
+  const bool starting = (li && !est.leftTimer.prev) || (ri && !est.rightTimer.prev);
+  if (starting && !stillFlashing) est.flashAnchorMs = nowMs;
+
+  const bool lp = indicatorPhase(li, cfg, nowMs, est.leftTimer, est.flashAnchorMs);
+  const bool rp = indicatorPhase(ri, cfg, nowMs, est.rightTimer, est.flashAnchorMs);
 
   // Indicator/hazard beats brake beats DRL. An indicating corner shows ONLY
   // its indicator: the same-side DRL is off per ECE R48, and on the rear the

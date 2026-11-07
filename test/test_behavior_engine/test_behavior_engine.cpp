@@ -30,14 +30,12 @@ void test_left_indicator_drops_left_drl_and_flashes_both_left_corners() {
 }
 
 void test_left_indicator_dark_phase_leaves_left_corners_fully_dark() {
-  // Pin flashSource to Generate: this test exercises the generated blink
-  // phase specifically. Under the default Auto, a freshly-asserted bit
-  // (elapsed 0 < kFlashFollowTimeoutMs) would be followed lit, masking the
-  // dark half this test means to check.
+  // The generated phase starts at the request, so request at 0 first.
   Config cfg = defaultConfig();
   cfg.flashSource = FlashSource::Generate;
   EngineState est;
   LogicalState s; s.run = true; s.leftInd = true;
+  computeOutputs(s, cfg, 0, est);
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FR_DRL, OUT_RR_DRL),
                             computeOutputs(s, cfg, PHASE_OFF, est).on);
 }
@@ -79,14 +77,13 @@ void test_brake_plus_left_indicator_kills_the_indicating_corners_brake() {
 void test_brake_plus_left_indicator_dark_phase_keeps_the_rear_brake_dropped() {
   // The rear module ORs DRL and brake onto one light engine, so a brake left
   // asserted would light the indicating corner through the dark half and
-  // destroy the flash contrast R48 requires. Pinning flashSource to Generate
-  // is the only way to reach that dark half here: under the default Auto a
-  // freshly-asserted bit is followed lit, which hides the distinction between
-  // keying the drop off the request and keying it off the phase.
+  // destroy the flash contrast R48 requires. The generated phase starts at
+  // the request, so request at 0 and sample the dark half at PHASE_OFF.
   Config cfg = defaultConfig();
   cfg.flashSource = FlashSource::Generate;
   EngineState est;
   LogicalState s; s.run = true; s.frontBrake = true; s.leftInd = true;
+  computeOutputs(s, cfg, 0, est);
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FR_DRL, OUT_RR_DRL, OUT_RR_BRK),
                             computeOutputs(s, cfg, PHASE_OFF, est).on);
 }
@@ -164,7 +161,8 @@ void test_generate_ignores_a_steady_bit_and_blinks() {
 }
 
 void test_auto_follows_a_toggling_bit() {
-  Config cfg = defaultConfig();   // Auto
+  Config cfg = defaultConfig();
+  cfg.flashSource = FlashSource::Auto;
   EngineState est;
   LogicalState s; s.run = true; s.leftInd = true;
   // A toggling bit never stays true for 1.2 s, so auto stays in follow and
@@ -173,7 +171,8 @@ void test_auto_follows_a_toggling_bit() {
 }
 
 void test_auto_falls_back_to_generating_when_the_bit_sticks() {
-  Config cfg = defaultConfig();   // Auto
+  Config cfg = defaultConfig();
+  cfg.flashSource = FlashSource::Auto;
   EngineState est;
   LogicalState s; s.run = true; s.leftInd = true;
   computeOutputs(s, cfg, 1000, est);            // rising edge at t=1000
@@ -185,6 +184,7 @@ void test_auto_falls_back_to_generating_when_the_bit_sticks() {
 
 void test_auto_restarts_its_window_on_each_rising_edge() {
   Config cfg = defaultConfig();
+  cfg.flashSource = FlashSource::Auto;
   EngineState est;
   LogicalState s; s.run = true; s.leftInd = true;
   computeOutputs(s, cfg, 0, est);
@@ -211,7 +211,8 @@ void test_spot_hold_survives_millis_rollover() {
 }
 
 void test_auto_watchdog_survives_millis_rollover() {
-  Config cfg = defaultConfig();            // Auto, 1200 ms window, 340 ms blink
+  Config cfg = defaultConfig();            // 1200 ms window, 340 ms blink
+  cfg.flashSource = FlashSource::Auto;
   EngineState est;
   LogicalState s; s.run = true; s.leftInd = true;
   const uint32_t nearWrap = 0xFFFFFF00u;
@@ -238,7 +239,8 @@ void test_auto_watchdog_survives_millis_rollover() {
 // reads 0xFFFFFBB0 >= 16, falls through to generating, and
 // 0xFFFFFBB0 % 680 == 512 >= 340 is a dark half, so it answers dark.
 void test_auto_watchdog_does_not_fire_early_just_before_rollover() {
-  Config cfg = defaultConfig();            // Auto, 1200 ms window, 340 ms blink
+  Config cfg = defaultConfig();            // 1200 ms window, 340 ms blink
+  cfg.flashSource = FlashSource::Auto;
   EngineState est;
   LogicalState s; s.run = true; s.leftInd = true;
   const uint32_t since = 0xFFFFFB60u;
@@ -246,8 +248,66 @@ void test_auto_watchdog_does_not_fire_early_just_before_rollover() {
   TEST_ASSERT_TRUE(computeOutputs(s, cfg, since + 0x50u, est).isOn(OUT_FL_IND));
 }
 
+void test_generate_first_on_phase_is_full_from_any_start_time() {
+  // 500 % 680 is a dark half under a free-running phase, so it must not matter.
+  Config cfg = defaultConfig(); EngineState est;
+  LogicalState s; s.run = true; s.leftInd = true;
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 500, est).isOn(OUT_FL_IND));
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 500 + 339, est).isOn(OUT_FL_IND));
+  TEST_ASSERT_FALSE(computeOutputs(s, cfg, 500 + 340, est).isOn(OUT_FL_IND));
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 500 + 680, est).isOn(OUT_FL_IND));
+}
+
+void test_reapplied_indicator_gets_a_new_full_on_phase() {
+  Config cfg = defaultConfig(); EngineState est;
+  LogicalState s; s.run = true; s.leftInd = true;
+  computeOutputs(s, cfg, 0, est);
+  s.leftInd = false; computeOutputs(s, cfg, 400, est);
+  s.leftInd = true;                        // elapsed from 0 would be dark
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 410, est).isOn(OUT_FL_IND));
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 410 + 339, est).isOn(OUT_FL_IND));
+}
+
+void test_hazards_starting_one_tick_apart_stay_in_phase() {
+  Config cfg = defaultConfig(); EngineState est;
+  LogicalState s; s.run = true; s.leftInd = true;
+  computeOutputs(s, cfg, 500, est);
+  s.rightInd = true;
+  computeOutputs(s, cfg, 510, est);
+  OutputIntent o = computeOutputs(s, cfg, 500 + 345, est);  // both dark
+  TEST_ASSERT_FALSE(o.isOn(OUT_FL_IND));
+  TEST_ASSERT_FALSE(o.isOn(OUT_FR_IND));
+  o = computeOutputs(s, cfg, 500 + 680, est);               // both lit
+  TEST_ASSERT_TRUE(o.isOn(OUT_FL_IND));
+  TEST_ASSERT_TRUE(o.isOn(OUT_FR_IND));
+}
+
+void test_adding_a_side_does_not_disturb_the_running_side() {
+  Config cfg = defaultConfig(); EngineState est;
+  LogicalState s; s.run = true; s.leftInd = true;
+  computeOutputs(s, cfg, 0, est);
+  s.rightInd = true;
+  computeOutputs(s, cfg, 400, est);        // joins during the dark half
+  TEST_ASSERT_FALSE(computeOutputs(s, cfg, 500, est).isOn(OUT_FL_IND));
+  TEST_ASSERT_FALSE(computeOutputs(s, cfg, 500, est).isOn(OUT_FR_IND));
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 680, est).isOn(OUT_FL_IND));
+}
+
+void test_generate_phase_survives_millis_rollover() {
+  // Elapsed 768 -> lit. A free-running 0x200 % 680 == 512 would read dark.
+  Config cfg = defaultConfig(); EngineState est;
+  LogicalState s; s.run = true; s.leftInd = true;
+  computeOutputs(s, cfg, 0xFFFFFF00u, est);
+  TEST_ASSERT_TRUE(computeOutputs(s, cfg, 0x200u, est).isOn(OUT_FL_IND));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_generate_first_on_phase_is_full_from_any_start_time);
+  RUN_TEST(test_reapplied_indicator_gets_a_new_full_on_phase);
+  RUN_TEST(test_hazards_starting_one_tick_apart_stay_in_phase);
+  RUN_TEST(test_adding_a_side_does_not_disturb_the_running_side);
+  RUN_TEST(test_generate_phase_survives_millis_rollover);
   RUN_TEST(test_default_lights_four_drl);
   RUN_TEST(test_left_indicator_drops_left_drl_and_flashes_both_left_corners);
   RUN_TEST(test_left_indicator_dark_phase_leaves_left_corners_fully_dark);
