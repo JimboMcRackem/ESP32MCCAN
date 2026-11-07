@@ -52,9 +52,20 @@ sold as a left/right pair for rear use only, so it does not cover the front corn
 | Approval | sold as E-marked | as supplied with the bike | sold as E-marked |
 
 These are listing figures, not measurements. Until the parts are measured (§9.2), every channel
-is budgeted at the pessimistic **2 W per function, 0.167 A at 12 V**. Wire colours are
-unpublished, so the rear wire functions must be confirmed on the bench before the harness is
-made.
+is budgeted at the pessimistic **2 W per function, 0.167 A at 12 V**. 2 W is believed to be
+each unit's maximum, which would make that budget conservative.
+
+**EL360 wire colours (from the user, 2026-11-07):**
+
+| EL360 wire | Function | Board channel |
+|---|---|---|
+| Black | Negative | Shared rear return, J4 pin 4 |
+| Grey | Running light | `RL_DRL` / `RR_DRL` |
+| Red | Brake | `RL_BRK` / `RR_BRK` |
+| Yellow | Indicator | `RL_IND` / `RR_IND` |
+
+The EL359's colours are not yet recorded. A buyer reports that the EL359's supplied diagram is
+wrong, so confirm its wires on the bench.
 
 - **Do not fit the two resistors supplied with the pair.** They are load resistors that correct
   a stock flasher's rate. This board switches the indicators itself, so they would only add a
@@ -728,9 +739,11 @@ These are verification items, not assumptions. Each names who or what can settle
    high beam or the spot latch, so using them would need a firmware change, and it would not make
    them approved DRLs.
 
-   3d. **Bench-check each EL360 before making the harness.** Confirm the wire functions, measure
-   each function's current, and test all combinations of running light, brake and indicator. This
-   settles §5.3's rule, §4.1.1's budget and §4.4's assumption that the red channels are resistive.
+   3d. **Bench-check each EL360 before making the harness.** Wire functions are now known (§2.1).
+   Still to do: measure each function's current, and test all combinations of running light,
+   brake and indicator. Running light and brake together shows whether the brake is genuinely
+   brighter, and whether it can stay lit while indicating. This settles §5.3's rule, §4.1.1's
+   budget and §4.4's assumption that the red channels are resistive.
 
 4. **Is the EL360's brake brighter than its running light?** The answer recorded here for the
    eBay part does not transfer. Both functions share 7 red LEDs, and the check is whether
