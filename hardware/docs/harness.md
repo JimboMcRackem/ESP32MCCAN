@@ -57,6 +57,19 @@ footprints stop at 1x06, so the 7-conductor rear run lands on J4 (4 pins) and J5
 are a single sheathed 7-core cable through a single gland, split only on the board; the one
 return (spec §3.1) is J4 pin 4. Strip and dress it as one cable.
 
+**Rear modules are Oxford EL360s (2026-11-07).** Their wires land as follows:
+
+| EL360 wire | Function | Board pin |
+|---|---|---|
+| Black | Negative | J4 pin 4 (shared return) |
+| Grey | Running light | `RL_DRL` / `RR_DRL` |
+| Red | Brake | `RL_BRK` / `RR_BRK` |
+| Yellow | Indicator | `RL_IND` / `RR_IND` |
+
+The front modules are Oxford EL359s; their colours are not yet recorded. The current figures in
+§1 are for the superseded eBay modules. The EL360 budget is 0.167 A per channel and 333 mA on
+the rear return (spec §2.1), still inside 22 AWG.
+
 **Gland sizes, cable ODs and the Superseal way-counts are [TO CONFIRM]** against the cables
 actually bought; the old M12/M16 figures belonged to the RGB, Denali and PWR runs, which no
 longer exist. Order for each run: **one cable gland** of the right clamp range, **sheathed
