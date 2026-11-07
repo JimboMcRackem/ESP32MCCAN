@@ -12,6 +12,11 @@ public:
   // would light our modules on data nobody is sending any more.
   static constexpr uint32_t kStaleMs = 500;
 
+  // Distinct IDs tracked. Later IDs are ignored, for lighting and Discovery
+  // alike, so this must exceed the bike's ID count or a mapped signal can be
+  // lost depending on arrival order.
+  static constexpr int MAX_FRAMES = 64;
+
   void update(uint32_t id, const uint8_t data[8], uint32_t nowMs);
   bool getBit(uint32_t id, uint8_t bit) const;
   LogicalState evaluate(const Config& cfg, uint32_t nowMs) const;
@@ -19,7 +24,6 @@ public:
   int snapshot(CanFrameSnapshot* out, int maxOut) const;
 
 private:
-  static constexpr int MAX_FRAMES = 16;
   struct Frame { uint32_t id = 0; uint8_t data[8] = {0}; bool seen = false; };
   Frame frames_[MAX_FRAMES];
 

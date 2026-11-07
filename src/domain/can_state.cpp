@@ -18,7 +18,7 @@ void CanState::update(uint32_t id, const uint8_t data[8], uint32_t nowMs) {
       if (!f.seen) { f.seen = true; f.id = id; slot = &f; break; }
     }
   }
-  // Table full: ignore new ids (16 distinct ids is ample for this use). The
+  // Table full: ignore new ids (see MAX_FRAMES). The
   // traffic bookkeeping is skipped with the frame, unchanged from before --
   // flipping that would change what stale() means and needs its own test.
   if (!slot) return;

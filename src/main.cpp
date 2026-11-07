@@ -316,10 +316,11 @@ void loop() {
 
   // Stream CAN frame snapshots to the browser while discovery is active.
   static uint32_t lastDisc = 0;
-  if (g_discovery && now - lastDisc >= 100) {
+  // 250 ms, not 100: a full table makes each message four times larger.
+  if (g_discovery && now - lastDisc >= 250) {
     lastDisc = now;
-    CanFrameSnapshot fr[16];
-    int n = g_can.snapshot(fr, 16);
+    CanFrameSnapshot fr[CanState::MAX_FRAMES];
+    int n = g_can.snapshot(fr, CanState::MAX_FRAMES);
     g_web.broadcast(framesMessage(fr, n));
   }
 
