@@ -5,7 +5,7 @@ const FUNCS = ["run","leftInd","rightInd","frontBrake","rearBrake",
                "lowBeam","highBeam","highBeamFlash","dayNight","kickStand"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
 const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
-const PROTOCOL_VERSION = 4;   // must match kProtocolVersion in web_protocol.h
+const PROTOCOL_VERSION = 5;   // must match kProtocolVersion in web_protocol.h
 // Must match kScenarioNames in test_mode.cpp — the firmware table is
 // authoritative and rejects anything it does not know.
 const SCENARIOS = ["allOff","drlDay","leftInd","rightInd",
@@ -165,9 +165,10 @@ function uploadUpdate(f, reset) {
 // ---- rendering ----
 function render() {
   document.getElementById("blinkPeriodMs").value = cfg.blinkPeriodMs;
-  document.getElementById("spotHoldMs").value = cfg.spotHoldMs;
+  document.getElementById("nightHoldMs").value = cfg.nightHoldMs;
+  document.getElementById("auxDarkenOnIndicate").checked = !!cfg.auxDarkenOnIndicate;
   document.getElementById("testMaxMs").value = cfg.testMaxMs;
-  document.getElementById("flashSource").value = cfg.flashSource || "auto";
+  document.getElementById("flashSource").value = cfg.flashSource || "generate";
   renderScenarios();
   renderTestOutputs();
   renderMaps();
@@ -321,7 +322,8 @@ function assignBit(id, bit) {
 // ---- outbound ----
 function collect() {
   cfg.blinkPeriodMs = clamp(document.getElementById("blinkPeriodMs").value, 50, 5000);
-  cfg.spotHoldMs = clamp(document.getElementById("spotHoldMs").value, 100, 10000);
+  cfg.nightHoldMs = clamp(document.getElementById("nightHoldMs").value, 100, 10000);
+  cfg.auxDarkenOnIndicate = document.getElementById("auxDarkenOnIndicate").checked;
   cfg.testMaxMs = clamp(document.getElementById("testMaxMs").value, 10000, 3600000);
   cfg.flashSource = document.getElementById("flashSource").value;
   return cfg;

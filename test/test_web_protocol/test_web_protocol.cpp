@@ -165,8 +165,14 @@ void test_zones_request_rejects_a_missing_zones_field() {
   TEST_ASSERT_FALSE(a.error.empty());
 }
 
-void test_protocol_version_is_4() {
-  TEST_ASSERT_EQUAL_INT(4, kProtocolVersion);
+void test_config_message_carries_the_night_settings() {
+  const std::string m = configMessage(defaultConfig());
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"nightHoldMs\":800"));
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"auxDarkenOnIndicate\":false"));
+}
+
+void test_protocol_version_is_five() {
+  TEST_ASSERT_EQUAL_INT(5, kProtocolVersion);
 }
 
 void test_set_wifi_password_valid() {
@@ -196,7 +202,7 @@ void test_device_info_message() {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, deviceInfoMessage(d)) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_STRING("device_info", doc["type"].as<const char*>());
-  TEST_ASSERT_EQUAL_INT(4, doc["protocolVersion"].as<int>());
+  TEST_ASSERT_EQUAL_INT(5, doc["protocolVersion"].as<int>());
   TEST_ASSERT_EQUAL_STRING("1.0.0", doc["version"].as<const char*>());
   TEST_ASSERT_EQUAL_UINT32(1u, doc["build"].as<uint32_t>());
   TEST_ASSERT_EQUAL_STRING("MCCAN-3F2A", doc["ssid"].as<const char*>());
@@ -223,7 +229,7 @@ void test_config_message_carries_the_protocol_version(void) {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_INT(kProtocolVersion, doc["protocolVersion"].as<int>());
-  TEST_ASSERT_EQUAL_INT(4, kProtocolVersion);
+  TEST_ASSERT_EQUAL_INT(5, kProtocolVersion);
 }
 
 void test_test_state_message_shape(void) {
@@ -283,7 +289,8 @@ int main(int, char**) {
   RUN_TEST(test_test_state_message_reports_the_zone_mask);
   RUN_TEST(test_test_rejects_an_unknown_mode);
   RUN_TEST(test_config_message_carries_the_protocol_version);
-  RUN_TEST(test_protocol_version_is_4);
+  RUN_TEST(test_protocol_version_is_five);
+  RUN_TEST(test_config_message_carries_the_night_settings);
   RUN_TEST(test_set_wifi_password_valid);
   RUN_TEST(test_set_wifi_password_short_refused);
   RUN_TEST(test_set_wifi_password_missing_field);

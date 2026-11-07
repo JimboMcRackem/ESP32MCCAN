@@ -36,17 +36,19 @@
       <label>Blink period (ms)
         <input type="number" id="blinkPeriodMs" min="50" max="2000" step="10">
       </label>
-      <label>Spot hold threshold (ms)
-        <input type="number" id="spotHoldMs" min="100" max="5000" step="50">
+      <label>Night mode hold (ms)
+        <input type="number" id="nightHoldMs" min="100" max="5000" step="50">
       </label>
+      <label><input type="checkbox" id="auxDarkenOnIndicate">
+        Turn off the indicating side's aux pod at night</label>
       <label>Test mode auto-exit (ms)
         <input type="number" id="testMaxMs" min="10000" max="3600000" step="10000">
       </label>
       <label>Indicator flash source
         <select id="flashSource">
+          <option value="generate">Generate our own flash (default)</option>
           <option value="auto">Auto (follow the bike, fall back to 340 ms)</option>
           <option value="follow">Follow the bike's indicator signal</option>
-          <option value="generate">Generate our own flash</option>
         </select>
       </label>
     </section>
