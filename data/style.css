@@ -47,3 +47,9 @@ header { flex-direction: column; align-items: stretch; }
 
 .outputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .outputs label { display: flex; align-items: center; gap: 6px; }
+
+input[type=password] { width: 100%; padding: .5rem; margin-top: .25rem; background: #12141a; color: #eee; border: 1px solid #333; border-radius: .4rem; }
+.actbtn { width: 100%; padding: .7rem; border: none; border-radius: .4rem; background: #4b8bff; color: #fff; font-size: .9rem; margin: .4rem 0; }
+.actbtn:disabled { background: #444; }
+#updProg { width: 100%; }
+#updMsg { font-size: .9rem; }

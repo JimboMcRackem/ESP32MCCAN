@@ -812,6 +812,7 @@ exactly what the version banner exists to catch:
 
 1. **The firmware and the LittleFS image are separate flashes**, and can disagree — a user can
    reflash one without the other.
+   *(Closed by `docs/superpowers/plans/2026-10-19-updates-password-reset.md`: the app is now embedded in the firmware, so there is one image and no second flash.)*
 2. **The protocol version is stored in two places**: `kProtocolVersion` in
    `src/domain/web_protocol.h`, and a mirror `PROTOCOL_VERSION` in `data/app.js:8`. During the
    web-app task the mirror was found still reading `2` after the firmware had moved to `3`; left

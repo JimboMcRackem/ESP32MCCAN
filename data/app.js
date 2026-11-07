@@ -5,7 +5,7 @@ const FUNCS = ["run","leftInd","rightInd","frontBrake","rearBrake",
                "lowBeam","highBeam","highBeamFlash","dayNight","kickStand"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
 const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
-const PROTOCOL_VERSION = 3;   // must match kProtocolVersion in web_protocol.h
+const PROTOCOL_VERSION = 4;   // must match kProtocolVersion in web_protocol.h
 // Must match kScenarioNames in test_mode.cpp — the firmware table is
 // authoritative and rejects anything it does not know.
 const SCENARIOS = ["allOff","drlDay","leftInd","rightInd",
@@ -25,6 +25,7 @@ let ws = null;
 let testState = { active: false, kind: "off", remainingMs: 0 };
 let activeScenario = null;
 let testMask = 0;
+let ssid = "";
 
 function setStatus(connected) {
   const el = document.getElementById("status");
@@ -45,6 +46,7 @@ function send(obj) {
 
 function onMessage(msg) {
   if (msg.type === "config") { checkVersion(msg.protocolVersion); cfg = msg.config; render(); }
+  else if (msg.type === "device_info") { onDeviceInfo(msg); }
   else if (msg.type === "frames") { renderFrames(msg.frames); }
   else if (msg.type === "test_state") {
     testState = msg;
@@ -69,8 +71,95 @@ function checkVersion(v) {
     ? "Firmware is older than this web app (device v" + v + ", app v" + PROTOCOL_VERSION +
       "). Reflash the firmware: py -3.13 -m platformio run -e esp32 -t upload"
     : "This web app is older than the firmware (device v" + v + ", app v" + PROTOCOL_VERSION +
-      "). Reflash the web files: py -3.13 -m platformio run -e esp32 -t uploadfs";
+      "). Reflash the device: py -3.13 -m platformio run -e esp32 -t upload";
   el.hidden = false;
+}
+
+function onDeviceInfo(m) {
+  ssid = m.ssid || "";
+  document.getElementById("devVersion").textContent =
+    (m.version || "?") + (m.build !== undefined ? " (build " + m.build + ")" : "");
+  document.getElementById("devSsid").textContent = ssid;
+  document.getElementById("pwBanner").hidden = !m.defaultPassword;
+}
+
+// Mirrors checkWifiPassword in src/domain/wifi_settings.cpp. Returns an
+// error text, or "" when the password is acceptable.
+function checkWifiPassword(p) {
+  const n = new TextEncoder().encode(p).length;
+  if (n < 8) return "Wi-Fi password must be at least 8 characters.";
+  if (n > 63) return "Wi-Fi password must be at most 63 characters.";
+  for (let i = 0; i < p.length; i++) {
+    const c = p.charCodeAt(i);
+    if (c < 0x20 || c > 0x7E) return "Wi-Fi password may only use plain letters, digits, spaces and symbols.";
+  }
+  return "";
+}
+
+function savePassword() {
+  const p1 = document.getElementById("pw1").value;
+  const p2 = document.getElementById("pw2").value;
+  const bad = checkWifiPassword(p1);
+  if (bad) { alert(bad); return; }
+  if (p1 !== p2) { alert("The two passwords don't match."); return; }
+  if (!confirm("Your phone will drop off the Wi-Fi. Rejoin " + ssid + " with the new password.")) return;
+  send({ type: "set_wifi_password", password: p1 });
+  document.getElementById("pw1").value = "";
+  document.getElementById("pw2").value = "";
+}
+
+function setUpdMsg(t) { document.getElementById("updMsg").textContent = t; }
+
+// Ask the controller first: it refuses an unparked upload by closing the
+// connection, which would only look like a network error.
+function installUpdate() {
+  const f = document.getElementById("updFile").files[0];
+  if (!f) { setUpdMsg("Choose an update file first."); return; }
+  const reset = document.getElementById("updReset").checked;
+  const btn = document.getElementById("updBtn");
+  btn.disabled = true;
+  setUpdMsg("Checking the bike is parked...");
+  const rdy = new XMLHttpRequest();
+  rdy.open("GET", "/update/ready");
+  rdy.onload = () => {
+    let r = {};
+    try { r = JSON.parse(rdy.responseText); } catch (e) {}
+    if (rdy.status === 200 && r.ok) uploadUpdate(f, reset);
+    else { setUpdMsg(r.error || "The controller is not ready for an update."); btn.disabled = false; }
+  };
+  rdy.onerror = () => { setUpdMsg("Could not reach the controller."); btn.disabled = false; };
+  rdy.send();
+}
+
+function uploadUpdate(f, reset) {
+  const btn = document.getElementById("updBtn");
+  const prog = document.getElementById("updProg");
+  const cut = () => { prog.hidden = true; btn.disabled = false; setUpdMsg("The upload was cut short. Nothing was changed."); };
+  const x = new XMLHttpRequest();
+  x.open("POST", "/update?reset=" + (reset ? 1 : 0));
+  x.upload.onprogress = (e) => {
+    if (e.lengthComputable) prog.value = Math.round(100 * e.loaded / e.total);
+  };
+  x.onload = () => {
+    let r = {};
+    try { r = JSON.parse(x.responseText); } catch (e) {}
+    prog.hidden = true;
+    if (x.status === 200 && r.ok) {
+      // Leave the button disabled: the controller is about to restart.
+      setUpdMsg("Installed. The controller is restarting — rejoin " + ssid +
+                (reset ? " with password mccan1234" : ""));
+    } else {
+      btn.disabled = false;
+      setUpdMsg(r.error || "The update failed.");
+    }
+  };
+  x.onerror = cut;
+  x.onabort = cut;
+  const fd = new FormData();
+  fd.append("update", f, f.name);
+  prog.value = 0; prog.hidden = false;
+  setUpdMsg("Uploading...");
+  x.send(fd);
 }
 
 // ---- rendering ----
@@ -276,6 +365,13 @@ document.getElementById("importInput").onchange = (e) => {
 };
 document.getElementById("discToggle").onchange = (e) => {
   send({ type: "discovery", enable: e.target.checked });
+};
+
+document.getElementById("pwSaveBtn").onclick = savePassword;
+document.getElementById("updBtn").onclick = installUpdate;
+document.getElementById("updFile").onchange = (e) => {
+  const f = e.target.files[0];
+  document.getElementById("updFileName").textContent = f ? f.name : "No file chosen.";
 };
 
 document.getElementById("testExitBtn").onclick = exitTest;
