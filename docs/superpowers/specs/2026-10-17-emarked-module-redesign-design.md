@@ -790,6 +790,29 @@ These are verification items, not assumptions. Each names who or what can settle
    whenever two layers would plot to the same gerber filename (compared case-insensitively). So
    the new 4-layer table cannot bring the bug back silently.
 
+### 9.5 Regulatory (added 2026-11-08)
+
+10. **UN ECE R10, vehicle EMC, applies to the board itself.** Electronics fitted to a road vehicle
+    in the UK or EU normally need R10 approval as an electronic sub-assembly (ESA), with its own
+    E-mark. That is separate from the lamps' E-marks, which cover only the lamps. R10 testing
+    covers both emissions and immunity, including the bike's own electrical transients. **Open:**
+    confirm with a test lab that R10 applies to this board and what testing it needs, before the
+    board is relied on for road use.
+
+    - **Radio:** the ESP32-WROOM-32E-N8 is a pre-certified module with an integral PCB antenna.
+      Its existing RED/UKCA conformity covers the Wi-Fi radio, provided the antenna, its keep-out
+      zone and RF settings stay as Espressif specifies. Board layout (phase B) must keep that
+      keep-out.
+    - **US (FCC), if ever relevant:** the module's grant covers the radio, and the product label
+      must carry "Contains FCC ID:" with the module's ID. FCC Part 15 §15.103(a) exempts digital
+      devices used only in a vehicle from the unintentional-radiator limits, though the board
+      must still not cause harmful interference.
+    - **Layout:** R10's emissions and transient-immunity tests bear on board layout and input
+      protection, so read R10's limits before phase B, not after.
+
+    These are working assumptions, not legal advice. Confirm them with a test lab for the target
+    market.
+
 ---
 
 ## 10. Decisions taken, with reasoning
