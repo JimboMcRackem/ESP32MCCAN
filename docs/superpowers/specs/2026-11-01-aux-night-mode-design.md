@@ -49,8 +49,9 @@ The flash switch itself does not light the pods. A short flash leaves the pods u
 
 **Level rule:** `AUX = Off if !run; Full if highBeam; Low if nightActive; otherwise Off`.
 
-**The rear rule is inherited, not re-decided.** §5.3 of the earlier spec keeps same-side rear red
-off while indicating, pending the EL360 bench check.
+**An indicating corner shows amber only (user's choice, 2026-11-08).** The units can run every
+function at once, but the indicator is clearer on its own, so same-side white, running light and
+brake stay off while indicating (earlier spec §5.3).
 
 **The pods are auxiliary lights, not DRLs (user's decision).** The DRL same-side dropout does not
 apply to them.

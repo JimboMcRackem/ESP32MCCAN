@@ -559,11 +559,11 @@ design this fell out of the colour matrix for free; with separate wires it is an
 It also sidesteps an untestable unknown: energising a single-engine module's DRL and indicator
 wires simultaneously has undefined behavior, and the part does not yet exist to test it on.
 
-**On an indicating rear corner, both `*_DRL` and `*_BRK` are de-asserted.** This is the current
-firmware behaviour. It was written for a module with one shared light engine, where leaving either
-asserted would have destroyed the flash contrast. **The EL360 has separate red and amber LEDs, so
-the rule may no longer be forced.** Keeping the brake lit while indicating would be better if the
-bench shows it works (§9.2 item 3d). The rule stays until then.
+**On an indicating rear corner, both `*_DRL` and `*_BRK` are de-asserted.** It was first written
+for a module with one shared light engine, where it was forced. **Decided 2026-11-08 by the user:
+it stays as a choice, not a constraint.** The EL360 and EL359 can run every function at once, but
+the indicator reads less clearly with the brake or running light lit beside it, so an indicating
+corner shows amber only. The opposite side's brake still lights.
 
 ### 5.4 Flash timing
 
@@ -740,10 +740,11 @@ These are verification items, not assumptions. Each names who or what can settle
    them approved DRLs.
 
    3d. **Bench-check each EL360 before making the harness.** Wire functions are now known (§2.1).
-   Still to do: measure each function's current, and test all combinations of running light,
-   brake and indicator. Running light and brake together shows whether the brake is genuinely
-   brighter, and whether it can stay lit while indicating. This settles §5.3's rule, §4.1.1's
-   budget and §4.4's assumption that the red channels are resistive.
+   The user confirms every function can be powered at once, on the EL360 and on the EL359
+   (2026-11-08), and §5.3's amber-only rule is now their choice. Still to do: measure each
+   function's current, and check that brake with running light on is genuinely brighter than
+   running light alone. This settles §4.1.1's budget and §4.4's assumption that the red channels
+   are resistive.
 
 4. **Is the EL360's brake brighter than its running light?** The answer recorded here for the
    eBay part does not transfer. Both functions share 7 red LEDs, and the check is whether

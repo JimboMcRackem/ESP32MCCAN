@@ -75,10 +75,10 @@ void test_brake_plus_left_indicator_kills_the_indicating_corners_brake() {
 }
 
 void test_brake_plus_left_indicator_dark_phase_keeps_the_rear_brake_dropped() {
-  // The rear module ORs DRL and brake onto one light engine, so a brake left
-  // asserted would light the indicating corner through the dark half and
-  // destroy the flash contrast R48 requires. The generated phase starts at
-  // the request, so request at 0 and sample the dark half at PHASE_OFF.
+  // An indicating corner shows amber only (user's choice, spec 5.3), so the
+  // brake must stay off through the dark half too, not blink back on. The
+  // generated phase starts at the request, so request at 0 and sample the
+  // dark half at PHASE_OFF.
   Config cfg = defaultConfig();
   cfg.flashSource = FlashSource::Generate;
   EngineState est;
