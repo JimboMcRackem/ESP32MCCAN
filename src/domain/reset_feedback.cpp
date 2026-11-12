@@ -1,6 +1,8 @@
 #include "domain/reset_feedback.h"
 
-OutputIntent withResetFeedback(OutputIntent o, ResetPhase phase, uint32_t nowMs) {
+OutputIntent withResetFeedback(OutputIntent o, bool parked, ResetPhase phase,
+                               uint32_t nowMs) {
+  if (!parked) return o;
   bool lit;
   switch (phase) {
     case ResetPhase::Armed:     lit = ((nowMs / 50) & 1u) == 0; break;   // 10 Hz

@@ -116,7 +116,9 @@ static void serviceLighting() {
     last = now;
     LogicalState s = g_can.evaluate(g_cfg, now);
     OutputIntent o = resolveOutputs(s, g_test, g_cfg, now, g_engine, g_testEngine);
-    applyIntent(g_out, g_auxPwm, withResetFeedback(o, g_reset.phase(), now));
+    // Same parked gate as the restart: feedback never touches a riding bike.
+    const bool parked = g_can.stale(now) || s.kickstand;
+    applyIntent(g_out, g_auxPwm, withResetFeedback(o, parked, g_reset.phase(), now));
     g_tickRan = true;
   }
 }
@@ -170,7 +172,11 @@ static void releaseTest(uint32_t now) {
 void setup() {
   Serial.begin(115200);
 
-  g_auxPwm.begin();   // pod duty 0 before any output can switch a pod on
+  // Pod duty 0 before any output can switch a pod on. A failed attach fails
+  // dark (the yellow buffer holds low), but the pods would light only their
+  // DRL LEDs, so say why.
+  if (!g_auxPwm.begin())
+    Serial.println("aux PWM attach failed: pods' main LEDs stay dark");
   g_out.begin();      // all twelve outputs LOW before anything else
 
   pinMode(kDiagEnPin, OUTPUT);
