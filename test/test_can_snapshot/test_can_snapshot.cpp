@@ -58,11 +58,23 @@ void test_update_refreshes_existing_frame(void) {
   TEST_ASSERT_EQUAL_UINT8(0x22, out[0].data[0]);
 }
 
+void test_tracks_64_ids_and_ignores_the_65th(void) {
+  CanState s;
+  uint8_t d[8];
+  frame(1, 0, d);
+  for (uint32_t id = 1; id <= 65; ++id) s.update(id, d, 0);
+  TEST_ASSERT_TRUE(s.getBit(64, 0));
+  TEST_ASSERT_FALSE(s.getBit(65, 0));
+  CanFrameSnapshot out[CanState::MAX_FRAMES];
+  TEST_ASSERT_EQUAL_INT(64, s.snapshot(out, CanState::MAX_FRAMES));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_empty_snapshot_is_zero);
   RUN_TEST(test_snapshot_returns_seen_frames);
   RUN_TEST(test_snapshot_respects_maxOut);
   RUN_TEST(test_update_refreshes_existing_frame);
+  RUN_TEST(test_tracks_64_ids_and_ignores_the_65th);
   return UNITY_END();
 }

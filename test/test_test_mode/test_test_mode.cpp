@@ -42,11 +42,8 @@ void test_scenario_blinks_at_the_configured_rate(void) {
   TestMode t;
   t.kind = TestKind::Scenario;
   TEST_ASSERT_TRUE(scenarioByName("hazards", t.scenario));
-  // Pin flashSource to Generate: this test exercises the generated blink
-  // phase specifically. Under the default Auto, the scenario's indicator
-  // request is freshly asserted (elapsed 0 < kFlashFollowTimeoutMs) and would
-  // be followed lit through the second sample, masking the dark half this
-  // test means to check.
+  // Generate's phase starts at the request, so the first sample is a full
+  // on-phase and the second lands in the dark half.
   cfg.flashSource = FlashSource::Generate;
 
   // On-phase and off-phase of one blink cycle at the configured period.
@@ -80,21 +77,27 @@ void test_a_stale_bus_does_not_disturb_a_held_test_session(void) {
 }
 
 void test_scenario_cannot_corrupt_the_real_engine_state(void) {
-  // A held 'flash' latches the spot lights. Run it as a scenario for well
-  // past spotHoldMs and the REAL EngineState must be untouched, or exiting
-  // test mode would leave the bike's spots latched on.
   LogicalState real;
   TestMode t;
+  TEST_ASSERT_TRUE(scenarioByName("lowBeam", t.scenario));   // night scenario
   t.kind = TestKind::Scenario;
-  t.scenario.run = true;
   t.scenario.flash = true;
-
-  for (uint32_t ms = 0; ms <= cfg.spotHoldMs + 100; ms += 10) {
+  for (uint32_t ms = 0; ms <= cfg.nightHoldMs + 100; ms += 10) {
     resolveOutputs(real, t, cfg, ms, est, testEst);
   }
-  TEST_ASSERT_TRUE_MESSAGE(testEst.spotLatched, "the test engine should latch");
-  TEST_ASSERT_FALSE_MESSAGE(est.spotLatched, "the real engine must NOT latch");
+  TEST_ASSERT_TRUE_MESSAGE(testEst.nightToggled, "the scenario runs at night");
+  TEST_ASSERT_FALSE_MESSAGE(est.nightToggled, "the real engine must stay in day");
   TEST_ASSERT_FALSE(est.flashPrev);
+}
+
+void test_night_scenario_shows_night_with_daynight_unassigned(void) {
+  LogicalState real;
+  TestMode t;
+  TEST_ASSERT_TRUE(scenarioByName("lowBeam", t.scenario));
+  t.kind = TestKind::Scenario;
+  OutputIntent o = resolveOutputs(real, t, cfg, 0, est, testEst);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL), o.on);
+  TEST_ASSERT_EQUAL_INT((int)AuxLevel::Low, (int)o.auxL);
 }
 
 void test_expiry_is_false_when_off(void) {
@@ -143,6 +146,7 @@ int main(int, char**) {
   RUN_TEST(test_zones_pass_through_verbatim);
   RUN_TEST(test_a_stale_bus_does_not_disturb_a_held_test_session);
   RUN_TEST(test_scenario_cannot_corrupt_the_real_engine_state);
+  RUN_TEST(test_night_scenario_shows_night_with_daynight_unassigned);
   RUN_TEST(test_expiry_is_false_when_off);
   RUN_TEST(test_expiry_at_the_cap);
   RUN_TEST(test_expiry_survives_millis_rollover);

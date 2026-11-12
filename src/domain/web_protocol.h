@@ -5,13 +5,15 @@
 #include <cstdint>
 #include <string>
 
-// Bumped whenever a message shape changes incompatibly. The app and the
-// LittleFS image are separate flashes and can diverge; the app compares this
-// and refuses rather than half-working. Version 1 did not send the field, so
-// a missing value reads as 1. Version 3 removed the colour and denali blocks
-// entirely and changed `zones` from four per-corner colour triples to a
-// single 12-bit output mask.
-constexpr int kProtocolVersion = 3;
+// Bumped whenever a message shape changes incompatibly. The app is now
+// embedded in the firmware, so the two normally ship together and a mismatch
+// only shows for a stale cached page; the app compares this and refuses
+// rather than half-working. Version 1 did not send the field, so a missing
+// value reads as 1. Version 3 removed the colour and denali blocks entirely
+// and changed `zones` from four per-corner colour triples to a single 12-bit
+// output mask. Version 4 added set_wifi_password and device_info. Version 5
+// renamed spotHoldMs to nightHoldMs and added auxDarkenOnIndicate.
+constexpr int kProtocolVersion = 5;
 
 // Wire-name asymmetry, deliberate and load-bearing: an INBOUND test request
 // names its mode in "mode" (read at web_protocol.cpp:47), while the OUTBOUND
@@ -21,12 +23,21 @@ constexpr int kProtocolVersion = 3;
 // TestKind::Zones and TestMode::zones all now mean one 12-bit output mask --
 // the name predates the per-corner colour triples it used to carry.
 
+struct DeviceInfo {
+  std::string version;
+  uint32_t    build;
+  std::string ssid;
+  bool        defaultPassword;
+};
+
 struct ProtocolAction {
   bool        sendConfig   = false;
   bool        applyConfig  = false;
   bool        setDiscovery = false;
   bool        discoveryOut = false;
   bool        setTest      = false;
+  bool        setWifiPassword = false;
+  std::string wifiPasswordOut;
   Config      cfgOut;
   TestMode    testOut;
   std::string error;
@@ -38,5 +49,6 @@ ProtocolAction handleRequest(const std::string& json);
 // Outbound message builders.
 std::string configMessage(const Config& c);
 std::string framesMessage(const CanFrameSnapshot* frames, int count);
+std::string deviceInfoMessage(const DeviceInfo& d);
 std::string errorMessage(const std::string& msg);
 std::string testStateMessage(const TestMode& t, const Config& cfg, uint32_t nowMs);

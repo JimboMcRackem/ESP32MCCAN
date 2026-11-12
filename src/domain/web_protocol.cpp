@@ -1,5 +1,6 @@
 #include "domain/web_protocol.h"
 #include "domain/config_json.h"
+#include "domain/wifi_settings.h"
 #include <ArduinoJson.h>
 
 ProtocolAction handleRequest(const std::string& json) {
@@ -40,6 +41,20 @@ ProtocolAction handleRequest(const std::string& json) {
   if (t == "discovery") {
     act.setDiscovery = true;
     act.discoveryOut = doc["enable"] | false;
+    return act;
+  }
+
+  if (t == "set_wifi_password") {
+    // Absent or non-string password is treated as empty (-> TooShort).
+    const char* pw = doc["password"].is<const char*>() ? doc["password"].as<const char*>() : "";
+    std::string p = pw ? pw : "";
+    const PasswordCheck chk = checkWifiPassword(p);
+    if (chk != PasswordCheck::Ok) {
+      act.error = passwordCheckText(chk);
+      return act;
+    }
+    act.setWifiPassword = true;
+    act.wifiPasswordOut = p;
     return act;
   }
 
@@ -110,6 +125,19 @@ std::string framesMessage(const CanFrameSnapshot* frames, int count) {
     JsonArray d = f["data"].to<JsonArray>();
     for (int b = 0; b < 8; ++b) d.add(frames[i].data[b]);
   }
+  std::string out;
+  serializeJson(doc, out);
+  return out;
+}
+
+std::string deviceInfoMessage(const DeviceInfo& d) {
+  JsonDocument doc;
+  doc["type"] = "device_info";
+  doc["protocolVersion"] = kProtocolVersion;
+  doc["version"] = d.version;
+  doc["build"] = d.build;
+  doc["ssid"] = d.ssid;
+  doc["defaultPassword"] = d.defaultPassword;
   std::string out;
   serializeJson(doc, out);
   return out;

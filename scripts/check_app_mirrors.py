@@ -3,8 +3,8 @@
 
     python scripts/check_app_mirrors.py
 
-The app and the LittleFS image are separate flashes, so the app hardcodes a
-copy of PROTOCOL_VERSION and a copy of the output list. Nothing in the build
+The app is embedded in the firmware image by tools/embed_web.py, but it is
+still a separate source file, so it hardcodes a copy of PROTOCOL_VERSION and a copy of the output list. Nothing in the build
 holds either in step, and PROTOCOL_VERSION already went stale at 2 on this
 branch, which would have tripped the app's version-mismatch banner on every
 connect with no firmware fault to find.

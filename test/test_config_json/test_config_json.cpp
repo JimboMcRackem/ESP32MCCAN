@@ -67,16 +67,40 @@ void test_flash_source_round_trips() {
   Config out = configFromJson(configToJson(in), ok);
   TEST_ASSERT_TRUE(ok);
   TEST_ASSERT_EQUAL_INT((int)FlashSource::Generate, (int)out.flashSource);
+  in.flashSource = FlashSource::Auto;
+  out = configFromJson(configToJson(in), ok);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)out.flashSource);
 }
 
-void test_unknown_flash_source_resolves_to_auto() {
+void test_unknown_flash_source_resolves_to_generate() {
   bool ok = false;
   Config a = configFromJson("{\"flashSource\":\"follow-ish\"}", ok);
-  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)a.flashSource);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Generate, (int)a.flashSource);
   Config b = configFromJson("{\"flashSource\":7}", ok);
-  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)b.flashSource);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Generate, (int)b.flashSource);
   Config c = configFromJson("{}", ok);
-  TEST_ASSERT_EQUAL_INT((int)FlashSource::Auto, (int)c.flashSource);
+  TEST_ASSERT_EQUAL_INT((int)FlashSource::Generate, (int)c.flashSource);
+}
+
+void test_old_spot_hold_key_is_honoured() {
+  bool ok = false;
+  Config c = configFromJson("{\"spotHoldMs\":1234}", ok);
+  TEST_ASSERT_EQUAL_UINT32(1234, c.nightHoldMs);
+}
+
+void test_new_hold_key_wins() {
+  bool ok = false;
+  Config c = configFromJson("{\"spotHoldMs\":1234,\"nightHoldMs\":900}", ok);
+  TEST_ASSERT_EQUAL_UINT32(900, c.nightHoldMs);
+}
+
+void test_aux_darken_round_trips() {
+  Config in = defaultConfig();
+  TEST_ASSERT_FALSE(in.auxDarkenOnIndicate);
+  in.auxDarkenOnIndicate = true;
+  bool ok = false;
+  Config out = configFromJson(configToJson(in), ok);
+  TEST_ASSERT_TRUE(out.auxDarkenOnIndicate);
 }
 
 void setUp(void) {}
@@ -90,6 +114,9 @@ int main(int, char**) {
   RUN_TEST(test_empty_string_falls_back_to_default);
   RUN_TEST(test_config_written_by_the_previous_firmware_still_loads);
   RUN_TEST(test_flash_source_round_trips);
-  RUN_TEST(test_unknown_flash_source_resolves_to_auto);
+  RUN_TEST(test_unknown_flash_source_resolves_to_generate);
+  RUN_TEST(test_old_spot_hold_key_is_honoured);
+  RUN_TEST(test_new_hold_key_wins);
+  RUN_TEST(test_aux_darken_round_trips);
   return UNITY_END();
 }

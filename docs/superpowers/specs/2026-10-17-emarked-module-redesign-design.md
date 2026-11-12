@@ -35,7 +35,56 @@ left to dim.
 
 ### 2.1 Signal modules (indicators / DRL / brake)
 
-**The part is now chosen** (eBay 395373564004, seller Autopeak-uk2021, "4x 16LED Motorcycle
+**CHANGED 2026-11-01: Oxford EL359 is now fitted on the front.** The "front, short term" column
+below no longer applies, the front channels are loaded, and `flashSource` guidance changes. See
+`2026-11-01-aux-night-mode-design.md`, which overrides this spec on night mode, aux and flashing.
+
+**CHANGED 2026-10-31: the rear corners are now the Oxford NightSlider 3-in-1 (EL360).** It is
+sold as a left/right pair for rear use only, so it does not cover the front corners.
+
+| | Rear, fitted now | Front, short term | Front, possible later |
+|---|---|---|---|
+| Part | Oxford EL360 | Bike's standard LED indicators, left on the bike's own wiring | Oxford EL359 (not decided) |
+| Functions | indicator, brake, running light | indicator only | indicator, DRL |
+| LEDs | 7 red, 7 amber | not applicable | 7 white, 7 amber |
+| Electrical | 12 V, 2 W; no per-function split published | not on this board | 12 V, 2 W; no per-function split published |
+| Fixing | M8 × 1.25; 111 × 15 × 14.5 mm | unchanged | M8 × 1.25; 111 × 15 × 14.5 mm |
+| Approval | sold as E-marked | as supplied with the bike | sold as E-marked |
+
+These are listing figures, not measurements. Until the parts are measured (§9.2), every channel
+is budgeted at the pessimistic **2 W per function, 0.167 A at 12 V**. 2 W is believed to be
+each unit's maximum, which would make that budget conservative.
+
+**EL360 wire colours (from the user, 2026-11-07):**
+
+| EL360 wire | Function | Board channel |
+|---|---|---|
+| Black | Negative | Shared rear return, J4 pin 4 |
+| Grey | Running light | `RL_DRL` / `RR_DRL` |
+| Red | Brake | `RL_BRK` / `RR_BRK` |
+| Yellow | Indicator | `RL_IND` / `RR_IND` |
+
+The EL359's colours are not yet recorded. A buyer reports that the EL359's supplied diagram is
+wrong, so confirm its wires on the bench.
+
+- **Do not fit the two resistors supplied with the pair.** They are load resistors that correct
+  a stock flasher's rate. This board switches the indicators itself, so they would only add a
+  large, useless load to a channel.
+- **Keep all twelve outputs.** `FL_*` and `FR_*` run unloaded for now, which is harmless, and J3
+  stays on the board so an EL359 needs no board or firmware change. The firmware does not read
+  output diagnostics, and §4.4's lamp-out check would have to ignore the unloaded channels if it
+  is ever implemented.
+- **The front keeps flashing from the bike, so the rear must follow it.** `flashSource` stays on
+  `auto` or `follow`. `generate` would run the rear out of phase with the front (§5.4), and the
+  sweep must fit inside the bike's on-time (§2.1.1).
+- **This board provides no front DRL until an EL359 is fitted.** `FL_DRL` and `FR_DRL` are
+  energised with nothing attached. See §9.2 item 3c.
+
+Everything below in this section describes the **superseded** eBay module and is kept for its
+reasoning. §2.1.1's sequential-indicator consequences still apply to the EL360, except that its
+0.08 A figures are replaced by the 0.167 A budget above.
+
+**Superseded part** (eBay 395373564004, seller Autopeak-uk2021, "4x 16LED Motorcycle
 Flowing Turn Signal Indicators Brake Warning Lights E-marked", £14.79 for four). One pack
 covers all four corners: **2 white-DRL + yellow front units and 2 red-brake + yellow rear
 units**. Each takes a **steady switched 12 V** per function -- **no PWM**.
@@ -156,6 +205,44 @@ capability than the trigger approach would have given. The design therefore trea
 as something to be **established, not assumed** (§9.1), and carries an unpopulated `AUX_MODE`
 provision (§3) so a mode input can be used if one exists.
 
+#### 2.2.1 Measured on the bench (2026-11-12)
+
+**CHANGED 2026-11-12: the pods were measured under Oxford's own harness and dial, on a bench
+supply.** These figures replace the 26 W listing figure everywhere in this spec.
+
+**Pod plug, four wires:**
+
+| Wire | What it carries |
+|---|---|
+| Red, black | Pod supply. Powering them lights the pod's **DRL LEDs**, a separate set beside the aux light that does not dim |
+| Yellow | **Main-LED brightness: a 5 V PWM signal at about 100 Hz.** 0 V with main beam off |
+| Blue | About 0 V in every state measured, **open circuit to black** (2026-11-12). Role unknown (§9.1 item 1) |
+
+Yellow's duty, read off the scope trace widths at Oxford's five dial stages with main beam on:
+about **15 / 35 / 55 / 80 / 100%**. The pulse spacing is the same at every stage and at two
+timebases, so about 100 Hz is taken as real, not aliased. An exact frequency and duty from a
+triggered capture are still to be recorded.
+
+**Supply current, both pods together:**
+
+| State | 13.5 V | 12.0 V | 11.0 V |
+|---|---|---|---|
+| DRL LEDs only (main off) | 0.97 A | | |
+| Main, stage 1 | 1.83 A | | |
+| Main, stage 3 | 3.68 A | | |
+| Main, stage 5 (full) | 5.6 A | **6.4 A** | 6.2 A |
+
+- **Full beam is about 77 W for the pair, about 38 W per pod**, not 26 W. The pods draw constant
+  power down to about 12 V. Below that they cut power (68 W at 11 V), so **the worst case is
+  about 12 V: 3.2 A per pod, 6.4 A for the pair.**
+- Current rises close to linearly with duty: DRL LEDs plus duty × the main LEDs' full current.
+- **The pod's input current is pulsed at the PWM rate.** During each on-pulse the pod draws its
+  full-beam current, whatever the duty. At stage 2 the pair tripped a 5 A bench limit, although
+  the average was lower.
+- **There is no 12 V battery on the Experia.** The 12 V supply is a DC-DC converter that runs only
+  with the ignition on, so Oxford's battery-direct feed is not available. §4.1.1 is revised
+  accordingly.
+
 ---
 
 ## 3. Interface contract
@@ -165,17 +252,16 @@ design.
 
 | Output | Load | Why it is a separate output |
 |---|---|---|
-| `FL_DRL`, `FR_DRL` | 80 mA | must drop independently when that side indicates (§5.3) |
-| `RL_DRL`, `RR_DRL` | 20 mA | the rear module has no DRL wire — this channel drives its *tail* function (§2.1), a quarter of the front's draw |
-| `FL_IND`, `FR_IND` | 80 mA | left/right independent |
-| `RL_IND`, `RR_IND` | 80 mA | as above |
-| `RL_BRK`, `RR_BRK` | 80 mA | matrix requires brake on the *non*-indicating side only |
-| `AUX_L`, `AUX_R` | 2.17 A | per-pod, for fault isolation and future asymmetry |
-| `AUX_MODE` | — | **unpopulated provision**, fitted only if Plug C/D exposes a mode input |
+| `FL_DRL`, `FR_DRL` | none now; ≤167 mA with EL359 | must drop independently when that side indicates (§5.3) |
+| `RL_DRL`, `RR_DRL` | ≤167 mA | the EL360 has no DRL function — this channel drives its *running light* (§2.1) |
+| `FL_IND`, `FR_IND` | none now; ≤167 mA with EL359 | left/right independent |
+| `RL_IND`, `RR_IND` | ≤167 mA | as above |
+| `RL_BRK`, `RR_BRK` | ≤167 mA | matrix requires brake on the *non*-indicating side only |
+| `AUX_L`, `AUX_R` | 3.2 A worst case (§2.2.1; was 2.17 A) | per-pod, for fault isolation and future asymmetry |
+| `AUX_MODE` | — | **superseded 2026-11-12:** each pod's yellow wire takes a 5 V PWM signal, driven per pod (night-mode spec §6) |
 
-(Currents are the measured per-function figures of §2.1, not the 125 mA/channel an earlier draft
-assumed from the 1.5 W headline. The rear `*_DRL` channels are not the same load as the front
-ones — see §2.1's wire table.)
+(Currents are the 2 W-per-function budget of §2.1, not measurements. The quads' 0.5 A current
+limit is 3× that figure.)
 
 Every one of the ten signal outputs is justified by a row of §5.2. None exists for symmetry.
 
@@ -186,18 +272,19 @@ loom from 14 wires to 12.
 
 | Connector | Pins | Contents |
 |---|---|---|
-| Front | 5 | 2× DRL, 2× IND, 1 shared return (160 mA worst case) |
-| Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (200 mA worst case). **One 7-core cable through one gland, landed on the board as two tails**: J4 (4 pins: `RL_DRL`, `RL_IND`, `RL_BRK`, return) and J5 (3 pins: `RR_DRL`, `RR_IND`, `RR_BRK`), because KiCad's wire-relief footprints stop at 1×06. The return stays single |
-| Pods | 4 (+1) | per-pod +12 V and return; pod returns do **not** share with signal returns |
+| Front | 5 | 2× DRL, 2× IND, 1 shared return (333 mA worst case with EL359). **Left unwired until EL359 is fitted**; J3 stays on the board |
+| Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (333 mA worst case). **One 7-core cable through one gland, landed on the board as two tails**: J4 (4 pins: `RL_DRL`, `RL_IND`, `RL_BRK`, return) and J5 (3 pins: `RR_DRL`, `RR_IND`, `RR_BRK`), because KiCad's wire-relief footprints stop at 1×06. The return stays single |
+| Pods | 4 per pod | per pod: +12 V (red), return (black), PWM (yellow), blue (role unknown; treated as Oxford's harness treats it). Pod returns do **not** share with signal returns or the logic ground |
 | CAN | 2 | CAN H / CAN L |
-| Feed A | 2 | aux circuit +, − — logic, the ten signal channels, `AUX_L` |
-| Feed B | 2 | aux circuit +, − — `AUX_R` only (§4.1.1) |
+| Feed A | 2 | aux circuit +, − — logic and the ten signal channels. **Revised 2026-11-12:** no longer carries `AUX_L`; on aux 1 or aux 2 (§4.1.1) |
+| Feed B | 2 | aux circuit +, − — **revised 2026-11-12:** both pods, `AUX_L` and `AUX_R`, on the 15 A aux 3; 6.4 A worst case (§4.1.1) |
 
 (Board references, 2026-10-18: Feed A J1, Feed B J9, Front J3 (5 pins), Rear J4 + J5, CAN J8.
 The pod tail is not on the board; it waits on the kit.)
 
-(Shared-return currents are two modules of §2.1's worst case each: front 2 × 0.08 A = 160 mA,
-rear 2 × 0.10 A = 200 mA. Not the 250 mA that 2 × 125 mA/channel gives.)
+(Shared-return currents are two units at the listed 2 W each: 2 × 0.167 A = 333 mA. That is each
+unit's headline figure, so it assumes 2 W is the unit's total. Re-check it against the §9.2
+measurements.)
 
 ### 3.2 Boot safety
 
@@ -211,7 +298,7 @@ defect.
 ## 4. Hardware architecture
 
 ```
- FEED A --[4 A]--+   1 of 2 available aux circuits (5 A each). 2.63 A @ 12 V
+ FEED A --[4 A]--+   1 of 2 available aux circuits (5 A each). 2.60 A @ 12 V
                  v
        +------------------+
        | INPUT PROTECTION |  LTC4380 + 2 FETs, rev. polarity + overcurrent
@@ -256,9 +343,9 @@ defect.
 | Load | Current @ 12 V |
 |---|---|
 | 2 × Oxford pod @ 26 W | 4.33 A |
-| 4 × signal module (measured per-function, §2.1) | 0.36 A |
+| 2 × EL360 @ 2 W (§2.1 budget; 4 units with EL359 = 0.67 A) | 0.33 A |
 | Logic | ~0.10 A |
-| **Total** | **~4.8 A** |
+| **Total** | **~4.8 A** (~5.1 A with EL359) |
 
 That total is for reference only: **it does not run on one feed.** The previous design's feed
 was 7.0 A continuous / 7.8 A transient behind a 10 A panel fuse, and an earlier draft of this
@@ -292,8 +379,9 @@ gives 5.92 V. That forward drop is **inferred from these figures and has not bee
 a ~6 V string is plausible for these modules but atypical for a three-in-series 12 V automotive
 strip (~9 V), so read it as the model's implied value, never as a part parameter. Note also that
 the 14.4 V figure is numerically identical to the **discarded** four-corner 0.50 A total. It is
-not that total, and nothing in this section rests on it. The same model carries 4.1.1's signal
-figures.)
+not that total, and nothing in this section rests on it. This table and its ballast model
+describe the **superseded** four eBay modules. The EL360 change does not alter the conclusion: the
+load still does not fit one circuit. §4.1.1 no longer uses this model.)
 
 A 5 A fuse wants no more than 75% of its rating continuously, so 3.75 A is the usable figure.
 This load is 112-142% of that and crosses the absolute rating outright below about 11.3 V. It
@@ -303,25 +391,62 @@ pods together is no answer either.
 
 ### 4.1.1 Two feeds: pod R alone, everything else together
 
+**SUPERSEDED 2026-11-12: the pods ride together on their own circuit.** Two findings overturn the
+arrangement below. The pods draw 3.2 A each at worst (§2.2.1), so pod L plus the signals and logic
+no longer fit under a fuse that is both at least 120% of the load and below a 5 A circuit. And the
+Experia's three aux circuits are **not all 5 A**. The text below this box is kept for its
+reasoning. The binding arrangement is now:
+
+| Bike circuit | Rating | Carries | Worst case | Fuse | Use of circuit |
+|---|---|---|---|---|---|
+| Aux 3 | 15 A | Feed B: both pods (`AUX_L`, `AUX_R`) | 6.4 A | 10 A (156%) | 43% |
+| Aux 1 or aux 2 | 5 A / 10 A | Feed A: logic and signal lamps (≈0.87 A at 10.5 V with EL359) | ≈0.9 A | ≈2 A | 18% of 5 A |
+| The other of aux 1 / aux 2 | 10 A / 5 A | Garmin Zumo XT2 alone (1.5 A, Garmin's maximum) | 1.5 A | the Zumo's own | 30% of 5 A |
+
+**The ratings are from a web source (user, 2026-11-12) and are to be confirmed on the bike** from
+its fuse box or owner's manual (§9.3 item 4a). Everything in this box depends on aux 3 being 15 A.
+
+- **Every load has a circuit to itself.** A pod fault can blow only feed B's fuse, so the
+  indicators, brake, logic and the satnav survive it. The Zumo does not pass through the board,
+  and feed A and the Zumo take whichever of aux 1 and aux 2 the Zumo is not already on.
+- **Each pod keeps its own switch on feed B**, so a fault on one pod is contained by its switch
+  and the other pod keeps working. The old requirement that `AUX_L`'s switch latch off below feed
+  A's 4 A fuse (below) is withdrawn. The pod switches are sized for 3.2 A steady, the 100 Hz pulsed
+  draw and the pod inrush (§9.1 item 2).
+- **The board keeps two feeds,** J1 (feed A) and J9 (feed B). Feed B's path is re-rated from one
+  pod to two: 6.4 A steady with 100 Hz pulses, under a 10 A fuse. Its connector, reverse-polarity
+  FET, TVS and copper are sized for that. `AUX_L` moves from feed A's domain to feed B's.
+  Feeds A and B are never diode-OR'd.
+- **Feed A's LTC4380 limit can drop a long way** (§9.1 item 2a), because no pod rides on it.
+- **Firmware cap:** a config value `auxFullDuty` limits the Full duty (default 100%). It is not
+  needed on a 15 A circuit, and stays as a fallback if the ratings prove lower.
+- **DC-DC capacity is unconfirmed.** The pods add up to 77 W to the Experia's 12 V converter
+  (§9.3 item 4b).
+
 The Experia has three 5 A aux circuits but **one is already in use, so two are available.** Two
 is the minimum this load needs, and it only works in one arrangement: both pods together draw
 4.33 A at 12 V and 4.95 A at 10.5 V, so a circuit dedicated to the pair is no better than a
 single feed. One pod has to ride with the logic and signals.
 
-| Condition | Feed A: pod L + signals + logic | Feed B: pod R |
-|---|---|---|
-| 14.4 V charging | 2.39 A (48% / 64% derated) | 1.81 A (36%) |
-| 12.0 V nominal | 2.63 A (53% / 70% derated) | 2.17 A (43%) |
-| 10.5 V sag | 2.86 A (57% / 76% derated) | 2.48 A (50%) |
+| Condition | Feed A now: pod L + 2 × EL360 + logic | Feed A with 2 × EL359 added | Feed B: pod R |
+|---|---|---|---|
+| 14.4 V charging | 2.29 A (46% / 61% derated) | 2.69 A (54% / 72% derated) | 1.81 A (36%) |
+| 12.0 V nominal | 2.60 A (52% / 69% derated) | 2.94 A (59% / 78% derated) | 2.17 A (43%) |
+| 10.5 V sag | 2.97 A (59% / 79% derated) | 3.35 A (67% / 89% derated) | 2.48 A (50%) |
 
-(Signal figures are the measured per-function currents of §2.1, not the 125 mA/channel the
-earlier draft inferred from the 1.5 W headline. The pods still dominate feed A entirely.)
+(Signal figures use §2.1's 2 W per unit, which are listing figures, taken at their worst at each
+end of the range: resistive scaling at 14.4 V and constant power at 10.5 V. The pods still
+dominate feed A.)
 
-Worst case is 57% of a circuit's absolute rating and 76% of the 3.75 A it carries continuously.
-Fuse each feed below its circuit, at not less than 120% of its own worst-case load: **4 A on feed A**
-(140% of 2.86 A, so the load is 72% of the fuse) and **3 A on feed B** (121% of 2.48 A, 83% of the
-fuse). A board fuse rated above the upstream 5 A could never
-act, since the bike's fuse would always trip first.
+Worst case as fitted is 59% of a circuit's absolute rating and 79% of the 3.75 A it carries
+continuously. Fuse each feed below its circuit, at not less than 120% of its own worst-case load:
+**4 A on feed A** (135% of 2.97 A, so the load is 74% of the fuse) and **3 A on feed B** (121% of
+2.48 A, 83% of the fuse). A board fuse rated above the upstream 5 A could never act, since the
+bike's fuse would always trip first.
+
+**Adding EL359 takes feed A's 4 A fuse to 119% of the 3.35 A worst case, just under that 120%
+rule.** The figure is deliberately pessimistic, so the fuse stays at 4 A. Re-run this table with
+the §9.2 measurements before fitting EL359.
 
 **The fault-containment problem, and where it is solved.** Sharing feed A between a pod and the
 logic rail means a pod fault that blew feed A's fuse would take the controller and every signal
@@ -413,19 +538,19 @@ output would provide pod lamp-out.
 
 The **quad** parts carrying the ten signal outputs are not under the pods' inrush constraint,
 but the resistive-load reasoning behind that only holds for six of the ten. `FL_DRL`/`FR_DRL`,
-`RL_DRL`/`RR_DRL` and `RL_BRK`/`RR_BRK` are the white and red 2835-based functions (§2.1), which
-are resistive rather than capacitive loads, so those six can be chosen on steady-state current
-and protection alone. The four `*_IND` channels cannot be grouped with them: §2.1.1 item 3 finds
+`RL_DRL`/`RR_DRL` and `RL_BRK`/`RR_BRK` are the white and red functions (§2.1), which are assumed
+to be resistive rather than capacitive loads, so those six can be chosen on steady-state current
+and protection alone. That assumption carried over from the superseded module and is checked on
+the EL360 in §9.2. The four `*_IND` channels cannot be grouped with them: §2.1.1 item 3 finds
 that the module's internal sequencer very likely carries a reservoir capacitor, so the
-no-bulk-capacitance reasoning is unsafe for them. §2.1.1 also finds the resulting inrush too
-small, at 0.08 A, to trouble switch selection — so this does not reopen the part decision, only
-the lamp-out reasoning below.
+no-bulk-capacitance reasoning is unsafe for them. The 0.5 A switch limit is 3× the 0.167 A budget
+and clamps any inrush — so this does not reopen the part decision, only the lamp-out reasoning
+below.
 
 The absence of bulk capacitance also helps the lamp-out nice-to-have on the six resistive
 channels, since there is no charging current to confuse an open-load threshold — though whether
-any threshold resolves the channel's own current (80 mA, or 20 mA on the two rear `*_DRL`
-channels per §3) is still the open question, and it is the 20 mA rear pair where that is hardest
-to resolve (§6.4). On the four `*_IND` channels the absence of bulk capacitance cannot be
+any threshold resolves the channel's own current is still the open question until the EL360's
+per-function currents are measured (§6.4). On the four `*_IND` channels the absence of bulk capacitance cannot be
 assumed in the first place (§2.1.1): a sequencer's draw varies through the sweep, so there may be
 no steady current at all for an open-load threshold to compare against. Lamp-out there is not
 merely harder to resolve — it may not be a well-posed check.
@@ -504,10 +629,11 @@ design this fell out of the colour matrix for free; with separate wires it is an
 It also sidesteps an untestable unknown: energising a single-engine module's DRL and indicator
 wires simultaneously has undefined behavior, and the part does not yet exist to test it on.
 
-**On an indicating rear corner, both `*_DRL` and `*_BRK` are de-asserted.** Previously this was
-a style choice ("indicator wins, goes fully dark"). It is now **forced by the hardware**: the
-rear module ORs DRL and brake internally onto one light engine, so leaving either asserted would
-keep the corner lit through the indicator's dark phase and destroy the flash contrast.
+**On an indicating rear corner, both `*_DRL` and `*_BRK` are de-asserted.** It was first written
+for a module with one shared light engine, where it was forced. **Decided 2026-11-08 by the user:
+it stays as a choice, not a constraint.** The EL360 and EL359 can run every function at once, but
+the indicator reads less clearly with the brake or running light lit beside it, so an indicating
+corner shows amber only. The opposite side's brake still lights.
 
 ### 5.4 Flash timing
 
@@ -573,13 +699,11 @@ In priority order:
 3. **Switch fault** (current limit, then thermal latch-off (THER high), reported by the part) — log, retry with backoff,
    surface on the Status screen. A shorted harness neither blows a fuse nor takes the controller
    down.
-4. **Lamp-out**, where resolvable — **report only**, never alters behavior. The rear
-   `RL_DRL`/`RR_DRL` channels now carry only 20 mA (§2.1's tail function), not the 125 mA an
-   earlier draft of §3 assumed and not even the 80 mA every other signal channel carries, so a
-   usable threshold on those two channels specifically has to resolve 20 mA. That makes §4.4's
-   caveat — dropped without ceremony if the open-load threshold cannot resolve the channel's
-   current — considerably more likely to bite on these two channels than it looked when every
-   channel was assumed to be the same 125 mA.
+4. **Lamp-out**, where resolvable — **report only**, never alters behavior. The EL360's
+   per-function currents are unpublished, and its running light may draw far less than the
+   0.167 A budget, so §4.4's caveat — dropped without ceremony if the open-load threshold cannot
+   resolve the channel's current — is likeliest to bite on `RL_DRL`/`RR_DRL`. The front channels
+   are unloaded until EL359 is fitted and must not report lamp-out.
 
 **Test mode becomes a harness-verification tool.** Walking the 12 outputs one at a time
 energises exactly one wire per step, which confirms that every module and every function is on
@@ -648,45 +772,73 @@ These are verification items, not assumptions. Each names who or what can settle
 1. **Plug C/D pinout on the Oxford pods** — conductor count, and what each pin sits at in run
    mode, in high-beam mode and across the dial's 5 stages. Settles whether `AUX_MODE` gets
    populated and whether direct drive loses the integrated DRL. **Needs the kit in hand.**
-2. **Pod inrush** — measured, against the candidate dual-channel switch's current limit and
-   capacitive-load rating (§4.4). **Needs the kit in hand.**
+   **Kit arrived 2026-11-07: four conductors per pod (black, red, yellow, blue)** in a sealed
+   2×2 connector with a red lock (photos in the untracked `hardware/Sockets/`). The extra two
+   conductors make a mode input likely, which is night-mode design §6 Branch A, but this is
+   unconfirmed. Still to measure: what each wire carries under Oxford's own harness, with the
+   dial at each of its five stages and with `ACC RUN` and `ACC HIGH BEAM` triggered. That shows
+   whether it is a steady level, a switched line or a pulsed signal. Oxford's instruction sheet
+   is unchanged and gives no pod pinout.
+   **Mostly ANSWERED 2026-11-12 (§2.2.1):** red and black are the supply and light the DRL LEDs;
+   yellow is a 5 V, about 100 Hz PWM that sets main-LED brightness. This is night-mode §6
+   Branch A. **Still open:**
+   - **Blue's role.** Open circuit to black at the pod (2026-11-12), and about 0 V under Oxford's
+     harness, so it is either an input Oxford holds low or an undriven wire. To check: on the
+     harness half of the plug, resistance blue to black and blue to red; on the pod half, blue to
+     red unpowered; and blue to black on DC volts with the pod powered from the bench and blue
+     left open (a pull-up voltage means an input). The board then gives blue whatever Oxford's
+     harness gives it.
+   - **Exact PWM frequency and duty**, from a triggered capture at stage 3 (AUTO, then long-press
+     Run/Stop for 50% trigger on the FNIRSI 2C53T).
+   - **Yellow's input threshold and load.** Whether the pod accepts 3.3 V logic, and how much
+     current yellow draws at 5 V. This sizes the board's 5 V buffer.
+   - **The DRL LEDs at night.** They are lit whenever the pod is powered, so night Low also lights
+     them. Whether that is acceptable alongside dipped beam, legally and for glare, is the user's
+     call (night-mode spec §9).
+2. **Pod inrush** — measured, against the candidate pod switch's current limit and
+   capacitive-load rating (§4.4). **Needs a shunt and the scope (kit in hand).** The switch must
+   also carry the pod's 100 Hz pulsed draw: about 3.2 A peaks at any duty (§2.2.1).
 
 2a. **Re-size the feed-A current limit.** The LTC4380's sense resistor `R100` (5.6 mΩ) sets
    50 mV / 5.6 mΩ ≈ 9 A (LTC4380 VSNS 45–55 mV), behind feed A's 4 A fuse, so the limit can
    never act. It is recorded and left as built; once pod L's start-up current on feed A is
    measured (item 2), `R100` is re-sized to a limit that can act below the fuse. **Needs the
    kit in hand.**
+   **Revised 2026-11-12:** no pod rides on feed A any more (§4.1.1), so the limit is set by the
+   logic and signal lamps (≈0.87 A worst case) and their start-up current, under a fuse of about
+   2 A. The pod inrush no longer enters it.
 
 ### 9.2 Blocking the signal modules
 
-3. ~~**Module part selection**~~ **DONE — part chosen and specified in §2.1** (eBay
-   395373564004). The per-mode split came with it: 0.08 A for DRL, turn and brake, 0.02 A for
-   tail. Three items it opened in exchange, all needing the physical part:
+3. ~~**Module part selection**~~ **Rear DONE: Oxford EL360 (§2.1).** Front is the bike's standard
+   LED indicators for now, with EL359 possible later. Items needing the physical parts:
 
-   3a. **Measure the indicator's sweep duration.** The yellow function is a sequential
-   animation (§2.1.1), so `blinkPeriodMs` cannot be set below it without showing a partial
-   chase instead of a signal. Bench-measure the sweep, then set the default accordingly — 340 ms
-   is an assumption until this is done. Also check whether the sweep restarts cleanly on each
-   re-energise or needs a minimum off-time between flashes.
+   3a. **Measure the EL360's sweep duration, and check it against the bike's flasher.** The
+   amber function is a sequential animation (§2.1.1), and in `auto` or `follow` each sweep must
+   fit inside the bike's on-time. Also check whether the sweep restarts cleanly on each
+   re-energise or needs a minimum off-time between flashes. If the bike's on-time is too short,
+   `generate` is not a clean escape while the front stays on the bike's flasher, because it would
+   put front and rear out of phase.
 
-   3b. **Verify the E-mark on the part itself.** "E-marked" is a listing-title claim with no
-   approval number behind it, against Brand: Unbranded and MPN: Does not apply. Read the moulded
-   or printed mark on the lens (circled E, country number, approval number) and keep the
-   packaging. **If there is no mark, the part fails the requirement that motivated this entire
-   redesign** (§1) and a different module is needed. Note separately that a *sequential*
-   indicator's approval status is not something a title can establish.
+   3b. **Confirm the E-mark on the parts.** Read the moulded or printed mark and keep the
+   packaging. Oxford states that the EL360 is E-marked, but the requirement behind this redesign
+   (§1) still rests on the mark on the part.
 
-   3c. **Check the DRL's colour against the listed 3000 K.** A daytime running lamp must be
-   white; 3000 K is warm white and sits at or outside the ECE R48/R87 boundary. If the figure is
-   accurate rather than copy-paste, the DRL function may be non-compliant even where the
-   indicator is fine. A photo against a known-white reference settles it well enough to decide
-   whether to pursue it.
+   3c. **Decide what provides a front daytime light before EL359.** This board provides none
+   until then. Which lights fill that role is an open question. §5.5 lights the aux pods only for
+   high beam or the spot latch, so using them would need a firmware change, and it would not make
+   them approved DRLs.
 
-4. ~~**Is the rear brake brighter than the rear running light?**~~ **ANSWERED: yes, 4×.** The
-   part's own figures give tail 0.02 A and brake 0.08 A into the same red engine, so the stop
-   lamp is genuinely brighter than the running light. The "1.5 W in any mode" reading that made
-   this look impossible was wrong: 1.5 W is the module's ceiling, not a per-function figure. The
-   rear's two red inputs are separate wires at two levels. §5.3's forced rule is unchanged.
+   3d. **Bench-check each EL360 before making the harness.** Wire functions are now known (§2.1).
+   The user confirms every function can be powered at once, on the EL360 and on the EL359
+   (2026-11-08), and §5.3's amber-only rule is now their choice. Still to do: measure each
+   function's current, and check that brake with running light on is genuinely brighter than
+   running light alone. This settles §4.1.1's budget and §4.4's assumption that the red channels
+   are resistive.
+
+4. **Is the EL360's brake brighter than its running light?** The answer recorded here for the
+   eBay part does not transfer. Both functions share 7 red LEDs, and the check is whether
+   energising the two wires together gives the full stop level (item 3d).
 
 ### 9.3 Bike questions
 
@@ -698,6 +850,16 @@ These are verification items, not assumptions. Each names who or what can settle
    second question decides whether the quiescent budget matters at all: if the logic feed dies
    with the ignition, the board is off whenever the bike is off and §4.2's deep-sleep path stops
    being load-bearing.
+   **Revised 2026-11-12:** the circuits are reported (web source) as **aux 1 = 5 A, aux 2 = 10 A,
+   aux 3 = 15 A**, not three at 5 A. One is used by the Garmin Zumo XT2. §4.1.1 puts both pods on
+   aux 3, the board's logic on one of the others and the Zumo on the last. **To confirm on the
+   bike:** the three ratings from the fuse box or owner's manual, and which circuit the Zumo is on
+   now. The Experia has **no 12 V battery**: its 12 V comes from a DC-DC converter that runs only
+   with the ignition on, so all three circuits are ignition-switched.
+
+4b. **DC-DC converter capacity.** The pods add up to 77 W at full beam, about 105 W with the board,
+   lamps and Zumo. Find Energica's rating for the Experia's 12 V converter and confirm that this
+   fits alongside the bike's own loads.
 
 5. ~~**Is the Experia's CAN bus alive with the ignition off?**~~ **ANSWERED: it is not — CAN is
    off when the bike is off.** So bus activity alone is a sufficient wake source (no ignition
@@ -727,6 +889,29 @@ These are verification items, not assumptions. Each names who or what can settle
    on `plan4-emarked-modules`, and `5cf99cc` added `_check_layer_names()`, which fails generation
    whenever two layers would plot to the same gerber filename (compared case-insensitively). So
    the new 4-layer table cannot bring the bug back silently.
+
+### 9.5 Regulatory (added 2026-11-08)
+
+10. **UN ECE R10, vehicle EMC, applies to the board itself.** Electronics fitted to a road vehicle
+    in the UK or EU normally need R10 approval as an electronic sub-assembly (ESA), with its own
+    E-mark. That is separate from the lamps' E-marks, which cover only the lamps. R10 testing
+    covers both emissions and immunity, including the bike's own electrical transients. **Open:**
+    confirm with a test lab that R10 applies to this board and what testing it needs, before the
+    board is relied on for road use.
+
+    - **Radio:** the ESP32-WROOM-32E-N8 is a pre-certified module with an integral PCB antenna.
+      Its existing RED/UKCA conformity covers the Wi-Fi radio, provided the antenna, its keep-out
+      zone and RF settings stay as Espressif specifies. Board layout (phase B) must keep that
+      keep-out.
+    - **US (FCC), if ever relevant:** the module's grant covers the radio, and the product label
+      must carry "Contains FCC ID:" with the module's ID. FCC Part 15 §15.103(a) exempts digital
+      devices used only in a vehicle from the unintentional-radiator limits, though the board
+      must still not cause harmful interference.
+    - **Layout:** R10's emissions and transient-immunity tests bear on board layout and input
+      protection, so read R10's limits before phase B, not after.
+
+    These are working assumptions, not legal advice. Confirm them with a test lab for the target
+    market.
 
 ---
 
@@ -764,6 +949,7 @@ exactly what the version banner exists to catch:
 
 1. **The firmware and the LittleFS image are separate flashes**, and can disagree — a user can
    reflash one without the other.
+   *(Closed by `docs/superpowers/plans/2026-10-19-updates-password-reset.md`: the app is now embedded in the firmware, so there is one image and no second flash.)*
 2. **The protocol version is stored in two places**: `kProtocolVersion` in
    `src/domain/web_protocol.h`, and a mirror `PROTOCOL_VERSION` in `data/app.js:8`. During the
    web-app task the mirror was found still reading `2` after the firmware had moved to `3`; left

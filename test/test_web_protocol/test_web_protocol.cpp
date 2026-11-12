@@ -3,6 +3,7 @@
 #include "domain/config_json.h"
 #include "domain/config.h"
 #include "domain/can_state.h"
+#include "domain/wifi_settings.h"
 #include <ArduinoJson.h>
 #include <cstring>
 #include <cstdio>
@@ -58,7 +59,7 @@ void test_discovery_enable_and_disable(void) {
 
 void test_config_message_round_trips(void) {
   Config c = defaultConfig();
-  c.spotHoldMs = 1234;
+  c.nightHoldMs = 1234;
   std::string msg = configMessage(c);
 
   // Envelope has type=config; nested config re-parses to the same value.
@@ -71,7 +72,7 @@ void test_config_message_round_trips(void) {
   bool ok = false;
   Config back = configFromJson(inner, ok);
   TEST_ASSERT_TRUE(ok);
-  TEST_ASSERT_EQUAL_UINT32(1234, back.spotHoldMs);
+  TEST_ASSERT_EQUAL_UINT32(1234, back.nightHoldMs);
 }
 
 void test_frames_message_serializes_ids_and_bytes(void) {
@@ -164,8 +165,48 @@ void test_zones_request_rejects_a_missing_zones_field() {
   TEST_ASSERT_FALSE(a.error.empty());
 }
 
-void test_protocol_version_is_three() {
-  TEST_ASSERT_EQUAL_INT(3, kProtocolVersion);
+void test_config_message_carries_the_night_settings() {
+  const std::string m = configMessage(defaultConfig());
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"nightHoldMs\":800"));
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"auxDarkenOnIndicate\":false"));
+}
+
+void test_protocol_version_is_five() {
+  TEST_ASSERT_EQUAL_INT(5, kProtocolVersion);
+}
+
+void test_set_wifi_password_valid() {
+  ProtocolAction a = handleRequest("{\"type\":\"set_wifi_password\",\"password\":\"newpass99\"}");
+  TEST_ASSERT_TRUE(a.setWifiPassword);
+  TEST_ASSERT_EQUAL_STRING("newpass99", a.wifiPasswordOut.c_str());
+  TEST_ASSERT_TRUE(a.error.empty());
+}
+
+void test_set_wifi_password_short_refused() {
+  ProtocolAction a = handleRequest("{\"type\":\"set_wifi_password\",\"password\":\"short\"}");
+  TEST_ASSERT_FALSE(a.setWifiPassword);
+  TEST_ASSERT_EQUAL_STRING(passwordCheckText(PasswordCheck::TooShort), a.error.c_str());
+}
+
+void test_set_wifi_password_missing_field() {
+  ProtocolAction a = handleRequest("{\"type\":\"set_wifi_password\"}");
+  TEST_ASSERT_FALSE(a.setWifiPassword);
+  TEST_ASSERT_FALSE(a.error.empty());
+  ProtocolAction b = handleRequest("{\"type\":\"set_wifi_password\",\"password\":12345678}");
+  TEST_ASSERT_FALSE(b.setWifiPassword);
+  TEST_ASSERT_EQUAL_STRING(passwordCheckText(PasswordCheck::TooShort), b.error.c_str());
+}
+
+void test_device_info_message() {
+  DeviceInfo d{"1.0.0", 1u, "MCCAN-3F2A", true};
+  JsonDocument doc;
+  TEST_ASSERT_TRUE(deserializeJson(doc, deviceInfoMessage(d)) == DeserializationError::Ok);
+  TEST_ASSERT_EQUAL_STRING("device_info", doc["type"].as<const char*>());
+  TEST_ASSERT_EQUAL_INT(5, doc["protocolVersion"].as<int>());
+  TEST_ASSERT_EQUAL_STRING("1.0.0", doc["version"].as<const char*>());
+  TEST_ASSERT_EQUAL_UINT32(1u, doc["build"].as<uint32_t>());
+  TEST_ASSERT_EQUAL_STRING("MCCAN-3F2A", doc["ssid"].as<const char*>());
+  TEST_ASSERT_TRUE(doc["defaultPassword"].as<bool>());
 }
 
 void test_config_message_carries_flash_source_and_no_colours() {
@@ -188,7 +229,7 @@ void test_config_message_carries_the_protocol_version(void) {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_INT(kProtocolVersion, doc["protocolVersion"].as<int>());
-  TEST_ASSERT_EQUAL_INT(3, kProtocolVersion);
+  TEST_ASSERT_EQUAL_INT(5, kProtocolVersion);
 }
 
 void test_test_state_message_shape(void) {
@@ -248,7 +289,12 @@ int main(int, char**) {
   RUN_TEST(test_test_state_message_reports_the_zone_mask);
   RUN_TEST(test_test_rejects_an_unknown_mode);
   RUN_TEST(test_config_message_carries_the_protocol_version);
-  RUN_TEST(test_protocol_version_is_three);
+  RUN_TEST(test_protocol_version_is_five);
+  RUN_TEST(test_config_message_carries_the_night_settings);
+  RUN_TEST(test_set_wifi_password_valid);
+  RUN_TEST(test_set_wifi_password_short_refused);
+  RUN_TEST(test_set_wifi_password_missing_field);
+  RUN_TEST(test_device_info_message);
   RUN_TEST(test_config_message_carries_flash_source_and_no_colours);
   RUN_TEST(test_test_state_message_shape);
   RUN_TEST(test_test_state_message_when_off);

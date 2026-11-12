@@ -15,6 +15,7 @@
     <!-- Both banners live in the header, outside the tab system, so they
          cannot be navigated away from while the lights are overridden. -->
     <div id="versionBanner" class="banner warn" hidden></div>
+    <div id="pwBanner" class="banner warn" hidden>Change the default Wi-Fi password (Device tab).</div>
     <div id="testBanner" class="banner danger" hidden>
       <span id="testBannerText"></span>
       <button id="testExitBtn">Exit</button>
@@ -27,6 +28,7 @@
     <button data-tab="mapping">Mapping</button>
     <button data-tab="discovery">Discovery</button>
     <button data-tab="backup">Backup</button>
+    <button data-tab="device">Device</button>
   </nav>
 
   <main>
@@ -34,17 +36,19 @@
       <label>Blink period (ms)
         <input type="number" id="blinkPeriodMs" min="50" max="2000" step="10">
       </label>
-      <label>Spot hold threshold (ms)
-        <input type="number" id="spotHoldMs" min="100" max="5000" step="50">
+      <label>Night mode hold (ms)
+        <input type="number" id="nightHoldMs" min="400" max="5000" step="50">
       </label>
+      <label><input type="checkbox" id="auxDarkenOnIndicate">
+        Turn off the indicating side's aux pod at night</label>
       <label>Test mode auto-exit (ms)
         <input type="number" id="testMaxMs" min="10000" max="3600000" step="10000">
       </label>
       <label>Indicator flash source
         <select id="flashSource">
+          <option value="generate">Generate our own flash (default)</option>
           <option value="auto">Auto (follow the bike, fall back to 340 ms)</option>
           <option value="follow">Follow the bike's indicator signal</option>
-          <option value="generate">Generate our own flash</option>
         </select>
       </label>
     </section>
@@ -78,6 +82,28 @@
       <label class="filebtn">Import config JSON
         <input type="file" id="importInput" accept="application/json,.json">
       </label>
+    </section>
+
+    <section id="tab-device" class="tab">
+      <p>Version <span id="devVersion">-</span><br>Wi-Fi network <span id="devSsid">-</span></p>
+      <h3>Wi-Fi password</h3>
+      <label>New password
+        <input type="password" id="pw1" autocomplete="new-password" maxlength="63">
+      </label>
+      <label>Repeat new password
+        <input type="password" id="pw2" autocomplete="new-password" maxlength="63">
+      </label>
+      <button id="pwSaveBtn" class="actbtn">Save password</button>
+      <h3>Update</h3>
+      <label class="filebtn">Choose update file
+        <input type="file" id="updFile" accept=".mcup">
+      </label>
+      <p><small id="updFileName">No file chosen.</small></p>
+      <p><small>If the file picker doesn't open, open http://192.168.4.1 in your browser instead of the sign-in pop-up.</small></p>
+      <label><input type="checkbox" id="updReset"> Reset all settings to defaults</label>
+      <button id="updBtn" class="actbtn">Install</button>
+      <progress id="updProg" value="0" max="100" hidden></progress>
+      <p id="updMsg"></p>
     </section>
   </main>
 

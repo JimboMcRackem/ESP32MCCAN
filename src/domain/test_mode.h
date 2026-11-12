@@ -32,7 +32,7 @@ bool scenarioByName(const char* name, LogicalState& out);
 //   Scenario -> computeOutputs(t.scenario, ..., testEst)
 //   Zones    -> t.zones verbatim
 // Scenarios drive `testEst`, never `est`, so test mode is structurally unable
-// to leave the real spot latch set after it exits.
+// to leave the real night mode toggled after it exits.
 OutputIntent resolveOutputs(const LogicalState& real, const TestMode& t,
                             const Config& cfg, uint32_t nowMs,
                             EngineState& est, EngineState& testEst);
