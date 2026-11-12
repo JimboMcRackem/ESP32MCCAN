@@ -214,7 +214,7 @@ supply.** These figures replace the 26 W listing figure everywhere in this spec.
 
 | Wire | What it carries |
 |---|---|
-| Red, black | Pod supply. Powering them lights the **DRL ring**, a separate set of LEDs that does not dim |
+| Red, black | Pod supply. Powering them lights the pod's **DRL LEDs**, a separate set beside the aux light that does not dim |
 | Yellow | **Main-LED brightness: a 5 V PWM signal at about 100 Hz.** 0 V with main beam off |
 | Blue | About 0 V in every state measured, **open circuit to black** (2026-11-12). Role unknown (§9.1 item 1) |
 
@@ -227,7 +227,7 @@ triggered capture are still to be recorded.
 
 | State | 13.5 V | 12.0 V | 11.0 V |
 |---|---|---|---|
-| DRL ring only (main off) | 0.97 A | | |
+| DRL LEDs only (main off) | 0.97 A | | |
 | Main, stage 1 | 1.83 A | | |
 | Main, stage 3 | 3.68 A | | |
 | Main, stage 5 (full) | 5.6 A | **6.4 A** | 6.2 A |
@@ -235,7 +235,7 @@ triggered capture are still to be recorded.
 - **Full beam is about 77 W for the pair, about 38 W per pod**, not 26 W. The pods draw constant
   power down to about 12 V. Below that they cut power (68 W at 11 V), so **the worst case is
   about 12 V: 3.2 A per pod, 6.4 A for the pair.**
-- Current rises close to linearly with duty: DRL ring plus duty × the main LEDs' full current.
+- Current rises close to linearly with duty: DRL LEDs plus duty × the main LEDs' full current.
 - **The pod's input current is pulsed at the PWM rate.** During each on-pulse the pod draws its
   full-beam current, whatever the duty. At stage 2 the pair tripped a 5 A bench limit, although
   the average was lower.
@@ -779,7 +779,7 @@ These are verification items, not assumptions. Each names who or what can settle
    dial at each of its five stages and with `ACC RUN` and `ACC HIGH BEAM` triggered. That shows
    whether it is a steady level, a switched line or a pulsed signal. Oxford's instruction sheet
    is unchanged and gives no pod pinout.
-   **Mostly ANSWERED 2026-11-12 (§2.2.1):** red and black are the supply and light the DRL ring;
+   **Mostly ANSWERED 2026-11-12 (§2.2.1):** red and black are the supply and light the DRL LEDs;
    yellow is a 5 V, about 100 Hz PWM that sets main-LED brightness. This is night-mode §6
    Branch A. **Still open:**
    - **Blue's role.** Open circuit to black at the pod (2026-11-12), and about 0 V under Oxford's
@@ -792,8 +792,8 @@ These are verification items, not assumptions. Each names who or what can settle
      Run/Stop for 50% trigger on the FNIRSI 2C53T).
    - **Yellow's input threshold and load.** Whether the pod accepts 3.3 V logic, and how much
      current yellow draws at 5 V. This sizes the board's 5 V buffer.
-   - **The DRL ring at night.** It is lit whenever the pod is powered, so night Low also lights
-     it. Whether that is acceptable alongside dipped beam, legally and for glare, is the user's
+   - **The DRL LEDs at night.** They are lit whenever the pod is powered, so night Low also lights
+     them. Whether that is acceptable alongside dipped beam, legally and for glare, is the user's
      call (night-mode spec §9).
 2. **Pod inrush** — measured, against the candidate pod switch's current limit and
    capacitive-load rating (§4.4). **Needs a shunt and the scope (kit in hand).** The switch must

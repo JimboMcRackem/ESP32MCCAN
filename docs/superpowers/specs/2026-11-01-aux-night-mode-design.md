@@ -149,7 +149,7 @@ The kit was measured on the bench (earlier spec §2.2.1):
 
 - **Yellow** takes a **5 V PWM at about 100 Hz** that sets the main LEDs' brightness. Oxford's dial
   gives about 15 / 35 / 55 / 80 / 100% for stages 1–5, and 0 V with main beam off.
-- **Red and black** are the supply. Power alone lights a separate **DRL ring** that does not dim.
+- **Red and black** are the supply. Power alone lights the **DRL LEDs** beside the aux light, which do not dim.
 - **Blue** sits at about 0 V in every state and is open circuit to black. Its role is still open
   (§9); the board will treat it as Oxford's harness does.
 
@@ -170,11 +170,16 @@ So the board can make every level itself:
 - **Both pods share the Experia's 15 A aux 3 circuit as board feed B**, each with its own switch
   (earlier spec §4.1.1; rating to be confirmed on the bike). The Experia has no 12 V battery, so
   Oxford's battery-direct feed is not possible.
-- **Board hardware:** one ESP32 LEDC channel per pod at about 100 Hz, through a 5 V buffer powered
-  from the gated `+5V` rail. The buffer must hold yellow low at reset and with its input open
-  (earlier spec §3.2), and must survive yellow being shorted to 12 V in the harness. It needs
-  two GPIOs; the U13 CH3/CH4 reservation below is no longer needed for this.
-- **The DRL ring is lit at Low as well as Full.** Whether that is acceptable at night is open (§9).
+- **Board hardware:** **one shared ESP32 LEDC channel** at about 100 Hz, through a 5 V buffer
+  powered from the gated `+5V` rail, with one buffered output per pod's yellow wire. One channel
+  is enough because every pod that is not Off carries the same level: §3.1's darkening makes a
+  pod Off, which is its switch, never a different duty. The buffer must hold yellow low at reset
+  and with its input open (earlier spec §3.2), and must survive yellow being shorted to 12 V in
+  the harness. The U13 CH3/CH4 reservation below is no longer needed for this.
+- **There is no free GPIO on the phase-A pin map** (every bonded GPIO is assigned). The PWM needs
+  one. **Proposed: GPIO 13**, freed by removing status LED D5 and moving the factory-reset
+  gesture's feedback onto the four indicator outputs. To be confirmed by the user.
+- **The DRL LEDs are lit at Low as well as Full.** Whether that is acceptable at night is open (§9).
 
 The rest of this section is the pre-measurement record, kept for its reasoning.
 
@@ -256,7 +261,7 @@ On the bike:
    so both pods move to the 15 A aux 3 circuit and feed A carries no pod (earlier spec §4.1.1).
 5. **Compliance.** Whether the pods may be used as aux lights in this way, low at night alongside
    the headlight, is not established here. §3.1 gives an option if same-side darkening is wanted.
-   **Added 2026-11-12:** the pods' DRL ring lights whenever they are powered, so it is on at night
+   **Added 2026-11-12:** the pods' DRL LEDs light whenever they are powered, so they are on at night
    Low. DRLs are generally expected to go out or dim when dipped beam is on. The user decides
    whether this is acceptable, or whether night Low should be dropped in favour of Off.
 6. **Sweep time** against §5's flash limit.
