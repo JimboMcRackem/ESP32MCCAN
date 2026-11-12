@@ -76,6 +76,17 @@ void test_a_stale_bus_does_not_disturb_a_held_test_session(void) {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_AUX_L, OUT_AUX_R), o.on);
 }
 
+// The output walk lights a pod at the Low duty, never at Full.
+void test_zones_aux_bit_lights_at_low_duty(void) {
+  LogicalState real;
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.zones.on = outMask(OUT_AUX_L);
+  TEST_ASSERT_EQUAL_UINT8(15, resolveOutputs(real, t, cfg, 0, est, testEst).auxDuty);
+  t.zones.on = outMask(OUT_FL_DRL);
+  TEST_ASSERT_EQUAL_UINT8(0, resolveOutputs(real, t, cfg, 0, est, testEst).auxDuty);
+}
+
 void test_scenario_cannot_corrupt_the_real_engine_state(void) {
   LogicalState real;
   TestMode t;
@@ -96,8 +107,9 @@ void test_night_scenario_shows_night_with_daynight_unassigned(void) {
   TEST_ASSERT_TRUE(scenarioByName("lowBeam", t.scenario));
   t.kind = TestKind::Scenario;
   OutputIntent o = resolveOutputs(real, t, cfg, 0, est, testEst);
-  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL), o.on);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT((int)AuxLevel::Low, (int)o.auxL);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
 }
 
 void test_expiry_is_false_when_off(void) {
@@ -145,6 +157,7 @@ int main(int, char**) {
   RUN_TEST(test_scenario_blinks_at_the_configured_rate);
   RUN_TEST(test_zones_pass_through_verbatim);
   RUN_TEST(test_a_stale_bus_does_not_disturb_a_held_test_session);
+  RUN_TEST(test_zones_aux_bit_lights_at_low_duty);
   RUN_TEST(test_scenario_cannot_corrupt_the_real_engine_state);
   RUN_TEST(test_night_scenario_shows_night_with_daynight_unassigned);
   RUN_TEST(test_expiry_is_false_when_off);

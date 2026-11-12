@@ -100,7 +100,22 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
   const bool darken = cfg.auxDarkenOnIndicate && base == AuxLevel::Low && li != ri;
   o.auxL = (darken && li) ? AuxLevel::Off : base;
   o.auxR = (darken && ri) ? AuxLevel::Off : base;
-  o.set(OUT_AUX_L, o.auxL == AuxLevel::Full);
-  o.set(OUT_AUX_R, o.auxR == AuxLevel::Full);
+  // A pod that is not Off is powered; its brightness is the yellow duty.
+  // Darkening only makes a pod Off, so both lit pods share `base`'s duty.
+  o.set(OUT_AUX_L, o.auxL != AuxLevel::Off);
+  o.set(OUT_AUX_R, o.auxR != AuxLevel::Off);
+  const bool anyLit = o.auxL != AuxLevel::Off || o.auxR != AuxLevel::Off;
+  o.auxDuty = anyLit ? auxDutyFor(base, cfg) : 0;
   return o;
+}
+
+uint8_t auxDutyFor(AuxLevel level, const Config& cfg) {
+  switch (level) {
+    case AuxLevel::Full: return cfg.auxFullDuty;
+    // Low is never brighter than Full, whatever the two settings say.
+    case AuxLevel::Low:  return cfg.auxLowDuty < cfg.auxFullDuty ? cfg.auxLowDuty
+                                                                  : cfg.auxFullDuty;
+    case AuxLevel::Off:
+    default:             return 0;
+  }
 }

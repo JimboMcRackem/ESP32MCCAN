@@ -178,7 +178,9 @@ So the board can make every level itself:
   the harness. The U13 CH3/CH4 reservation below is no longer needed for this.
 - **There is no free GPIO on the phase-A pin map** (every bonded GPIO is assigned). The PWM needs
   one. **Proposed: GPIO 13**, freed by removing status LED D5 and moving the factory-reset
-  gesture's feedback onto the four indicator outputs. To be confirmed by the user.
+  gesture's feedback onto the four indicator outputs. **Confirmed by the user 2026-11-12.** The
+  feedback shows **only while parked** (bus stale or kickstand down), so a wet button can never
+  mask or freeze a real turn signal while riding (update spec 2026-10-19 §5.6).
 - **The DRL LEDs are lit at Low as well as Full.** Whether that is acceptable at night is open (§9).
 
 The rest of this section is the pre-measurement record, kept for its reasoning.

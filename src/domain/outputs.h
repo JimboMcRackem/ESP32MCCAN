@@ -13,18 +13,20 @@ enum OutputIndex : uint8_t {
   OUT_COUNT   // = 12
 };
 
-// Aux pod brightness. How Low reaches a pod is decided by the Oxford kit's
-// wiring (night-mode spec section 6); until then it drives nothing.
+// Aux pod brightness. A pod that is not Off is powered by its switch; its main
+// LEDs then run at the duty on its yellow wire (night-mode spec 6.1).
 enum class AuxLevel : uint8_t { Off, Low, Full };
 
 // `on` is the whole switched state the HAL drives, one word on purpose, so a
 // test asserts it in a single comparison and fails when an output nobody
-// considered is also energised. An aux bit is set only at Full, so a pod can
-// never light at full because Low was asked for.
+// considered is also energised. An aux bit is set whenever that pod is not
+// Off. `auxDuty` is the one shared yellow duty, in percent: every pod that is
+// not Off carries the same level, so one duty serves both.
 struct OutputIntent {
   uint16_t on = 0;
   AuxLevel auxL = AuxLevel::Off;
   AuxLevel auxR = AuxLevel::Off;
+  uint8_t  auxDuty = 0;
 
   bool isOn(OutputIndex i) const { return ((on >> (uint8_t)i) & 1u) != 0u; }
   void set(OutputIndex i, bool v) {
@@ -34,7 +36,8 @@ struct OutputIntent {
 };
 
 inline bool operator==(const OutputIntent& a, const OutputIntent& b) {
-  return a.on == b.on && a.auxL == b.auxL && a.auxR == b.auxR;
+  return a.on == b.on && a.auxL == b.auxL && a.auxR == b.auxR &&
+         a.auxDuty == b.auxDuty;
 }
 inline bool operator!=(const OutputIntent& a, const OutputIntent& b) { return !(a == b); }
 

@@ -6,6 +6,7 @@
 #include "domain/test_mode.h"
 #include "domain/output_map.h"
 #include "hal/outputs_gpio.h"
+#include "hal/aux_pwm_ledc.h"
 #include "hal/can_bus.h"
 #include "hal/storage.h"
 #include "domain/web_protocol.h"
@@ -13,6 +14,7 @@
 #include "domain/update_image.h"
 #include "domain/wifi_settings.h"
 #include "domain/reset_sequence.h"
+#include "domain/reset_feedback.h"
 #include "version.h"
 #include <esp_ota_ops.h>
 #include <esp_mac.h>
@@ -29,7 +31,9 @@ static const uint32_t kCanBitrate = 500000;
 static const int kEn5vPin   = 4;    // +5V enable: the CAN transceiver's VCC and the quads' THER
 static const int kCanStbPin = 14;   // TJA1042 STB, pulled up on the board (floating = standby)
 static const int kDiagEnPin = 2;    // quad switches' DIAG_EN, pulled down on the chip side
-static const int kLedStatPin = 13;  // status LED D5; off except for the factory-reset gesture
+// Shared pod brightness PWM to both yellow wires (night-mode spec 6.1). It was
+// status LED D5; the factory-reset feedback now shows on the indicators.
+static const int kAuxPwmPin = 13;
 static const int kResetBtnPin = 0;  // BOOT button: hold 10 s, release within 5 s = factory reset (LOW = pressed)
 
 // GPIO assignment in OutputIndex order. These avoid the strapping pins
@@ -52,6 +56,7 @@ static const uint8_t kOutputPins[] = {
 static_assert(sizeof(kOutputPins) / sizeof(kOutputPins[0]) == (size_t)OUT_COUNT,
               "kOutputPins must have one pin per OutputIndex");
 static GpioOutputs g_out(kOutputPins, OUT_COUNT);
+static LedcAuxPwm  g_auxPwm(kAuxPwmPin, kAuxPwmHz);
 
 static Config      g_cfg;
 static CanState    g_can;
@@ -111,7 +116,9 @@ static void serviceLighting() {
     last = now;
     LogicalState s = g_can.evaluate(g_cfg, now);
     OutputIntent o = resolveOutputs(s, g_test, g_cfg, now, g_engine, g_testEngine);
-    applyIntent(g_out, o);
+    // Same parked gate as the restart: feedback never touches a riding bike.
+    const bool parked = g_can.stale(now) || s.kickstand;
+    applyIntent(g_out, g_auxPwm, withResetFeedback(o, parked, g_reset.phase(), now));
     g_tickRan = true;
   }
 }
@@ -130,7 +137,8 @@ static bool deadlinePassed(uint32_t now, uint32_t at) {
 }
 
 // Factory-reset button, sampled every loop() pass. Nothing here blocks or
-// touches the lamps: serviceLighting() keeps running in every phase. The
+// writes a pin: serviceLighting() keeps running in every phase and shows the
+// gesture on the indicators (withResetFeedback: armed blinks, erased holds). The
 // erase happens only on a release inside the confirm window, so a stuck or
 // wet line cancels instead, and the restart waits for parked like an update.
 static void serviceResetButton(uint32_t now) {
@@ -140,11 +148,9 @@ static void serviceResetButton(uint32_t now) {
       break;
     case ResetEvent::Cancelled:
       Serial.println("reset button still held after 5 s: cancelled (stuck button?)");
-      digitalWrite(kLedStatPin, LOW);
       break;
     case ResetEvent::Confirmed:
       storage::eraseAll();
-      digitalWrite(kLedStatPin, HIGH);   // solid: erased, restart pending
       Serial.println("factory reset: settings erased");
       g_restartPending = true;
       g_restartAt = now;
@@ -153,8 +159,6 @@ static void serviceResetButton(uint32_t now) {
     case ResetEvent::None:
       break;
   }
-  if (g_reset.phase() == ResetPhase::Armed)
-    digitalWrite(kLedStatPin, ((now / 50) & 1) ? LOW : HIGH);   // 10 Hz blink
 }
 
 // Drop any active override and tell every client. Called on explicit exit,
@@ -168,7 +172,12 @@ static void releaseTest(uint32_t now) {
 void setup() {
   Serial.begin(115200);
 
-  g_out.begin();   // all twelve outputs LOW before anything else
+  // Pod duty 0 before any output can switch a pod on. A failed attach fails
+  // dark (the yellow buffer holds low), but the pods would light only their
+  // DRL LEDs, so say why.
+  if (!g_auxPwm.begin())
+    Serial.println("aux PWM attach failed: pods' main LEDs stay dark");
+  g_out.begin();      // all twelve outputs LOW before anything else
 
   pinMode(kDiagEnPin, OUTPUT);
   digitalWrite(kDiagEnPin, LOW);    // switch diagnostics off until something reads them
@@ -176,8 +185,6 @@ void setup() {
   digitalWrite(kCanStbPin, LOW);    // transceiver normal mode
   pinMode(kEn5vPin, OUTPUT);
   digitalWrite(kEn5vPin, HIGH);     // transceiver VCC: without it nothing is received
-  pinMode(kLedStatPin, OUTPUT);
-  digitalWrite(kLedStatPin, LOW);
 
   pinMode(kResetBtnPin, INPUT_PULLUP);
 

@@ -60,6 +60,7 @@ void test_discovery_enable_and_disable(void) {
 void test_config_message_round_trips(void) {
   Config c = defaultConfig();
   c.nightHoldMs = 1234;
+  c.auxLowDuty = 33;
   std::string msg = configMessage(c);
 
   // Envelope has type=config; nested config re-parses to the same value.
@@ -73,6 +74,7 @@ void test_config_message_round_trips(void) {
   Config back = configFromJson(inner, ok);
   TEST_ASSERT_TRUE(ok);
   TEST_ASSERT_EQUAL_UINT32(1234, back.nightHoldMs);
+  TEST_ASSERT_EQUAL_UINT8(33, back.auxLowDuty);
 }
 
 void test_frames_message_serializes_ids_and_bytes(void) {
@@ -169,10 +171,12 @@ void test_config_message_carries_the_night_settings() {
   const std::string m = configMessage(defaultConfig());
   TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"nightHoldMs\":800"));
   TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"auxDarkenOnIndicate\":false"));
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"auxLowDuty\":15"));
+  TEST_ASSERT_NOT_NULL(strstr(m.c_str(), "\"auxFullDuty\":100"));
 }
 
-void test_protocol_version_is_five() {
-  TEST_ASSERT_EQUAL_INT(5, kProtocolVersion);
+void test_protocol_version_is_six() {
+  TEST_ASSERT_EQUAL_INT(6, kProtocolVersion);
 }
 
 void test_set_wifi_password_valid() {
@@ -202,7 +206,7 @@ void test_device_info_message() {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, deviceInfoMessage(d)) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_STRING("device_info", doc["type"].as<const char*>());
-  TEST_ASSERT_EQUAL_INT(5, doc["protocolVersion"].as<int>());
+  TEST_ASSERT_EQUAL_INT(6, doc["protocolVersion"].as<int>());
   TEST_ASSERT_EQUAL_STRING("1.0.0", doc["version"].as<const char*>());
   TEST_ASSERT_EQUAL_UINT32(1u, doc["build"].as<uint32_t>());
   TEST_ASSERT_EQUAL_STRING("MCCAN-3F2A", doc["ssid"].as<const char*>());
@@ -229,7 +233,7 @@ void test_config_message_carries_the_protocol_version(void) {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_INT(kProtocolVersion, doc["protocolVersion"].as<int>());
-  TEST_ASSERT_EQUAL_INT(5, kProtocolVersion);
+  TEST_ASSERT_EQUAL_INT(6, kProtocolVersion);
 }
 
 void test_test_state_message_shape(void) {
@@ -289,7 +293,7 @@ int main(int, char**) {
   RUN_TEST(test_test_state_message_reports_the_zone_mask);
   RUN_TEST(test_test_rejects_an_unknown_mode);
   RUN_TEST(test_config_message_carries_the_protocol_version);
-  RUN_TEST(test_protocol_version_is_five);
+  RUN_TEST(test_protocol_version_is_six);
   RUN_TEST(test_config_message_carries_the_night_settings);
   RUN_TEST(test_set_wifi_password_valid);
   RUN_TEST(test_set_wifi_password_short_refused);
