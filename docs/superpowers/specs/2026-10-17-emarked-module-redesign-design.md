@@ -205,6 +205,44 @@ capability than the trigger approach would have given. The design therefore trea
 as something to be **established, not assumed** (§9.1), and carries an unpopulated `AUX_MODE`
 provision (§3) so a mode input can be used if one exists.
 
+#### 2.2.1 Measured on the bench (2026-11-12)
+
+**CHANGED 2026-11-12: the pods were measured under Oxford's own harness and dial, on a bench
+supply.** These figures replace the 26 W listing figure everywhere in this spec.
+
+**Pod plug, four wires:**
+
+| Wire | What it carries |
+|---|---|
+| Red, black | Pod supply. Powering them lights the **DRL ring**, a separate set of LEDs that does not dim |
+| Yellow | **Main-LED brightness: a 5 V PWM signal at about 100 Hz.** 0 V with main beam off |
+| Blue | About 0 V in every state measured, **open circuit to black** (2026-11-12). Role unknown (§9.1 item 1) |
+
+Yellow's duty, read off the scope trace widths at Oxford's five dial stages with main beam on:
+about **15 / 35 / 55 / 80 / 100%**. The pulse spacing is the same at every stage and at two
+timebases, so about 100 Hz is taken as real, not aliased. An exact frequency and duty from a
+triggered capture are still to be recorded.
+
+**Supply current, both pods together:**
+
+| State | 13.5 V | 12.0 V | 11.0 V |
+|---|---|---|---|
+| DRL ring only (main off) | 0.97 A | | |
+| Main, stage 1 | 1.83 A | | |
+| Main, stage 3 | 3.68 A | | |
+| Main, stage 5 (full) | 5.6 A | **6.4 A** | 6.2 A |
+
+- **Full beam is about 77 W for the pair, about 38 W per pod**, not 26 W. The pods draw constant
+  power down to about 12 V. Below that they cut power (68 W at 11 V), so **the worst case is
+  about 12 V: 3.2 A per pod, 6.4 A for the pair.**
+- Current rises close to linearly with duty: DRL ring plus duty × the main LEDs' full current.
+- **The pod's input current is pulsed at the PWM rate.** During each on-pulse the pod draws its
+  full-beam current, whatever the duty. At stage 2 the pair tripped a 5 A bench limit, although
+  the average was lower.
+- **There is no 12 V battery on the Experia.** The 12 V supply is a DC-DC converter that runs only
+  with the ignition on, so Oxford's battery-direct feed is not available. §4.1.1 is revised
+  accordingly.
+
 ---
 
 ## 3. Interface contract
@@ -219,8 +257,8 @@ design.
 | `FL_IND`, `FR_IND` | none now; ≤167 mA with EL359 | left/right independent |
 | `RL_IND`, `RR_IND` | ≤167 mA | as above |
 | `RL_BRK`, `RR_BRK` | ≤167 mA | matrix requires brake on the *non*-indicating side only |
-| `AUX_L`, `AUX_R` | 2.17 A | per-pod, for fault isolation and future asymmetry |
-| `AUX_MODE` | — | **unpopulated provision**, fitted only if Plug C/D exposes a mode input |
+| `AUX_L`, `AUX_R` | 3.2 A worst case (§2.2.1; was 2.17 A) | per-pod, for fault isolation and future asymmetry |
+| `AUX_MODE` | — | **superseded 2026-11-12:** each pod's yellow wire takes a 5 V PWM signal, driven per pod (night-mode spec §6) |
 
 (Currents are the 2 W-per-function budget of §2.1, not measurements. The quads' 0.5 A current
 limit is 3× that figure.)
@@ -236,10 +274,10 @@ loom from 14 wires to 12.
 |---|---|---|
 | Front | 5 | 2× DRL, 2× IND, 1 shared return (333 mA worst case with EL359). **Left unwired until EL359 is fitted**; J3 stays on the board |
 | Rear | 7 | 2× DRL, 2× IND, 2× BRK, 1 shared return (333 mA worst case). **One 7-core cable through one gland, landed on the board as two tails**: J4 (4 pins: `RL_DRL`, `RL_IND`, `RL_BRK`, return) and J5 (3 pins: `RR_DRL`, `RR_IND`, `RR_BRK`), because KiCad's wire-relief footprints stop at 1×06. The return stays single |
-| Pods | 4 (+1) | per-pod +12 V and return; pod returns do **not** share with signal returns |
+| Pods | 4 per pod | per pod: +12 V (red), return (black), PWM (yellow), blue (role unknown; treated as Oxford's harness treats it). Pod returns do **not** share with signal returns or the logic ground |
 | CAN | 2 | CAN H / CAN L |
-| Feed A | 2 | aux circuit +, − — logic, the ten signal channels, `AUX_L` |
-| Feed B | 2 | aux circuit +, − — `AUX_R` only (§4.1.1) |
+| Feed A | 2 | aux circuit +, − — logic and the ten signal channels. **Revised 2026-11-12:** no longer carries `AUX_L`; on aux 1 or aux 2 (§4.1.1) |
+| Feed B | 2 | aux circuit +, − — **revised 2026-11-12:** both pods, `AUX_L` and `AUX_R`, on the 15 A aux 3; 6.4 A worst case (§4.1.1) |
 
 (Board references, 2026-10-18: Feed A J1, Feed B J9, Front J3 (5 pins), Rear J4 + J5, CAN J8.
 The pod tail is not on the board; it waits on the kit.)
@@ -352,6 +390,38 @@ to stay under 5 A and = 13.9 V to stay inside the derated 3.75 A, so a circuit d
 pods together is no answer either.
 
 ### 4.1.1 Two feeds: pod R alone, everything else together
+
+**SUPERSEDED 2026-11-12: the pods ride together on their own circuit.** Two findings overturn the
+arrangement below. The pods draw 3.2 A each at worst (§2.2.1), so pod L plus the signals and logic
+no longer fit under a fuse that is both at least 120% of the load and below a 5 A circuit. And the
+Experia's three aux circuits are **not all 5 A**. The text below this box is kept for its
+reasoning. The binding arrangement is now:
+
+| Bike circuit | Rating | Carries | Worst case | Fuse | Use of circuit |
+|---|---|---|---|---|---|
+| Aux 3 | 15 A | Feed B: both pods (`AUX_L`, `AUX_R`) | 6.4 A | 10 A (156%) | 43% |
+| Aux 1 or aux 2 | 5 A / 10 A | Feed A: logic and signal lamps (≈0.87 A at 10.5 V with EL359) | ≈0.9 A | ≈2 A | 18% of 5 A |
+| The other of aux 1 / aux 2 | 10 A / 5 A | Garmin Zumo XT2 alone (1.5 A, Garmin's maximum) | 1.5 A | the Zumo's own | 30% of 5 A |
+
+**The ratings are from a web source (user, 2026-11-12) and are to be confirmed on the bike** from
+its fuse box or owner's manual (§9.3 item 4a). Everything in this box depends on aux 3 being 15 A.
+
+- **Every load has a circuit to itself.** A pod fault can blow only feed B's fuse, so the
+  indicators, brake, logic and the satnav survive it. The Zumo does not pass through the board,
+  and feed A and the Zumo take whichever of aux 1 and aux 2 the Zumo is not already on.
+- **Each pod keeps its own switch on feed B**, so a fault on one pod is contained by its switch
+  and the other pod keeps working. The old requirement that `AUX_L`'s switch latch off below feed
+  A's 4 A fuse (below) is withdrawn. The pod switches are sized for 3.2 A steady, the 100 Hz pulsed
+  draw and the pod inrush (§9.1 item 2).
+- **The board keeps two feeds,** J1 (feed A) and J9 (feed B). Feed B's path is re-rated from one
+  pod to two: 6.4 A steady with 100 Hz pulses, under a 10 A fuse. Its connector, reverse-polarity
+  FET, TVS and copper are sized for that. `AUX_L` moves from feed A's domain to feed B's.
+  Feeds A and B are never diode-OR'd.
+- **Feed A's LTC4380 limit can drop a long way** (§9.1 item 2a), because no pod rides on it.
+- **Firmware cap:** a config value `auxFullDuty` limits the Full duty (default 100%). It is not
+  needed on a 15 A circuit, and stays as a fallback if the ratings prove lower.
+- **DC-DC capacity is unconfirmed.** The pods add up to 77 W to the Experia's 12 V converter
+  (§9.3 item 4b).
 
 The Experia has three 5 A aux circuits but **one is already in use, so two are available.** Two
 is the minimum this load needs, and it only works in one arrangement: both pods together draw
@@ -709,14 +779,34 @@ These are verification items, not assumptions. Each names who or what can settle
    dial at each of its five stages and with `ACC RUN` and `ACC HIGH BEAM` triggered. That shows
    whether it is a steady level, a switched line or a pulsed signal. Oxford's instruction sheet
    is unchanged and gives no pod pinout.
-2. **Pod inrush** — measured, against the candidate dual-channel switch's current limit and
-   capacitive-load rating (§4.4). **Needs the kit in hand.**
+   **Mostly ANSWERED 2026-11-12 (§2.2.1):** red and black are the supply and light the DRL ring;
+   yellow is a 5 V, about 100 Hz PWM that sets main-LED brightness. This is night-mode §6
+   Branch A. **Still open:**
+   - **Blue's role.** Open circuit to black at the pod (2026-11-12), and about 0 V under Oxford's
+     harness, so it is either an input Oxford holds low or an undriven wire. To check: on the
+     harness half of the plug, resistance blue to black and blue to red; on the pod half, blue to
+     red unpowered; and blue to black on DC volts with the pod powered from the bench and blue
+     left open (a pull-up voltage means an input). The board then gives blue whatever Oxford's
+     harness gives it.
+   - **Exact PWM frequency and duty**, from a triggered capture at stage 3 (AUTO, then long-press
+     Run/Stop for 50% trigger on the FNIRSI 2C53T).
+   - **Yellow's input threshold and load.** Whether the pod accepts 3.3 V logic, and how much
+     current yellow draws at 5 V. This sizes the board's 5 V buffer.
+   - **The DRL ring at night.** It is lit whenever the pod is powered, so night Low also lights
+     it. Whether that is acceptable alongside dipped beam, legally and for glare, is the user's
+     call (night-mode spec §9).
+2. **Pod inrush** — measured, against the candidate pod switch's current limit and
+   capacitive-load rating (§4.4). **Needs a shunt and the scope (kit in hand).** The switch must
+   also carry the pod's 100 Hz pulsed draw: about 3.2 A peaks at any duty (§2.2.1).
 
 2a. **Re-size the feed-A current limit.** The LTC4380's sense resistor `R100` (5.6 mΩ) sets
    50 mV / 5.6 mΩ ≈ 9 A (LTC4380 VSNS 45–55 mV), behind feed A's 4 A fuse, so the limit can
    never act. It is recorded and left as built; once pod L's start-up current on feed A is
    measured (item 2), `R100` is re-sized to a limit that can act below the fuse. **Needs the
    kit in hand.**
+   **Revised 2026-11-12:** no pod rides on feed A any more (§4.1.1), so the limit is set by the
+   logic and signal lamps (≈0.87 A worst case) and their start-up current, under a fuse of about
+   2 A. The pod inrush no longer enters it.
 
 ### 9.2 Blocking the signal modules
 
@@ -760,6 +850,16 @@ These are verification items, not assumptions. Each names who or what can settle
    second question decides whether the quiescent budget matters at all: if the logic feed dies
    with the ignition, the board is off whenever the bike is off and §4.2's deep-sleep path stops
    being load-bearing.
+   **Revised 2026-11-12:** the circuits are reported (web source) as **aux 1 = 5 A, aux 2 = 10 A,
+   aux 3 = 15 A**, not three at 5 A. One is used by the Garmin Zumo XT2. §4.1.1 puts both pods on
+   aux 3, the board's logic on one of the others and the Zumo on the last. **To confirm on the
+   bike:** the three ratings from the fuse box or owner's manual, and which circuit the Zumo is on
+   now. The Experia has **no 12 V battery**: its 12 V comes from a DC-DC converter that runs only
+   with the ignition on, so all three circuits are ignition-switched.
+
+4b. **DC-DC converter capacity.** The pods add up to 77 W at full beam, about 105 W with the board,
+   lamps and Zumo. Find Energica's rating for the Experia's 12 V converter and confirm that this
+   fits alongside the bike's own loads.
 
 5. ~~**Is the Experia's CAN bus alive with the ignition off?**~~ **ANSWERED: it is not — CAN is
    off when the bike is off.** So bus activity alone is a sufficient wake source (no ignition
