@@ -22,3 +22,7 @@ struct EngineState {
 
 OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
                             uint32_t nowMs, EngineState& est);
+
+// Percent duty on the pods' yellow wire for a level: Off 0, Full auxFullDuty,
+// Low auxLowDuty capped at auxFullDuty.
+uint8_t auxDutyFor(AuxLevel level, const Config& cfg);

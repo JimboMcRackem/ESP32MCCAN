@@ -290,9 +290,10 @@ void test_night_drops_front_white_and_puts_pods_at_low() {
   Config c = mappedNight(); EngineState e;
   LogicalState s; s.run = true; s.night = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
-  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL), o.on);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
 }
 
 void test_day_has_pods_off() {
@@ -302,6 +303,7 @@ void test_day_has_pods_off() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL), o.on);
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
 }
 
 void test_high_beam_day_is_full_with_front_white() {
@@ -312,6 +314,7 @@ void test_high_beam_day_is_full_with_front_white() {
                                    OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
 }
 
 void test_high_beam_night_is_full_without_front_white() {
@@ -321,19 +324,53 @@ void test_high_beam_night_is_full_without_front_white() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
 }
 
-void test_low_never_sets_an_aux_bit() {
+// Low powers the pods; the brightness comes from the duty on yellow.
+void test_night_low_powers_both_pods_at_low_duty() {
   Config c = mappedNight(); EngineState e;
   LogicalState s; s.run = true; s.night = true;
-  TEST_ASSERT_EQUAL_UINT16(0, computeOutputs(s, c, 0, e).on & outMask(OUT_AUX_L, OUT_AUX_R));
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_AUX_L, OUT_AUX_R),
+                           o.on & outMask(OUT_AUX_L, OUT_AUX_R));
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
+}
+
+void test_high_beam_full_duty() {
+  Config c = defaultConfig(); c.auxFullDuty = 70; EngineState e;
+  LogicalState s; s.run = true; s.highBeam = true;
+  TEST_ASSERT_EQUAL_UINT8(70, computeOutputs(s, c, 0, e).auxDuty);
+}
+
+void test_low_never_brighter_than_full() {
+  Config c = mappedNight(); c.auxLowDuty = 90; c.auxFullDuty = 60; EngineState e;
+  LogicalState s; s.run = true; s.night = true;
+  TEST_ASSERT_EQUAL_UINT8(60, computeOutputs(s, c, 0, e).auxDuty);
+}
+
+void test_not_run_pods_off_duty_zero() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.night = true; s.highBeam = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(0, o.on & outMask(OUT_AUX_L, OUT_AUX_R));
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
+}
+
+void test_darken_unpowers_indicating_pod_only() {
+  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_R), o.on);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
 }
 
 void test_night_indicator_shows_amber_only_and_pods_stay_low() {
   Config c = mappedNight(); EngineState e;
   LogicalState s; s.run = true; s.night = true; s.leftInd = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
-  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND), o.on);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_L, OUT_AUX_R), o.on);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
 }
@@ -353,6 +390,7 @@ void test_short_flash_leaves_pods_alone() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL), o.on);
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
 }
 
 void test_darken_turns_off_the_indicating_pod_only() {
@@ -498,7 +536,11 @@ int main(int, char**) {
   RUN_TEST(test_day_has_pods_off);
   RUN_TEST(test_high_beam_day_is_full_with_front_white);
   RUN_TEST(test_high_beam_night_is_full_without_front_white);
-  RUN_TEST(test_low_never_sets_an_aux_bit);
+  RUN_TEST(test_night_low_powers_both_pods_at_low_duty);
+  RUN_TEST(test_high_beam_full_duty);
+  RUN_TEST(test_low_never_brighter_than_full);
+  RUN_TEST(test_not_run_pods_off_duty_zero);
+  RUN_TEST(test_darken_unpowers_indicating_pod_only);
   RUN_TEST(test_night_indicator_shows_amber_only_and_pods_stay_low);
   RUN_TEST(test_run_clear_at_night_turns_pods_off);
   RUN_TEST(test_short_flash_leaves_pods_alone);

@@ -53,6 +53,12 @@ void test_apply_drives_only_the_set_bits() {
   }
 }
 
+void test_intents_differing_only_in_duty_are_unequal() {
+  OutputIntent a, b;
+  b.auxDuty = 15;
+  TEST_ASSERT_TRUE(a != b);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_out_count_is_twelve);
@@ -60,5 +66,6 @@ int main(int, char**) {
   RUN_TEST(test_outmask_builds_the_same_word_as_set);
   RUN_TEST(test_apply_writes_every_output_exactly_once);
   RUN_TEST(test_apply_drives_only_the_set_bits);
+  RUN_TEST(test_intents_differing_only_in_duty_are_unequal);
   return UNITY_END();
 }

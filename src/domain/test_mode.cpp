@@ -65,8 +65,13 @@ OutputIntent resolveOutputs(const LogicalState& real, const TestMode& t,
       // A night scenario must show night even with DayNight unassigned.
       testEst.nightToggled = t.scenario.night;
       return computeOutputs(t.scenario, cfg, nowMs, testEst);
-    case TestKind::Zones:
-      return t.zones;
+    case TestKind::Zones: {
+      // The output walk lights a pod at the Low duty, never at Full.
+      OutputIntent o = t.zones;
+      const bool aux = o.isOn(OUT_AUX_L) || o.isOn(OUT_AUX_R);
+      o.auxDuty = aux ? auxDutyFor(AuxLevel::Low, cfg) : 0;
+      return o;
+    }
     case TestKind::Off:
     default:
       return computeOutputs(real, cfg, nowMs, est);
