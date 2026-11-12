@@ -38,8 +38,8 @@ beam.
 | Night | Off | Low, both sides | On | With brake signal |
 | High beam, day or night | As day or night row | Full, both sides | On | With brake signal |
 | Left or right indicator, day | Same side off | As above | Same side off | Same side off |
-| Left or right indicator, night | Off | As above; same side off if `auxDarkenOnIndicate` is on (§3.1) | Same side off | Same side off |
-| Hazards | As indicator, both sides | As above | Off | Off |
+| Left or right indicator, night | Off | Same side off (§3.1); on high beam only if `auxOffOnIndicateHighBeam` | Same side off | Same side off |
+| Hazards | As indicator, both sides | Both off at Low; on high beam only if `auxOffOnIndicateHighBeam` | Off | Off |
 | Run clear | Off | Off | Off | Off (indicators and hazards still work) |
 
 The indicating corner shows amber only. At night the front white is already off, so only the rear
@@ -58,14 +58,20 @@ apply to them.
 
 **Compliance is unconfirmed.** Aux-light rules for this use have not been checked (§9).
 
-### 3.1 Option: darken the indicating side
+### 3.1 The indicating side's pod goes off
 
-`auxDarkenOnIndicate` is a web-app setting, **off by default**. When on, a pod at Low turns off on
-the indicating side for as long as that indicator request lasts, then returns to Low.
+**Revised 2026-11-12 (user's decision).** Each pod's DRL LEDs light whenever the pod is powered,
+and cannot be switched separately. The user accepts DRL LEDs on with the lights, but **an
+indicating corner must have no DRL beside it**. So:
 
+- **At Low (night), the indicating side's pod is always off** for as long as that indicator
+  request lasts, then returns to Low. This is no longer a setting; `auxDarkenOnIndicate` is
+  removed (protocol 7).
+- **Hazards turn both pods off.**
+- **On high beam it is the user's choice:** `auxOffOnIndicateHighBeam`, a web-app setting, **off
+  by default** so full aux stays on both sides. When on, high beam follows the same rule, hazards
+  included.
 - It follows the request, never the flash phase, so the pod does not pulse with the indicator.
-- Hazards do not darken either pod, because both pods would go out.
-- High beam does not darken, so full aux stays full.
 
 "Off" is the builder's reading of "darken", chosen because it works without per-pod dimming. It
 is only available if the §6 branch can control each pod separately.
@@ -232,8 +238,8 @@ Native tests, each asserting the whole output state:
 
 - every row of §3, day and night
 - level rule, including Run clear
-- §3.1 darkening: off by default, follows the request not the phase, skipped on hazards and high
-  beam
+- §3.1: indicating pod off at Low, both off on hazards, high beam per setting; follows the request
+  not the phase
 - CAN-mapped night mode ignores the long press
 - long press toggles once per press, and not on a short flash
 - steady high beam held well past the threshold does not toggle
@@ -262,10 +268,10 @@ On the bike:
 4. ~~**Fuse margin.**~~ **Superseded 2026-11-12.** The measured pods draw 3.2 A each at worst,
    so both pods move to the 15 A aux 3 circuit and feed A carries no pod (earlier spec §4.1.1).
 5. **Compliance.** Whether the pods may be used as aux lights in this way, low at night alongside
-   the headlight, is not established here. §3.1 gives an option if same-side darkening is wanted.
-   **Added 2026-11-12:** the pods' DRL LEDs light whenever they are powered, so they are on at night
-   Low. DRLs are generally expected to go out or dim when dipped beam is on. The user decides
-   whether this is acceptable, or whether night Low should be dropped in favour of Off.
+   the headlight, is not established here.
+   **Decided 2026-11-12:** the pods' DRL LEDs light whenever they are powered, so they are on at
+   night Low. The user accepts that, with the indicating side's pod off (§3.1). Whether DRL LEDs
+   alongside dipped beam are acceptable legally is still unconfirmed.
 6. **Sweep time** against §5's flash limit.
 
 ## 10. Build order

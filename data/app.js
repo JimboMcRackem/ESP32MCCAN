@@ -5,7 +5,7 @@ const FUNCS = ["run","leftInd","rightInd","frontBrake","rearBrake",
                "lowBeam","highBeam","highBeamFlash","dayNight","kickStand"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
 const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
-const PROTOCOL_VERSION = 6;   // must match kProtocolVersion in web_protocol.h
+const PROTOCOL_VERSION = 7;   // must match kProtocolVersion in web_protocol.h
 // Must match kScenarioNames in test_mode.cpp — the firmware table is
 // authoritative and rejects anything it does not know.
 const SCENARIOS = ["allOff","drlDay","leftInd","rightInd",
@@ -168,7 +168,7 @@ function render() {
   // An old export has spotHoldMs only; an empty field would otherwise
   // collect as the minimum and make every flash toggle night mode.
   document.getElementById("nightHoldMs").value = cfg.nightHoldMs ?? cfg.spotHoldMs ?? 800;
-  document.getElementById("auxDarkenOnIndicate").checked = !!cfg.auxDarkenOnIndicate;
+  document.getElementById("auxOffOnIndicateHighBeam").checked = !!cfg.auxOffOnIndicateHighBeam;
   document.getElementById("auxLowDuty").value = cfg.auxLowDuty ?? 15;
   document.getElementById("auxFullDuty").value = cfg.auxFullDuty ?? 100;
   document.getElementById("testMaxMs").value = cfg.testMaxMs;
@@ -329,7 +329,8 @@ function collect() {
   const hold = Number(document.getElementById("nightHoldMs").value) | 0;
   cfg.nightHoldMs = hold ? clamp(hold, 400, 5000) : 800;   // matches kMinNightHoldMs
   delete cfg.spotHoldMs;
-  cfg.auxDarkenOnIndicate = document.getElementById("auxDarkenOnIndicate").checked;
+  cfg.auxOffOnIndicateHighBeam = document.getElementById("auxOffOnIndicateHighBeam").checked;
+  delete cfg.auxDarkenOnIndicate;   // protocol 6 setting, now always on at Low
   // An empty field keeps the default rather than collecting as 0.
   const low = document.getElementById("auxLowDuty").value;
   cfg.auxLowDuty = low === "" ? 15 : clamp(low, 0, 100);

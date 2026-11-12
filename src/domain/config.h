@@ -45,7 +45,7 @@ struct Config {
   uint32_t nightHoldMs   = 800;   // flash long-press that toggles night mode
   FlashSource flashSource = FlashSource::Generate;
   uint32_t testMaxMs     = 600000;   // absolute cap on a test-mode session
-  bool     auxDarkenOnIndicate = false;   // indicating side's pod off at night
+  bool     auxOffOnIndicateHighBeam = false;   // on high beam, indicating side's pod off too
   uint8_t  auxLowDuty  = 15;    // night Low, % duty on yellow (Oxford's stage 1)
   uint8_t  auxFullDuty = 100;   // high-beam Full, % duty; also caps Low
 };
