@@ -5,7 +5,7 @@ const FUNCS = ["run","leftInd","rightInd","frontBrake","rearBrake",
                "lowBeam","highBeam","highBeamFlash","dayNight","kickStand"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
 const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
-const PROTOCOL_VERSION = 5;   // must match kProtocolVersion in web_protocol.h
+const PROTOCOL_VERSION = 6;   // must match kProtocolVersion in web_protocol.h
 // Must match kScenarioNames in test_mode.cpp — the firmware table is
 // authoritative and rejects anything it does not know.
 const SCENARIOS = ["allOff","drlDay","leftInd","rightInd",
@@ -169,6 +169,8 @@ function render() {
   // collect as the minimum and make every flash toggle night mode.
   document.getElementById("nightHoldMs").value = cfg.nightHoldMs ?? cfg.spotHoldMs ?? 800;
   document.getElementById("auxDarkenOnIndicate").checked = !!cfg.auxDarkenOnIndicate;
+  document.getElementById("auxLowDuty").value = cfg.auxLowDuty ?? 15;
+  document.getElementById("auxFullDuty").value = cfg.auxFullDuty ?? 100;
   document.getElementById("testMaxMs").value = cfg.testMaxMs;
   document.getElementById("flashSource").value = cfg.flashSource || "generate";
   renderScenarios();
@@ -328,6 +330,11 @@ function collect() {
   cfg.nightHoldMs = hold ? clamp(hold, 400, 5000) : 800;   // matches kMinNightHoldMs
   delete cfg.spotHoldMs;
   cfg.auxDarkenOnIndicate = document.getElementById("auxDarkenOnIndicate").checked;
+  // An empty field keeps the default rather than collecting as 0.
+  const low = document.getElementById("auxLowDuty").value;
+  cfg.auxLowDuty = low === "" ? 15 : clamp(low, 0, 100);
+  const full = document.getElementById("auxFullDuty").value;
+  cfg.auxFullDuty = full === "" ? 100 : clamp(full, 0, 100);
   cfg.testMaxMs = clamp(document.getElementById("testMaxMs").value, 10000, 3600000);
   cfg.flashSource = document.getElementById("flashSource").value;
   return cfg;

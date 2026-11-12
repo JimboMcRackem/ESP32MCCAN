@@ -12,8 +12,9 @@
 // value reads as 1. Version 3 removed the colour and denali blocks entirely
 // and changed `zones` from four per-corner colour triples to a single 12-bit
 // output mask. Version 4 added set_wifi_password and device_info. Version 5
-// renamed spotHoldMs to nightHoldMs and added auxDarkenOnIndicate.
-constexpr int kProtocolVersion = 5;
+// renamed spotHoldMs to nightHoldMs and added auxDarkenOnIndicate. Version 6
+// added auxLowDuty and auxFullDuty.
+constexpr int kProtocolVersion = 6;
 
 // Wire-name asymmetry, deliberate and load-bearing: an INBOUND test request
 // names its mode in "mode" (read at web_protocol.cpp:47), while the OUTBOUND
