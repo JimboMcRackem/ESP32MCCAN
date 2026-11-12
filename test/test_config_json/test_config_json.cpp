@@ -103,6 +103,30 @@ void test_aux_darken_round_trips() {
   TEST_ASSERT_TRUE(out.auxDarkenOnIndicate);
 }
 
+void test_aux_duties_round_trip() {
+  Config in = defaultConfig(); in.auxLowDuty = 22; in.auxFullDuty = 80;
+  bool ok = false;
+  Config out = configFromJson(configToJson(in), ok);
+  TEST_ASSERT_TRUE(ok);
+  TEST_ASSERT_EQUAL_UINT8(22, out.auxLowDuty);
+  TEST_ASSERT_EQUAL_UINT8(80, out.auxFullDuty);
+}
+
+// 250 must not wrap a uint8_t to 250, nor -5 to 251.
+void test_aux_duties_clamp_out_of_range() {
+  bool ok = false;
+  Config c = configFromJson("{\"auxLowDuty\":250,\"auxFullDuty\":-5}", ok);
+  TEST_ASSERT_EQUAL_UINT8(100, c.auxLowDuty);
+  TEST_ASSERT_EQUAL_UINT8(0, c.auxFullDuty);
+}
+
+void test_aux_duties_missing_keys_use_defaults() {
+  bool ok = false;
+  Config c = configFromJson("{\"blinkPeriodMs\":340}", ok);
+  TEST_ASSERT_EQUAL_UINT8(15, c.auxLowDuty);
+  TEST_ASSERT_EQUAL_UINT8(100, c.auxFullDuty);
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -118,5 +142,8 @@ int main(int, char**) {
   RUN_TEST(test_old_spot_hold_key_is_honoured);
   RUN_TEST(test_new_hold_key_wins);
   RUN_TEST(test_aux_darken_round_trips);
+  RUN_TEST(test_aux_duties_round_trip);
+  RUN_TEST(test_aux_duties_clamp_out_of_range);
+  RUN_TEST(test_aux_duties_missing_keys_use_defaults);
   return UNITY_END();
 }

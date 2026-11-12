@@ -34,6 +34,10 @@ constexpr uint32_t kFlashFollowTimeoutMs = 1200;
 // toggle night mode and drop the daytime front light.
 constexpr uint32_t kMinNightHoldMs = 400;
 
+// The pods' yellow brightness input runs at about 100 Hz (measured from
+// Oxford's own dial, emarked spec 2.2.1). A build constant, not a setting.
+constexpr uint32_t kAuxPwmHz = 100;
+
 struct Config {
   FunctionMap map[(size_t)Function::COUNT];
 
@@ -42,6 +46,8 @@ struct Config {
   FlashSource flashSource = FlashSource::Generate;
   uint32_t testMaxMs     = 600000;   // absolute cap on a test-mode session
   bool     auxDarkenOnIndicate = false;   // indicating side's pod off at night
+  uint8_t  auxLowDuty  = 15;    // night Low, % duty on yellow (Oxford's stage 1)
+  uint8_t  auxFullDuty = 100;   // high-beam Full, % duty; also caps Low
 };
 
 Config defaultConfig();

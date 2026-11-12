@@ -7,6 +7,10 @@ static const char* kFuncNames[(size_t)Function::COUNT] = {
   "lowBeam", "highBeam", "highBeamFlash", "dayNight", "kickStand"
 };
 
+static uint8_t clampPercent(int v) {
+  return (uint8_t)(v < 0 ? 0 : v > 100 ? 100 : v);
+}
+
 std::string configToJson(const Config& c) {
   JsonDocument doc;
 
@@ -26,6 +30,8 @@ std::string configToJson(const Config& c) {
   doc["blinkPeriodMs"] = c.blinkPeriodMs;
   doc["nightHoldMs"] = c.nightHoldMs;
   doc["auxDarkenOnIndicate"] = c.auxDarkenOnIndicate;
+  doc["auxLowDuty"] = c.auxLowDuty;
+  doc["auxFullDuty"] = c.auxFullDuty;
   static const char* kFlashSourceNames[] = { "auto", "follow", "generate" };
   doc["flashSource"] = kFlashSourceNames[(uint8_t)c.flashSource];
   doc["testMaxMs"] = c.testMaxMs;
@@ -69,6 +75,9 @@ Config configFromJson(const std::string& json, bool& ok) {
   // its hold time.
   c.nightHoldMs = doc["nightHoldMs"] | (doc["spotHoldMs"] | c.nightHoldMs);
   c.auxDarkenOnIndicate = doc["auxDarkenOnIndicate"] | c.auxDarkenOnIndicate;
+  // Read wide and clamp before narrowing, so 250 or -5 cannot wrap a uint8_t.
+  c.auxLowDuty  = clampPercent(doc["auxLowDuty"]  | (int)c.auxLowDuty);
+  c.auxFullDuty = clampPercent(doc["auxFullDuty"] | (int)c.auxFullDuty);
   // Unknown or non-string values resolve to the default, Generate, rather
   // than to an undefined enum value.
   const char* fs = doc["flashSource"].as<const char*>();
