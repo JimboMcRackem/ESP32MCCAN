@@ -11,9 +11,11 @@ Full read-out of what each one settled is in `../docs/part-selection.md`, "Parts
 
 ## 2026-11-13 — aux stage
 
-- **`sn74ahct2g126.pdf`** (TI) — U15, the yellow PWM buffer. The symbol uses the standard 2G126
-  pinout (1 1OE, 2 1A, 3 2Y, 4 GND, 5 2A, 6 1Y, 7 2OE, 8 VCC), identical to KiCad's 74LVC2G126,
-  and the DCT (SSOP-8 2.95 x 2.8) footprint. Confirm both against TI's sheet before ordering.
+- ~~`sn74ahct2g126.pdf`~~ **Supplied 2026-11-13 as `74AHC_AHCT2G126.pdf`** (Nexperia Rev. 9). The pinout
+  is verified, and U15 is now **74AHCT2G126DC, VSSOP-8 (SOT765-1)**. That is the only AHCT package;
+  the TSSOP-8 "DP" is AHC.
+- **`mmbt3904.pdf`** (Diotec, 2025-11-18): supplied. B on pin 1, E on pin 2, C on pin 3, which
+  matches `Q_NPN_BEC` on Q2, Q3 and Q12.
 - The pod switch is **chosen**: Infineon BTS7008-2EPA, already held here
   (`infineon_bts7008_2epa_datasheet_en.pdf`). The inrush measurement confirms it; it no longer
   gates it.

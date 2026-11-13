@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN-pcb\\hardware\\mccan.kicad_sch")
-		(date "2026-11-13T22:15:29")
+		(date "2026-11-13T22:30:15")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -8813,7 +8813,7 @@
 		)
 		(comp
 			(ref "R82")
-			(value "100")
+			(value "330")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8867,7 +8867,7 @@
 		)
 		(comp
 			(ref "R83")
-			(value "100")
+			(value "330")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -9603,22 +9603,22 @@
 		)
 		(comp
 			(ref "U15")
-			(value "SN74AHCT2G126")
-			(footprint "Package_SO:SSOP-8_2.95x2.8mm_P0.65mm")
-			(description "TI SN74AHCT2G126: dual buffer, 3-state, active-high OE, TTL inputs, SSOP-8 (DCT)")
+			(value "74AHCT2G126DC")
+			(footprint "Package_SO:VSSOP-8_2.3x2mm_P0.5mm")
+			(description "Nexperia 74AHCT2G126DC: dual buffer, 3-state, active-high OE, TTL inputs, VSSOP-8")
 			(fields
 				(field
-					(name "Footprint") "Package_SO:SSOP-8_2.95x2.8mm_P0.65mm")
+					(name "Footprint") "Package_SO:VSSOP-8_2.3x2mm_P0.5mm")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "TI SN74AHCT2G126: dual buffer, 3-state, active-high OE, TTL inputs, SSOP-8 (DCT)")
+					(name "Description") "Nexperia 74AHCT2G126DC: dual buffer, 3-state, active-high OE, TTL inputs, VSSOP-8")
 			)
 			(libsource
 				(lib "mccan_parts")
-				(part "SN74AHCT2G126")
-				(description "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, SSOP-8 (DCT)")
+				(part "74AHCT2G126")
+				(description "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)")
 			)
 			(property
 				(name "Sheetname")
@@ -10720,6 +10720,67 @@
 		)
 		(libpart
 			(lib "mccan_parts")
+			(part "74AHCT2G126")
+			(description "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)")
+			(docs "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT2G126.pdf")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "74AHCT2G126DC")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet") "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT2G126.pdf")
+				(field
+					(name "Description") "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1OE")
+					(type "input")
+				)
+				(pin
+					(num "2")
+					(name "1A")
+					(type "input")
+				)
+				(pin
+					(num "3")
+					(name "2Y")
+					(type "tri_state")
+				)
+				(pin
+					(num "4")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "5")
+					(name "2A")
+					(type "input")
+				)
+				(pin
+					(num "6")
+					(name "1Y")
+					(type "tri_state")
+				)
+				(pin
+					(num "7")
+					(name "2OE")
+					(type "input")
+				)
+				(pin
+					(num "8")
+					(name "VCC")
+					(type "power_in")
+				)
+			)
+		)
+		(libpart
+			(lib "mccan_parts")
 			(part "BTS7008_2EPA")
 			(description "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, PG-TSDSO-14 with the exposed pad as VS (pin 15)")
 			(docs "https://www.infineon.com/dgdl/Infineon-BTS7008-2EPA-DataSheet-v01_21-EN.pdf")
@@ -10959,67 +11020,6 @@
 					(num "3")
 					(name "CC")
 					(type "passive")
-				)
-			)
-		)
-		(libpart
-			(lib "mccan_parts")
-			(part "SN74AHCT2G126")
-			(description "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, SSOP-8 (DCT)")
-			(docs "https://www.ti.com/lit/ds/symlink/sn74ahct2g126.pdf")
-			(fields
-				(field
-					(name "Reference") "U")
-				(field
-					(name "Value") "SN74AHCT2G126")
-				(field
-					(name "Footprint")
-				)
-				(field
-					(name "Datasheet") "https://www.ti.com/lit/ds/symlink/sn74ahct2g126.pdf")
-				(field
-					(name "Description") "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, SSOP-8 (DCT)")
-			)
-			(pins
-				(pin
-					(num "1")
-					(name "1OE")
-					(type "input")
-				)
-				(pin
-					(num "2")
-					(name "1A")
-					(type "input")
-				)
-				(pin
-					(num "3")
-					(name "2Y")
-					(type "tri_state")
-				)
-				(pin
-					(num "4")
-					(name "GND")
-					(type "power_in")
-				)
-				(pin
-					(num "5")
-					(name "2A")
-					(type "input")
-				)
-				(pin
-					(num "6")
-					(name "1Y")
-					(type "tri_state")
-				)
-				(pin
-					(num "7")
-					(name "2OE")
-					(type "input")
-				)
-				(pin
-					(num "8")
-					(name "VCC")
-					(type "power_in")
 				)
 			)
 		)

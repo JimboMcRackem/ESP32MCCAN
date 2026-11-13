@@ -1782,6 +1782,229 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "mccan_parts:74AHCT2G126"
+			(pin_names
+				(offset 0.254)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "U"
+				(at 0 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "74AHCT2G126DC"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+						(italic yes)
+					)
+				)
+			)
+			(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT2G126.pdf"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+						(italic yes)
+					)
+				)
+			)
+			(property "Description" "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+						(italic yes)
+					)
+				)
+			)
+			(symbol "74AHCT2G126_1_1"
+				(rectangle
+					(start -10.16 10.16)
+					(end 10.16 -10.16)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin input line
+					(at -12.7 5.08 0)
+					(length 2.54)
+					(name "1A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -12.7 2.54 0)
+					(length 2.54)
+					(name "1OE"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -12.7 -2.54 0)
+					(length 2.54)
+					(name "2A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -12.7 -5.08 0)
+					(length 2.54)
+					(name "2OE"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin tri_state line
+					(at 12.7 5.08 180)
+					(length 2.54)
+					(name "1Y"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin tri_state line
+					(at 12.7 -2.54 180)
+					(length 2.54)
+					(name "2Y"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 12.7 270)
+					(length 2.54)
+					(name "VCC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 -12.7 90)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
 		(symbol "mccan_parts:BTS7008_2EPA"
 			(pin_names
 				(offset 0.254)
@@ -2122,229 +2345,6 @@
 						)
 					)
 					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
-		(symbol "mccan_parts:SN74AHCT2G126"
-			(pin_names
-				(offset 0.254)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "U"
-				(at 0 2.54 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "SN74AHCT2G126"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-						(italic yes)
-					)
-				)
-			)
-			(property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74ahct2g126.pdf"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-						(italic yes)
-					)
-				)
-			)
-			(property "Description" "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, SSOP-8 (DCT)"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-						(italic yes)
-					)
-				)
-			)
-			(symbol "SN74AHCT2G126_1_1"
-				(rectangle
-					(start -10.16 10.16)
-					(end 10.16 -10.16)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(pin input line
-					(at -12.7 5.08 0)
-					(length 2.54)
-					(name "1A"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -12.7 2.54 0)
-					(length 2.54)
-					(name "1OE"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -12.7 -2.54 0)
-					(length 2.54)
-					(name "2A"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -12.7 -5.08 0)
-					(length 2.54)
-					(name "2OE"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "7"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin tri_state line
-					(at 12.7 5.08 180)
-					(length 2.54)
-					(name "1Y"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "6"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin tri_state line
-					(at 12.7 -2.54 180)
-					(length 2.54)
-					(name "2Y"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at 0 12.7 270)
-					(length 2.54)
-					(name "VCC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "8"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at 0 -12.7 90)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "4"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3071,6 +3071,26 @@
 			(embedded_fonts no)
 		)
 	)
+	(text_box "HARNESS TAILS (D5) -- SOLDERED WIRE, NOT CONNECTORS\nJ3 front: FL_DRL, FL_IND, FR_DRL, FR_IND, GND.  J4 rear part 1: RL_DRL, RL_IND, RL_BRK, GND.\nJ5 rear part 2: RR_DRL, RR_IND, RR_BRK.  J8: CAN twisted pair.\nJ4 and J5 are one 7-core cable through one gland, split across two tails only because KiCad's Connector_Wire relief footprints stop at\n1x06; the 7-core run has one return (spec 3.1), on J4. The Superseal joints sit out on the harness.  The _Relief footprints' second,\nunplated hole per conductor is the strain relief: nothing else mechanically restrains these wires."
+		(exclude_from_sim no)
+		(at 460.0 108 0)
+		(size 103.19 10.88)
+		(margins 0.9525 0.9525 0.9525 0.9525)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill
+			(type none)
+		)
+		(effects
+			(font
+				(size 0.8 0.8)
+			)
+			(justify left top)
+		)
+		(uuid "035767ce-ed45-508a-b20b-6d99c1b37d2a")
+	)
 	(text_box "SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)\nR68-R70 = 1.8 kOhm set the scale: 3.0 V at the 0.5 A limit (K = 300), 0.48 V at 80 mA.\nOn a short or over-temperature the CS pin goes to its 4.5-6.5 V fault level.  R71-R73 (4.7 kOhm)\nthen carry (6.5 - 3.3 - 0.3) / 4.7 k = 0.6 mA into the BAT54 (D8-D10, anode SNS_x, cathode\n+3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS\nnode it would have no series resistor to limit its current.\nC44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is tau = (4.7 k + 1.8 k) x 10 nF = 65 us,\nso firmware waits >= 400 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above ~3.0 V means fault, not current."
 		(exclude_from_sim no)
 		(at 460.0 64 0)
@@ -3090,26 +3110,6 @@
 			(justify left top)
 		)
 		(uuid "2654e112-f1f0-5d14-a75d-40393005a061")
-	)
-	(text_box "HARNESS TAILS (D5) -- SOLDERED WIRE, NOT CONNECTORS\nJ3 front: FL_DRL, FL_IND, FR_DRL, FR_IND, GND.  J4 rear part 1: RL_DRL, RL_IND, RL_BRK, GND.\nJ5 rear part 2: RR_DRL, RR_IND, RR_BRK.  J8: CAN twisted pair.\nJ4 and J5 are one 7-core cable through one gland, split across two tails only because KiCad's Connector_Wire relief footprints stop at\n1x06; the 7-core run has one return (spec 3.1), on J4. The Superseal joints sit out on the harness.  The _Relief footprints' second,\nunplated hole per conductor is the strain relief: nothing else mechanically restrains these wires."
-		(exclude_from_sim no)
-		(at 460.0 106.52 0)
-		(size 103.19 10.88)
-		(margins 0.9525 0.9525 0.9525 0.9525)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(fill
-			(type none)
-		)
-		(effects
-			(font
-				(size 0.8 0.8)
-			)
-			(justify left top)
-		)
-		(uuid "2a8e3046-1450-5c4a-b160-1a91097f5519")
 	)
 	(text_box "CURRENT LIMIT, THERMAL MODE, FAULT, GROUND\nCL: R62-R64 = 4.02 kOhm -> 0.8 V x 2500 / 4.02 k = 0.50 A per channel (Eq. 4).\nTHER: R65-R67 = 10 kOhm to the GATED +5V -> latch-off while awake, so the firmware owns retry with\nbackoff (spec 6.3); with +5V off in sleep the pin's internal pull-down draws nothing.\nFAULT: not connected -- no GPIO left; the per-chip sense line reports faults (4.5-6.5 V level).\nGND pads and the exposed pad go straight to GND: feed A's LTC4380 already blocks reverse\npolarity, so TI's GND resistor/diode network is not fitted."
 		(exclude_from_sim no)
@@ -3171,10 +3171,10 @@
 		)
 		(uuid "8af0977f-9011-5cf2-b316-73541fab9d1f")
 	)
-	(text_box "AUX STAGE (2026-11-13) -- U14 POD SWITCH, U15 YELLOW BUFFER, J10/J11 POD TAILS\nSpec: docs/superpowers/specs/2026-11-13-aux-stage-design.md.  Pods measured 2026-11-12: 3.2 A each\nworst case (12 V, full beam), drawn as 100 Hz pulses at the PWM rate; yellow = 5 V PWM, ~100 Hz.\nU14 (BTS7008-2EPA) switches both pods from VBAT_B (feed B): OUT0 -> POD_L_P, OUT1 -> POD_R_P.  7.5 A nominal per channel and an\noverload trip of 77-99 A (IL(OVL0), Rev. 1.21 p.33), so the pods' input- capacitor inrush cannot trip it -- the bench inrush test\nconfirms this, it does not size it.  IN0/IN1 take OUT_AUX_L/R through R76/R77 (4.7 k) with R74/R75 (47 k) pull-downs: 3.0 V high\nagainst VDI(TH) 2.0 V max, low at reset.  DEN and DSEL are pulled down (R78, R79): no GPIO is left for pod diagnosis, so IS only\ncarries RSENSE R80 (1.2 k, Infineon typical, > 820 Ohm required).  C67 100 nF 100 V and C68 220 uF 63 V hold VBAT_B against the pulses;\nC69/C70 10 nF 100 V at the outputs.  Pod returns: GND_B.\nU15 (SN74AHCT2G126, +5V, TTL inputs) buffers AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to both yellows.  Each buffer's ACTIVE-\nHIGH enable is that pod's OUT_AUX_x, so yellow is driven only while its pod is powered -- never into an unpowered pod -- and idles low\non R86/R87 (100 k).\nYELLOW PROTECTION: Y -> R82/R83 100 R -> clamp node (D26/D27 BZT52C5V6 to GND) -> R84/R85 220 R 1206 -> wire.  A yellow shorted to 12 V\nputs 29 mA into the Zener and 0.19 W into the 1206; the 100 R keeps the buffer's output clamp current small.  SERIES VALUES ARE\nPROVISIONAL until the pod's yellow input current is measured (spec 9.1 item 1): 320 R total drops 0.3 V at 1 mA.\nBLUE (J10.4, J11.4) is unconnected until its role is measured (spec 9.1 item 1)."
+	(text_box "AUX STAGE (2026-11-13) -- U14 POD SWITCH, U15 YELLOW BUFFER, J10/J11 POD TAILS\nSpec: docs/superpowers/specs/2026-11-13-aux-stage-design.md.  Pods measured 2026-11-12: 3.2 A each\nworst case (12 V, full beam), drawn as 100 Hz pulses at the PWM rate; yellow = 5 V PWM, ~100 Hz.\nU14 (BTS7008-2EPA) switches both pods from VBAT_B (feed B): OUT0 -> POD_L_P, OUT1 -> POD_R_P.  7.5 A nominal per channel and an\noverload trip of 77-99 A (IL(OVL0), Rev. 1.21 p.33), so the pods' input- capacitor inrush cannot trip it -- the bench inrush test\nconfirms this, it does not size it.  IN0/IN1 take OUT_AUX_L/R through R76/R77 (4.7 k) with R74/R75 (47 k) pull-downs: 3.0 V high\nagainst VDI(TH) 2.0 V max, low at reset.  DEN and DSEL are pulled down (R78, R79): no GPIO is left for pod diagnosis, so IS only\ncarries RSENSE R80 (1.2 k, Infineon typical, > 820 Ohm required).  C67 100 nF 100 V and C68 220 uF 63 V hold VBAT_B against the pulses;\nC69/C70 10 nF 100 V at the outputs.  Pod returns: GND_B.\nU15 (Nexperia 74AHCT2G126DC, VSSOP-8, +5V, TTL inputs) buffers AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to both yellows.\nEach buffer's ACTIVE-HIGH enable is that pod's OUT_AUX_x, so yellow is driven only while its pod is powered -- never into an unpowered\npod -- and idles low on R86/R87 (100 k).\nYELLOW PROTECTION: Y -> R82/R83 330 R -> clamp node (D26/D27 BZT52C5V6 to GND) -> R84/R85 220 R 1206 -> wire.  A yellow shorted to 12 V\nputs 29 mA into the Zener and 0.19 W into the 1206.  The 330 R holds the buffer's output clamp current inside IOK = 20 mA even with +5V\noff (6 V - 0.6 V) / 330 = 16 mA.  SERIES VALUES ARE PROVISIONAL until the pod's yellow input current is measured (spec 9.1 item 1): 550\nR total drops 0.55 V at 1 mA.\nBLUE (J10.4, J11.4) is unconnected until its role is measured (spec 9.1 item 1)."
 		(exclude_from_sim no)
 		(at 460.0 79.34 0)
-		(size 103.19 25.68)
+		(size 103.19 27.16)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
 			(width 0)
@@ -13226,7 +13226,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100"
+		(property "Value" "330"
 			(at 285.75 361.061 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13527,7 +13527,7 @@
 		)
 	)
 	(symbol
-		(lib_id "mccan_parts:SN74AHCT2G126")
+		(lib_id "mccan_parts:74AHCT2G126")
 		(at 266.7 342.9 0)
 		(unit 1)
 		(body_style 1)
@@ -13548,7 +13548,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "SN74AHCT2G126"
+		(property "Value" "74AHCT2G126DC"
 			(at 269.24 360.68 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13559,7 +13559,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Package_SO:SSOP-8_2.95x2.8mm_P0.65mm"
+		(property "Footprint" "Package_SO:VSSOP-8_2.3x2mm_P0.5mm"
 			(at 266.7 342.9 0)
 			(hide yes)
 			(show_name no)
@@ -13581,7 +13581,7 @@
 				)
 			)
 		)
-		(property "Description" "TI SN74AHCT2G126: dual buffer, 3-state, active-high OE, TTL inputs, SSOP-8 (DCT)"
+		(property "Description" "Nexperia 74AHCT2G126DC: dual buffer, 3-state, active-high OE, TTL inputs, VSSOP-8"
 			(at 266.7 342.9 0)
 			(hide yes)
 			(show_name no)
@@ -14852,7 +14852,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100"
+		(property "Value" "330"
 			(at 285.75 340.741 0)
 			(show_name no)
 			(do_not_autoplace no)

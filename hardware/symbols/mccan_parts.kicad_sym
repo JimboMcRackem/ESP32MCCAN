@@ -4607,7 +4607,7 @@
 			)
 		)
 	)
-	(symbol "SN74AHCT2G126"
+	(symbol "74AHCT2G126"
 		(pin_names
 			(offset 0.254)
 		)
@@ -4626,7 +4626,7 @@
 				)
 			)
 		)
-		(property "Value" "SN74AHCT2G126"
+		(property "Value" "74AHCT2G126DC"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4648,7 +4648,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74ahct2g126.pdf"
+		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT2G126.pdf"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4660,7 +4660,7 @@
 				)
 			)
 		)
-		(property "Description" "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, SSOP-8 (DCT)"
+		(property "Description" "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4672,7 +4672,7 @@
 				)
 			)
 		)
-		(symbol "SN74AHCT2G126_1_1"
+		(symbol "74AHCT2G126_1_1"
 			(rectangle
 				(start -10.16 10.16)
 				(end 10.16 -10.16)

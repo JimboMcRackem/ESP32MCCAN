@@ -478,7 +478,7 @@ def chk_signal_channels(nl):
 
 # Aux stage (2026-11-13, spec: docs/superpowers/specs/2026-11-13-aux-stage-design.md).
 # U14 BTS7008-2EPA: pins 2 IN0, 6 IN1, 3 DEN, 5 DSEL, 4 IS, 1 GND, 15 VS (EP),
-# 12-14 OUT0, 8-10 OUT1, 7/11 n.c.   U15 SN74AHCT2G126: 1 1OE, 2 1A, 3 2Y, 4 GND, 5 2A,
+# 12-14 OUT0, 8-10 OUT1, 7/11 n.c.   U15 74AHCT2G126DC: 1 1OE, 2 1A, 3 2Y, 4 GND, 5 2A,
 # 6 1Y, 7 2OE, 8 VCC.
 AUX = {  # side -> (GPIO net, IN net, U14 IN pin, U14 OUT pins, pod net, U15 OE, U15 Y, yellow net)
     "L": ("OUT_AUX_L", "IN_AUX_L", "2", ("12", "13", "14"), "POD_L_P", "1", "6", "YEL_L"),

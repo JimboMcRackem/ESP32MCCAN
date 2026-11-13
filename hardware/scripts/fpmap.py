@@ -188,7 +188,9 @@ EXPLICIT.update({
     # BTS7008-2EPA: KiCad's PG-TSDSO-14-22 is the former name of PG-TSDSO-14 (see symlib.py);
     # pad 15 is the exposed pad = VS.
     "U14": "Package_SO:Infineon_PG-TSDSO-14-22",
-    "U15": "Package_SO:SSOP-8_2.95x2.8mm_P0.65mm",   # SN74AHCT2G126 DCT (SM8)
+    # 74AHCT2G126DC: Nexperia SOT765-1 VSSOP8, MO-187, e 0.5, body 2.3 x 2.0 (Rev. 9 Fig. 8).
+    # The only AHCT package; the TSSOP8 "DP" is the AHC part.
+    "U15": "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
     "D26": "Diode_SMD:D_SOD-123",                   # BZT52C5V6, yellow clamp, pod L
     "D27": "Diode_SMD:D_SOD-123",                   # BZT52C5V6, yellow clamp, pod R
     # Pod tails: 4-core, 1.0 mm2 for red/black at 3.2 A (harness.md); the holes are sized for

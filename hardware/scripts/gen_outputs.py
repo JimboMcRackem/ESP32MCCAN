@@ -106,7 +106,7 @@ LIBS.append(_qblk)
 _bts = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
                     "BTS7008_2EPA", "mccan_parts:BTS7008_2EPA")
 _buf = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
-                    "SN74AHCT2G126", "mccan_parts:SN74AHCT2G126")
+                    "74AHCT2G126", "mccan_parts:74AHCT2G126")
 LIBS += [_bts, _buf]
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
 
@@ -430,11 +430,11 @@ for pads, net, cref in ((("14", "13", "12"), "POD_L_P", "C69"), (("10", "9", "8"
     lab(net, xend, top[1])
     _, cb = vpart(cref, "Device:C", "10nF 100V", xcap, top[1]); glab_b(cb)
 
-# --- U15, SN74AHCT2G126: AUX_PWM -> each pod's yellow, enabled only while that pod is powered
+# --- U15, 74AHCT2G126DC: AUX_PWM -> each pod's yellow, enabled only while that pod is powered
 X2, Y2 = 266.7, 342.9
-Q2 = place("U15", "mccan_parts:SN74AHCT2G126", "SN74AHCT2G126", X2, Y2, 0, BUF,
-           [("Reference", "U15", X2 + 2.54, Y2 + 15.24, 0), ("Value", "SN74AHCT2G126", X2 + 2.54, Y2 + 17.78, 0)],
-           desc="TI SN74AHCT2G126: dual buffer, 3-state, active-high OE, TTL inputs, SSOP-8 (DCT)")
+Q2 = place("U15", "mccan_parts:74AHCT2G126", "74AHCT2G126DC", X2, Y2, 0, BUF,
+           [("Reference", "U15", X2 + 2.54, Y2 + 15.24, 0), ("Value", "74AHCT2G126DC", X2 + 2.54, Y2 + 17.78, 0)],
+           desc="Nexperia 74AHCT2G126DC: dual buffer, 3-state, active-high OE, TTL inputs, VSSOP-8")
 vc = Q2["8"]; vt = (vc[0], round(vc[1] - 10.16, 4)); vtop = (vc[0], round(vt[1] - 5.08, 4))
 xdc = round(vc[0] + 7.62, 4)
 w(vc, vt); w(vt, vtop); w(vt, (xdc, vt[1])); j(vt)
@@ -449,7 +449,7 @@ pa = Q2["2"]; xpd, xh = round(X2 - 35.56, 4), round(X2 - 43.18, 4)
 w(pa, (xpd, pa[1])); w((xpd, pa[1]), (xh, pa[1])); j((xpd, pa[1]))
 _, b = vpart("R81", "Device:R", quadpins.R_IN_PULLDOWN, xpd, pa[1]); gnd(*b)
 xlab("AUX_PWM", xh, pa[1], 180)
-# Y -> R82/R83 100 R -> clamp node (D26/D27 5.6 V Zener, R86/R87 100 k) -> R84/R85 220 R 1206 -> YEL_x
+# Y -> R82/R83 330 R -> clamp node (D26/D27 5.6 V Zener, R86/R87 100 k) -> R84/R85 220 R 1206 -> YEL_x
 for (ypin, ser1, pd, dz, ser2, net, yrow) in (
         ("6", "R82", "R86", "D26", "R84", "YEL_L", None),
         ("3", "R83", "R87", "D27", "R85", "YEL_R", round(Y2 + 15.24, 4))):
@@ -460,7 +460,7 @@ for (ypin, ser1, pd, dz, ser2, net, yrow) in (
         w(p, (x0, yrow))
     else:
         w(p, (x0, p[1])); w((x0, p[1]), (x0, yrow))
-    _, r1b = hpart(ser1, "Device:R", "100", x0, yrow)
+    _, r1b = hpart(ser1, "Device:R", "330", x0, yrow)
     vpart(pd, "Device:R", "100k", r1b[0], yrow); gnd(r1b[0], round(yrow + 7.62, 4))
     xz = round(r1b[0] + 10.16, 4)
     w(r1b, (xz, yrow)); j(r1b); j((xz, yrow))
@@ -559,13 +559,14 @@ take OUT_AUX_L/R through R76/R77 (4.7 k) with R74/R75 (47 k) pull-downs: 3.0 V h
 2.0 V max, low at reset.  DEN and DSEL are pulled down (R78, R79): no GPIO is left for pod diagnosis,
 so IS only carries RSENSE R80 (1.2 k, Infineon typical, > 820 Ohm required).  C67 100 nF 100 V and C68
 220 uF 63 V hold VBAT_B against the pulses; C69/C70 10 nF 100 V at the outputs.  Pod returns: GND_B.""",
-"""U15 (SN74AHCT2G126, +5V, TTL inputs) buffers AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to
+"""U15 (Nexperia 74AHCT2G126DC, VSSOP-8, +5V, TTL inputs) buffers AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to
 both yellows.  Each buffer's ACTIVE-HIGH enable is that pod's OUT_AUX_x, so yellow is driven only
 while its pod is powered -- never into an unpowered pod -- and idles low on R86/R87 (100 k).""",
-"""YELLOW PROTECTION: Y -> R82/R83 100 R -> clamp node (D26/D27 BZT52C5V6 to GND) -> R84/R85 220 R
-1206 -> wire.  A yellow shorted to 12 V puts 29 mA into the Zener and 0.19 W into the 1206; the 100 R
-keeps the buffer's output clamp current small.  SERIES VALUES ARE PROVISIONAL until the pod's yellow
-input current is measured (spec 9.1 item 1): 320 R total drops 0.3 V at 1 mA.""",
+"""YELLOW PROTECTION: Y -> R82/R83 330 R -> clamp node (D26/D27 BZT52C5V6 to GND) -> R84/R85 220 R
+1206 -> wire.  A yellow shorted to 12 V puts 29 mA into the Zener and 0.19 W into the 1206.  The 330 R
+holds the buffer's output clamp current inside IOK = 20 mA even with +5V off (6 V - 0.6 V) / 330 =
+16 mA.  SERIES VALUES ARE PROVISIONAL until the pod's yellow input current is measured (spec 9.1
+item 1): 550 R total drops 0.55 V at 1 mA.""",
 """BLUE (J10.4, J11.4) is unconnected until its role is measured (spec 9.1 item 1).""")
 
 note("""|HARNESS TAILS (D5) -- SOLDERED WIRE, NOT CONNECTORS
