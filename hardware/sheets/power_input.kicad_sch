@@ -6892,7 +6892,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "IPT008N06NM5LF"
+		(property "Value" "IPT007N06N"
 			(at 60.96 69.85 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8034,7 +8034,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "IPT008N06NM5LF"
+		(property "Value" "IPT007N06N"
 			(at 97.79 88.9 90)
 			(show_name no)
 			(do_not_autoplace no)

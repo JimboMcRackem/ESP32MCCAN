@@ -574,33 +574,29 @@ blk = emit(_qname, "TPS4HC120A-Q1",
 LIBTXT, how = install(LIBTXT, _qname, blk)
 print(_qname, how, "(from quadpins.PINS, SLVSH18C Table 5-1)")
 
-# ---------------------------------------------------------------- 74AHCT2G126
-# Aux stage, 2026-11-13: the pods' yellow PWM buffer (U15), Nexperia 74AHCT2G126DC.  Dual non-inverting buffer,
-# 3-state outputs, ACTIVE-HIGH output enables, 5 V supply with TTL-level inputs (VIH 2.0 V),
-# so 3.3 V GPIOs drive it.  One unit, not KiCad's three-unit 74LVC2G126: the generators
-# place single-unit symbols.
-# VERIFIED 2026-11-13 against Nexperia 74AHC_AHCT2G126 Rev. 9, 1 September 2023
-# (hardware/datasheets/74AHC_AHCT2G126.pdf), Table 3 "Pin description" and Fig. 5:
-#   1 1OE   2 1A   3 2Y   4 GND   5 2A   6 1Y   7 2OE   8 VCC   (nOE active HIGH)
-# The AHCT part comes ONLY as 74AHCT2G126DC, VSSOP8 (SOT765-1).  The TSSOP8 "DP" is AHC, with
-# CMOS input levels that 3.3 V would not drive from a 5 V supply -- do not substitute it.
+# ---------------------------------------------------------------- 74AHCT1G126
+# Aux stage: the pods' yellow PWM buffers, one per pod (U15 left, U16 right), Nexperia
+# 74AHCT1G126GV.  Replaced the dual 74AHCT2G126DC on 2026-11-13: no JLCPCB/LCSC stock.
+# Non-inverting buffer, 3-state output, ACTIVE-HIGH OE, 5 V supply, TTL-level input (VIH 2.0 V),
+# so 3.3 V GPIOs drive it.
+# VERIFIED 2026-11-13 against Nexperia 74AHC_AHCT1G126 Rev. 1.0, 8 August 2024 (via LCSC
+# C52140416), Table 2 "Pin description" and Table 3 "Function table":
+#   1 OE   2 A   3 GND   4 Y   5 VCC   (OE HIGH -> Y = A; OE LOW -> Z)
+# SOT-23-5 ("GV", SOT753).  The GW is SOT-353 -- a different footprint; do not substitute.
 _buf = [
-    ("2", "1A",  "input",     -12.7,   5.08, 0),
-    ("1", "1OE", "input",     -12.7,   2.54, 0),
-    ("5", "2A",  "input",     -12.7,  -2.54, 0),
-    ("7", "2OE", "input",     -12.7,  -5.08, 0),
-    ("6", "1Y",  "tri_state",  12.7,   5.08, 180),
-    ("3", "2Y",  "tri_state",  12.7,  -2.54, 180),
-    ("8", "VCC", "power_in",    0.0,  12.7,  270),
-    ("4", "GND", "power_in",    0.0, -12.7,  90),
+    ("2", "A",   "input",     -10.16,  2.54, 0),
+    ("1", "OE",  "input",     -10.16, -2.54, 0),
+    ("4", "Y",   "tri_state",  10.16,  0.0,  180),
+    ("5", "VCC", "power_in",    0.0,  10.16, 270),
+    ("3", "GND", "power_in",    0.0, -10.16, 90),
 ]
-blk = emit("74AHCT2G126", "74AHCT2G126DC",
-           "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, "
-           "VSSOP-8 (Nexperia DC, SOT765-1)",
-           "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT2G126.pdf",
-           {1: _buf}, rect=(-10.16, 10.16, 10.16, -10.16))
-LIBTXT, how = install(LIBTXT, "74AHCT2G126", blk)
-print("74AHCT2G126", how, "(Nexperia Rev. 9 Table 3 - VERIFIED)")
+blk = emit("74AHCT1G126", "74AHCT1G126GV",
+           "Single bus buffer, 3-state output, active-high output enable, TTL input, 5 V, "
+           "SOT-23-5 (Nexperia GV, SOT753)",
+           "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT1G126.pdf",
+           {1: _buf}, rect=(-7.62, 7.62, 7.62, -7.62))
+LIBTXT, how = install(LIBTXT, "74AHCT1G126", blk)
+print("74AHCT1G126", how, "(Nexperia Rev. 1.0 Table 2 - VERIFIED)")
 
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
 print("written")

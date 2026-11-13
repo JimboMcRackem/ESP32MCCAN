@@ -4,7 +4,7 @@
 
 Plan4 phase A, Task 7: ten signal outputs on three TI TPS4HC120A-Q1 quad smart high-side
 switches (TPS4H160B-Q1 until 2026-11-13) (U11-U13, channel allocation D1), their input, sense and control networks, the aux
-stage (2026-11-13: U14 pod switch on feed B, U15 yellow PWM buffer, pod tails J10/J11), and
+stage (2026-11-13: U14 pod switch on feed B, U15/U16 yellow PWM buffers, pod tails J10/J11), and
 the harness tails J3/J4/J5 (D5) plus the CAN tail J8.
 Pads and application values come from quadpins.py; nothing is re-typed here.
 """
@@ -106,7 +106,7 @@ LIBS.append(_qblk)
 _bts = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
                     "BTS7008_2EPA", "mccan_parts:BTS7008_2EPA")
 _buf = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
-                    "74AHCT2G126", "mccan_parts:74AHCT2G126")
+                    "74AHCT1G126", "mccan_parts:74AHCT1G126")
 _tp = from_library(os.path.join(STOCK, "Connector.kicad_sym"), "TestPoint", "Connector:TestPoint")
 LIBS += [_bts, _buf, _tp]
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
@@ -429,36 +429,39 @@ for pads, net, cref in ((("14", "13", "12"), "POD_L_P", "C69"), (("10", "9", "8"
     lab(net, xend, top[1])
     _, cb = vpart(cref, "Device:C", "10nF 100V", xcap, top[1]); glab_b(cb)
 
-# --- U15, 74AHCT2G126DC: AUX_PWM -> each pod's yellow, enabled only while that pod is powered
-X2, Y2 = 266.7, 342.9
-Q2 = place("U15", "mccan_parts:74AHCT2G126", "74AHCT2G126DC", X2, Y2, 0, BUF,
-           [("Reference", "U15", X2 + 2.54, Y2 + 15.24, 0), ("Value", "74AHCT2G126DC", X2 + 2.54, Y2 + 17.78, 0)],
-           desc="Nexperia 74AHCT2G126DC: dual buffer, 3-state, active-high OE, TTL inputs, VSSOP-8")
-vc = Q2["8"]; vt = (vc[0], round(vc[1] - 10.16, 4)); vtop = (vc[0], round(vt[1] - 5.08, 4))
-xdc = round(vc[0] + 7.62, 4)
-w(vc, vt); w(vt, vtop); w(vt, (xdc, vt[1])); j(vt)
-xlab("+5V", vtop[0], vtop[1], 90)
-_, b = vpart("C71", "Device:C", "100nF", xdc, vt[1]); gnd(*b)
-gnd(*Q2["4"])
-xin = round(X2 - 17.78, 4)                               # label column, clear of the pins
-for pnum, net in (("1", "OUT_AUX_L"), ("5", "AUX_PWM"), ("7", "OUT_AUX_R")):
-    w(Q2[pnum], (xin, Q2[pnum][1])); lab(net, xin, Q2[pnum][1], 180)
-# 1A is where AUX_PWM arrives from mcu_can, with its 47 k pull-down R81
-pa = Q2["2"]; xpd, xh = round(X2 - 35.56, 4), round(X2 - 43.18, 4)
-w(pa, (xpd, pa[1])); w((xpd, pa[1]), (xh, pa[1])); j((xpd, pa[1]))
-_, b = vpart("R81", "Device:R", quadpins.R_IN_PULLDOWN, xpd, pa[1]); gnd(*b)
-xlab("AUX_PWM", xh, pa[1], 180)
-# Y -> R82/R83 330 R -> clamp node (D26/D27 5.6 V Zener, R86/R87 100 k) -> R84/R85 220 R 1206 -> YEL_x
-for (ypin, ser1, pd, dz, ser2, net, yrow) in (
-        ("6", "R82", "R86", "D26", "R84", "YEL_L", None),
-        ("3", "R83", "R87", "D27", "R85", "YEL_R", round(Y2 + 15.24, 4))):
-    p = Q2[ypin]
-    x0 = round(p[0] + 2.54, 4)
-    if yrow is None:
-        yrow = p[1]
-        w(p, (x0, yrow))
+# --- U15 (left) / U16 (right), 74AHCT1G126GV: AUX_PWM -> each pod's yellow, enabled only
+# while that pod is powered.  One single gate per pod (the dual 74AHCT2G126DC had no stock).
+X2 = 266.7
+_first = True
+for (bref, cref, ypos, oe_net, ser1, pd, dz, ser2, net) in (
+        ("U15", "C71", 335.28, "OUT_AUX_L", "R82", "R86", "D26", "R84", "YEL_L"),
+        ("U16", "C72", 368.3, "OUT_AUX_R", "R83", "R87", "D27", "R85", "YEL_R")):
+    Qb = place(bref, "mccan_parts:74AHCT1G126", "74AHCT1G126GV", X2, ypos, 0, BUF,
+               [("Reference", bref, X2 + 2.54, ypos + 10.16, 0),
+                ("Value", "74AHCT1G126GV", X2 + 2.54, ypos + 12.7, 0)],
+               desc="Nexperia 74AHCT1G126GV: buffer, 3-state, active-high OE, TTL input, SOT-23-5")
+    vc = Qb["5"]; vt = (vc[0], round(vc[1] - 5.08, 4)); vtop = (vc[0], round(vt[1] - 5.08, 4))
+    xdc = round(vc[0] + 7.62, 4)
+    w(vc, vt); w(vt, vtop); w(vt, (xdc, vt[1])); j(vt)
+    xlab("+5V", vtop[0], vtop[1], 90)
+    _, b = vpart(cref, "Device:C", "100nF", xdc, vt[1]); gnd(*b)
+    gnd(*Qb["3"])
+    xin = round(X2 - 17.78, 4)                           # label column, clear of the pins
+    po = Qb["1"]; w(po, (xin, po[1])); lab(oe_net, xin, po[1], 180)
+    pa = Qb["2"]
+    if _first:
+        # A is where AUX_PWM arrives from mcu_can, with its 47 k pull-down R81
+        xpd, xh = round(X2 - 35.56, 4), round(X2 - 43.18, 4)
+        w(pa, (xpd, pa[1])); w((xpd, pa[1]), (xh, pa[1])); j((xpd, pa[1]))
+        _, b = vpart("R81", "Device:R", quadpins.R_IN_PULLDOWN, xpd, pa[1]); gnd(*b)
+        xlab("AUX_PWM", xh, pa[1], 180)
+        _first = False
     else:
-        w(p, (x0, p[1])); w((x0, p[1]), (x0, yrow))
+        w(pa, (xin, pa[1])); lab("AUX_PWM", xin, pa[1], 180)
+    # Y -> 330 R -> clamp node (5.6 V Zener, 100 k) -> 220 R 1206 -> YEL_x
+    p = Qb["4"]; yrow = p[1]
+    x0 = round(p[0] + 2.54, 4)
+    w(p, (x0, yrow))
     _, r1b = hpart(ser1, "Device:R", "330", x0, yrow)
     vpart(pd, "Device:R", "100k", r1b[0], yrow); gnd(r1b[0], round(yrow + 7.62, 4))
     xz = round(r1b[0] + 10.16, 4)
@@ -584,7 +587,7 @@ take OUT_AUX_L/R through R76/R77 (4.7 k) with R74/R75 (47 k) pull-downs: 3.0 V h
 2.0 V max, low at reset.  DEN and DSEL are pulled down (R78, R79): no GPIO is left for pod diagnosis,
 so IS only carries RSENSE R80 (1.2 k, Infineon typical, > 820 Ohm required).  C67 100 nF 100 V and C68
 220 uF 63 V hold VBAT_B against the pulses; C69/C70 10 nF 100 V at the outputs.  Pod returns: GND_B.""",
-"""U15 (Nexperia 74AHCT2G126DC, VSSOP-8, +5V, TTL inputs) buffers AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to
+"""U15/U16 (Nexperia 74AHCT1G126GV, SOT-23-5, +5V, TTL inputs; one per pod -- the dual 2G126DC had no stock) buffer AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to
 both yellows.  Each buffer's ACTIVE-HIGH enable is that pod's OUT_AUX_x, so yellow is driven only
 while its pod is powered -- never into an unpowered pod -- and idles low on R86/R87 (100 k).""",
 """YELLOW PROTECTION: Y -> R82/R83 330 R -> clamp node (D26/D27 BZT52C5V6 to GND) -> R84/R85 220 R

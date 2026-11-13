@@ -211,7 +211,7 @@ def chk_net_name_collisions(nl):
 
 def chk_deleted_parts(nl):
     gone = ["LM51571-Q1", "DML3017LDC", "PCA9685PW/Q900", "ADG706", "NX5020UNBKS",
-            "1206L050/24", "TPS4H160BQPWPRQ1"]
+            "1206L050/24", "TPS4H160BQPWPRQ1", "74AHCT2G126DC"]
     # TPS4H160BQPWPRQ1 joined it 2026-11-13: no stock at JLCPCB/LCSC; owner chose TPS4HC120A-Q1.
     # BTS7008-2EPA left this list 2026-11-13: it came back as the pod switch U14 (aux stage).
     return ["deleted part still present: %s value %s" % (ref, p.value)
@@ -509,25 +509,34 @@ def chk_signal_channels(nl):
 
 # Aux stage (2026-11-13, spec: docs/superpowers/specs/2026-11-13-aux-stage-design.md).
 # U14 BTS7008-2EPA: pins 2 IN0, 6 IN1, 3 DEN, 5 DSEL, 4 IS, 1 GND, 15 VS (EP),
-# 12-14 OUT0, 8-10 OUT1, 7/11 n.c.   U15 74AHCT2G126DC: 1 1OE, 2 1A, 3 2Y, 4 GND, 5 2A,
-# 6 1Y, 7 2OE, 8 VCC.
-AUX = {  # side -> (GPIO net, IN net, U14 IN pin, U14 OUT pins, pod net, U15 OE, U15 Y, yellow net)
-    "L": ("OUT_AUX_L", "IN_AUX_L", "2", ("12", "13", "14"), "POD_L_P", "1", "6", "YEL_L"),
-    "R": ("OUT_AUX_R", "IN_AUX_R", "6", ("8", "9", "10"), "POD_R_P", "7", "3", "YEL_R"),
+# 12-14 OUT0, 8-10 OUT1, 7/11 n.c.
+# Yellow buffers (2026-11-13, 74AHCT2G126DC had no stock): U15 = left, U16 = right, each a
+# Nexperia 74AHCT1G126GV, SOT-23-5 (Rev. 1.0 Table 2): 1 OE, 2 A, 3 GND, 4 Y, 5 VCC.
+BUF_PART, BUF_FP = "74AHCT1G126GV", "Package_TO_SOT_SMD:SOT-23-5"
+AUX = {  # side -> (GPIO net, IN net, U14 IN pin, U14 OUT pins, pod net, buffer, yellow net)
+    "L": ("OUT_AUX_L", "IN_AUX_L", "2", ("12", "13", "14"), "POD_L_P", "U15", "YEL_L"),
+    "R": ("OUT_AUX_R", "IN_AUX_R", "6", ("8", "9", "10"), "POD_R_P", "U16", "YEL_R"),
 }
 
 
 def chk_aux_outputs(nl):
     f = []
-    for ref in ("U14", "U15"):
+    for ref in ("U14", "U15", "U16"):
         if not has_part(nl, ref):
             f.append("%s (aux stage) is not in the netlist" % ref)
     if f:
         return f
-    for side, (gpio, in_net, in_pin, out_pins, pod, oe, y, yel) in AUX.items():
+    for ref in ("U15", "U16"):
+        p = nl.parts[ref]
+        if p.value != BUF_PART or p.footprint != BUF_FP:
+            f.append("%s is %s on %s, want %s on %s" % (ref, p.value, p.footprint, BUF_PART, BUF_FP))
+        for pin, net in (("2", "AUX_PWM"), ("5", "+5V"), ("3", "GND")):
+            f += expect_pin(nl, ref, pin, net)
+    for side, (gpio, in_net, in_pin, out_pins, pod, buf, yel) in AUX.items():
+        oe, y = "1", "4"
         pad = MCU_PADS[gpio]
         m = members(nl, gpio)
-        want = {"U5." + pad, "U15." + oe}
+        want = {"U5." + pad, buf + "." + oe}
         rs = sorted(x for x in m if re.fullmatch(r"R\d+", x.split(".")[0]))
         others = sorted(x for x in m if x not in want and x not in rs)
         if not want <= m:
@@ -543,14 +552,14 @@ def chk_aux_outputs(nl):
         for p in out_pins:
             f += expect_pin(nl, "U14", p, pod)
         # yellow: U15 Y -> series R -> clamp node (Zener K to GND, pull-down) -> series R -> yel
-        ynode = nl.net_of("U15", y)
+        ynode = nl.net_of(buf, y)
         nodes = [o for r, o in resistors_on(nl, ynode)] if ynode else []
         clamp = [n for n in nodes
                  if any(nl.net_of(d, "1") == n and nl.net_of(d, "2") == "GND"
                         for d in nl.parts if re.fullmatch(r"D\d+", d))]
         if len(clamp) != 1:
-            f.append("U15.%s (%s): want one series resistor to a node clamped by a Zener to GND, "
-                     "found nodes %s" % (y, ynode, nodes))
+            f.append("%s.%s (%s): want one series resistor to a node clamped by a Zener to GND, "
+                     "found nodes %s" % (buf, y, ynode, nodes))
         else:
             if not resistors_between(nl, clamp[0], "GND"):
                 f.append("%s has no pull-down to GND (yellow must idle low)" % clamp[0])
@@ -568,8 +577,6 @@ def chk_aux_outputs(nl):
     for pin in ("7", "11"):
         if not is_open(nl, "U14", pin):
             f.append("U14.%s is n.c. but sits on %s" % (pin, nl.net_of("U14", pin)))
-    for pin, net in (("2", "AUX_PWM"), ("5", "AUX_PWM"), ("8", "+5V"), ("4", "GND")):
-        f += expect_pin(nl, "U15", pin, net)
     if not resistors_between(nl, "AUX_PWM", "GND"):
         f.append("AUX_PWM has no pull-down to GND (GPIO 13 floats at reset)")
     for net in ("VBAT_B", "POD_L_P", "POD_R_P", "YEL_L", "YEL_R"):

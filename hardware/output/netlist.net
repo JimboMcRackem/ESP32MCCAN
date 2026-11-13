@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN-pcb\\hardware\\mccan.kicad_sch")
-		(date "2026-11-13T23:15:29")
+		(date "2026-11-13T23:19:23")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -1440,7 +1440,7 @@
 		)
 		(comp
 			(ref "Q10")
-			(value "IPT008N06NM5LF")
+			(value "IPT007N06N")
 			(footprint "Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1")
 			(fields
 				(field
@@ -1493,7 +1493,7 @@
 		)
 		(comp
 			(ref "Q11")
-			(value "IPT008N06NM5LF")
+			(value "IPT007N06N")
 			(footprint "Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1")
 			(fields
 				(field
@@ -2656,7 +2656,7 @@
 		)
 		(comp
 			(ref "D6")
-			(value "PESD2CANFD24U-T")
+			(value "PESD2CANFD24LT-Q")
 			(footprint "Package_TO_SOT_SMD:SOT-23")
 			(description "Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
 			(fields
@@ -3527,11 +3527,11 @@
 		(comp
 			(ref "SW1")
 			(value "BOOT")
-			(footprint "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
+			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 			(description "Push button switch, generic, two pins")
 			(fields
 				(field
-					(name "Footprint") "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
+					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 				(field
 					(name "Datasheet")
 				)
@@ -3577,11 +3577,11 @@
 		(comp
 			(ref "SW2")
 			(value "EN/RESET")
-			(footprint "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
+			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 			(description "Push button switch, generic, two pins")
 			(fields
 				(field
-					(name "Footprint") "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA")
+					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 				(field
 					(name "Datasheet")
 				)
@@ -4673,11 +4673,11 @@
 		)
 		(comp
 			(ref "L4")
-			(value "XAL7070-223ME")
-			(footprint "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
+			(value "MDA7030-220M")
+			(footprint "Inductor_SMD:L_KOHERelec_MDA7030")
 			(fields
 				(field
-					(name "Footprint") "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
+					(name "Footprint") "Inductor_SMD:L_KOHERelec_MDA7030")
 				(field
 					(name "Datasheet")
 				)
@@ -4727,11 +4727,11 @@
 		)
 		(comp
 			(ref "L5")
-			(value "XAL7070-223ME")
-			(footprint "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
+			(value "MDA7030-220M")
+			(footprint "Inductor_SMD:L_KOHERelec_MDA7030")
 			(fields
 				(field
-					(name "Footprint") "Inductor_SMD:L_Coilcraft_XAL7070-XXX")
+					(name "Footprint") "Inductor_SMD:L_KOHERelec_MDA7030")
 				(field
 					(name "Datasheet")
 				)
@@ -6103,6 +6103,60 @@
 				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
 			)
 			(tstamps "23d619c3-c68a-5336-8571-c595c5b9bd33")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C72")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(fields
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Device")
+				(part "C")
+				(description "Unpolarized capacitor")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "cap capacitor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "C_*")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "9d446d92-20a4-564b-b6f8-4b8c5ecba4ea")
 			(units
 				(unit
 					(name "A")
@@ -11061,22 +11115,22 @@
 		)
 		(comp
 			(ref "U15")
-			(value "74AHCT2G126DC")
-			(footprint "Package_SO:VSSOP-8_2.3x2mm_P0.5mm")
-			(description "Nexperia 74AHCT2G126DC: dual buffer, 3-state, active-high OE, TTL inputs, VSSOP-8")
+			(value "74AHCT1G126GV")
+			(footprint "Package_TO_SOT_SMD:SOT-23-5")
+			(description "Nexperia 74AHCT1G126GV: buffer, 3-state, active-high OE, TTL input, SOT-23-5")
 			(fields
 				(field
-					(name "Footprint") "Package_SO:VSSOP-8_2.3x2mm_P0.5mm")
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23-5")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "Nexperia 74AHCT2G126DC: dual buffer, 3-state, active-high OE, TTL inputs, VSSOP-8")
+					(name "Description") "Nexperia 74AHCT1G126GV: buffer, 3-state, active-high OE, TTL input, SOT-23-5")
 			)
 			(libsource
 				(lib "mccan_parts")
-				(part "74AHCT2G126")
-				(description "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)")
+				(part "74AHCT1G126")
+				(description "Single bus buffer, 3-state output, active-high output enable, TTL input, 5 V, SOT-23-5 (Nexperia GV, SOT753)")
 			)
 			(property
 				(name "Sheetname")
@@ -11105,19 +11159,65 @@
 							(num "5")
 						)
 						(pin
-							(num "7")
-						)
-						(pin
-							(num "8")
+							(num "3")
 						)
 						(pin
 							(num "4")
 						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U16")
+			(value "74AHCT1G126GV")
+			(footprint "Package_TO_SOT_SMD:SOT-23-5")
+			(description "Nexperia 74AHCT1G126GV: buffer, 3-state, active-high OE, TTL input, SOT-23-5")
+			(fields
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Nexperia 74AHCT1G126GV: buffer, 3-state, active-high OE, TTL input, SOT-23-5")
+			)
+			(libsource
+				(lib "mccan_parts")
+				(part "74AHCT1G126")
+				(description "Single bus buffer, 3-state output, active-high output enable, TTL input, 5 V, SOT-23-5 (Nexperia GV, SOT753)")
+			)
+			(property
+				(name "Sheetname")
+				(value "outputs")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/outputs.kicad_sch")
+			)
+			(sheetpath
+				(names "/outputs/")
+				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
+			)
+			(tstamps "088b6e92-99a7-5e65-9f6c-17ff2f22a9e6")
+			(units
+				(unit
+					(name "A")
+					(pins
 						(pin
-							(num "6")
+							(num "2")
+						)
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "5")
 						)
 						(pin
 							(num "3")
+						)
+						(pin
+							(num "4")
 						)
 					)
 				)
@@ -12208,60 +12308,45 @@
 		)
 		(libpart
 			(lib "mccan_parts")
-			(part "74AHCT2G126")
-			(description "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)")
-			(docs "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT2G126.pdf")
+			(part "74AHCT1G126")
+			(description "Single bus buffer, 3-state output, active-high output enable, TTL input, 5 V, SOT-23-5 (Nexperia GV, SOT753)")
+			(docs "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT1G126.pdf")
 			(fields
 				(field
 					(name "Reference") "U")
 				(field
-					(name "Value") "74AHCT2G126DC")
+					(name "Value") "74AHCT1G126GV")
 				(field
 					(name "Footprint")
 				)
 				(field
-					(name "Datasheet") "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT2G126.pdf")
+					(name "Datasheet") "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT1G126.pdf")
 				(field
-					(name "Description") "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, VSSOP-8 (Nexperia DC, SOT765-1)")
+					(name "Description") "Single bus buffer, 3-state output, active-high output enable, TTL input, 5 V, SOT-23-5 (Nexperia GV, SOT753)")
 			)
 			(pins
 				(pin
 					(num "1")
-					(name "1OE")
+					(name "OE")
 					(type "input")
 				)
 				(pin
 					(num "2")
-					(name "1A")
+					(name "A")
 					(type "input")
 				)
 				(pin
 					(num "3")
-					(name "2Y")
-					(type "tri_state")
-				)
-				(pin
-					(num "4")
 					(name "GND")
 					(type "power_in")
 				)
 				(pin
-					(num "5")
-					(name "2A")
-					(type "input")
-				)
-				(pin
-					(num "6")
-					(name "1Y")
+					(num "4")
+					(name "Y")
 					(type "tri_state")
 				)
 				(pin
-					(num "7")
-					(name "2OE")
-					(type "input")
-				)
-				(pin
-					(num "8")
+					(num "5")
 					(name "VCC")
 					(type "power_in")
 				)
@@ -12854,6 +12939,11 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "C72")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
 				(ref "L5")
 				(pin "2")
 				(pinfunction "2_2")
@@ -12872,8 +12962,14 @@
 			)
 			(node
 				(ref "U15")
-				(pin "8")
-				(pinfunction "VCC_8")
+				(pin "5")
+				(pinfunction "VCC_5")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U16")
+				(pin "5")
+				(pinfunction "VCC_5")
 				(pintype "power_in")
 			)
 			(node
@@ -12901,13 +12997,13 @@
 			(node
 				(ref "U15")
 				(pin "2")
-				(pinfunction "1A_2")
+				(pinfunction "A_2")
 				(pintype "input")
 			)
 			(node
-				(ref "U15")
-				(pin "5")
-				(pinfunction "2A_5")
+				(ref "U16")
+				(pin "2")
+				(pinfunction "A_2")
 				(pintype "input")
 			)
 			(node
@@ -13185,7 +13281,7 @@
 			(node
 				(ref "U15")
 				(pin "1")
-				(pinfunction "1OE_1")
+				(pinfunction "OE_1")
 				(pintype "input")
 			)
 			(node
@@ -13205,9 +13301,9 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "U15")
-				(pin "7")
-				(pinfunction "2OE_7")
+				(ref "U16")
+				(pin "1")
+				(pinfunction "OE_1")
 				(pintype "input")
 			)
 			(node
@@ -15368,6 +15464,11 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "C72")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
 				(ref "D26")
 				(pin "2")
 				(pinfunction "A_2")
@@ -15653,8 +15754,14 @@
 			)
 			(node
 				(ref "U15")
-				(pin "4")
-				(pinfunction "GND_4")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U16")
+				(pin "3")
+				(pinfunction "GND_3")
 				(pintype "power_in")
 			)
 			(node
@@ -16088,7 +16195,7 @@
 		)
 		(net
 			(code "114")
-			(name "Net-(U15-1Y)")
+			(name "Net-(U15-Y)")
 			(class "Default")
 			(node
 				(ref "R82")
@@ -16097,14 +16204,14 @@
 			)
 			(node
 				(ref "U15")
-				(pin "6")
-				(pinfunction "1Y_6")
+				(pin "4")
+				(pinfunction "Y_4")
 				(pintype "tri_state")
 			)
 		)
 		(net
 			(code "115")
-			(name "Net-(U15-2Y)")
+			(name "Net-(U16-Y)")
 			(class "Default")
 			(node
 				(ref "R83")
@@ -16112,9 +16219,9 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "U15")
-				(pin "3")
-				(pinfunction "2Y_3")
+				(ref "U16")
+				(pin "4")
+				(pinfunction "Y_4")
 				(pintype "tri_state")
 			)
 		)

@@ -58,8 +58,8 @@ COMPS = [
     ("J1",  "Connector:Conn_01x02_Pin",   26.67,  76.20,   0, "PWR feed A -> SS1.5 2w", ""),
 
     # ---- eFuse: the pass pair, the sense resistor and the output bypass
-    ("Q10", "Transistor_FET:Q_NMOS_GSD",  76.20,  73.66, 270, "IPT008N06NM5LF", ""),
-    ("Q11", "Transistor_FET:Q_NMOS_GSD", 104.14,  78.74,  90, "IPT008N06NM5LF", ""),
+    ("Q10", "Transistor_FET:Q_NMOS_GSD",  76.20,  73.66, 270, "IPT007N06N", ""),
+    ("Q11", "Transistor_FET:Q_NMOS_GSD", 104.14,  78.74,  90, "IPT007N06N", ""),
     ("R100", "Device:R",                 116.84,  76.20,  90, "33m 1% 1W", ""),
     # C65: the datasheet's PIN FUNCTIONS entry for OUT requires a minimum of 22 uF bypass
     # "as close to the pin as possible".  Nothing else on this sheet satisfies it -- C1 is

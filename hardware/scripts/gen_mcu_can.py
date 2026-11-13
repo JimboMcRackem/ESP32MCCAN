@@ -350,15 +350,18 @@ w(U6["6"], L6["2"])
 # pin 3 (CC) the common node to GND.  Replaced the placeholder D6/D7 pair on 2026-09-19;
 # `part-selection.md` records why a single dual-line part is preferred over two discretes.
 # VRWM 24 V, VCL 33 V typ at 1 A (8/20 us), Cd 3.5 pF, AEC-Q101.
+# 2026-11-13: fitted part is PESD2CANFD24LT-Q (the U-T had no JLCPCB stock).  Same pinning
+# (datasheet 19 July 2022, Table 2: 1 K1, 2 K2, 3 CC), VRWM 24 V, Cd 10 pF, AEC-Q101; the
+# symbol keeps its PESD2CANFD24U name -- only the value changed.
 #
 # The two protected pins land exactly on the CANH and CANL runs, so each run is drawn as
 # TWO segments meeting AT the pin rather than one segment the pin happens to touch.  A
 # pin sitting mid-wire does connect, but this sheet has already produced one silent
 # connectivity defect of that shape, so the pin is made a wire endpoint and junctioned.
 PESD = {"1": (-7.62, 2.54), "2": (-7.62, -2.54), "3": (0.0, -10.16)}
-D6 = place("D6", "mccan_parts:PESD2CANFD24U", "PESD2CANFD24U-T", 302.26, 95.25, 0, PESD,
+D6 = place("D6", "mccan_parts:PESD2CANFD24U", "PESD2CANFD24LT-Q", 302.26, 95.25, 0, PESD,
            [("Reference", "D6", 306.07, 90.17, 0),
-            ("Value", "PESD2CANFD24U-T", 306.07, 92.71, 0)],
+            ("Value", "PESD2CANFD24LT-Q", 306.07, 92.71, 0)],
            desc="Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
 w(L6["4"], D6["1"]); w(D6["1"], (299.72, CANH_Y)); j(D6["1"])
 hlab("CANH", "bidirectional", 299.72, CANH_Y, 0)

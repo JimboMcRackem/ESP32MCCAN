@@ -105,15 +105,16 @@ EXPLICIT = {
     "D21": "Diode_SMD:D_SOD-123",              # 22 V Zener, U10 VCC clamp
     "D22": "Diode_SMD:D_SOD-323",              # 1N4148 class, Q10 gate feed
     "D23": "Diode_SMD:D_SOD-323",              # 1N4148 class, Q12 base steering
-    "D6":  "Package_TO_SOT_SMD:SOT-23",        # PESD2CANFD24U-T, 3 terminals (Table 3)
+    "D6":  "Package_TO_SOT_SMD:SOT-23",        # PESD2CANFD24LT-Q, SOT23: 1 K1, 2 K2, 3 CC
     # --- transistors
     "Q2":  "Package_TO_SOT_SMD:SOT-23",        # MMBT3904
     "Q3":  "Package_TO_SOT_SMD:SOT-23",
-    # Q10/Q11: IPT008N06NM5LF, Infineon HSOF-8 ("OptiMOS Source-Down").  The KiCad
-    # footprint numbers only three pads -- 1, 2, 3 -- which is what lets a three-pin
-    # Q_NMOS_GSD symbol map onto it.  FLAGGED: HSOF-8-1 versus -2 versus -3 has NOT been
-    # confirmed against the datasheet's package drawing, and the variants differ in pad
-    # geometry.  Resolve before fabrication (Task 8).
+    # Q10/Q11: IPT007N06N (2026-11-13; IPT008N06NM5LF had no stock), Infineon HSOF-8.  The
+    # KiCad footprint numbers only three pads -- 1, 2, 3 -- which is what lets a three-pin
+    # Q_NMOS_GSD symbol map onto it.  Package CONFIRMED PG-HSOF-8-1 from the IPT007N06N data
+    # sheet (Rev. 2.1, p.3 "Package"), resolving the earlier -1/-2/-3 flag.
+    # SOA (Diagram 3, 10 ms at VDS 24 V): ~6 A at Tc 25 C, ~3.6 A derated to an 85 C start,
+    # against R100's 1.67 A maximum limit -- 2x margin.  Not a LinearFET like the NM5LF.
     "Q10": "Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1",
     "Q11": "Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1",
     "Q12": "Package_TO_SOT_SMD:SOT-23",        # MMBT3904 class, Q10 gate steering
@@ -133,8 +134,11 @@ EXPLICIT = {
     # --- magnetics
     "L1":  "Inductor_SMD:L_Vishay_IHLP-4040",       # IHLP-4040DZ-01, 1.5 uH
     "L2":  "mccan:Wurth_WE-CMBNC_7448031002",       # vendor footprint, pads verified
-    "L4":  "Inductor_SMD:L_Coilcraft_XAL7070-XXX",  # XAL7070-223ME, 22 uH
-    "L5":  "Inductor_SMD:L_Coilcraft_XAL7070-XXX",
+    # MDA7030-220M (KOHER), 22 uH, Isat 3 A, 150 mOhm: XAL7070-223ME had no JLCPCB stock
+    # (2026-11-13).  Type-3 ripple injection (part-selection.md, Defect 1) does not depend on L's
+    # DCR; Isat 3 A clears the LM5164's 1 A switch limit.
+    "L4":  "Inductor_SMD:L_KOHERelec_MDA7030",
+    "L5":  "Inductor_SMD:L_KOHERelec_MDA7030",
     # --- connectors and switches
     "J2":  "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical",  # internal prog
 
@@ -171,8 +175,9 @@ EXPLICIT = {
     #   pads 1.35 x 0.90 mm, centres (+-2.275, +-1.25); column gap 3.2 / overall 5.9;
     #   row gap 1.6 / overall 3.4.  Pin 1 top-left, 4 top-right, 2 bottom-left, 3 bottom-right.
     "L6":  "mccan:TDK_ACT45B",
-    "SW1": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # BOOT
-    "SW2": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # EN/RESET
+    # XKB TS-1187A-B-A-B (JLCPCB basic part): EVQPUJ02K had no stock (2026-11-13).
+    "SW1": "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",   # BOOT
+    "SW2": "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",   # EN/RESET
 
     # --- plan4 phase A.  The three signal-output quads (TPS4HC120A-Q1, DGQ HVSSOP-28, from
     # 2026-11-13): footprint generated from TI's land pattern by gen_fp_dgq28.py.
@@ -190,9 +195,10 @@ EXPLICIT.update({
     # BTS7008-2EPA: KiCad's PG-TSDSO-14-22 is the former name of PG-TSDSO-14 (see symlib.py);
     # pad 15 is the exposed pad = VS.
     "U14": "Package_SO:Infineon_PG-TSDSO-14-22",
-    # 74AHCT2G126DC: Nexperia SOT765-1 VSSOP8, MO-187, e 0.5, body 2.3 x 2.0 (Rev. 9 Fig. 8).
-    # The only AHCT package; the TSSOP8 "DP" is the AHC part.
-    "U15": "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
+    # 74AHCT1G126GV (one per pod, 2026-11-13): Nexperia SOT753 = SOT-23-5, pins 1 OE, 2 A,
+    # 3 GND, 4 Y, 5 VCC (Rev. 1.0 Table 2).  Not the GW (SOT-353).
+    "U15": "Package_TO_SOT_SMD:SOT-23-5",
+    "U16": "Package_TO_SOT_SMD:SOT-23-5",
     "D26": "Diode_SMD:D_SOD-123",                   # BZT52C5V6, yellow clamp, pod L
     "D27": "Diode_SMD:D_SOD-123",                   # BZT52C5V6, yellow clamp, pod R
     # Pod tails: 4-core, 1.0 mm2 for red/black at 3.2 A (harness.md); the holes are sized for
@@ -205,7 +211,7 @@ EXPLICIT.update({
 R_OVERRIDE["R84"] = R_1206
 R_OVERRIDE["R85"] = R_1206
 # C67, C69, C70: 100 nF / 10 nF on VBAT_B and the pod outputs, which see the SMBJ24A's 50.6 V
-# clamp: 100 V parts in 0805, same reasoning as C66.  C71 (100 nF on +5V) stays 0603.
+# clamp: 100 V parts in 0805, same reasoning as C66.  C71/C72 (100 nF on +5V) stay 0603.
 for _r in ("C67", "C69", "C70"):
     C_OVERRIDE[_r] = C_0805
 # C68: 220 uF bulk on VBAT_B for the pods' 100 Hz pulses.  63 V for the same clamp, so an
