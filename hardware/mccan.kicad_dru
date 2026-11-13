@@ -12,3 +12,33 @@
 # nets closer than the clearance being applied, so it cannot drift out of step with the
 # schematic.  The condition has to name each ref: A.memberOfFootprint('U1') works; the tempting
 # A.memberOfFootprint(B) parses, never matches, and fails open with no error at all.
+
+# U2 needs 0.200 mm pad-to-pad
+(rule "land pattern U2"
+	(constraint clearance (min 0.12mm))
+	(condition "A.memberOfFootprint('U2')"))
+
+# U10 needs 0.150 mm pad-to-pad
+(rule "land pattern U10"
+	(constraint clearance (min 0.12mm))
+	(condition "A.memberOfFootprint('U10')"))
+
+# U11 needs 0.200 mm pad-to-pad
+(rule "land pattern U11"
+	(constraint clearance (min 0.12mm))
+	(condition "A.memberOfFootprint('U11')"))
+
+# U12 needs 0.200 mm pad-to-pad
+(rule "land pattern U12"
+	(constraint clearance (min 0.12mm))
+	(condition "A.memberOfFootprint('U12')"))
+
+# U13 needs 0.200 mm pad-to-pad
+(rule "land pattern U13"
+	(constraint clearance (min 0.12mm))
+	(condition "A.memberOfFootprint('U13')"))
+
+# U14 needs 0.200 mm pad-to-pad
+(rule "land pattern U14"
+	(constraint clearance (min 0.12mm))
+	(condition "A.memberOfFootprint('U14')"))

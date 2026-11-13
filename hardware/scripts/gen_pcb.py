@@ -227,7 +227,14 @@ def extent(spec):
         lay = find(c, "layer") or find(c, "layers")
         on_crtyd = lay is not None and any(unq(a) in COURTYARDS for a in lay[1:]
                                            if isinstance(a, str))
-        if c[0] in ("fp_line", "fp_rect", "fp_circle", "fp_arc") and on_crtyd:
+        if c[0] == "fp_circle" and on_crtyd:
+            # A circle is (center, end-on-the-rim): its box is centre +/- radius, not the two
+            # points -- read as points, a TestPoint pad's courtyard came out 1.25 x 0 mm.
+            cc, ee = find(c, "center"), find(c, "end")
+            cx_, cy_ = float(cc[1]), float(cc[2])
+            rr = math.hypot(float(ee[1]) - cx_, float(ee[2]) - cy_)
+            pts += [(cx_ - rr, cy_ - rr), (cx_ + rr, cy_ + rr)]
+        elif c[0] in ("fp_line", "fp_rect", "fp_arc") and on_crtyd:
             for k in ("start", "end", "center", "mid"):
                 s = find(c, k)
                 if s:
@@ -286,7 +293,9 @@ def addrot(at, rot):
         at[3:] = [num(a)]
 
 
-SILK_REF_KEEP = ("J", "F", "TP", "U", "Q", "D", "L")
+SILK_REF_KEEP = ("J", "F", "U", "Q", "D", "L")
+# TP is not in the list: a test pad is identified on the silkscreen by its NET NAME (spec 8),
+# drawn beside the pad by the silkscreen pass, so its designator goes to F.Fab with the rest.
 """Reference designators that stay on the silkscreen.
 
 Every one of the 398 silkscreen warnings was a Reference field -- over a pad, over a
@@ -678,6 +687,10 @@ def place(comps):
         hand["H%d" % (i + 1)] = (mx + ox - w / 2, my + oy - h / 2,
                                  mx + ox + w / 2, my + oy + h / 2)
         grid.mark(mx - 3.5, my - 3.5, mx + 3.5, my + 3.5)
+    for _name, (kx0, ky0, kx1, ky1), _lays in L.KEEPOUTS:
+        grid.mark(kx0, ky0, kx1, ky1)
+    for rx0, ry0, rx1, ry1 in L.RESERVED:
+        grid.mark(rx0, ry0, rx1, ry1)
 
     # Accumulate rather than print-and-continue, for the reason routes() now accumulates:
     # an "ERROR:" that still writes a board is not a gate.  Demonstrated, on a throwaway copy
@@ -1863,6 +1876,33 @@ NETNAME = {}
 
 
 # ---------------------------------------------------------------- copper from layout_pcb tables
+CU_LAYERS = ["F.Cu"] + ["In%d.Cu" % i for i in range(1, 7)] + ["B.Cu"]
+
+
+def keepouts():
+    """Rule areas from layout_pcb.KEEPOUTS: (name, (x0, y0, x1, y1), layers).
+
+    No tracks, vias, pads or pour inside; footprints are allowed (U5's own antenna end lies in
+    the antenna keep-out -- it is the antenna).  "*.Cu" expands to the board's 8 layers."""
+    out = []
+    for name, (x0, y0, x1, y1), layers in L.KEEPOUTS:
+        lays = []
+        for l in layers:
+            lays += CU_LAYERS if l == "*.Cu" else [l]
+        pts = " ".join("(xy %s %s)" % (num(x), num(y))
+                       for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)))
+        out.append('\t(zone\n\t\t(net 0)\n\t\t(net_name "")\n\t\t(layers %s)\n\t\t(uuid %s)\n'
+                   '\t\t(name %s)\n\t\t(hatch edge 0.5)\n\t\t(connect_pads\n\t\t\t(clearance 0)\n'
+                   '\t\t)\n\t\t(min_thickness 0.25)\n\t\t(filled_areas_thickness no)\n'
+                   '\t\t(keepout\n\t\t\t(tracks not_allowed)\n\t\t\t(vias not_allowed)\n'
+                   '\t\t\t(pads not_allowed)\n\t\t\t(copperpour not_allowed)\n'
+                   '\t\t\t(footprints allowed)\n\t\t)\n'
+                   '\t\t(fill\n\t\t\t(thermal_gap 0.5)\n\t\t\t(thermal_bridge_width 0.5)\n\t\t)\n'
+                   '\t\t(polygon\n\t\t\t(pts\n\t\t\t\t%s\n\t\t\t)\n\t\t)\n\t)'
+                   % (" ".join(q(l) for l in lays), U("keepout:" + name), q(name), pts))
+    return out
+
+
 def zones(netidx):
     """Pours from layout_pcb.ZONES: (net, [layers], [(x, y), ...], name, priority).
 
@@ -1984,6 +2024,7 @@ def main():
         out += frozen_routes(netidx)
     check_track_crossings(_rt_lo, len(TRACK_LOG))
     check_via_holes(_rv_lo, len(VIA_LOG))
+    out += keepouts()
     out += zones(netidx)
     out.append('\t(embedded_fonts no)')
     out.append(")")
