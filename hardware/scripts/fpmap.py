@@ -174,8 +174,8 @@ EXPLICIT = {
     "SW1": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # BOOT
     "SW2": "Button_Switch_SMD:Panasonic_EVQPUJ_EVQPUA",   # EN/RESET
 
-    # --- plan4 phase A.  The three signal-output quads (TPS4H160B-Q1, PWP HTSSOP-28): the
-    # footprint and its EP caveat live next to the pad table in quadpins.py.
+    # --- plan4 phase A.  The three signal-output quads (TPS4HC120A-Q1, DGQ HVSSOP-28, from
+    # 2026-11-13): footprint generated from TI's land pattern by gen_fp_dgq28.py.
     "U11": quadpins.FOOTPRINT,                 # quad A (left)
     "U12": quadpins.FOOTPRINT,                 # quad B (right)
     "U13": quadpins.FOOTPRINT,                 # quad C (brake)

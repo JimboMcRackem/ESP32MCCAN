@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN-pcb\\hardware\\mccan.kicad_sch")
-		(date "2026-11-13T22:57:05")
+		(date "2026-11-13T23:15:29")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -7949,7 +7949,7 @@
 		)
 		(comp
 			(ref "R62")
-			(value "4.02k")
+			(value "43.2k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8003,7 +8003,7 @@
 		)
 		(comp
 			(ref "R63")
-			(value "4.02k")
+			(value "43.2k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8057,7 +8057,7 @@
 		)
 		(comp
 			(ref "R64")
-			(value "4.02k")
+			(value "43.2k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8110,170 +8110,8 @@
 			)
 		)
 		(comp
-			(ref "R65")
-			(value "10k")
-			(footprint "Resistor_SMD:R_0603_1608Metric")
-			(fields
-				(field
-					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
-				(field
-					(name "Datasheet")
-				)
-				(field
-					(name "Description")
-				)
-			)
-			(libsource
-				(lib "Device")
-				(part "R")
-				(description "Resistor")
-			)
-			(property
-				(name "Sheetname")
-				(value "outputs")
-			)
-			(property
-				(name "Sheetfile")
-				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "R res resistor")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "R_*")
-			)
-			(sheetpath
-				(names "/outputs/")
-				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
-			)
-			(tstamps "83c08bd0-1587-5d9c-9958-e5c8e387d28c")
-			(units
-				(unit
-					(name "A")
-					(pins
-						(pin
-							(num "1")
-						)
-						(pin
-							(num "2")
-						)
-					)
-				)
-			)
-		)
-		(comp
-			(ref "R66")
-			(value "10k")
-			(footprint "Resistor_SMD:R_0603_1608Metric")
-			(fields
-				(field
-					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
-				(field
-					(name "Datasheet")
-				)
-				(field
-					(name "Description")
-				)
-			)
-			(libsource
-				(lib "Device")
-				(part "R")
-				(description "Resistor")
-			)
-			(property
-				(name "Sheetname")
-				(value "outputs")
-			)
-			(property
-				(name "Sheetfile")
-				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "R res resistor")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "R_*")
-			)
-			(sheetpath
-				(names "/outputs/")
-				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
-			)
-			(tstamps "44ac62b8-2fc0-5a1b-bba4-17db97dec14a")
-			(units
-				(unit
-					(name "A")
-					(pins
-						(pin
-							(num "1")
-						)
-						(pin
-							(num "2")
-						)
-					)
-				)
-			)
-		)
-		(comp
-			(ref "R67")
-			(value "10k")
-			(footprint "Resistor_SMD:R_0603_1608Metric")
-			(fields
-				(field
-					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
-				(field
-					(name "Datasheet")
-				)
-				(field
-					(name "Description")
-				)
-			)
-			(libsource
-				(lib "Device")
-				(part "R")
-				(description "Resistor")
-			)
-			(property
-				(name "Sheetname")
-				(value "outputs")
-			)
-			(property
-				(name "Sheetfile")
-				(value "sheets/outputs.kicad_sch")
-			)
-			(property
-				(name "ki_keywords")
-				(value "R res resistor")
-			)
-			(property
-				(name "ki_fp_filters")
-				(value "R_*")
-			)
-			(sheetpath
-				(names "/outputs/")
-				(tstamps "/4008c412-efce-41fb-837c-ba7220a4d335/")
-			)
-			(tstamps "548644c6-8937-5f89-9934-3370e8898c1a")
-			(units
-				(unit
-					(name "A")
-					(pins
-						(pin
-							(num "1")
-						)
-						(pin
-							(num "2")
-						)
-					)
-				)
-			)
-		)
-		(comp
 			(ref "R68")
-			(value "1.8k")
+			(value "5.11k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8327,7 +8165,7 @@
 		)
 		(comp
 			(ref "R69")
-			(value "1.8k")
+			(value "5.11k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8381,7 +8219,7 @@
 		)
 		(comp
 			(ref "R70")
-			(value "1.8k")
+			(value "5.11k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -10757,22 +10595,22 @@
 		)
 		(comp
 			(ref "U11")
-			(value "TPS4H160BQPWPRQ1")
-			(footprint "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm")
-			(description "TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+			(value "TPS4HC120AQDGQRQ1")
+			(footprint "mccan:TI_DGQ0028C")
+			(description "TI TPS4HC120A-Q1: quad 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off, HVSSOP-28 + EP")
 			(fields
 				(field
-					(name "Footprint") "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm")
+					(name "Footprint") "mccan:TI_DGQ0028C")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+					(name "Description") "TI TPS4HC120A-Q1: quad 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off, HVSSOP-28 + EP")
 			)
 			(libsource
 				(lib "mccan_parts")
-				(part "TPS4H160B_Q1")
-				(description "Quad-channel 160 mOhm smart high-side switch, adjustable current limit, current-sense analog output (Version B), HTSSOP-28 with exposed pad (pin 29, GND)")
+				(part "TPS4HC120A_Q1")
+				(description "Quad-channel 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off (Version A), HVSSOP-28 DGQ with exposed pad (pin 29, internally GND)")
 			)
 			(property
 				(name "Sheetname")
@@ -10792,6 +10630,9 @@
 					(name "A")
 					(pins
 						(pin
+							(num "2")
+						)
+						(pin
 							(num "3")
 						)
 						(pin
@@ -10801,28 +10642,25 @@
 							(num "5")
 						)
 						(pin
-							(num "6")
-						)
-						(pin
-							(num "14")
-						)
-						(pin
 							(num "8")
 						)
 						(pin
 							(num "7")
 						)
 						(pin
-							(num "13")
+							(num "6")
 						)
 						(pin
-							(num "11")
+							(num "10")
+						)
+						(pin
+							(num "12")
 						)
 						(pin
 							(num "20")
 						)
 						(pin
-							(num "1")
+							(num "13")
 						)
 						(pin
 							(num "21")
@@ -10834,7 +10672,7 @@
 							(num "22")
 						)
 						(pin
-							(num "12")
+							(num "24")
 						)
 						(pin
 							(num "23")
@@ -10864,19 +10702,19 @@
 							(num "16")
 						)
 						(pin
-							(num "10")
+							(num "11")
 						)
 						(pin
 							(num "9")
 						)
 						(pin
-							(num "2")
+							(num "1")
+						)
+						(pin
+							(num "14")
 						)
 						(pin
 							(num "19")
-						)
-						(pin
-							(num "24")
 						)
 					)
 				)
@@ -10884,22 +10722,22 @@
 		)
 		(comp
 			(ref "U12")
-			(value "TPS4H160BQPWPRQ1")
-			(footprint "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm")
-			(description "TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+			(value "TPS4HC120AQDGQRQ1")
+			(footprint "mccan:TI_DGQ0028C")
+			(description "TI TPS4HC120A-Q1: quad 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off, HVSSOP-28 + EP")
 			(fields
 				(field
-					(name "Footprint") "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm")
+					(name "Footprint") "mccan:TI_DGQ0028C")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+					(name "Description") "TI TPS4HC120A-Q1: quad 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off, HVSSOP-28 + EP")
 			)
 			(libsource
 				(lib "mccan_parts")
-				(part "TPS4H160B_Q1")
-				(description "Quad-channel 160 mOhm smart high-side switch, adjustable current limit, current-sense analog output (Version B), HTSSOP-28 with exposed pad (pin 29, GND)")
+				(part "TPS4HC120A_Q1")
+				(description "Quad-channel 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off (Version A), HVSSOP-28 DGQ with exposed pad (pin 29, internally GND)")
 			)
 			(property
 				(name "Sheetname")
@@ -10919,6 +10757,9 @@
 					(name "A")
 					(pins
 						(pin
+							(num "2")
+						)
+						(pin
 							(num "3")
 						)
 						(pin
@@ -10928,28 +10769,25 @@
 							(num "5")
 						)
 						(pin
-							(num "6")
-						)
-						(pin
-							(num "14")
-						)
-						(pin
 							(num "8")
 						)
 						(pin
 							(num "7")
 						)
 						(pin
-							(num "13")
+							(num "6")
 						)
 						(pin
-							(num "11")
+							(num "10")
+						)
+						(pin
+							(num "12")
 						)
 						(pin
 							(num "20")
 						)
 						(pin
-							(num "1")
+							(num "13")
 						)
 						(pin
 							(num "21")
@@ -10961,7 +10799,7 @@
 							(num "22")
 						)
 						(pin
-							(num "12")
+							(num "24")
 						)
 						(pin
 							(num "23")
@@ -10991,19 +10829,19 @@
 							(num "16")
 						)
 						(pin
-							(num "10")
+							(num "11")
 						)
 						(pin
 							(num "9")
 						)
 						(pin
-							(num "2")
+							(num "1")
+						)
+						(pin
+							(num "14")
 						)
 						(pin
 							(num "19")
-						)
-						(pin
-							(num "24")
 						)
 					)
 				)
@@ -11011,22 +10849,22 @@
 		)
 		(comp
 			(ref "U13")
-			(value "TPS4H160BQPWPRQ1")
-			(footprint "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm")
-			(description "TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+			(value "TPS4HC120AQDGQRQ1")
+			(footprint "mccan:TI_DGQ0028C")
+			(description "TI TPS4HC120A-Q1: quad 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off, HVSSOP-28 + EP")
 			(fields
 				(field
-					(name "Footprint") "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.85x5.4mm")
+					(name "Footprint") "mccan:TI_DGQ0028C")
 				(field
 					(name "Datasheet")
 				)
 				(field
-					(name "Description") "TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+					(name "Description") "TI TPS4HC120A-Q1: quad 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off, HVSSOP-28 + EP")
 			)
 			(libsource
 				(lib "mccan_parts")
-				(part "TPS4H160B_Q1")
-				(description "Quad-channel 160 mOhm smart high-side switch, adjustable current limit, current-sense analog output (Version B), HTSSOP-28 with exposed pad (pin 29, GND)")
+				(part "TPS4HC120A_Q1")
+				(description "Quad-channel 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off (Version A), HVSSOP-28 DGQ with exposed pad (pin 29, internally GND)")
 			)
 			(property
 				(name "Sheetname")
@@ -11046,6 +10884,9 @@
 					(name "A")
 					(pins
 						(pin
+							(num "2")
+						)
+						(pin
 							(num "3")
 						)
 						(pin
@@ -11055,28 +10896,25 @@
 							(num "5")
 						)
 						(pin
-							(num "6")
-						)
-						(pin
-							(num "14")
-						)
-						(pin
 							(num "8")
 						)
 						(pin
 							(num "7")
 						)
 						(pin
-							(num "13")
+							(num "6")
 						)
 						(pin
-							(num "11")
+							(num "10")
+						)
+						(pin
+							(num "12")
 						)
 						(pin
 							(num "20")
 						)
 						(pin
-							(num "1")
+							(num "13")
 						)
 						(pin
 							(num "21")
@@ -11088,7 +10926,7 @@
 							(num "22")
 						)
 						(pin
-							(num "12")
+							(num "24")
 						)
 						(pin
 							(num "23")
@@ -11118,19 +10956,19 @@
 							(num "16")
 						)
 						(pin
-							(num "10")
+							(num "11")
 						)
 						(pin
 							(num "9")
 						)
 						(pin
-							(num "2")
+							(num "1")
+						)
+						(pin
+							(num "14")
 						)
 						(pin
 							(num "19")
-						)
-						(pin
-							(num "24")
 						)
 					)
 				)
@@ -12675,61 +12513,61 @@
 		)
 		(libpart
 			(lib "mccan_parts")
-			(part "TPS4H160B_Q1")
-			(description "Quad-channel 160 mOhm smart high-side switch, adjustable current limit, current-sense analog output (Version B), HTSSOP-28 with exposed pad (pin 29, GND)")
-			(docs "https://www.ti.com/lit/ds/symlink/tps4h160-q1.pdf")
+			(part "TPS4HC120A_Q1")
+			(description "Quad-channel 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off (Version A), HVSSOP-28 DGQ with exposed pad (pin 29, internally GND)")
+			(docs "https://www.ti.com/lit/ds/symlink/tps4hc120-q1.pdf")
 			(fields
 				(field
 					(name "Reference") "U")
 				(field
-					(name "Value") "TPS4H160B-Q1")
+					(name "Value") "TPS4HC120A-Q1")
 				(field
 					(name "Footprint")
 				)
 				(field
-					(name "Datasheet") "https://www.ti.com/lit/ds/symlink/tps4h160-q1.pdf")
+					(name "Datasheet") "https://www.ti.com/lit/ds/symlink/tps4hc120-q1.pdf")
 				(field
-					(name "Description") "Quad-channel 160 mOhm smart high-side switch, adjustable current limit, current-sense analog output (Version B), HTSSOP-28 with exposed pad (pin 29, GND)")
+					(name "Description") "Quad-channel 120 mOhm smart high-side switch, resistor-set current limit, multiplexed current-sense output, thermal latch-off (Version A), HVSSOP-28 DGQ with exposed pad (pin 29, internally GND)")
 			)
 			(pins
 				(pin
 					(num "1")
-					(name "GND")
-					(type "power_in")
-				)
-				(pin
-					(num "2")
 					(name "NC")
 					(type "no_connect")
 				)
 				(pin
-					(num "3")
+					(num "2")
 					(name "IN1")
 					(type "input")
 				)
 				(pin
-					(num "4")
+					(num "3")
 					(name "IN2")
 					(type "input")
 				)
 				(pin
-					(num "5")
+					(num "4")
 					(name "IN3")
 					(type "input")
 				)
 				(pin
-					(num "6")
+					(num "5")
 					(name "IN4")
 					(type "input")
 				)
 				(pin
-					(num "7")
+					(num "6")
 					(name "SEL1")
 					(type "input")
 				)
 				(pin
-					(num "8")
+					(num "7")
 					(name "SEL0")
+					(type "input")
+				)
+				(pin
+					(num "8")
+					(name "DIAG_EN")
 					(type "input")
 				)
 				(pin
@@ -12739,28 +12577,28 @@
 				)
 				(pin
 					(num "10")
+					(name "LPM")
+					(type "open_collector")
+				)
+				(pin
+					(num "11")
 					(name "SNS")
 					(type "output")
 				)
 				(pin
-					(num "11")
-					(name "CL")
+					(num "12")
+					(name "ILIM")
 					(type "passive")
 				)
 				(pin
-					(num "12")
+					(num "13")
 					(name "GND")
 					(type "power_in")
 				)
 				(pin
-					(num "13")
-					(name "THER")
-					(type "input")
-				)
-				(pin
 					(num "14")
-					(name "DIAG_EN")
-					(type "input")
+					(name "NC")
+					(type "no_connect")
 				)
 				(pin
 					(num "15")
@@ -13022,21 +12860,6 @@
 				(pintype "passive")
 			)
 			(node
-				(ref "R65")
-				(pin "1")
-				(pintype "passive")
-			)
-			(node
-				(ref "R66")
-				(pin "1")
-				(pintype "passive")
-			)
-			(node
-				(ref "R67")
-				(pin "1")
-				(pintype "passive")
-			)
-			(node
 				(ref "R8")
 				(pin "1")
 				(pintype "passive")
@@ -13178,20 +13001,20 @@
 			)
 			(node
 				(ref "U11")
-				(pin "14")
-				(pinfunction "DIAG_EN_14")
+				(pin "8")
+				(pinfunction "DIAG_EN_8")
 				(pintype "input")
 			)
 			(node
 				(ref "U12")
-				(pin "14")
-				(pinfunction "DIAG_EN_14")
+				(pin "8")
+				(pinfunction "DIAG_EN_8")
 				(pintype "input")
 			)
 			(node
 				(ref "U13")
-				(pin "14")
-				(pinfunction "DIAG_EN_14")
+				(pin "8")
+				(pinfunction "DIAG_EN_8")
 				(pintype "input")
 			)
 		)
@@ -13206,20 +13029,20 @@
 			)
 			(node
 				(ref "U11")
-				(pin "8")
-				(pinfunction "SEL0_8")
+				(pin "7")
+				(pinfunction "SEL0_7")
 				(pintype "input")
 			)
 			(node
 				(ref "U12")
-				(pin "8")
-				(pinfunction "SEL0_8")
+				(pin "7")
+				(pinfunction "SEL0_7")
 				(pintype "input")
 			)
 			(node
 				(ref "U13")
-				(pin "8")
-				(pinfunction "SEL0_8")
+				(pin "7")
+				(pinfunction "SEL0_7")
 				(pintype "input")
 			)
 		)
@@ -13234,20 +13057,20 @@
 			)
 			(node
 				(ref "U11")
-				(pin "7")
-				(pinfunction "SEL1_7")
+				(pin "6")
+				(pinfunction "SEL1_6")
 				(pintype "input")
 			)
 			(node
 				(ref "U12")
-				(pin "7")
-				(pinfunction "SEL1_7")
+				(pin "6")
+				(pinfunction "SEL1_6")
 				(pintype "input")
 			)
 			(node
 				(ref "U13")
-				(pin "7")
-				(pinfunction "SEL1_7")
+				(pin "6")
+				(pinfunction "SEL1_6")
 				(pintype "input")
 			)
 		)
@@ -14145,54 +13968,6 @@
 		)
 		(net
 			(code "41")
-			(name "/outputs/CL_A")
-			(class "Default")
-			(node
-				(ref "R62")
-				(pin "1")
-				(pintype "passive")
-			)
-			(node
-				(ref "U11")
-				(pin "11")
-				(pinfunction "CL_11")
-				(pintype "passive")
-			)
-		)
-		(net
-			(code "42")
-			(name "/outputs/CL_B")
-			(class "Default")
-			(node
-				(ref "R63")
-				(pin "1")
-				(pintype "passive")
-			)
-			(node
-				(ref "U12")
-				(pin "11")
-				(pinfunction "CL_11")
-				(pintype "passive")
-			)
-		)
-		(net
-			(code "43")
-			(name "/outputs/CL_C")
-			(class "Default")
-			(node
-				(ref "R64")
-				(pin "1")
-				(pintype "passive")
-			)
-			(node
-				(ref "U13")
-				(pin "11")
-				(pinfunction "CL_11")
-				(pintype "passive")
-			)
-		)
-		(net
-			(code "44")
 			(name "/outputs/CS_A")
 			(class "Default")
 			(node
@@ -14207,13 +13982,13 @@
 			)
 			(node
 				(ref "U11")
-				(pin "10")
-				(pinfunction "SNS_10")
+				(pin "11")
+				(pinfunction "SNS_11")
 				(pintype "output")
 			)
 		)
 		(net
-			(code "45")
+			(code "42")
 			(name "/outputs/CS_B")
 			(class "Default")
 			(node
@@ -14228,13 +14003,13 @@
 			)
 			(node
 				(ref "U12")
-				(pin "10")
-				(pinfunction "SNS_10")
+				(pin "11")
+				(pinfunction "SNS_11")
 				(pintype "output")
 			)
 		)
 		(net
-			(code "46")
+			(code "43")
 			(name "/outputs/CS_C")
 			(class "Default")
 			(node
@@ -14249,13 +14024,13 @@
 			)
 			(node
 				(ref "U13")
-				(pin "10")
-				(pinfunction "SNS_10")
+				(pin "11")
+				(pinfunction "SNS_11")
 				(pintype "output")
 			)
 		)
 		(net
-			(code "47")
+			(code "44")
 			(name "/outputs/FL_DRL")
 			(class "Default")
 			(node
@@ -14284,7 +14059,7 @@
 			)
 		)
 		(net
-			(code "48")
+			(code "45")
 			(name "/outputs/FL_IND")
 			(class "Default")
 			(node
@@ -14313,7 +14088,7 @@
 			)
 		)
 		(net
-			(code "49")
+			(code "46")
 			(name "/outputs/FR_DRL")
 			(class "Default")
 			(node
@@ -14342,7 +14117,7 @@
 			)
 		)
 		(net
-			(code "50")
+			(code "47")
 			(name "/outputs/FR_IND")
 			(class "Default")
 			(node
@@ -14367,6 +14142,54 @@
 				(ref "U12")
 				(pin "26")
 				(pinfunction "OUT2_26")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "48")
+			(name "/outputs/ILIM_A")
+			(class "Default")
+			(node
+				(ref "R62")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U11")
+				(pin "12")
+				(pinfunction "ILIM_12")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "49")
+			(name "/outputs/ILIM_B")
+			(class "Default")
+			(node
+				(ref "R63")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U12")
+				(pin "12")
+				(pinfunction "ILIM_12")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "50")
+			(name "/outputs/ILIM_C")
+			(class "Default")
+			(node
+				(ref "R64")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U13")
+				(pin "12")
+				(pinfunction "ILIM_12")
 				(pintype "passive")
 			)
 		)
@@ -14428,8 +14251,8 @@
 			)
 			(node
 				(ref "U11")
-				(pin "3")
-				(pinfunction "IN1_3")
+				(pin "2")
+				(pinfunction "IN1_2")
 				(pintype "input")
 			)
 		)
@@ -14449,8 +14272,8 @@
 			)
 			(node
 				(ref "U11")
-				(pin "4")
-				(pinfunction "IN2_4")
+				(pin "3")
+				(pinfunction "IN2_3")
 				(pintype "input")
 			)
 		)
@@ -14470,8 +14293,8 @@
 			)
 			(node
 				(ref "U12")
-				(pin "3")
-				(pinfunction "IN1_3")
+				(pin "2")
+				(pinfunction "IN1_2")
 				(pintype "input")
 			)
 		)
@@ -14491,8 +14314,8 @@
 			)
 			(node
 				(ref "U12")
-				(pin "4")
-				(pinfunction "IN2_4")
+				(pin "3")
+				(pinfunction "IN2_3")
 				(pintype "input")
 			)
 		)
@@ -14512,8 +14335,8 @@
 			)
 			(node
 				(ref "U13")
-				(pin "3")
-				(pinfunction "IN1_3")
+				(pin "2")
+				(pinfunction "IN1_2")
 				(pintype "input")
 			)
 		)
@@ -14533,8 +14356,8 @@
 			)
 			(node
 				(ref "U11")
-				(pin "5")
-				(pinfunction "IN3_5")
+				(pin "4")
+				(pinfunction "IN3_4")
 				(pintype "input")
 			)
 		)
@@ -14554,8 +14377,8 @@
 			)
 			(node
 				(ref "U11")
-				(pin "6")
-				(pinfunction "IN4_6")
+				(pin "5")
+				(pinfunction "IN4_5")
 				(pintype "input")
 			)
 		)
@@ -14575,8 +14398,8 @@
 			)
 			(node
 				(ref "U13")
-				(pin "4")
-				(pinfunction "IN2_4")
+				(pin "3")
+				(pinfunction "IN2_3")
 				(pintype "input")
 			)
 		)
@@ -14596,8 +14419,8 @@
 			)
 			(node
 				(ref "U12")
-				(pin "5")
-				(pinfunction "IN3_5")
+				(pin "4")
+				(pinfunction "IN3_4")
 				(pintype "input")
 			)
 		)
@@ -14617,8 +14440,8 @@
 			)
 			(node
 				(ref "U12")
-				(pin "6")
-				(pinfunction "IN4_6")
+				(pin "5")
+				(pinfunction "IN4_5")
 				(pintype "input")
 			)
 		)
@@ -14633,8 +14456,8 @@
 			)
 			(node
 				(ref "U13")
-				(pin "5")
-				(pinfunction "IN3_5")
+				(pin "4")
+				(pinfunction "IN3_4")
 				(pintype "input")
 			)
 		)
@@ -14649,8 +14472,8 @@
 			)
 			(node
 				(ref "U13")
-				(pin "6")
-				(pinfunction "IN4_6")
+				(pin "5")
+				(pinfunction "IN4_5")
 				(pintype "input")
 			)
 		)
@@ -14910,54 +14733,6 @@
 		)
 		(net
 			(code "73")
-			(name "/outputs/THER_A")
-			(class "Default")
-			(node
-				(ref "R65")
-				(pin "2")
-				(pintype "passive")
-			)
-			(node
-				(ref "U11")
-				(pin "13")
-				(pinfunction "THER_13")
-				(pintype "input")
-			)
-		)
-		(net
-			(code "74")
-			(name "/outputs/THER_B")
-			(class "Default")
-			(node
-				(ref "R66")
-				(pin "2")
-				(pintype "passive")
-			)
-			(node
-				(ref "U12")
-				(pin "13")
-				(pinfunction "THER_13")
-				(pintype "input")
-			)
-		)
-		(net
-			(code "75")
-			(name "/outputs/THER_C")
-			(class "Default")
-			(node
-				(ref "R67")
-				(pin "2")
-				(pintype "passive")
-			)
-			(node
-				(ref "U13")
-				(pin "13")
-				(pinfunction "THER_13")
-				(pintype "input")
-			)
-		)
-		(net
-			(code "76")
 			(name "/outputs/YEL_L")
 			(class "Default")
 			(node
@@ -14979,7 +14754,7 @@
 			)
 		)
 		(net
-			(code "77")
+			(code "74")
 			(name "/outputs/YEL_R")
 			(class "Default")
 			(node
@@ -15001,7 +14776,7 @@
 			)
 		)
 		(net
-			(code "78")
+			(code "75")
 			(name "/power_input/FEED_B_P")
 			(class "Default")
 			(node
@@ -15018,7 +14793,7 @@
 			)
 		)
 		(net
-			(code "79")
+			(code "76")
 			(name "/power_input/FEED_P")
 			(class "Default")
 			(node
@@ -15051,7 +14826,7 @@
 			)
 		)
 		(net
-			(code "80")
+			(code "77")
 			(name "/power_input/GATE_B")
 			(class "Default")
 			(node
@@ -15073,7 +14848,7 @@
 			)
 		)
 		(net
-			(code "81")
+			(code "78")
 			(name "/power_input/GND_IN")
 			(class "Default")
 			(node
@@ -15157,7 +14932,7 @@
 			)
 		)
 		(net
-			(code "82")
+			(code "79")
 			(name "/power_input/MID")
 			(class "Default")
 			(node
@@ -15179,7 +14954,7 @@
 			)
 		)
 		(net
-			(code "83")
+			(code "80")
 			(name "/power_input/Q10_G")
 			(class "Default")
 			(node
@@ -15202,7 +14977,7 @@
 			)
 		)
 		(net
-			(code "84")
+			(code "81")
 			(name "/power_input/SNS")
 			(class "Default")
 			(node
@@ -15224,7 +14999,7 @@
 			)
 		)
 		(net
-			(code "85")
+			(code "82")
 			(name "/power_input/U10_DRN")
 			(class "Default")
 			(node
@@ -15240,7 +15015,7 @@
 			)
 		)
 		(net
-			(code "86")
+			(code "83")
 			(name "/power_input/U10_GATE")
 			(class "Default")
 			(node
@@ -15266,7 +15041,7 @@
 			)
 		)
 		(net
-			(code "87")
+			(code "84")
 			(name "/power_input/VBAT_F")
 			(class "Default")
 			(node
@@ -15293,7 +15068,7 @@
 			)
 		)
 		(net
-			(code "88")
+			(code "85")
 			(name "/power_input/VBAT_PROT")
 			(class "Default")
 			(node
@@ -15331,7 +15106,7 @@
 			)
 		)
 		(net
-			(code "89")
+			(code "86")
 			(name "/power_input/VCC10")
 			(class "Default")
 			(node
@@ -15358,7 +15133,7 @@
 			)
 		)
 		(net
-			(code "90")
+			(code "87")
 			(name "/rails/FB_3V3")
 			(class "Default")
 			(node
@@ -15384,7 +15159,7 @@
 			)
 		)
 		(net
-			(code "91")
+			(code "88")
 			(name "/rails/FB_5V")
 			(class "Default")
 			(node
@@ -15410,7 +15185,7 @@
 			)
 		)
 		(net
-			(code "92")
+			(code "89")
 			(name "/rails/SW_3V3")
 			(class "Default")
 			(node
@@ -15437,7 +15212,7 @@
 			)
 		)
 		(net
-			(code "93")
+			(code "90")
 			(name "/rails/SW_5V")
 			(class "Default")
 			(node
@@ -15464,7 +15239,7 @@
 			)
 		)
 		(net
-			(code "94")
+			(code "91")
 			(name "GND")
 			(class "Default")
 			(node
@@ -15836,14 +15611,8 @@
 			)
 			(node
 				(ref "U11")
-				(pin "1")
-				(pinfunction "GND_1")
-				(pintype "power_in")
-			)
-			(node
-				(ref "U11")
-				(pin "12")
-				(pinfunction "GND_12")
+				(pin "13")
+				(pinfunction "GND_13")
 				(pintype "power_in")
 			)
 			(node
@@ -15854,14 +15623,8 @@
 			)
 			(node
 				(ref "U12")
-				(pin "1")
-				(pinfunction "GND_1")
-				(pintype "power_in")
-			)
-			(node
-				(ref "U12")
-				(pin "12")
-				(pinfunction "GND_12")
+				(pin "13")
+				(pinfunction "GND_13")
 				(pintype "power_in")
 			)
 			(node
@@ -15872,14 +15635,8 @@
 			)
 			(node
 				(ref "U13")
-				(pin "1")
-				(pinfunction "GND_1")
-				(pintype "power_in")
-			)
-			(node
-				(ref "U13")
-				(pin "12")
-				(pinfunction "GND_12")
+				(pin "13")
+				(pinfunction "GND_13")
 				(pintype "power_in")
 			)
 			(node
@@ -15944,7 +15701,7 @@
 			)
 		)
 		(net
-			(code "95")
+			(code "92")
 			(name "Net-(C15-Pad2)")
 			(class "Default")
 			(node
@@ -15964,7 +15721,7 @@
 			)
 		)
 		(net
-			(code "96")
+			(code "93")
 			(name "Net-(C28-Pad1)")
 			(class "Default")
 			(node
@@ -15984,7 +15741,7 @@
 			)
 		)
 		(net
-			(code "97")
+			(code "94")
 			(name "Net-(C64-Pad1)")
 			(class "Default")
 			(node
@@ -15999,7 +15756,7 @@
 			)
 		)
 		(net
-			(code "98")
+			(code "95")
 			(name "Net-(D22-A)")
 			(class "Default")
 			(node
@@ -16015,7 +15772,7 @@
 			)
 		)
 		(net
-			(code "99")
+			(code "96")
 			(name "Net-(D23-K)")
 			(class "Default")
 			(node
@@ -16031,7 +15788,7 @@
 			)
 		)
 		(net
-			(code "100")
+			(code "97")
 			(name "Net-(D26-K)")
 			(class "Default")
 			(node
@@ -16057,7 +15814,7 @@
 			)
 		)
 		(net
-			(code "101")
+			(code "98")
 			(name "Net-(D27-K)")
 			(class "Default")
 			(node
@@ -16083,7 +15840,7 @@
 			)
 		)
 		(net
-			(code "102")
+			(code "99")
 			(name "Net-(Q2-B)")
 			(class "Default")
 			(node
@@ -16099,7 +15856,7 @@
 			)
 		)
 		(net
-			(code "103")
+			(code "100")
 			(name "Net-(Q3-B)")
 			(class "Default")
 			(node
@@ -16115,7 +15872,7 @@
 			)
 		)
 		(net
-			(code "104")
+			(code "101")
 			(name "Net-(Q11-G)")
 			(class "Default")
 			(node
@@ -16131,7 +15888,7 @@
 			)
 		)
 		(net
-			(code "105")
+			(code "102")
 			(name "Net-(Q12-B)")
 			(class "Default")
 			(node
@@ -16152,7 +15909,7 @@
 			)
 		)
 		(net
-			(code "106")
+			(code "103")
 			(name "Net-(U1-BST)")
 			(class "Default")
 			(node
@@ -16168,7 +15925,7 @@
 			)
 		)
 		(net
-			(code "107")
+			(code "104")
 			(name "Net-(U1-RON)")
 			(class "Default")
 			(node
@@ -16184,7 +15941,7 @@
 			)
 		)
 		(net
-			(code "108")
+			(code "105")
 			(name "Net-(U2-BST)")
 			(class "Default")
 			(node
@@ -16200,7 +15957,7 @@
 			)
 		)
 		(net
-			(code "109")
+			(code "106")
 			(name "Net-(U2-RON)")
 			(class "Default")
 			(node
@@ -16216,7 +15973,7 @@
 			)
 		)
 		(net
-			(code "110")
+			(code "107")
 			(name "Net-(U6-CANH)")
 			(class "Default")
 			(node
@@ -16233,7 +15990,7 @@
 			)
 		)
 		(net
-			(code "111")
+			(code "108")
 			(name "Net-(U6-CANL)")
 			(class "Default")
 			(node
@@ -16250,7 +16007,7 @@
 			)
 		)
 		(net
-			(code "112")
+			(code "109")
 			(name "Net-(U6-TXD)")
 			(class "Default")
 			(node
@@ -16266,7 +16023,7 @@
 			)
 		)
 		(net
-			(code "113")
+			(code "110")
 			(name "Net-(U10-TMR)")
 			(class "Default")
 			(node
@@ -16282,7 +16039,7 @@
 			)
 		)
 		(net
-			(code "114")
+			(code "111")
 			(name "Net-(U14-DEN)")
 			(class "Default")
 			(node
@@ -16298,7 +16055,7 @@
 			)
 		)
 		(net
-			(code "115")
+			(code "112")
 			(name "Net-(U14-DSEL)")
 			(class "Default")
 			(node
@@ -16314,7 +16071,7 @@
 			)
 		)
 		(net
-			(code "116")
+			(code "113")
 			(name "Net-(U14-IS)")
 			(class "Default")
 			(node
@@ -16330,7 +16087,7 @@
 			)
 		)
 		(net
-			(code "117")
+			(code "114")
 			(name "Net-(U15-1Y)")
 			(class "Default")
 			(node
@@ -16346,7 +16103,7 @@
 			)
 		)
 		(net
-			(code "118")
+			(code "115")
 			(name "Net-(U15-2Y)")
 			(class "Default")
 			(node
@@ -16362,7 +16119,7 @@
 			)
 		)
 		(net
-			(code "119")
+			(code "116")
 			(name "unconnected-(J10-Pin_4-Pad4)")
 			(class "Default")
 			(node
@@ -16373,7 +16130,7 @@
 			)
 		)
 		(net
-			(code "120")
+			(code "117")
 			(name "unconnected-(J11-Pin_4-Pad4)")
 			(class "Default")
 			(node
@@ -16384,7 +16141,7 @@
 			)
 		)
 		(net
-			(code "121")
+			(code "118")
 			(name "unconnected-(U1-PGOOD-Pad6)")
 			(class "Default")
 			(node
@@ -16395,7 +16152,7 @@
 			)
 		)
 		(net
-			(code "122")
+			(code "119")
 			(name "unconnected-(U2-PGOOD-Pad6)")
 			(class "Default")
 			(node
@@ -16406,7 +16163,7 @@
 			)
 		)
 		(net
-			(code "123")
+			(code "120")
 			(name "unconnected-(U5-NC-Pad17)")
 			(class "Default")
 			(node
@@ -16417,7 +16174,7 @@
 			)
 		)
 		(net
-			(code "124")
+			(code "121")
 			(name "unconnected-(U5-NC-Pad18)")
 			(class "Default")
 			(node
@@ -16428,7 +16185,7 @@
 			)
 		)
 		(net
-			(code "125")
+			(code "122")
 			(name "unconnected-(U5-NC-Pad19)")
 			(class "Default")
 			(node
@@ -16439,7 +16196,7 @@
 			)
 		)
 		(net
-			(code "126")
+			(code "123")
 			(name "unconnected-(U5-NC-Pad20)")
 			(class "Default")
 			(node
@@ -16450,7 +16207,7 @@
 			)
 		)
 		(net
-			(code "127")
+			(code "124")
 			(name "unconnected-(U5-NC-Pad21)")
 			(class "Default")
 			(node
@@ -16461,7 +16218,7 @@
 			)
 		)
 		(net
-			(code "128")
+			(code "125")
 			(name "unconnected-(U5-NC-Pad22)")
 			(class "Default")
 			(node
@@ -16472,7 +16229,7 @@
 			)
 		)
 		(net
-			(code "129")
+			(code "126")
 			(name "unconnected-(U5-NC-Pad32)")
 			(class "Default")
 			(node
@@ -16483,7 +16240,7 @@
 			)
 		)
 		(net
-			(code "130")
+			(code "127")
 			(name "unconnected-(U10-FLT-Pad7)")
 			(class "Default")
 			(node
@@ -16494,7 +16251,7 @@
 			)
 		)
 		(net
-			(code "131")
+			(code "128")
 			(name "unconnected-(U10-ON-Pad9)")
 			(class "Default")
 			(node
@@ -16505,7 +16262,7 @@
 			)
 		)
 		(net
-			(code "132")
+			(code "129")
 			(name "unconnected-(U11-FAULT-Pad9)")
 			(class "Default")
 			(node
@@ -16516,18 +16273,40 @@
 			)
 		)
 		(net
-			(code "133")
-			(name "unconnected-(U11-NC-Pad2)")
+			(code "130")
+			(name "unconnected-(U11-LPM-Pad10)")
 			(class "Default")
 			(node
 				(ref "U11")
-				(pin "2")
-				(pinfunction "NC_2")
+				(pin "10")
+				(pinfunction "LPM_10")
+				(pintype "open_collector+no_connect")
+			)
+		)
+		(net
+			(code "131")
+			(name "unconnected-(U11-NC-Pad1)")
+			(class "Default")
+			(node
+				(ref "U11")
+				(pin "1")
+				(pinfunction "NC_1")
 				(pintype "no_connect")
 			)
 		)
 		(net
-			(code "134")
+			(code "132")
+			(name "unconnected-(U11-NC-Pad14)")
+			(class "Default")
+			(node
+				(ref "U11")
+				(pin "14")
+				(pinfunction "NC_14")
+				(pintype "no_connect")
+			)
+		)
+		(net
+			(code "133")
 			(name "unconnected-(U11-NC-Pad19)")
 			(class "Default")
 			(node
@@ -16538,7 +16317,7 @@
 			)
 		)
 		(net
-			(code "135")
+			(code "134")
 			(name "unconnected-(U11-NC-Pad24)")
 			(class "Default")
 			(node
@@ -16549,7 +16328,7 @@
 			)
 		)
 		(net
-			(code "136")
+			(code "135")
 			(name "unconnected-(U12-FAULT-Pad9)")
 			(class "Default")
 			(node
@@ -16560,18 +16339,40 @@
 			)
 		)
 		(net
-			(code "137")
-			(name "unconnected-(U12-NC-Pad2)")
+			(code "136")
+			(name "unconnected-(U12-LPM-Pad10)")
 			(class "Default")
 			(node
 				(ref "U12")
-				(pin "2")
-				(pinfunction "NC_2")
+				(pin "10")
+				(pinfunction "LPM_10")
+				(pintype "open_collector+no_connect")
+			)
+		)
+		(net
+			(code "137")
+			(name "unconnected-(U12-NC-Pad1)")
+			(class "Default")
+			(node
+				(ref "U12")
+				(pin "1")
+				(pinfunction "NC_1")
 				(pintype "no_connect")
 			)
 		)
 		(net
 			(code "138")
+			(name "unconnected-(U12-NC-Pad14)")
+			(class "Default")
+			(node
+				(ref "U12")
+				(pin "14")
+				(pinfunction "NC_14")
+				(pintype "no_connect")
+			)
+		)
+		(net
+			(code "139")
 			(name "unconnected-(U12-NC-Pad19)")
 			(class "Default")
 			(node
@@ -16582,7 +16383,7 @@
 			)
 		)
 		(net
-			(code "139")
+			(code "140")
 			(name "unconnected-(U12-NC-Pad24)")
 			(class "Default")
 			(node
@@ -16593,7 +16394,7 @@
 			)
 		)
 		(net
-			(code "140")
+			(code "141")
 			(name "unconnected-(U13-FAULT-Pad9)")
 			(class "Default")
 			(node
@@ -16604,18 +16405,40 @@
 			)
 		)
 		(net
-			(code "141")
-			(name "unconnected-(U13-NC-Pad2)")
+			(code "142")
+			(name "unconnected-(U13-LPM-Pad10)")
 			(class "Default")
 			(node
 				(ref "U13")
-				(pin "2")
-				(pinfunction "NC_2")
+				(pin "10")
+				(pinfunction "LPM_10")
+				(pintype "open_collector+no_connect")
+			)
+		)
+		(net
+			(code "143")
+			(name "unconnected-(U13-NC-Pad1)")
+			(class "Default")
+			(node
+				(ref "U13")
+				(pin "1")
+				(pinfunction "NC_1")
 				(pintype "no_connect")
 			)
 		)
 		(net
-			(code "142")
+			(code "144")
+			(name "unconnected-(U13-NC-Pad14)")
+			(class "Default")
+			(node
+				(ref "U13")
+				(pin "14")
+				(pinfunction "NC_14")
+				(pintype "no_connect")
+			)
+		)
+		(net
+			(code "145")
 			(name "unconnected-(U13-NC-Pad19)")
 			(class "Default")
 			(node
@@ -16626,7 +16449,7 @@
 			)
 		)
 		(net
-			(code "143")
+			(code "146")
 			(name "unconnected-(U13-NC-Pad24)")
 			(class "Default")
 			(node
@@ -16637,7 +16460,7 @@
 			)
 		)
 		(net
-			(code "144")
+			(code "147")
 			(name "unconnected-(U13-OUT3-Pad17)")
 			(class "Default")
 			(node
@@ -16648,7 +16471,7 @@
 			)
 		)
 		(net
-			(code "145")
+			(code "148")
 			(name "unconnected-(U13-OUT3-Pad18)")
 			(class "Default")
 			(node
@@ -16659,7 +16482,7 @@
 			)
 		)
 		(net
-			(code "146")
+			(code "149")
 			(name "unconnected-(U13-OUT4-Pad15)")
 			(class "Default")
 			(node
@@ -16670,7 +16493,7 @@
 			)
 		)
 		(net
-			(code "147")
+			(code "150")
 			(name "unconnected-(U13-OUT4-Pad16)")
 			(class "Default")
 			(node
@@ -16681,7 +16504,7 @@
 			)
 		)
 		(net
-			(code "148")
+			(code "151")
 			(name "unconnected-(U14-n.c.-Pad7)")
 			(class "Default")
 			(node
@@ -16692,7 +16515,7 @@
 			)
 		)
 		(net
-			(code "149")
+			(code "152")
 			(name "unconnected-(U14-n.c.-Pad11)")
 			(class "Default")
 			(node

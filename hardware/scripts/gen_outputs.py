@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """Generate hardware/sheets/outputs.kicad_sch (KiCad 10.0.2, format 20260306).
 
-Plan4 phase A, Task 7: ten signal outputs on three TI TPS4H160B-Q1 quad smart high-side
-switches (U11-U13, channel allocation D1), their input, sense and control networks, the aux
+Plan4 phase A, Task 7: ten signal outputs on three TI TPS4HC120A-Q1 quad smart high-side
+switches (TPS4H160B-Q1 until 2026-11-13) (U11-U13, channel allocation D1), their input, sense and control networks, the aux
 stage (2026-11-13: U14 pod switch on feed B, U15 yellow PWM buffer, pod tails J10/J11), and
 the harness tails J3/J4/J5 (D5) plus the CAN tail J8.
 Pads and application values come from quadpins.py; nothing is re-typed here.
@@ -219,14 +219,15 @@ CHIPS = [("U11", "A", ["FL_DRL", "FL_IND", "RL_DRL", "RL_IND"]),
 # the plan3 RGB stage):
 #   R40-R49  IN series (R_IN_SERIES), used channels in CHIPS order
 #   R50-R61  IN pull-downs (R_IN_PULLDOWN), all twelve channels in CHIPS order
-#   R62-R64  R_CL, R65-R67 R_THER, R68-R70 R_SNS, R71-R73 sense series 4.7k  (U11, U12, U13)
+#   R62-R64  R_ILIM, R68-R70 R_SNS, R71-R73 sense series 4.7k  (U11, U12, U13)
+#   R65-R67  free (were R_THER on the TPS4H160B, deleted 2026-11-13)
 #   R74/R75  OUT_AUX_L / OUT_AUX_R pull-downs
 #   C41-C43  C_VS, C44-C46 sense filter 10 nF, D8-D10 BAT54 clamps            (U11, U12, U13)
 SER = iter("R%d" % i for i in range(40, 50))
 PD = iter("R%d" % i for i in range(50, 62))
 
-# Sense path: series resistor between the chip's CS node and the ADC line.  At the 6.5 V
-# worst-case fault level it holds the clamp current to (6.5 - 3.3 - 0.3) / 4.7k = 0.6 mA.
+# Sense path: series resistor between the chip's SNS node and the ADC line.  At the 3.9 V
+# worst-case fault level it holds the clamp current to (3.9 - 3.3 - 0.3) / 4.7k = 0.06 mA.
 R_SNS_SERIES = "4.7k"
 C_SNS_FILTER = "10nF"
 CLAMP = "BAT54"
@@ -279,8 +280,8 @@ for k, (ref, sx, fns) in enumerate(CHIPS):
     Q = place(ref, quadpins.LIB_ID, quadpins.PART, X, Y, 0, QUAD,
               [("Reference", ref, X + 2.54, Y + 29.21, 0),
                ("Value", quadpins.PART, X + 2.54, Y + 31.75, 0)],
-              desc="TI TPS4H160-Q1 Version B: quad 160 mOhm smart high-side switch, adjustable "
-                   "current limit, multiplexed current-sense output, HTSSOP-28 + EP")
+              desc="TI TPS4HC120A-Q1: quad 120 mOhm smart high-side switch, resistor-set current "
+                   "limit, multiplexed current-sense output, thermal latch-off, HVSSOP-28 + EP")
     P = lambda name, i=0: Q[PINS[name][i]]
 
     # VS: all four pads on one bus, C_VS at its right end, VBAT at its left end
@@ -294,8 +295,8 @@ for k, (ref, sx, fns) in enumerate(CHIPS):
     xlab("VBAT", pts[0], yb, 180)
     _, cb = vpart("C%d" % (41 + k), "Device:C", quadpins.C_VS, pts[-1], yb); gnd(*cb)
 
-    # GND pads and the exposed pad straight to GND (no TI GND network: feed A's LTC4380
-    # already blocks reverse polarity)
+    # GND pad and the exposed pad (internally GND) straight to GND (no TI GND network: feed
+    # A's LTC4380 already blocks reverse polarity)
     for p in PINS["GND"] + PINS["EP"]:
         gnd(*Q[p])
 
@@ -305,8 +306,8 @@ for k, (ref, sx, fns) in enumerate(CHIPS):
         p = P("IN%d" % ch); w(p, (xl, p[1])); lab(in_net(fn, ref, ch), xl, p[1], 180)
     for name, net in (("DIAG_EN", "DIAG_EN_Q"), ("SEL0", "DIAG_SEL0_Q"), ("SEL1", "DIAG_SEL1_Q")):
         p = P(name); w(p, (xl, p[1])); xlab(net, xl, p[1], 180)
-    for name in ("THER", "CL"):
-        p = P(name); w(p, (xl, p[1])); lab("%s_%s" % (name, sx), xl, p[1], 180)
+    p = P("ILIM"); w(p, (xl, p[1])); lab("ILIM_" + sx, xl, p[1], 180)
+    nc(P("LPM"))                                         # LPM status: no GPIO, not needed
 
     # right side: both OUT pads of a used channel to its function net; spares no-connect
     xr = round(X + 20.32, 4)
@@ -342,13 +343,10 @@ for k, (ref, sx, fns) in enumerate(CHIPS):
     _, b = vpart("C%d" % (44 + k), "Device:C", C_SNS_FILTER, xc, ys); gnd(*b)
     xlab("SNS_" + sx, xh, ys, 0)
 
-    # CL -> R_CL -> GND;  +5V -> R_THER -> THER (latch mode while awake)
-    xcl, xth, yt = round(X + 76.2, 4), round(X + 86.36, 4), round(Y - 12.7, 4)
-    w((xcl, yt), (xcl, round(yt + 5.08, 4))); lab("CL_" + sx, xcl, yt, 90)
-    _, b = vpart("R%d" % (62 + k), "Device:R", quadpins.R_CL, xcl, round(yt + 5.08, 4)); gnd(*b)
-    w((xth, yt), (xth, round(yt + 5.08, 4))); xlab("+5V", xth, yt, 90)
-    _, b = vpart("R%d" % (65 + k), "Device:R", quadpins.R_THER, xth, round(yt + 5.08, 4))
-    w(b, (xth, round(b[1] + 5.08, 4))); lab("THER_" + sx, xth, round(b[1] + 5.08, 4), 270)
+    # ILIM -> R_ILIM -> GND (thermal latch-off is the A-version's fixed behaviour; no THER)
+    xcl, yt = round(X + 76.2, 4), round(Y - 12.7, 4)
+    w((xcl, yt), (xcl, round(yt + 5.08, 4))); lab("ILIM_" + sx, xcl, yt, 90)
+    _, b = vpart("R%d" % (62 + k), "Device:R", quadpins.R_ILIM, xcl, round(yt + 5.08, 4)); gnd(*b)
 
 # ================================================================ BLOCK D: harness tails (D5)
 # Soldered wire tails, not connectors: the Superseal joints are out on the harness.
@@ -532,14 +530,14 @@ def note(*parts):
             out.extend(textwrap.wrap(para, NOTEW) or [""])
     NOTES.append("\n".join(out))
 
-note("""|SIGNAL OUTPUTS (spec 4.4, plan4 decision D1) -- three TI TPS4H160B-Q1 quads, ten channels, two spare
+note("""|SIGNAL OUTPUTS (spec 4.4, plan4 decision D1) -- three TI TPS4HC120A-Q1 quads, ten channels, two spare
          CH1        CH2        CH3        CH4        sense
   U11    FL_DRL     FL_IND     RL_DRL     RL_IND     SNS_A   (left)
   U12    FR_DRL     FR_IND     RR_DRL     RR_IND     SNS_B   (right)
   U13    RL_BRK     RR_BRK     spare      spare      SNS_C   (brake)""",
 """One dead chip never takes out both sides' indicators, and brake survives a side chip failing.
 Both OUT pads of each channel are tied to the channel's net.  No output capacitor: TI's typical
-application (Fig. 8-1) shows none.  VS is VBAT (feed A, behind the LTC4380) with one 100 nF
+application shows none for resistive loads.  VS is VBAT (feed A, behind the LTC4380) with one 100 nF
 100 V 0805 per chip (C41-C43) -- the SMBJ24A clamps at 50.6 V, so nothing on VBAT is under 63 V.""")
 
 note("""|U13 CH3, CH4 -- SPARE.  (CH3 was held for AUX_MODE, superseded 2026-11-13: the pods take PWM on yellow.)
@@ -548,30 +546,33 @@ Both spare inputs are pulled down (R60, R61) and both spare outputs are no-conne
 note("""|INPUTS -- WHY EVERY IN NET IS LOW AT RESET
 Each OUT_* GPIO reaches its IN pin through R_IN_SERIES (4.7 kOhm, TI 7.3.7.5) and the IN net
 carries R_IN_PULLDOWN (47 kOhm) to GND, so no channel can light while the ESP32 is in reset, in
-download mode or asleep.  Driven high: 3.3 V x 32.0 k / (32.0 k + 4.7 k) = 2.88 V against
-VIH = 2.0 V (47 k in parallel with the 100 k minimum internal pull-down).  Series R40-R49,
+download mode or asleep.  Driven high: 3.3 V x 44.0 k / (44.0 k + 4.7 k) = 2.98 V against
+VIH = 1.5 V (47 k in parallel with the 0.7 M minimum internal pull-down).  Series R40-R49,
 pull-downs R50-R61.""",
 """DIAG_EN_Q, DIAG_SEL0_Q and DIAG_SEL1_Q are shared by all three chips.  Their 4.7 kOhm series
 resistors and the 47 kOhm DIAG_EN_Q pull-down live on mcu_can; SEL0/SEL1 have no external pull
 (their level is irrelevant while DIAG_EN is low).""")
 
 note("""|CURRENT LIMIT, THERMAL MODE, FAULT, GROUND
-CL: R62-R64 = 4.02 kOhm -> 0.8 V x 2500 / 4.02 k = 0.50 A per channel (Eq. 4).
-THER: R65-R67 = 10 kOhm to the GATED +5V -> latch-off while awake, so the firmware owns retry with
-backoff (spec 6.3); with +5V off in sleep the pin's internal pull-down draws nothing.
-FAULT: not connected -- no GPIO left; the per-chip sense line reports faults (4.5-6.5 V level).
-GND pads and the exposed pad go straight to GND: feed A's LTC4380 already blocks reverse
+ILIM: R62-R64 = 43.2 kOhm 1 % -> 0.50 A per channel (Table 7-1 band 41.2-45.3 k).
+THERMAL: Version A latches a channel off after thermal shutdown until its EN toggles, so the
+firmware owns retry with backoff (spec 6.3) -- the same behaviour the old THER pull-up gave.
+FAULT, LPM: not connected -- no GPIO left; the per-chip sense line reports faults (3.2-3.9 V).
+LOW-POWER MODE: with DIAG_EN low and every ON channel under 83 mA the chip idles in LPM; above
+130-200 mA it wakes and the 0.5 A limit and thermal shutdown apply; a hard short trips at 3.5 A.
+VBB is rated 28 V continuous / 35 V load dump; VBAT exceeds 28 V only in a timer-limited surge.
+The GND pad and the exposed pad go straight to GND: feed A's LTC4380 already blocks reverse
 polarity, so TI's GND resistor/diode network is not fitted.""")
 
 note("""|SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)
-R68-R70 = 1.8 kOhm set the scale: 3.0 V at the 0.5 A limit (K = 300), 0.48 V at 80 mA.
-On a short or over-temperature the CS pin goes to its 4.5-6.5 V fault level.  R71-R73 (4.7 kOhm)
-then carry (6.5 - 3.3 - 0.3) / 4.7 k = 0.6 mA into the BAT54 (D8-D10, anode SNS_x, cathode
+R68-R70 = 5.11 kOhm set the scale: 2.46 V at the 0.5 A limit (K = 1040), 0.39 V at 80 mA.
+On a fault the SNS pin goes to its 3.2-3.9 V fault level.  R71-R73 (4.7 kOhm)
+then carry at most (3.9 - 3.3 - 0.3) / 4.7 k = 0.06 mA into the BAT54 (D8-D10, anode SNS_x, cathode
 +3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS
 node it would have no series resistor to limit its current.""",
 """C44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is
-tau = (4.7 k + 1.8 k) x 10 nF = 65 us, so firmware waits >= 400 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above
-~3.0 V means fault, not current.""")
+tau = (4.7 k + 5.11 k) x 10 nF = 98 us, so firmware waits >= 600 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above
+~2.8 V means fault, not current.""")
 
 note("""|AUX STAGE (2026-11-13) -- U14 POD SWITCH, U15 YELLOW BUFFER, J10/J11 POD TAILS
 Spec: docs/superpowers/specs/2026-11-13-aux-stage-design.md.  Pods measured 2026-11-12: 3.2 A each

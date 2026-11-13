@@ -211,7 +211,8 @@ def chk_net_name_collisions(nl):
 
 def chk_deleted_parts(nl):
     gone = ["LM51571-Q1", "DML3017LDC", "PCA9685PW/Q900", "ADG706", "NX5020UNBKS",
-            "1206L050/24"]
+            "1206L050/24", "TPS4H160BQPWPRQ1"]
+    # TPS4H160BQPWPRQ1 joined it 2026-11-13: no stock at JLCPCB/LCSC; owner chose TPS4HC120A-Q1.
     # BTS7008-2EPA left this list 2026-11-13: it came back as the pod switch U14 (aux stage).
     return ["deleted part still present: %s value %s" % (ref, p.value)
             for ref, p in sorted(nl.parts.items()) if p.value in gone]
@@ -220,13 +221,41 @@ def chk_deleted_parts(nl):
 def chk_deleted_nets(nl):
     gone = ["+24V", "+3V3_SW", "EN_BOOST", "EN_3V3SW", "EN_DIAG", "IGN_IN", "IGN_SENSE",
             "I2C_SDA", "I2C_SCL", "MUX_S0", "MUX_S1", "MUX_S2", "MUX_S3", "RGB_ISNS",
-            "ISNS_DEN", "PWM_DEN_A", "PWM_DEN_B", "DEN_DSEL"]
+            "ISNS_DEN", "PWM_DEN_A", "PWM_DEN_B", "DEN_DSEL", "THER_A", "THER_B", "THER_C"]
     return ["deleted net still present: %s" % n for n in gone if n in nl.nets]
 
 
 def chk_deleted_refs(nl):
     return ["deleted ref still present: %s (value %s)" % (r, nl.parts[r].value)
-            for r in ("R23", "J6", "J7") if r in nl.parts]
+            for r in ("R23", "J6", "J7", "R65", "R66", "R67") if r in nl.parts]
+
+
+QUAD_PART = "TPS4HC120AQDGQRQ1"          # 2026-11-13, owner decision (JLCPCB stock)
+QUAD_FP = "mccan:TI_DGQ0028C"
+
+
+def chk_quad_part(nl):
+    """Independent of quadpins.py: the quads are the TPS4HC120A-Q1 on TI's DGQ land pattern,
+    and its LPM status pin (pad 10) and FLT (pad 9) are left open."""
+    f = []
+    for ref in ("U11", "U12", "U13"):
+        p = nl.parts.get(ref)
+        if p is None:
+            f.append("%s missing" % ref)
+            continue
+        if p.value != QUAD_PART:
+            f.append("%s is %s, want %s" % (ref, p.value, QUAD_PART))
+        if p.footprint != QUAD_FP:
+            f.append("%s footprint %s, want %s" % (ref, p.footprint, QUAD_FP))
+        for pad, what in (("10", "LPM"), ("9", "FLT")):
+            n = nl.net_of(ref, pad)
+            if n is not None and not n.startswith("unconnected-"):
+                f.append("%s.%s (%s) should be open, found %s" % (ref, pad, what, n))
+        for pad, net in (("13", "GND"), ("29", "GND")):
+            n = nl.net_of(ref, pad)
+            if n != net:
+                f.append("%s.%s should be on %s, found %s" % (ref, pad, net, n))
+    return f
 
 
 # ------------------------------------------------------------------ group: feed_b
@@ -423,7 +452,7 @@ def _pulldown(nl, net, what):
 
 
 def chk_chips_present(nl):
-    return ["%s (TPS4H160 quad) is not in the netlist" % r for r in CHIPS if not has_part(nl, r)]
+    return ["%s (TPS4HC120A quad) is not in the netlist" % r for r in CHIPS if not has_part(nl, r)]
 
 
 def chk_signal_channels(nl):
@@ -566,7 +595,7 @@ def chk_sense(nl):
         if not series:
             f.append("%s net %s has no series resistor to SNS_%s" % (tag, n, sns))
         # Schottky clamp on SNS_x only: anode on SNS_x (ADC side of the series resistor, which
-        # limits the clamp current from the 4.5-6.5 V fault level), cathode on +3V3_ALW.
+        # limits the clamp current from the 3.2-3.9 V fault level), cathode on +3V3_ALW.
         if not _clamp(nl, "SNS_" + sns):
             f.append("%s: no Schottky (anode SNS_%s, cathode +3V3_ALW) on SNS_%s" % (tag, sns, sns))
     return f
@@ -588,14 +617,13 @@ def chk_chip_pins(nl):
     for ref in CHIPS:
         if not has_part(nl, ref):
             continue
-        n = nl.net_of(ref, PINS["CL"][0])
-        if n is None or not resistors_between(nl, n, "GND", quadpins.R_CL):
-            f.append("%s CL (pad %s) net %s has no %s resistor to GND"
-                     % (ref, PINS["CL"][0], n, quadpins.R_CL))
-        n = nl.net_of(ref, PINS["THER"][0])
-        if n is None or not resistors_between(nl, n, "+5V", quadpins.R_THER):
-            f.append("%s THER (pad %s) net %s has no %s resistor to +5V"
-                     % (ref, PINS["THER"][0], n, quadpins.R_THER))
+        n = nl.net_of(ref, PINS["ILIM"][0])
+        if n is None or not resistors_between(nl, n, "GND", quadpins.R_ILIM):
+            f.append("%s ILIM (pad %s) net %s has no %s resistor to GND"
+                     % (ref, PINS["ILIM"][0], n, quadpins.R_ILIM))
+        if not is_open(nl, ref, PINS["LPM"][0]):
+            f.append("%s LPM (pad %s) should be unconnected, found %s"
+                     % (ref, PINS["LPM"][0], nl.net_of(ref, PINS["LPM"][0])))
         if not is_open(nl, ref, PINS["FAULT"][0]):
             f.append("%s FAULT (pad %s) should be unconnected, found %s"
                      % (ref, PINS["FAULT"][0], nl.net_of(ref, PINS["FAULT"][0])))
@@ -739,7 +767,7 @@ GROUPS = {
                chk_c66, chk_nt1, chk_gnd_b_members],
     "rails": [chk_en_5v, chk_5v_reaches_u6],
     "mcu": [chk_mcu_rows, chk_io12_strap, chk_txd_listen_only, chk_can_stb_pullup],
-    "outputs": [chk_chips_present, chk_signal_channels, chk_aux_outputs, chk_sense,
+    "outputs": [chk_quad_part, chk_chips_present, chk_signal_channels, chk_aux_outputs, chk_sense,
                 chk_chip_pins, chk_diag],
     "harness": [chk_harness],
     "boot_safety": [chk_in_nets, chk_out_strapping],
