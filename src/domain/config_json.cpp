@@ -29,7 +29,7 @@ std::string configToJson(const Config& c) {
 
   doc["blinkPeriodMs"] = c.blinkPeriodMs;
   doc["nightHoldMs"] = c.nightHoldMs;
-  doc["auxDarkenOnIndicate"] = c.auxDarkenOnIndicate;
+  doc["auxOffOnIndicateHighBeam"] = c.auxOffOnIndicateHighBeam;
   doc["auxLowDuty"] = c.auxLowDuty;
   doc["auxFullDuty"] = c.auxFullDuty;
   static const char* kFlashSourceNames[] = { "auto", "follow", "generate" };
@@ -74,7 +74,9 @@ Config configFromJson(const std::string& json, bool& ok) {
   // nightHoldMs replaced spotHoldMs; a config saved before the rename keeps
   // its hold time.
   c.nightHoldMs = doc["nightHoldMs"] | (doc["spotHoldMs"] | c.nightHoldMs);
-  c.auxDarkenOnIndicate = doc["auxDarkenOnIndicate"] | c.auxDarkenOnIndicate;
+  // auxDarkenOnIndicate (protocol 5-6) is gone: the indicating side's pod is
+  // now always off at night, so the old key has nothing left to set.
+  c.auxOffOnIndicateHighBeam = doc["auxOffOnIndicateHighBeam"] | c.auxOffOnIndicateHighBeam;
   // Read wide and clamp before narrowing, so 250 or -5 cannot wrap a uint8_t.
   c.auxLowDuty  = clampPercent(doc["auxLowDuty"]  | (int)c.auxLowDuty);
   c.auxFullDuty = clampPercent(doc["auxFullDuty"] | (int)c.auxFullDuty);

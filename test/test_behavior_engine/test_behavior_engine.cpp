@@ -357,23 +357,7 @@ void test_not_run_pods_off_duty_zero() {
   TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
 }
 
-void test_darken_unpowers_indicating_pod_only() {
-  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
-  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
-  OutputIntent o = computeOutputs(s, c, 0, e);
-  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_R), o.on);
-  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
-}
 
-void test_night_indicator_shows_amber_only_and_pods_stay_low() {
-  Config c = mappedNight(); EngineState e;
-  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
-  OutputIntent o = computeOutputs(s, c, 0, e);
-  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_L, OUT_AUX_R), o.on);
-  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
-  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
-  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
-}
 
 void test_run_clear_at_night_turns_pods_off() {
   Config c = mappedNight(); EngineState e;
@@ -393,16 +377,33 @@ void test_short_flash_leaves_pods_alone() {
   TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
 }
 
-void test_darken_turns_off_the_indicating_pod_only() {
-  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+
+
+
+
+
+// The pods' DRL LEDs light whenever a pod is powered, and a DRL must be off
+// beside an indicating corner, so the indicating side's pod goes dark.
+void test_night_indicating_side_pod_off() {
+  Config c = mappedNight(); EngineState e;
   LogicalState s; s.run = true; s.night = true; s.leftInd = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
 }
 
-void test_darken_follows_the_request_not_the_phase() {
-  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+void test_night_hazards_turn_both_pods_off() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.rightInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_IND, OUT_FR_IND, OUT_RL_IND, OUT_RR_IND), o.on);
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
+}
+
+void test_pod_off_follows_the_request_not_the_phase() {
+  Config c = mappedNight(); EngineState e;
   LogicalState s; s.run = true; s.night = true; s.leftInd = true;
   computeOutputs(s, c, 0, e);
   OutputIntent o = computeOutputs(s, c, 345, e);   // dark half of the flash
@@ -410,29 +411,31 @@ void test_darken_follows_the_request_not_the_phase() {
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
 }
 
-void test_darken_skips_hazards() {
-  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
-  LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.rightInd = true;
-  OutputIntent o = computeOutputs(s, c, 0, e);
-  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
-  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
-}
-
-void test_darken_skips_high_beam() {
-  Config c = mappedNight(); c.auxDarkenOnIndicate = true; EngineState e;
+void test_high_beam_indicating_keeps_both_pods_by_default() {
+  Config c = mappedNight(); EngineState e;
+  TEST_ASSERT_FALSE(c.auxOffOnIndicateHighBeam);
   LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.highBeam = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
-  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
-  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_L, OUT_AUX_R), o.on);
+  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
 }
 
-void test_darken_is_off_by_default() {
-  Config c = mappedNight(); EngineState e;
-  TEST_ASSERT_FALSE(c.auxDarkenOnIndicate);
-  LogicalState s; s.run = true; s.night = true; s.leftInd = true;
+void test_high_beam_indicating_side_pod_off_when_set() {
+  Config c = mappedNight(); c.auxOffOnIndicateHighBeam = true; EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.highBeam = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
-  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
-  TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_R), o.on);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
+  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
+}
+
+void test_high_beam_hazards_both_pods_off_when_set() {
+  Config c = mappedNight(); c.auxOffOnIndicateHighBeam = true; EngineState e;
+  LogicalState s; s.run = true; s.leftInd = true; s.rightInd = true; s.highBeam = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_UINT16(0, o.on & outMask(OUT_AUX_L, OUT_AUX_R));
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
 }
 
 void test_long_flash_toggles_night_once_per_press() {
@@ -540,15 +543,14 @@ int main(int, char**) {
   RUN_TEST(test_high_beam_full_duty);
   RUN_TEST(test_low_never_brighter_than_full);
   RUN_TEST(test_not_run_pods_off_duty_zero);
-  RUN_TEST(test_darken_unpowers_indicating_pod_only);
-  RUN_TEST(test_night_indicator_shows_amber_only_and_pods_stay_low);
   RUN_TEST(test_run_clear_at_night_turns_pods_off);
   RUN_TEST(test_short_flash_leaves_pods_alone);
-  RUN_TEST(test_darken_turns_off_the_indicating_pod_only);
-  RUN_TEST(test_darken_follows_the_request_not_the_phase);
-  RUN_TEST(test_darken_skips_hazards);
-  RUN_TEST(test_darken_skips_high_beam);
-  RUN_TEST(test_darken_is_off_by_default);
+  RUN_TEST(test_night_indicating_side_pod_off);
+  RUN_TEST(test_night_hazards_turn_both_pods_off);
+  RUN_TEST(test_pod_off_follows_the_request_not_the_phase);
+  RUN_TEST(test_high_beam_indicating_keeps_both_pods_by_default);
+  RUN_TEST(test_high_beam_indicating_side_pod_off_when_set);
+  RUN_TEST(test_high_beam_hazards_both_pods_off_when_set);
   RUN_TEST(test_long_flash_toggles_night_once_per_press);
   RUN_TEST(test_toggle_sets_low_pods_on_the_same_tick);
   RUN_TEST(test_steady_high_beam_never_toggles);

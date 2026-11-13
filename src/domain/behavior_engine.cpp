@@ -90,14 +90,17 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
     o.set(OUT_RR_BRK, brakeOn && !ri);
   }
 
-  // Aux pods are aux lights, not DRLs: full on high beam, low at night. The
-  // optional darkening keys off the request like the DRL drop, skips hazards
-  // (both pods would go out) and never touches full.
+  // Aux pods: full on high beam, low at night. Each pod's DRL LEDs light
+  // whenever it is powered, and a DRL must be off beside an indicating corner,
+  // so an indicating side's pod goes Off (hazards: both). At Full this is the
+  // user's setting, trading forward light against the rule. It keys off the
+  // request like the DRL drop, so the pod does not pulse with the flash.
   const AuxLevel base = !s.run      ? AuxLevel::Off
                       : s.highBeam  ? AuxLevel::Full
                       : night       ? AuxLevel::Low
                                     : AuxLevel::Off;
-  const bool darken = cfg.auxDarkenOnIndicate && base == AuxLevel::Low && li != ri;
+  const bool darken = base == AuxLevel::Low ||
+                      (base == AuxLevel::Full && cfg.auxOffOnIndicateHighBeam);
   o.auxL = (darken && li) ? AuxLevel::Off : base;
   o.auxR = (darken && ri) ? AuxLevel::Off : base;
   // A pod that is not Off is powered; its brightness is the yellow duty.

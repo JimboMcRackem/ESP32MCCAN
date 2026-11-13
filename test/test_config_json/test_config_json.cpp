@@ -94,13 +94,13 @@ void test_new_hold_key_wins() {
   TEST_ASSERT_EQUAL_UINT32(900, c.nightHoldMs);
 }
 
-void test_aux_darken_round_trips() {
+void test_aux_off_on_indicate_high_beam_round_trips() {
   Config in = defaultConfig();
-  TEST_ASSERT_FALSE(in.auxDarkenOnIndicate);
-  in.auxDarkenOnIndicate = true;
+  TEST_ASSERT_FALSE(in.auxOffOnIndicateHighBeam);
+  in.auxOffOnIndicateHighBeam = true;
   bool ok = false;
   Config out = configFromJson(configToJson(in), ok);
-  TEST_ASSERT_TRUE(out.auxDarkenOnIndicate);
+  TEST_ASSERT_TRUE(out.auxOffOnIndicateHighBeam);
 }
 
 void test_aux_duties_round_trip() {
@@ -141,7 +141,7 @@ int main(int, char**) {
   RUN_TEST(test_unknown_flash_source_resolves_to_generate);
   RUN_TEST(test_old_spot_hold_key_is_honoured);
   RUN_TEST(test_new_hold_key_wins);
-  RUN_TEST(test_aux_darken_round_trips);
+  RUN_TEST(test_aux_off_on_indicate_high_beam_round_trips);
   RUN_TEST(test_aux_duties_round_trip);
   RUN_TEST(test_aux_duties_clamp_out_of_range);
   RUN_TEST(test_aux_duties_missing_keys_use_defaults);
