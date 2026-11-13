@@ -2187,3 +2187,44 @@ shared `DIAG_EN`/`SEL0`/`SEL1` lines as well as each `IN`; 47 kΩ input pull-dow
 drawn in sleep); FAULT unconnected; no output capacitor (p.28 Fig. 8-1 shows none); 100 nF 100 V on
 VS. **No GND network**: TI's 1 kΩ ∥ diode (p.26) is for reverse polarity, which feed A's LTC4380
 already blocks, so GND and the thermal pad go straight to GND (p.31 layout guidance).
+
+---
+
+## JLCPCB BOM, 2026-11
+
+Phase B (board layout spec `docs/superpowers/specs/2026-11-13-board-layout-phase-b-design.md`,
+goal 3): every BOM line must be orderable from **JLCPCB's own assembly stock** for 5 boards plus
+attrition. The mapping is `hardware/scripts/lcsc.py`; the owner re-runs
+`python hardware/scripts/check_stock.py` just before ordering (exit 0 = orderable). Checked
+2026-11-13 against the JLCPCB parts API: 64 lines, 63 OK, 1 GLOBAL, 0 SHORT.
+
+### Parts swapped because they had no stock
+
+| Ref | Was | Now | Why it is equivalent |
+|---|---|---|---|
+| U11–U13 | TPS4H160BQPWPRQ1 (0 at JLCPCB and LCSC) | **TPS4HC120AQDGQRQ1** (C44545560) | **Owner's choice** over global sourcing. Same EN/SEL/DIAG_EN/SNS scheme (SLVSH18C Table 5-1, 7-2). ILIM 43.2 k → 0.5 A (Table 7-1); SNS 5.11 k → 2.46 V at 0.5 A (K = 1040). Version A latches after thermal shutdown, as the old THER pull-up did, so R65–R67 are gone. VBB is 28 V continuous / 35 V load dump (was 40 V): VBAT passes 28 V only during a timer-limited LTC4380 surge clamp. LPM (auto low-power below 83 mA) is acceptable, see `quadpins.py`. New footprint `mccan:TI_DGQ0028C` from TI's land pattern (`gen_fp_dgq28.py`); the EasyEDA one is wrong. **No firmware change**: the firmware does not read SNS yet. |
+| U15 | 74AHCT2G126DC (0) | **U15 + U16 74AHCT1G126GV** (C52140416), one per pod | Same AHCT family, active-high OE, TTL input. Pinout verified against Nexperia Rev. 1.0 Table 2. C72 decouples U16. |
+| Q10, Q11 | IPT008N06NM5LF (0) | **IPT007N06N** (C122552) | Same PG-HSOF-8-1 (confirmed from its datasheet, closing the old -1/-2/-3 flag). Not a LinearFET: 10 ms SOA at 24 V is ~6 A at 25 °C, ~3.6 A derated to an 85 °C start, against R100's 1.67 A maximum limit, a 2× margin. |
+| L4, L5 | XAL7070-223ME (0) | **MDA7030-220M** (C2847487), KiCad `L_KOHERelec_MDA7030` | 22 µH; I<sub>sat</sub> 3 A vs the LM5164's 1 A switch; 150 mΩ DCR. The Type-3 ripple injection does not depend on L's DCR. |
+| D6 | PESD2CANFD24U-T (0) | **PESD2CANFD24LT-Q** (C6952426) | Same SOT23 pinning (1 K1, 2 K2, 3 CC), V<sub>RWM</sub> 24 V, AEC-Q101; C<sub>d</sub> 10 pF vs 3.5 pF, fine for CAN. |
+| SW1, SW2 | Panasonic EVQPUJ02K (0) | **XKB TS-1187A-B-A-B** (C318884, basic) | 5.1 mm SMD tactile; KiCad `SW_Push_1P1T_XKB_TS-1187A`. |
+
+### Owner decisions, 2026-11-13
+
+- **U10 LTC4380HMS-2:** JLCPCB has 3 (7 needed). Keep the H grade (to 125 °C) and use **JLCPCB
+  global sourcing**. The I grade (C688471, 380 in stock) is rated only to 85 °C, which is
+  exactly the design ambient. `check_stock.py` reports this line as `GLOBAL`.
+- **L2 7448031002 is through-hole.** JLCPCB's THT service fits it, so the owner never solders it.
+  Stock was 11 for 10 needed, the thinnest line. Its fallback is global sourcing.
+- **J2 is fitted** (PZ254V-11-06P, THT) rather than left DNP. L2 already uses the THT service, so
+  J2 costs almost nothing extra, and the first bring-up flashes over it.
+- **Voltage on the VBAT side:** C1, C2, C5, C7 and C13 are now valued `100nF 100V`, like C41–C43,
+  so no BOM line mixes 50 V logic decouplers with parts that see the SMBJ24A's 50.6 V clamp.
+
+### Still to check (Task 6, dissipation tally)
+
+- **C68's ripple rating.** The Lelon RVT 220 µF 63 V is a general-purpose V-chip. The pods pull
+  6.4 A pulses at 100 Hz. Its share of that current depends on the harness impedance, which is not
+  measured yet (inrush procedure, 2026-11-13).
+- **Electrolytic life.** The parts are rated 2000 h at 105 °C, about 8000 h at the 85 °C design
+  ambient. That is fine for prototypes. Revisit for a production run.

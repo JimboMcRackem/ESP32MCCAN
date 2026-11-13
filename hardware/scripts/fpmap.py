@@ -272,7 +272,11 @@ def in_bom(ref):
     said "in BOM" while the footprints said otherwise, which board parity reported as seven
     "'Exclude from bill of materials' settings differ" warnings.  The footprints are right.
     """
-    return not (fp(ref).startswith("Connector_Wire:SolderWire") or fp(ref) == TP_FOOTPRINT)
+    # Test pads and the NT1 net tie are copper only; their library footprints carry
+    # exclude_from_bom too.
+    f = fp(ref)
+    return not (f.startswith("Connector_Wire:SolderWire") or f == TP_FOOTPRINT
+                or f.startswith("NetTie:"))
 
 
 def all_assigned():

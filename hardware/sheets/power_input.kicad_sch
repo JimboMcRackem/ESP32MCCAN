@@ -5598,7 +5598,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100nF"
+		(property "Value" "100nF 100V"
 			(at 168.91 90.17 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5744,7 +5744,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -6570,7 +6570,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100nF"
+		(property "Value" "100nF 100V"
 			(at 226.06 90.17 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7631,7 +7631,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100nF"
+		(property "Value" "100nF 100V"
 			(at 190.5 90.17 0)
 			(show_name no)
 			(do_not_autoplace no)

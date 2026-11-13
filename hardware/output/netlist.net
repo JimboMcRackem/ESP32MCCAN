@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN-pcb\\hardware\\mccan.kicad_sch")
-		(date "2026-11-13T23:19:23")
+		(date "2026-11-13T23:23:21")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -248,7 +248,7 @@
 	(components
 		(comp
 			(ref "C1")
-			(value "100nF")
+			(value "100nF 100V")
 			(footprint "Capacitor_SMD:C_0603_1608Metric")
 			(fields
 				(field
@@ -302,7 +302,7 @@
 		)
 		(comp
 			(ref "C2")
-			(value "100nF")
+			(value "100nF 100V")
 			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
@@ -464,7 +464,7 @@
 		)
 		(comp
 			(ref "C5")
-			(value "100nF")
+			(value "100nF 100V")
 			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
@@ -1410,6 +1410,9 @@
 			(property
 				(name "Sheetfile")
 				(value "sheets/power_input.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
 			)
 			(property
 				(name "ki_keywords")
@@ -3971,7 +3974,7 @@
 		)
 		(comp
 			(ref "C7")
-			(value "100nF")
+			(value "100nF 100V")
 			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field
@@ -4295,7 +4298,7 @@
 		)
 		(comp
 			(ref "C13")
-			(value "100nF")
+			(value "100nF 100V")
 			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(fields
 				(field

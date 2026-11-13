@@ -92,13 +92,13 @@ COMPS = [
     ("L2", "mccan_parts:CM_CHOKE_4T",     81.28 + SH,  78.74,   0, "7448031002", ""),
     ("R2", "Device:R",                    81.28 + SH,  69.85,  90, "0R (link)", ""),
     ("R3", "Device:R",                    81.28 + SH,  87.63,  90, "0R (link)", ""),
-    ("C1", "Device:C",                    93.98 + SH,  80.01,   0, "100nF", ""),
+    ("C1", "Device:C",                    93.98 + SH,  80.01,   0, "100nF 100V", ""),
     ("L1", "Device:L",                   104.14 + SH,  76.20,  90, "1.5uH", ""),
-    ("C2", "Device:C",                   115.57 + SH,  80.01,   0, "100nF", ""),
+    ("C2", "Device:C",                   115.57 + SH,  80.01,   0, "100nF 100V", ""),
     ("C3", "Device:C_Polarized",         123.19 + SH,  80.01,   0, "220uF 63V", ""),
     ("C4", "Device:C",                   130.81 + SH,  80.01,   0, "1uF", ""),
     ("D3", "Device:D_Schottky",          140.97 + SH,  76.20, 180, "Schottky 40V", ""),
-    ("C5", "Device:C",                   151.13 + SH,  80.01,   0, "100nF", ""),
+    ("C5", "Device:C",                   151.13 + SH,  80.01,   0, "100nF 100V", ""),
 
     # ---- feed B (D6): reverse-polarity P-FET + 24 V TVS for the AUX_R pod switch
     ("J9",  "Connector:Conn_01x02_Pin",  147.32, 124.46,   0, "SS1.5 2w feed B", ""),

@@ -145,7 +145,7 @@ hlab("VLOGIC_IN", "input", 35.56, 25.4, 180)
 w((35.56, 25.4), (63.5, 25.4))                      # VIN rail
 w((38.1, 25.4), (38.1, 17.78)); j((38.1, 25.4)); pwrflag(38.1, 17.78)
 c1a, c1b = vpart("C6", "Device:C", "2.2uF", 43.18, 25.4); gnd(*c1b); j(c1a)
-c2a, c2b = vpart("C7", "Device:C", "100nF", 50.8, 25.4); gnd(*c2b); j(c2a)
+c2a, c2b = vpart("C7", "Device:C", "100nF 100V", 50.8, 25.4); gnd(*c2b); j(c2a)
 j((58.42, 25.4)); w((58.42, 25.4), (58.42, 30.48)); w((58.42, 30.48), (63.5, 30.48))  # EN = VIN
 w((63.5, 38.1), (58.42, 38.1))                      # RON
 r1a, r1b = vpart("R4", "Device:R", "20.5k", 58.42, 38.1); gnd(*r1b)
@@ -176,7 +176,7 @@ hlab("VBAT", "input", 63.5, 60.96, 90)
 w((63.5, 60.96), (63.5, 71.12)); j((63.5, 63.5)); w((63.5, 63.5), (40.64, 63.5))
 w((45.72, 63.5), (45.72, 55.88)); j((45.72, 63.5)); pwrflag(45.72, 55.88)
 c7a, c7b = vpart("C12", "Device:C", "2.2uF", 48.26, 63.5); gnd(*c7b); j(c7a)
-c8a, c8b = vpart("C13", "Device:C", "100nF", 40.64, 63.5); gnd(*c8b)
+c8a, c8b = vpart("C13", "Device:C", "100nF 100V", 40.64, 63.5); gnd(*c8b)
 hlab("EN_5V", "input", 45.72, 76.2, 180)
 w((45.72, 76.2), (63.5, 76.2))                      # EN
 # Mandatory passive default (plan Global Constraints): floating = rail OFF.
