@@ -978,6 +978,129 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Connector:TestPoint"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.762)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "TP"
+				(at 0 6.858 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "TestPoint"
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "test point"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "test point tp"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Pin* Test*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "TestPoint_0_1"
+				(circle
+					(center 0 3.302)
+					(radius 0.762)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "TestPoint_1_1"
+				(pin passive line
+					(at 0 0 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:C"
 			(pin_numbers
 				(hide yes)
@@ -3619,6 +3742,16 @@
 	)
 	(wire
 		(pts
+			(xy 86.36 271.78) (xy 93.98 271.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "09ccea16-b310-5c66-96ee-000daf06af2a")
+	)
+	(wire
+		(pts
 			(xy 139.7 157.48) (xy 132.08 157.48)
 		)
 		(stroke
@@ -3636,6 +3769,16 @@
 			(type default)
 		)
 		(uuid "0babea4e-9169-5032-877e-152cee9b6230")
+	)
+	(wire
+		(pts
+			(xy 55.88 256.54) (xy 63.5 256.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0c0af2fe-b5f6-5faf-9cd9-edbf7ec3253a")
 	)
 	(wire
 		(pts
@@ -3719,6 +3862,16 @@
 	)
 	(wire
 		(pts
+			(xy 55.88 294.64) (xy 63.5 294.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "160530a1-8101-5c4a-b646-549da4cfc0d8")
+	)
+	(wire
+		(pts
 			(xy 266.7 320.04) (xy 266.7 314.96)
 		)
 		(stroke
@@ -3766,6 +3919,16 @@
 			(type default)
 		)
 		(uuid "1a3bebd7-226b-56ea-98c2-8a310a418bc8")
+	)
+	(wire
+		(pts
+			(xy 25.4 302.26) (xy 33.02 302.26)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "22b921c3-198f-5e3d-be7f-4cdcbca15984")
 	)
 	(wire
 		(pts
@@ -3899,6 +4062,16 @@
 	)
 	(wire
 		(pts
+			(xy 25.4 264.16) (xy 33.02 264.16)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "33af6879-f15d-51fa-82f2-aa21577e2dfa")
+	)
+	(wire
+		(pts
 			(xy 182.88 332.74) (xy 190.5 332.74)
 		)
 		(stroke
@@ -3946,6 +4119,16 @@
 			(type default)
 		)
 		(uuid "394cf1fb-7374-5e74-a25a-8764ac40196e")
+	)
+	(wire
+		(pts
+			(xy 55.88 287.02) (xy 63.5 287.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3af780d3-3fd7-5365-a9a4-be0c8e8a1c93")
 	)
 	(wire
 		(pts
@@ -4006,6 +4189,16 @@
 			(type default)
 		)
 		(uuid "40ff14fb-dfca-5ff6-9940-0a55fc0c0ff4")
+	)
+	(wire
+		(pts
+			(xy 55.88 264.16) (xy 63.5 264.16)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "42395e2a-5fbf-524e-a257-2ef726ee4a12")
 	)
 	(wire
 		(pts
@@ -4116,6 +4309,16 @@
 			(type default)
 		)
 		(uuid "4f1202f7-a733-5b64-a6b2-22a2e9572dc3")
+	)
+	(wire
+		(pts
+			(xy 86.36 309.88) (xy 93.98 309.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4f24fb52-a476-537d-a3b8-14a2b1900bd6")
 	)
 	(wire
 		(pts
@@ -4239,6 +4442,26 @@
 	)
 	(wire
 		(pts
+			(xy 25.4 279.4) (xy 33.02 279.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5c7e049e-75e0-50a0-84a0-e7e3ab133a54")
+	)
+	(wire
+		(pts
+			(xy 55.88 271.78) (xy 63.5 271.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5cccd48b-dd64-5513-918d-689f54241b97")
+	)
+	(wire
+		(pts
 			(xy 165.1 58.42) (xy 172.72 58.42)
 		)
 		(stroke
@@ -4299,6 +4522,16 @@
 	)
 	(wire
 		(pts
+			(xy 55.88 279.4) (xy 63.5 279.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "69872aef-dd7d-567a-9ac9-a5b764fcfa14")
+	)
+	(wire
+		(pts
 			(xy 266.7 320.04) (xy 274.32 320.04)
 		)
 		(stroke
@@ -4339,6 +4572,16 @@
 	)
 	(wire
 		(pts
+			(xy 86.36 287.02) (xy 93.98 287.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7013948d-01b9-521b-aad9-31eac0af2818")
+	)
+	(wire
+		(pts
 			(xy 198.12 71.12) (xy 205.74 71.12)
 		)
 		(stroke
@@ -4366,6 +4609,26 @@
 			(type default)
 		)
 		(uuid "73510ba1-40b3-5d2a-8e2d-2a3839a71d4c")
+	)
+	(wire
+		(pts
+			(xy 25.4 309.88) (xy 33.02 309.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "752bcf87-b018-54f1-b937-1c879d4ae90b")
+	)
+	(wire
+		(pts
+			(xy 25.4 271.78) (xy 33.02 271.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "77258836-6e51-5150-89be-87bc9e0d4302")
 	)
 	(wire
 		(pts
@@ -4519,6 +4782,16 @@
 	)
 	(wire
 		(pts
+			(xy 55.88 302.26) (xy 63.5 302.26)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8019066c-4e4c-50d4-83cc-14caeed64cf3")
+	)
+	(wire
+		(pts
 			(xy 139.7 170.18) (xy 132.08 170.18)
 		)
 		(stroke
@@ -4526,6 +4799,26 @@
 			(type default)
 		)
 		(uuid "8075021e-f389-5054-99b4-26dae5a698d9")
+	)
+	(wire
+		(pts
+			(xy 86.36 279.4) (xy 93.98 279.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "80f5e2dc-5f49-52cb-9d0c-683f52a9c5a9")
+	)
+	(wire
+		(pts
+			(xy 25.4 317.5) (xy 33.02 317.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "814b7745-db71-5883-ba37-c44e2599e61b")
 	)
 	(wire
 		(pts
@@ -4659,6 +4952,16 @@
 	)
 	(wire
 		(pts
+			(xy 55.88 309.88) (xy 63.5 309.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9838d2d6-56e6-5b90-ae9e-07435daa2eb4")
+	)
+	(wire
+		(pts
 			(xy 139.7 160.02) (xy 132.08 160.02)
 		)
 		(stroke
@@ -4689,6 +4992,16 @@
 	)
 	(wire
 		(pts
+			(xy 86.36 294.64) (xy 93.98 294.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9e496b8d-d394-56cc-b848-8bcbcae22116")
+	)
+	(wire
+		(pts
 			(xy 40.64 30.48) (xy 45.72 30.48)
 		)
 		(stroke
@@ -4706,6 +5019,16 @@
 			(type default)
 		)
 		(uuid "9f6598f9-fdc5-55ef-ae0b-b24dd0313669")
+	)
+	(wire
+		(pts
+			(xy 25.4 294.64) (xy 33.02 294.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a0a0bc09-4c69-50ac-859a-8f9cdd4c8dd6")
 	)
 	(wire
 		(pts
@@ -4759,6 +5082,16 @@
 	)
 	(wire
 		(pts
+			(xy 86.36 302.26) (xy 93.98 302.26)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a6a8ad4f-be48-5425-9330-32d1812ecb5f")
+	)
+	(wire
+		(pts
 			(xy 154.94 33.02) (xy 160.02 33.02)
 		)
 		(stroke
@@ -4776,6 +5109,16 @@
 			(type default)
 		)
 		(uuid "aa464633-d98b-5728-a270-3f82588b81ce")
+	)
+	(wire
+		(pts
+			(xy 86.36 256.54) (xy 93.98 256.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "aac23494-7684-5445-b2f9-e45813ca467c")
 	)
 	(wire
 		(pts
@@ -4949,6 +5292,16 @@
 	)
 	(wire
 		(pts
+			(xy 86.36 264.16) (xy 93.98 264.16)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b8a85601-f6da-5b7e-b4a0-a27299225534")
+	)
+	(wire
+		(pts
 			(xy 139.7 266.7) (xy 132.08 266.7)
 		)
 		(stroke
@@ -5006,6 +5359,16 @@
 			(type default)
 		)
 		(uuid "bc03c6df-e253-5f22-826a-fe8c712871de")
+	)
+	(wire
+		(pts
+			(xy 55.88 317.5) (xy 63.5 317.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bc534091-b439-5e35-b7c2-b26f966e1c89")
 	)
 	(wire
 		(pts
@@ -5269,6 +5632,16 @@
 	)
 	(wire
 		(pts
+			(xy 25.4 287.02) (xy 33.02 287.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "dd774966-7a80-53ea-ac62-ae5084b3284c")
+	)
+	(wire
+		(pts
 			(xy 165.1 170.18) (xy 172.72 170.18)
 		)
 		(stroke
@@ -5316,6 +5689,16 @@
 			(type default)
 		)
 		(uuid "e486eee7-c572-52cd-8e8a-12546a832f68")
+	)
+	(wire
+		(pts
+			(xy 25.4 256.54) (xy 33.02 256.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e4896343-2090-560f-8040-392eb0ac2132")
 	)
 	(wire
 		(pts
@@ -5547,6 +5930,16 @@
 		)
 		(uuid "fe6b2ebd-6f14-577f-8ef4-e04e9f31a83c")
 	)
+	(label "FL_IND"
+		(at 63.5 317.5 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "02429482-7303-56e6-ab12-b842ffd96c90")
+	)
 	(label "IN_AUX_R"
 		(at 132.08 337.82 180)
 		(effects
@@ -5596,6 +5989,16 @@
 			(justify left bottom)
 		)
 		(uuid "12099403-de27-5d7d-9b39-eddbeca2f6d8")
+	)
+	(label "YEL_R"
+		(at 33.02 317.5 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "17c9ef50-eebd-54f0-967c-0adf2b6a6cf6")
 	)
 	(label "IN_FL_IND"
 		(at 50.8 45.72 0)
@@ -5717,6 +6120,16 @@
 		)
 		(uuid "287ef533-5133-523c-95bd-06d5e52998e2")
 	)
+	(label "+3V3_ALW"
+		(at 33.02 279.4 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "2964df46-ec76-5ba8-8050-80dfb8d7e01a")
+	)
 	(label "FR_DRL"
 		(at 172.72 154.94 0)
 		(effects
@@ -5827,6 +6240,16 @@
 		)
 		(uuid "3f537f50-be84-5fea-a399-8a42b50baf26")
 	)
+	(label "CANH"
+		(at 63.5 294.64 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "41efc7e2-9d7f-58fb-9eba-e97a3a0fe9f2")
+	)
 	(label "+3V3_ALW"
 		(at 198.12 160.02 90)
 		(effects
@@ -5836,6 +6259,16 @@
 			(justify left bottom)
 		)
 		(uuid "42acdb71-926b-58c1-a3a6-290964fca0b8")
+	)
+	(label "RL_BRK"
+		(at 93.98 287.02 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "43b76f2d-7552-55ca-b677-63fc11338676")
 	)
 	(label "RL_DRL"
 		(at 172.72 60.96 0)
@@ -5856,6 +6289,16 @@
 			(justify right bottom)
 		)
 		(uuid "457be37a-aeb4-5a0d-af96-447bcc977144")
+	)
+	(label "FL_DRL"
+		(at 63.5 309.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "4706f6b4-6e1f-5ebe-91ff-850531e45152")
 	)
 	(label "CL_B"
 		(at 132.08 175.26 180)
@@ -5977,6 +6420,16 @@
 		)
 		(uuid "5f335fbc-929d-59ae-9e34-087c0e3274f9")
 	)
+	(label "GND_B"
+		(at 33.02 271.78 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6120e708-3d9d-5d7e-a2c9-c006351d20ef")
+	)
 	(label "IN_AUX_L"
 		(at 132.08 332.74 180)
 		(effects
@@ -6007,6 +6460,16 @@
 		)
 		(uuid "6e18bec6-96c2-57c5-9597-3d7f59015b2d")
 	)
+	(label "RR_BRK"
+		(at 93.98 309.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6e9caa7b-4a3d-5b56-a82b-168bdcf05b0a")
+	)
 	(label "RL_IND"
 		(at 172.72 68.58 0)
 		(effects
@@ -6036,6 +6499,26 @@
 			(justify right bottom)
 		)
 		(uuid "774e42c2-e7de-56bd-b12c-d4f0d66b0a6d")
+	)
+	(label "SNS_A"
+		(at 63.5 271.78 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "7f7ba79f-a1cc-5d26-9a46-3319c2dcfb3c")
+	)
+	(label "VBAT"
+		(at 33.02 256.54 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "837afce6-2778-56f4-9802-953ef450e49f")
 	)
 	(label "THER_A"
 		(at 132.08 71.12 180)
@@ -6097,6 +6580,16 @@
 		)
 		(uuid "8c013453-5e26-5b7a-ac93-ce2acc663569")
 	)
+	(label "VBAT_B"
+		(at 33.02 264.16 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "8dec606d-a59d-5be4-bf70-a7bb2bab44cc")
+	)
 	(label "RR_BRK"
 		(at 172.72 261.62 0)
 		(effects
@@ -6116,6 +6609,16 @@
 			(justify left bottom)
 		)
 		(uuid "920a2860-f56c-5695-9dbd-a3cf216b60df")
+	)
+	(label "FR_DRL"
+		(at 93.98 256.54 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9338f543-7bfe-536d-bd49-65efd8b76dc0")
 	)
 	(label "IN_RR_IND"
 		(at 50.8 137.16 0)
@@ -6287,6 +6790,16 @@
 		)
 		(uuid "b817434c-f459-56ee-b312-3bf64b6b28e5")
 	)
+	(label "SNS_B"
+		(at 63.5 279.4 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "ba3a02e9-ae4b-5eb9-9c9b-82675846588d")
+	)
 	(label "IN_RL_BRK"
 		(at 132.08 254 180)
 		(effects
@@ -6317,6 +6830,16 @@
 		)
 		(uuid "bd3c15be-1b15-50a8-8802-7939e62d6764")
 	)
+	(label "POD_L_P"
+		(at 63.5 256.54 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "bfe6e22f-32c1-57f0-ad82-3f871b44f57f")
+	)
 	(label "IN_RR_DRL"
 		(at 50.8 121.92 0)
 		(effects
@@ -6336,6 +6859,16 @@
 			(justify left bottom)
 		)
 		(uuid "c425f23b-232b-5d0c-b15c-0763966f9b87")
+	)
+	(label "RR_IND"
+		(at 93.98 302.26 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c66b6c25-cd3f-5c75-881d-872ded333541")
 	)
 	(label "DIAG_SEL1_Q"
 		(at 132.08 170.18 180)
@@ -6366,6 +6899,16 @@
 			(justify left bottom)
 		)
 		(uuid "caf3cfe3-f678-5672-bdcf-ccb11a89e2bf")
+	)
+	(label "YEL_L"
+		(at 33.02 309.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "cbb1cda4-1c7f-56cf-ad47-3178aaeb733c")
 	)
 	(label "YEL_L"
 		(at 388.62 340.36 0)
@@ -6477,6 +7020,26 @@
 		)
 		(uuid "dfefde22-2c14-502a-a4fc-be4120c054dd")
 	)
+	(label "+5V"
+		(at 33.02 287.02 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e02e62ae-65ff-5aa3-b584-fd6b96e92ccd")
+	)
+	(label "POD_R_P"
+		(at 63.5 264.16 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e12ac4b2-9777-579d-a85d-be915dbaaac7")
+	)
 	(label "FR_DRL"
 		(at 172.72 152.4 0)
 		(effects
@@ -6517,6 +7080,16 @@
 		)
 		(uuid "e931d41e-3df8-56c2-8f9b-1bb912204d38")
 	)
+	(label "CANL"
+		(at 63.5 302.26 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e98d060e-cddd-55ab-9df5-a143171d55df")
+	)
 	(label "RL_DRL"
 		(at 299.72 99.06 0)
 		(effects
@@ -6526,6 +7099,16 @@
 			(justify left bottom)
 		)
 		(uuid "ea68b686-abf6-55a7-ba20-58cc99d228cc")
+	)
+	(label "SNS_C"
+		(at 63.5 287.02 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "ef2c27d7-e939-5f59-bc64-a1c152960f14")
 	)
 	(label "FL_DRL"
 		(at 172.72 53.34 0)
@@ -6547,6 +7130,46 @@
 		)
 		(uuid "f103eff1-2aa7-581e-96f3-a0c5a94cf3ad")
 	)
+	(label "RL_IND"
+		(at 93.98 279.4 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f1219faf-324b-5eae-81a9-bd79402e2277")
+	)
+	(label "FR_IND"
+		(at 93.98 264.16 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f5ee4097-aedf-553f-87ee-280dd8f9fbcc")
+	)
+	(label "RL_DRL"
+		(at 93.98 271.78 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f6451855-0f97-5ee5-be98-19c713a336eb")
+	)
+	(label "RR_DRL"
+		(at 93.98 294.64 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "fcdb4988-9b57-5c54-b0af-a611ac6b1186")
+	)
 	(label "IN_FR_DRL"
 		(at 50.8 91.44 0)
 		(effects
@@ -6556,6 +7179,16 @@
 			(justify left bottom)
 		)
 		(uuid "fd6b514f-6fb4-508a-bd37-f556e17481de")
+	)
+	(label "AUX_PWM"
+		(at 33.02 302.26 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "fe6d9fce-7dc2-5136-a9d7-98116c1f7de7")
 	)
 	(hierarchical_label "AUX_PWM"
 		(shape input)
@@ -7015,6 +7648,164 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 264.16 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "058567ad-2af1-5d13-9b7c-3018e7fc54a2")
+		(property "Reference" "TP20"
+			(at 83.82 260.35 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "FR_IND"
+			(at 83.82 257.81 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a89586c9-527e-5685-9e67-547b6cee65a6")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP20")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 264.16 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "07bdd70b-74d0-5e6c-ba20-5710c957c776")
+		(property "Reference" "TP11"
+			(at 53.34 260.35 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "POD_R_P"
+			(at 53.34 257.81 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "26e3f074-1332-57c4-b7f7-b4456cd9ee6f")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP11")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 36.83 45.72 90)
 		(unit 1)
@@ -7412,6 +8203,85 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "R53")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 279.4 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0ee81a82-58d8-5251-9dc6-763d3120cba9")
+		(property "Reference" "TP22"
+			(at 83.82 275.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "RL_IND"
+			(at 83.82 273.05 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "af1414a4-03e6-5268-92e5-66c1511b98fb")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP22")
 					(unit 1)
 				)
 			)
@@ -8628,6 +9498,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 317.5 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "2c44de43-22d7-51bb-87f3-a3ae5249d30e")
+		(property "Reference" "TP9"
+			(at 22.86 313.69 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "YEL_R"
+			(at 22.86 311.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 317.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 317.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 317.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "2a264ed9-f33a-5c16-a08b-979010f65b27")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP9")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 45.72 205.74 0)
 		(unit 1)
@@ -9030,6 +9979,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 294.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "328d6169-8033-5a16-a17d-8328672a387c")
+		(property "Reference" "TP6"
+			(at 22.86 290.83 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND"
+			(at 22.86 288.29 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "920bffad-20b3-5b29-a8fd-98ed6fbcd7e8")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 127 349.25 0)
 		(unit 1)
@@ -9267,6 +10295,85 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "D27")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 264.16 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "398473bc-ea8b-5c91-bfac-7b3148d3a6e3")
+		(property "Reference" "TP2"
+			(at 22.86 260.35 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "VBAT_B"
+			(at 22.86 257.81 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 264.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c9ff4775-eaae-5b16-bace-bf592e5fbee4")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP2")
 					(unit 1)
 				)
 			)
@@ -10729,6 +11836,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 294.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "5e4ee049-97e5-5db0-9744-6dfae974e742")
+		(property "Reference" "TP15"
+			(at 53.34 290.83 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "CANH"
+			(at 53.34 288.29 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "fb1b93b4-a043-5051-a031-5ff169df5991")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP15")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C")
 		(at 162.56 316.23 0)
 		(unit 1)
@@ -11052,6 +12238,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 309.88 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "671ee37e-fc62-5411-8278-75786d0eeeff")
+		(property "Reference" "TP26"
+			(at 83.82 306.07 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "RR_BRK"
+			(at 83.82 303.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "003ffd5a-47eb-513d-9b94-5bbe5e9b1ac2")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP26")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:D_Schottky")
 		(at 198.12 270.51 270)
 		(unit 1)
@@ -11208,6 +12473,85 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "R81")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 279.4 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "6bb98018-6fab-5284-884c-bf37bf8ed9eb")
+		(property "Reference" "TP4"
+			(at 22.86 275.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "+3V3_ALW"
+			(at 22.86 273.05 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "d5de7d48-e466-53ed-afa7-92a02256a0d8")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP4")
 					(unit 1)
 				)
 			)
@@ -11749,6 +13093,164 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 309.88 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "7536844e-1243-527b-bb9c-4f1129ec569e")
+		(property "Reference" "TP8"
+			(at 22.86 306.07 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "YEL_L"
+			(at 22.86 303.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "5591b081-b70e-5c31-9537-862e9561f4f2")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 287.02 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "7699dcab-9fb8-54c2-b49c-1d4219915a36")
+		(property "Reference" "TP23"
+			(at 83.82 283.21 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "RL_BRK"
+			(at 83.82 280.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "3bc5baa9-5cf5-56a1-9c08-4efbae119df5")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP23")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 170.18 243.84 0)
 		(unit 1)
@@ -12071,6 +13573,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 271.78 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "83874b4a-e99f-5d44-8117-7628a7bae136")
+		(property "Reference" "TP21"
+			(at 83.82 267.97 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "RL_DRL"
+			(at 83.82 265.43 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0fa10445-ea1f-5113-8b30-e108225ffab5")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP21")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 238.76 59.69 0)
 		(unit 1)
@@ -12146,6 +13727,85 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "R65")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 317.5 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "84407df2-1a3f-506f-9908-c684f036142d")
+		(property "Reference" "TP18"
+			(at 53.34 313.69 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "FL_IND"
+			(at 53.34 311.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 317.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 317.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 317.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "5674e746-83e8-5819-bfd1-214ff46f78c8")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP18")
 					(unit 1)
 				)
 			)
@@ -12962,6 +14622,164 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 309.88 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "994e37cc-5310-582d-8b06-bd361468bbd8")
+		(property "Reference" "TP17"
+			(at 53.34 306.07 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "FL_DRL"
+			(at 53.34 303.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 309.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "483c96d7-b433-5985-8ae6-ea7e71c45d28")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP17")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 287.02 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "9a402e56-e895-5842-9ef7-097bfc2e5378")
+		(property "Reference" "TP5"
+			(at 22.86 283.21 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "+5V"
+			(at 22.86 280.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "44a7472b-4fd9-5f9e-8658-ed909a8a2c2c")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C")
 		(at 205.74 278.13 0)
 		(unit 1)
@@ -13205,6 +15023,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 271.78 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "a227ad6d-a5eb-55e8-af68-f1aa8dfc46d4")
+		(property "Reference" "TP12"
+			(at 53.34 267.97 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SNS_A"
+			(at 53.34 265.43 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "9acbdc87-5d8e-5ec9-ab95-7c9edb50bad2")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP12")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 285.75 358.14 90)
 		(unit 1)
@@ -13441,6 +15338,86 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "#PWR347")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 33.02 294.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "a51aae62-ad01-52f3-a6a5-5a07ad8d2fd0")
+		(property "Reference" "#PWR349"
+			(at 33.02 300.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND"
+			(at 33.02 298.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 33.02 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 33.02 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 33.02 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "82eadabf-5ce5-5fa9-b398-8012a9edec6c")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "#PWR349")
 					(unit 1)
 				)
 			)
@@ -14509,6 +16486,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 256.54 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "be8f0613-4c77-580e-9b35-b3d248470706")
+		(property "Reference" "TP10"
+			(at 53.34 252.73 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "POD_L_P"
+			(at 53.34 250.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0882d94e-bffe-5bb8-91be-0a2bd80a58c5")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP10")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 36.83 60.96 90)
 		(unit 1)
@@ -14664,6 +16720,85 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "#PWR307")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 294.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "c51656d7-5e48-52ba-867a-fba5697b6900")
+		(property "Reference" "TP24"
+			(at 83.82 290.83 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "RR_DRL"
+			(at 83.82 288.29 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 294.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "48ea30d4-2eef-5fd3-addf-3bb0cf316035")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP24")
 					(unit 1)
 				)
 			)
@@ -14992,6 +17127,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 279.4 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "cc6a5f6e-48ed-5b50-b72d-686d4aa7031b")
+		(property "Reference" "TP13"
+			(at 53.34 275.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SNS_B"
+			(at 53.34 273.05 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 279.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0765e461-5add-561b-b8a4-536ea48e509b")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP13")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 36.83 30.48 90)
 		(unit 1)
@@ -15228,6 +17442,85 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "#PWR302")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 302.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "d0db2b26-9e0d-5b28-b16e-f00623820ed4")
+		(property "Reference" "TP25"
+			(at 83.82 298.45 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "RR_IND"
+			(at 83.82 295.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0f5dde3f-83ce-5466-8805-18b1d34e972e")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP25")
 					(unit 1)
 				)
 			)
@@ -15881,6 +18174,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 287.02 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "e0a99344-f64b-5704-8b2f-93d74b9b3f42")
+		(property "Reference" "TP14"
+			(at 53.34 283.21 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SNS_C"
+			(at 53.34 280.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 287.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "99404613-f16a-54a1-864f-c41e23af0f3e")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP14")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R")
 		(at 189.23 274.32 90)
 		(unit 1)
@@ -15962,6 +18334,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 302.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "e1f01e02-91be-52d5-97bd-831182645464")
+		(property "Reference" "TP7"
+			(at 22.86 298.45 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "AUX_PWM"
+			(at 22.86 295.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "aa9a0991-336c-5b16-bb61-06cf87ab34fa")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C_Polarized")
 		(at 182.88 316.23 0)
 		(unit 1)
@@ -16037,6 +18488,85 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "C68")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 271.78 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "e289be59-7f61-56c7-b3f2-e46ccb081169")
+		(property "Reference" "TP3"
+			(at 22.86 267.97 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND_B"
+			(at 22.86 265.43 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 271.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "9a6127b4-ff79-5131-873d-43e3fb283b88")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP3")
 					(unit 1)
 				)
 			)
@@ -16768,6 +19298,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 55.88 302.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "f1160a7a-267c-569f-bfaf-a99f10e98012")
+		(property "Reference" "TP16"
+			(at 53.34 298.45 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "CANL"
+			(at 53.34 295.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 55.88 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 55.88 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 55.88 302.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "9b8acf98-ba84-59b8-87e3-ddb58203a0f9")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP16")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 45.72 160.02 0)
 		(unit 1)
@@ -17003,6 +19612,164 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
 					(reference "#PWR327")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 86.36 256.54 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "fdd9892f-d95a-5aab-b95f-96b6e8cdc85b")
+		(property "Reference" "TP19"
+			(at 83.82 252.73 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "FR_DRL"
+			(at 83.82 250.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 86.36 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 86.36 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "70b2e3b0-cbce-5ed5-b41f-fa92150d2852")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP19")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 25.4 256.54 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "fdf20679-e5a8-5681-adf4-8f05a29a5c6b")
+		(property "Reference" "TP1"
+			(at 22.86 252.73 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "VBAT"
+			(at 22.86 250.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm"
+			(at 25.4 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 25.4 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test point, bare SMD pad"
+			(at 25.4 256.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "8081d981-be2b-5806-85a4-7e309678b0c6")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/4008c412-efce-41fb-837c-ba7220a4d335"
+					(reference "TP1")
 					(unit 1)
 				)
 			)

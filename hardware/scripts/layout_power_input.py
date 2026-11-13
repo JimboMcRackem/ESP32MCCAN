@@ -108,6 +108,7 @@ COMPS = [
     ("C66", "Device:C",                  203.20, 128.27,   0, "100nF 100V", ""),
     ("D25", "Device:D_Zener",             210.82, 128.27, 270, "SMBJ24A", ""),
     ("NT1", "Device:NetTie_2",           218.44, 147.32,   0, "NetTie_2", ""),
+    ("TP30", "Connector:TestPoint",       231.14, 147.32,   0, "GND_IN", ""),   # phase B test pad
 ]
 HORIZONTAL = {"L1", "D3", "R2", "R3", "R100", "R107"}
 
@@ -253,6 +254,8 @@ WIRES = [
     ((160.02, 147.32), (160.02, 152.40)),
     # NT1 pin 2 -> GND_IN (connector side of L2), through a local label like the other GND_IN members
     ((220.98, 147.32), (226.06, 147.32)),
+    # TP30 (phase B test pad) on GND_IN
+    ((226.06, 147.32), (231.14, 147.32)),
 ]
 
 JUNCTIONS = [
@@ -345,6 +348,7 @@ _ANCHORS = {
     "C66":  ((204.47, 118.11), (204.47, 120.65)),
     "D25":  ((213.36, 127.00), (213.36, 129.54)),
     "NT1":  ((215.90, 142.24), (215.90, 144.78)),
+    "TP30": ((233.68, 140.97), (233.68, 143.51)),
     # eFuse block
     "Q10":  ((60.96, 67.31), (60.96, 69.85)),     # grows right, into empty space above
     "Q11":  ((97.79, 86.36), (97.79, 88.90)),     # rot 90 -> grows left

@@ -38,6 +38,7 @@ PINS = {
     "Transistor_FET:Si7141DP": {"1": (2.54, -5.08), "2": (2.54, -5.08), "3": (2.54, -5.08),
                                 "4": (-5.08, 0.0), "5": (2.54, 5.08)},
     "Device:NetTie_2": {"1": (-2.54, 0.0), "2": (2.54, 0.0)},
+    "Connector:TestPoint": {"1": (0.0, 0.0)},
     "Device:Fuse":              {"1": (0.0, 3.81), "2": (0.0, -3.81)},
     # Transistor_FET:Q_PMOS_GSD -- 1 = G, 2 = S, 3 = D (numeric, maps to real footprints)
     "Transistor_FET:Q_PMOS_GSD": {"1": (-5.08, 0.0), "2": (2.54, -5.08), "3": (2.54, 5.08)},

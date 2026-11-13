@@ -107,7 +107,8 @@ _bts = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
                     "BTS7008_2EPA", "mccan_parts:BTS7008_2EPA")
 _buf = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
                     "74AHCT2G126", "mccan_parts:74AHCT2G126")
-LIBS += [_bts, _buf]
+_tp = from_library(os.path.join(STOCK, "Connector.kicad_sym"), "TestPoint", "Connector:TestPoint")
+LIBS += [_bts, _buf, _tp]
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
 
 # The quad's pin offsets, read from the symbol itself, and cross-checked against quadpins so
@@ -496,6 +497,29 @@ for jref, side in (("J10", "L"), ("J11", "R")):
         else:
             lab(net, e[0], e[1])
     ty2 = round(ty2 + 25.4, 4)
+
+# ================================================================ BLOCK F: test points
+# Phase B (spec goal 8): bare SMD pads, one per net.  TP1-TP26 live here; TP27-TP28 on rails,
+# TP29 on mcu_can, TP30 (GND_IN) on power_input.  Every net here already has its hierarchical
+# label on this sheet, so a local label of the same name joins it.
+TPPIN = pins_of(_tp)
+TP_NETS = ["VBAT", "VBAT_B", "GND_B", "+3V3_ALW", "+5V", "GND", "AUX_PWM", "YEL_L", "YEL_R",
+           "POD_L_P", "POD_R_P", "SNS_A", "SNS_B", "SNS_C", "CANH", "CANL",
+           "FL_DRL", "FL_IND", "FR_DRL", "FR_IND", "RL_DRL", "RL_IND", "RL_BRK",
+           "RR_DRL", "RR_IND", "RR_BRK"]
+for k, net in enumerate(TP_NETS):
+    ref = "TP%d" % (k + 1)
+    x = round(25.4 + (k // 9) * 30.48, 4)
+    y = round(256.54 + (k % 9) * 7.62, 4)
+    P = place(ref, "Connector:TestPoint", net, x, y, 0, TPPIN,
+              [("Reference", ref, x - 2.54, y - 3.81, 0), ("Value", net, x - 2.54, y - 6.35, 0, True)],
+              desc="Test point, bare SMD pad")
+    e = (round(x + 7.62, 4), y)
+    w(P["1"], e)
+    if net == "GND":
+        gnd(*e)
+    else:
+        lab(net, e[0], e[1])
 
 # ================================================================ NOTES
 NOTEW = 135

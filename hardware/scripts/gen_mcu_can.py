@@ -107,6 +107,7 @@ LIBS.append(from_library(os.path.join(STOCK, "Connector_Generic.kicad_sym"),
 for _nm in ("PESD2CANFD24U", "CM_CHOKE_4T"):
     LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
                              _nm, "mccan_parts:" + _nm))
+LIBS.append(from_library(os.path.join(STOCK, "Connector.kicad_sym"), "TestPoint", "Connector:TestPoint"))
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
 
 # ---------------------------------------------------------------- geometry
@@ -416,6 +417,12 @@ w(SW2["2"], (120.65, 158.75)); gnd(120.65, 158.75)
 # It costs nothing in sleep.  (R30-R33, the diagnostic parts, sit in block A beside their pads.)
 w((132.08, 215.9), (132.08, 220.98)); lab("IO12_STRAP", 132.08, 215.9, 90)
 a, b = vpart("R36", "Device:R", "10k", 132.08, 220.98); gnd(*b)
+
+# ================================================================ test points (phase B)
+_p = place("TP29", "Connector:TestPoint", "CAN_RXD", 25.4, 248.92, 0, {"1": (0.0, 0.0)},
+          [("Reference", "TP29", 22.86, 245.11, 0), ("Value", "CAN_RXD", 22.86, 242.57, 0, True)],
+          desc="Test point, bare SMD pad")
+w(_p["1"], (33.02, 248.92)); lab("CAN_RXD", 33.02, 248.92)
 
 # ================================================================ NOTES
 NOTEW = 135

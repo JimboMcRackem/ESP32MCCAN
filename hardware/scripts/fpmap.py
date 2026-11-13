@@ -25,6 +25,8 @@ than 0805: a 63 V part in 0805 either does not exist at these values or derates 
 under DC bias that it is not the capacitance the design assumes.
 """
 
+import re
+
 import quadpins
 
 # ---------------------------------------------------------------- stock libraries
@@ -236,10 +238,16 @@ BLOCKED = {
 }
 
 
+# Test points (phase B, spec goal 8): bare SMD copper pads, no part to buy or place.
+TP_FOOTPRINT = "TestPoint:TestPoint_Pad_D1.5mm"
+
+
 def fp(ref):
     """Footprint for a reference designator, or "" if none is assigned yet."""
     if ref in BLOCKED:
         return ""
+    if re.fullmatch(r"TP\d+", ref):
+        return TP_FOOTPRINT
     if ref in EXPLICIT:
         return EXPLICIT[ref]
     if ref.startswith("R"):
@@ -258,7 +266,7 @@ def in_bom(ref):
     said "in BOM" while the footprints said otherwise, which board parity reported as seven
     "'Exclude from bill of materials' settings differ" warnings.  The footprints are right.
     """
-    return not fp(ref).startswith("Connector_Wire:SolderWire")
+    return not (fp(ref).startswith("Connector_Wire:SolderWire") or fp(ref) == TP_FOOTPRINT)
 
 
 def all_assigned():

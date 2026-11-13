@@ -60,6 +60,7 @@ LIBS.append(from_library(os.path.join(STOCK, "power.kicad_sym"),
                          "PWR_FLAG", "power:PWR_FLAG"))
 LIBS.append(from_library(os.path.join(STOCK, "Regulator_Switching.kicad_sym"),
                          "LM5164DDA", "Regulator_Switching:LM5164DDA"))
+LIBS.append(from_library(os.path.join(STOCK, "Connector.kicad_sym"), "TestPoint", "Connector:TestPoint"))
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
 
 # ---------------------------------------------------------------- geometry
@@ -228,6 +229,16 @@ type3(101.6, "5V", "SW_5V", "FB_5V", "+5V", "R18", "174k", "C29", "2.2nF", "C15"
 
 # GND is a global net whose only source is the connector return, so it needs a flag too.
 w((30.48, 185.42), (30.48, 190.5)); pwrflag(30.48, 185.42); gnd(30.48, 190.5)
+
+# ================================================================ test points (phase B)
+_p = place("TP27", "Connector:TestPoint", "VLOGIC_IN", 25.4, 241.3, 0, {"1": (0.0, 0.0)},
+          [("Reference", "TP27", 22.86, 237.49, 0), ("Value", "VLOGIC_IN", 22.86, 234.95, 0, True)],
+          npins=1, desc="Test point, bare SMD pad")
+w(_p["1"], (33.02, 241.3)); lab("VLOGIC_IN", 33.02, 241.3)
+_p = place("TP28", "Connector:TestPoint", "EN_5V", 25.4, 248.92, 0, {"1": (0.0, 0.0)},
+          [("Reference", "TP28", 22.86, 245.11, 0), ("Value", "EN_5V", 22.86, 242.57, 0, True)],
+          npins=1, desc="Test point, bare SMD pad")
+w(_p["1"], (33.02, 248.92)); lab("EN_5V", 33.02, 248.92)
 
 # ================================================================ NOTES
 import sys

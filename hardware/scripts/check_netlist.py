@@ -334,7 +334,9 @@ def chk_gnd_b_members(nl):
     want = {"J9", "R108", "D25", "C66", "NT1", "J10", "J11", "C67", "C68", "C69", "C70"}
     if "GND_B" not in nl.nets:
         return ["net GND_B does not exist"]
-    got = {m.split(".")[0] for m in nl.nets["GND_B"]}
+    # test pads (TPn) are bare copper, checked by the testpoints group; they carry no current
+    got = {m.split(".")[0] for m in nl.nets["GND_B"]} - {r for r in
+           (m.split(".")[0] for m in nl.nets["GND_B"]) if re.fullmatch(r"TP\d+", r)}
     f = []
     if got != want:
         f.append("GND_B should hold only %s, found %s" % (sorted(want), sorted(nl.nets["GND_B"])))
@@ -707,6 +709,30 @@ def chk_out_strapping(nl):
     return f
 
 
+# ------------------------------------------------------------------ group: testpoints
+# Phase B (spec goal 8): one bare SMD test pad per net below.  Lamp nets get pads too: once the
+# harness is soldered the wire-tail pads are covered.
+TESTPOINTS = ["VBAT", "VBAT_B", "VLOGIC_IN", "+3V3_ALW", "+5V", "GND", "GND_B", "GND_IN",
+              "EN_5V", "CAN_RXD", "CANH", "CANL", "AUX_PWM", "YEL_L", "YEL_R", "POD_L_P",
+              "POD_R_P", "SNS_A", "SNS_B", "SNS_C", "FL_DRL", "FL_IND", "FR_DRL", "FR_IND",
+              "RL_DRL", "RL_IND", "RL_BRK", "RR_DRL", "RR_IND", "RR_BRK"]
+TP_FOOTPRINT = "TestPoint_Pad_D1.5mm"
+
+
+def chk_testpoints(nl):
+    f = []
+    for net in TESTPOINTS:
+        tps = sorted(m.split(".")[0] for m in members(nl, net)
+                     if re.fullmatch(r"TP\d+", m.split(".")[0]))
+        if len(tps) != 1:
+            f.append("%s should carry exactly one test point, found %s" % (net, tps))
+            continue
+        fp = nl.parts[tps[0]].footprint
+        if not fp.endswith(TP_FOOTPRINT):
+            f.append("%s on %s has footprint %r, want ...%s" % (tps[0], net, fp, TP_FOOTPRINT))
+    return f
+
+
 GROUPS = {
     "deleted": [chk_deleted_parts, chk_deleted_nets, chk_deleted_refs],
     "feed_b": [chk_feed_b_nets, chk_feed_b_no_bridge, chk_q13, chk_gate_network, chk_tvs,
@@ -717,6 +743,7 @@ GROUPS = {
                 chk_chip_pins, chk_diag],
     "harness": [chk_harness],
     "boot_safety": [chk_in_nets, chk_out_strapping],
+    "testpoints": [chk_testpoints],
 }
 
 
