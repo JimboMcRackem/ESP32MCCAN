@@ -103,10 +103,25 @@ def parse_blocks(text):
     return blocks
 
 
+KICAD_CLI = os.environ.get("KICAD_CLI", "C:/Program Files/KiCad/10.0/bin/kicad-cli.exe")
+
+
+def run_drc():
+    import subprocess
+    subprocess.run([KICAD_CLI, "pcb", "drc", "--refill-zones", "--severity-all",
+                    "--schematic-parity", "-o", REPORT, PCB],
+                   cwd=HW, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def main():
     if not os.path.exists(PCB):
         print("FAIL: %s is missing" % PCB)
         return 2
+    # Plan4: with the default paths, a missing or stale report is regenerated here (refilled
+    # zones, both severities) rather than refused -- the gate then always grades current copper.
+    if len(sys.argv) <= 1 and (not os.path.exists(REPORT)
+                               or os.path.getmtime(REPORT) < os.path.getmtime(PCB)):
+        run_drc()
     if not os.path.exists(REPORT):
         print("FAIL: %s is missing -- run kicad-cli.exe pcb drc --refill-zones first" % REPORT)
         return 2
@@ -168,6 +183,11 @@ def main():
                 seen[name] = (x, y, desc)
 
     print("%s: %d unconnected-item block(s) parsed" % (os.path.basename(REPORT), len(blocks)))
+    # An orphan island -- fill copper tied to nothing -- is KiCad's isolated_copper finding.
+    isolated = text.count("[isolated_copper]")
+    if isolated:
+        print("  FAIL %d isolated copper island(s) -- see [isolated_copper] in %s" % (isolated, REPORT))
+        return 1
     if splits:
         for name, net, layer, x, y in splits:
             print("  FAIL zone '%s' [%s] on %s is unconnected to itself at (%.4f mm, %.4f mm)"

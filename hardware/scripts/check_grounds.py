@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
-"""Check the F.Cu GND_IN island against the pads it is supposed to serve.
+"""The three-ground split (plan4 phase B, Task 5; spec 5.2).
 
-GND_IN and GND are different nets that meet at exactly two places: L2 winding B, and R3.
-Nothing in DRC enforces that, because a pour never shorts to a foreign net -- KiCad simply
-notches around it.  So a GND_IN island that misses half its own pads, or that blankets a
-post-choke ground pad, passes DRC in silence.  That is the failure this file exists to catch:
+  python check_grounds.py [board.kicad_pcb]
 
-    * every GND_IN pad on F.Cu must lie inside the island, or it has no local return and
-      Task 9 has to route what should have been a plane;
-    * no GND pad on F.Cu may lie inside it, or input-side copper is wrapped around
-      post-choke ground -- coupling across the very component that separates them.
+GND (logic, board side of L2), GND_IN (feed A connector side of L2) and GND_B (feed B / pod
+return) are three nets that may meet only at named parts:
 
-Run after gen_pcb.py.  Exit status is non-zero if either condition is broken.
+    GND    -- GND_IN   only through L2 (winding B) and R3 (the DNP 0R link across it)
+    GND_B  -- GND_IN   only at NT1, the 2 mm star tie
+    GND    -- GND_B    nowhere
+
+KiCad never shorts two nets -- a pour simply notches around foreign copper -- so DRC passes a
+board whose GND plane has been drawn straight over the GND_IN island.  This file checks the
+INTENT instead, geometrically, against the authored zone outlines and copper:
+
+  1. star:   the netlist has exactly the bridging parts above, and no others;
+  2. zones:  no zone of one ground net overlaps a zone of another on the same layer;
+  3. copper: no via, track or through-hole pad of one ground net lies inside another ground
+             net's zone (a via or THT pad pierces every layer, so it is tested on all of them);
+  4. reach:  every GND_B zone, track and via is connected to J9.2 through GND_B copper (and by
+             2-3, none of that copper sits in GND);
+  5. pods:   J10.2, J11.2 and the GND_B pads of C67-C70 lie over GND_B zone copper, and over no
+             GND or GND_IN zone on any layer.
+Exit 1 on any failure.
 """
-
-import io
 import math
 import os
 import re
@@ -22,116 +31,251 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HW = os.path.dirname(HERE)
-# A board path on the command line checks THAT board instead -- the external-router
-# chain in route_external.py grades its own output with the same two guards.
+sys.path.insert(0, HERE)
+from check_antenna import point_in_poly, layers_of  # noqa: E402
+from check_placement import footprints  # noqa: E402
+
 PCB = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HW, "mccan.kicad_pcb")
+GROUNDS = ("GND", "GND_IN", "GND_B")
+ALLOWED = {  # frozenset of nets -> the refs allowed to carry both
+    frozenset(("GND", "GND_IN")): {"L2", "R3"},
+    frozenset(("GND_B", "GND_IN")): {"NT1"},
+    frozenset(("GND", "GND_B")): set(),
+}
+POD_PADS = [("J10", "2"), ("J11", "2"), ("C67", "2"), ("C68", "2"), ("C69", "2"), ("C70", "2")]
 
-ISLAND_NET = "/power_input/GND_IN"
-PLANE_NET = "GND"
 
-FP_AT_RE = re.compile(r'\n\t\t\(at ([-\d.]+) ([-\d.]+)\s*([-\d.]+)?\)')
-PAD_RE = re.compile(
-    r'\(pad "([^"]*)" \w+ [\w_]+\s*\(at ([-\d.]+) ([-\d.]+)\s*([-\d.]+)?\)\s*'
-    r'\(size ([-\d.]+) ([-\d.]+)\)(.*?)\n\t\t\)', re.S)
+def short(n):
+    return n.rsplit("/", 1)[-1]
 
 
-def zone_polys(text, net, layer):
-    """Every polygon of the zones on `net` / `layer`, as lists of (x, y)."""
+def netnames(text):
+    return dict((int(c), short(n)) for c, n in re.findall(r'\n\t\(net (\d+) "([^"]*)"\)', text))
+
+
+def zones(text):
+    """[(net, layer, poly, name)] for every copper zone (rule areas excluded)."""
     out = []
     for blk in text.split("\n\t(zone")[1:]:
-        nm = re.search(r'\(net_name "([^"]*)"\)', blk)
-        ly = re.search(r'\(layers? ([^)]*)\)', blk)
-        if not nm or nm.group(1) != net:
+        if "(keepout" in blk:
             continue
-        if not ly or layer not in ly.group(1):
+        net = re.search(r'\(net_name "([^"]*)"\)', blk)
+        lay = re.search(r'\n\t\t\(layers? ([^)]*)\)', blk)
+        name = re.search(r'\n\t\t\(name "([^"]*)"\)', blk)
+        # The group must end at the closing line: ending it at "\)\s*\)" eats the last
+        # vertex's own ")" and findall then drops that vertex.
+        pts = re.search(r"\(polygon\s*\(pts(.*?)\n\s*\)", blk, re.S)
+        if not (net and lay and pts):
             continue
-        out.append([(float(a), float(b))
-                    for a, b in re.findall(r'\(xy ([-\d.]+) ([-\d.]+)\)', blk)])
+        poly = [(float(a), float(b)) for a, b in re.findall(r"\(xy ([-\d.]+) ([-\d.]+)\)", pts.group(1))]
+        for l in layers_of(lay.group(1)):
+            out.append((short(net.group(1)), l, poly, name.group(1) if name else "?"))
     return out
 
 
-def inside(poly, x, y):
-    """Ray-cast point-in-polygon.  The island is a plain simple polygon, so this is enough."""
-    hit = False
-    n = len(poly)
-    for i in range(n):
-        x0, y0 = poly[i]
-        x1, y1 = poly[(i + 1) % n]
-        if (y0 > y) != (y1 > y):
-            xc = x0 + (y - y0) * (x1 - x0) / (y1 - y0)
-            if x < xc:
-                hit = not hit
-    return hit
-
-
-def on_layer(tail, layer):
-    """Is a pad on `layer`?  A through-hole pad says "*.Cu", not "F.Cu"."""
-    m = re.search(r'\(layers ([^)]*)\)', tail)
-    if not m:
-        return False
-    names = re.findall(r'"([^"]*)"', m.group(1))
-    return layer in names or "*.Cu" in names
-
-
-def pads_on(text, layer):
-    """(ref, pad, x, y, net) for every pad present on `layer`, in BOARD coordinates."""
+def tracks(text, names):
+    """[(net, layer, x0, y0, x1, y1, width)] for every straight segment."""
     out = []
-    for blk in text.split("\n\t(footprint ")[1:]:
-        m = re.search(r'\(property "Reference" "([^"]*)"', blk)
-        fm = FP_AT_RE.search(blk)
-        if not m or not fm:
-            continue
-        fx, fy = float(fm.group(1)), float(fm.group(2))
-        th = math.radians(float(fm.group(3) or 0.0))
-        for pm in PAD_RE.finditer(blk):
-            nm = re.search(r'\(net \d+ "([^"]*)"\)', pm.group(7))
-            if not pm.group(1) or nm is None or not on_layer(pm.group(7), layer):
-                continue
-            x, y = float(pm.group(2)), float(pm.group(3))
-            out.append((m.group(1), pm.group(1),
-                        fx + x * math.cos(th) + y * math.sin(th),
-                        fy - x * math.sin(th) + y * math.cos(th),
-                        nm.group(1)))
+    for blk in text.split("\n\t(segment")[1:]:
+        s = re.search(r"\(start ([-\d.]+) ([-\d.]+)\)", blk)
+        e = re.search(r"\(end ([-\d.]+) ([-\d.]+)\)", blk)
+        w = re.search(r"\(width ([-\d.]+)\)", blk)
+        l = re.search(r'\(layer "([^"]+)"\)', blk)
+        n = re.search(r"\(net (\d+)", blk)
+        if s and e and w and l and n:
+            out.append((names.get(int(n.group(1)), ""), l.group(1), float(s.group(1)),
+                        float(s.group(2)), float(e.group(1)), float(e.group(2)), float(w.group(1))))
     return out
+
+
+def vias(text, names):
+    """[(net, x, y, size)] for every via."""
+    out = []
+    for blk in text.split("\n\t(via")[1:]:
+        at = re.search(r"\(at ([-\d.]+) ([-\d.]+)\)", blk)
+        net = re.search(r"\(net (\d+)", blk)
+        size = re.search(r"\(size ([-\d.]+)\)", blk)
+        if at and net:
+            out.append((names.get(int(net.group(1)), ""), float(at.group(1)), float(at.group(2)),
+                        float(size.group(1)) if size else 0.6))
+    return out
+
+
+def segs_cross(p, q, r, s):
+    def orient(a, b, c):
+        v = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+        return 0 if abs(v) < 1e-9 else (1 if v > 0 else -1)
+
+    def on(a, b, c):
+        return (min(a[0], b[0]) - 1e-9 <= c[0] <= max(a[0], b[0]) + 1e-9
+                and min(a[1], b[1]) - 1e-9 <= c[1] <= max(a[1], b[1]) + 1e-9)
+    o1, o2, o3, o4 = orient(p, q, r), orient(p, q, s), orient(r, s, p), orient(r, s, q)
+    if o1 != o2 and o3 != o4:
+        return True
+    return ((o1 == 0 and on(p, q, r)) or (o2 == 0 and on(p, q, s))
+            or (o3 == 0 and on(r, s, p)) or (o4 == 0 and on(r, s, q)))
+
+
+def polys_intersect(a, b):
+    for i in range(len(a)):
+        p, q = a[i], a[(i + 1) % len(a)]
+        for j in range(len(b)):
+            if segs_cross(p, q, b[j], b[(j + 1) % len(b)]):
+                return True
+    return point_in_poly(a[0][0], a[0][1], b) or point_in_poly(b[0][0], b[0][1], a)
+
+
+def seg_point_dist(x0, y0, x1, y1, px, py):
+    dx, dy = x1 - x0, y1 - y0
+    n = dx * dx + dy * dy
+    t = 0.0 if n == 0 else max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / n))
+    return math.hypot(x0 + t * dx - px, y0 + t * dy - py)
+
+
+def seg_in_poly(x0, y0, x1, y1, w, poly):
+    """Does a track (fattened by half its width) touch the polygon's area?"""
+    if point_in_poly(x0, y0, poly) or point_in_poly(x1, y1, poly):
+        return True
+    for i in range(len(poly)):
+        a, b = poly[i], poly[(i + 1) % len(poly)]
+        if segs_cross((x0, y0), (x1, y1), a, b):
+            return True
+        if seg_point_dist(x0, y0, x1, y1, a[0], a[1]) < w / 2:
+            return True
+    return False
+
+
+def reach(fps, zs, trs, vs, tht):
+    """Failures for GND_B copper not connected to J9.2."""
+    f = []
+    j92 = [p for p in fps.get("J9", {"pads": []})["pads"] if p[0] == "2"]
+    if not j92:
+        return ["reach: J9 pad 2 not found"]
+    bz = [z for z in zs if z[0] == "GND_B"]
+    bt = [t for t in trs if t[0] == "GND_B"]
+    bv = [v for v in vs if v[0] == "GND_B"]
+    bp = [p for _r, p in tht if p[5] == "GND_B"]
+    pts = {"v": [(v[1], v[2]) for v in bv], "p": [(p[1], p[2]) for p in bp]}
+
+    def touch(a, b):
+        (ka, ia), (kb, ib) = sorted((a, b))
+        if kb == "z" and ka in ("p", "v"):       # pierces every layer
+            x, y = pts[ka][ia]
+            return point_in_poly(x, y, bz[ib][2])
+        if ka == "t" and kb == "z":
+            t = bt[ia]
+            return t[1] == bz[ib][1] and seg_in_poly(t[2], t[3], t[4], t[5], t[6], bz[ib][2])
+        if ka == "t" and kb == "t":
+            t, u = bt[ia], bt[ib]
+            return t[1] == u[1] and any(math.hypot(a0 - b0, a1 - b1) < 1e-3
+                                        for a0, a1 in ((t[2], t[3]), (t[4], t[5]))
+                                        for b0, b1 in ((u[2], u[3]), (u[4], u[5])))
+        if ka == "p" and kb == "t" or ka == "t" and kb == "v":
+            ti, (k, i) = (ib, (ka, ia)) if kb == "t" else (ia, (kb, ib))
+            t = bt[ti]
+            x, y = pts[k][i]
+            return seg_point_dist(t[2], t[3], t[4], t[5], x, y) < t[6] / 2 + 0.05
+        return False
+
+    nodes = ([("z", i) for i in range(len(bz))] + [("t", i) for i in range(len(bt))]
+             + [("v", i) for i in range(len(bv))] + [("p", i) for i in range(len(bp))])
+    start = [("p", i) for i, (x, y) in enumerate(pts["p"])
+             if abs(x - j92[0][1]) < 1e-3 and abs(y - j92[0][2]) < 1e-3]
+    seen, todo = set(start), list(start)
+    while todo:
+        a = todo.pop()
+        for b in nodes:
+            if b not in seen and touch(a, b):
+                seen.add(b)
+                todo.append(b)
+    for k, i in nodes:
+        if (k, i) in seen or k == "p":
+            continue
+        if k == "z":
+            f.append("reach: GND_B zone %s on %s is not connected to J9.2" % (bz[i][3], bz[i][1]))
+        elif k == "t":
+            f.append("reach: GND_B track at (%.2f, %.2f) on %s is not connected to J9.2"
+                     % (bt[i][2], bt[i][3], bt[i][1]))
+        else:
+            f.append("reach: GND_B via at (%.2f, %.2f) is not connected to J9.2" % pts["v"][i])
+    return f
+
+
+def check():
+    f = []
+    text = open(PCB, encoding="utf-8").read()
+    names = netnames(text)
+    fps = footprints(text)
+    zs = [z for z in zones(text) if z[0] in GROUNDS]
+    trs = [t for t in tracks(text, names) if t[0] in GROUNDS]
+    vs = [v for v in vias(text, names) if v[0] in GROUNDS]
+
+    # 1. star
+    carriers = {}
+    for ref, d in fps.items():
+        nets = set(p[5] for p in d["pads"]) & set(GROUNDS)
+        for pair in ALLOWED:
+            if pair <= nets:
+                carriers.setdefault(pair, set()).add(ref)
+    for pair, allowed in ALLOWED.items():
+        got = carriers.get(pair, set())
+        if got != allowed:
+            f.append("star: parts carrying both %s are %s, want exactly %s"
+                     % (" and ".join(sorted(pair)), sorted(got) or "none", sorted(allowed) or "none"))
+
+    # 2. zones of different grounds on one layer
+    for i in range(len(zs)):
+        for j in range(i + 1, len(zs)):
+            a, b = zs[i], zs[j]
+            if a[0] != b[0] and a[1] == b[1] and polys_intersect(a[2], b[2]):
+                f.append("bridge: zone %s [%s] overlaps zone %s [%s] on %s"
+                         % (a[3], a[0], b[3], b[0], a[1]))
+
+    # 3. ground copper inside another ground's zone
+    tht = [(r, p) for r, d in fps.items() for p in d["pads"]
+           if p[5] in GROUNDS and p[6] == "thru_hole"]
+    for net, layer, poly, zname in zs:
+        for vn, x, y, _s in vs:
+            if vn != net and point_in_poly(x, y, poly):
+                f.append("bridge: %s via at (%.2f, %.2f) is inside zone %s [%s] on %s"
+                         % (vn, x, y, zname, net, layer))
+        for r, p in tht:
+            if p[5] != net and point_in_poly(p[1], p[2], poly):
+                f.append("bridge: %s pad %s.%s is inside zone %s [%s] on %s"
+                         % (p[5], r, p[0], zname, net, layer))
+        for tn, tl, x0, y0, x1, y1, w in trs:
+            if tn != net and tl == layer and seg_in_poly(x0, y0, x1, y1, w, poly):
+                f.append("bridge: %s track (%.2f, %.2f)-(%.2f, %.2f) on %s enters zone %s [%s]"
+                         % (tn, x0, y0, x1, y1, tl, zname, net))
+
+    # 4. GND_B reachability from J9.2
+    f += reach(fps, zs, trs, vs, tht)
+
+    # 5. pod returns over GND_B copper only
+    for ref, pad in POD_PADS:
+        ps = [p for p in fps.get(ref, {"pads": []})["pads"] if p[0] == pad]
+        if not ps:
+            f.append("pods: %s pad %s not found" % (ref, pad))
+            continue
+        p = ps[0]
+        if p[5] != "GND_B":
+            f.append("pods: %s.%s is on %s, want GND_B" % (ref, pad, p[5]))
+        if not any(z[0] == "GND_B" and point_in_poly(p[1], p[2], z[2]) for z in zs):
+            f.append("pods: %s.%s at (%.2f, %.2f) is not over any GND_B zone" % (ref, pad, p[1], p[2]))
+        for z in zs:
+            if z[0] != "GND_B" and point_in_poly(p[1], p[2], z[2]):
+                f.append("pods: %s.%s lies over zone %s [%s] on %s" % (ref, pad, z[3], z[0], z[1]))
+    return f
 
 
 def main():
-    text = io.open(PCB, encoding="utf-8").read()
-    polys = zone_polys(text, ISLAND_NET, "F.Cu")
-    if not polys:
-        print("FAIL: no F.Cu zone on %s" % ISLAND_NET)
-        return 1
-
-    def in_island(x, y):
-        return any(inside(p, x, y) for p in polys)
-
-    pads = pads_on(text, "F.Cu")
-
-    # A part that carries BOTH nets is the boundary itself -- R3, the tie resistor, and L2,
-    # whose winding B joins them.  Its GND pad sitting in the island is not a leak; it is the
-    # one place the two grounds are meant to meet, and it has to be reachable from both sides.
-    bridges = set(p[0] for p in pads if p[4] == ISLAND_NET) & \
-        set(p[0] for p in pads if p[4] == PLANE_NET)
-
-    missing = [p for p in pads if p[4] == ISLAND_NET and not in_island(p[2], p[3])]
-    intruding = [p for p in pads if p[4] == PLANE_NET and p[0] not in bridges
-                 and in_island(p[2], p[3])]
-    total = len([p for p in pads if p[4] == ISLAND_NET])
-
-    print("F.Cu %s island: %d polygon(s), %d vertices"
-          % (ISLAND_NET, len(polys), sum(len(p) for p in polys)))
-    print("  %s pads on F.Cu: %d, inside: %d" % (ISLAND_NET, total, total - len(missing)))
-    for r, p, x, y, _ in sorted(missing):
-        print("    FAIL %s pad %s (%.2f, %.2f) is outside the island" % (r, p, x, y))
-    print("  %s pads inside the island: %d" % (PLANE_NET, len(intruding)))
-    for r, p, x, y, _ in sorted(intruding):
-        print("    FAIL %s pad %s (%.2f, %.2f) is post-choke ground inside the island"
-              % (r, p, x, y))
-
-    if missing or intruding:
-        return 1
-    print("  OK: the two grounds are separated on F.Cu")
-    return 0
+    f = check()
+    for line in f[:60]:
+        print("FAIL " + line)
+    if len(f) > 60:
+        print("... %d more" % (len(f) - 60))
+    print("grounds: %s" % ("PASS" if not f else "FAIL (%d)" % len(f)))
+    return 1 if f else 0
 
 
 if __name__ == "__main__":

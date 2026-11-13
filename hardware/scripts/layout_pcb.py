@@ -130,15 +130,32 @@ U5_Y = Y0 + 12.75
 PLACE = dict((ref, (x, TAIL_RELIEF_Y - off, 0)) for ref, x, off in CABLE_ROW)
 PLACE.update({
     "U5": (U5_X, U5_Y, 0),
-    # Kelvin sense: R100 beside U10 so its sense taps are short (check_placement: <= 8 mm
-    # from U10 pin 4).
-    "U10": (50.0, 60.0, 0),
-    "R100": (40.0, 60.0, 0),
-    # Feed B: J9 -> Q13 -> VBAT_B -> U14, bulk at U14's exposed pad (pad 15, VBAT_B).
+    # FEED A, bottom-up, all on the GND_IN side of L2 until L2 itself:
+    #   J1.1 FEED_P -> Q10 (rot 0: source left, drain tab right) -> MID -> Q11 (rot 180: drain
+    #   tab left, source right) -> SNS -> R100 (rot 90, SNS pad at the bottom) -> VBAT_PROT ->
+    #   L2 pin 1.  L2 at rot 0 has its input row (1 VBAT_PROT, 2 GND_IN) at the bottom and its
+    #   output row (4 VBAT_F, 3 GND) 10.7 mm above: the GND_IN / GND boundary (SPLIT_Y) runs
+    #   between the two rows, so L2 and R3 (the DNP link across winding B) straddle it.
+    "Q10": (31.5, 86.0, 0),
+    "Q11": (46.5, 86.0, 180),
+    "R100": (52.5, 76.5, 90),
+    # Kelvin sense: U10 pin 4 (SNS) and pin 5 (VBAT_PROT) face R100 (check_placement: <= 8 mm).
+    "U10": (58.5, 77.0, 0),
+    "L2": (35.0, 66.0, 0),
+    "R3": (53.5, 60.6, 90),     # pad 1 GND_IN below SPLIT_Y, pad 2 GND above
+    "R2": (57.8, 60.6, 90),     # pad 1 VBAT_PROT below, pad 2 VBAT_F above
+    "NT1": (58.5, 88.5, 0),     # star tie: pad 2 GND_IN here, pad 1 GND_B by a 2 mm track
+    # FEED B: J9 -> Q13 -> VBAT_B -> U14, bulk at U14's exposed pad (pad 15, VBAT_B).  Every
+    # GND_B pad sits inside the GND_B region R_B (zones below); U14 itself does not -- its
+    # ground pin is logic GND -- so it sits just outside R_B's top edge.
     "Q13": (117.0, 89.0, 0),
     "U14": (128.0, 90.0, 0),
-    "C67": (128.0, 85.0, 0),
+    "C67": (128.0, 94.8, 0),
     "C68": (139.5, 89.0, 0),
+    "C66": (149.5, 85.0, 0),
+    "D25": (153.5, 91.0, 0),
+    "C69": (106.0, 95.5, 0),
+    "C70": (136.0, 96.2, 0),
 })
 
 # Test points.  Each pad gets its NET NAME on the silkscreen to its right (spec 8; drawn in the
@@ -167,26 +184,30 @@ for _i, _col in enumerate(_BANK2):
 PLACE["TP30"] = (52.0, 94.0, 0)
 
 REGIONS = {
-    "feedA": (X0, Y0, 62.0, 96.0),
+    "feedA_out": (X0, Y0, 62.0, 60.1),     # GND side of L2
+    "feedA_in": (X0, 61.6, 62.0, 96.0),    # GND_IN side of L2
     "rails": (62.0, Y0, 90.5, 50.0),
     "tpbank": (62.0, 50.0, 104.5, 68.5),   # bank 1 only; nothing auto-flows here
     "mcu": (104.5, 46.5, 139.5, 74.0),
     "service": (139.5, 29.0, X1, 59.5),
-    "outputs": (62.0, 68.5, 101.0, 96.0),
-    "can": (86.0, 74.0, 112.0, 96.0),
-    "feedB": (106.0, 69.0, X1, 97.0),
+    "outputs": (62.0, 68.5, 98.5, 96.0),
+    "can": (86.0, 74.0, 112.0, 92.0),
+    "aux": (106.0, 66.0, X1, 81.5),         # logic-GND parts of the aux stage, above R_B
 }
 SHEET_REGION = {
-    "power_input": "feedA",
+    "power_input": "feedA_out",
     "rails": "rails",
     "mcu_can": "mcu",
     "outputs": "outputs",
 }
 BLOCK = {}
-for _r in ("D24", "D25", "C66", "C69", "C70", "NT1", "R78", "R79", "R80",
+for _r in ("D24", "R78", "R79", "R80",
            "U15", "U16", "C71", "C72", "R74", "R75", "R76", "R77",
            "R81", "R82", "R83", "R84", "R85", "R86", "R87", "D26", "D27"):
-    BLOCK[_r] = "feedB"
+    BLOCK[_r] = "aux"
+for _r in ("C62", "C63", "C64", "C65", "D2", "D21", "D22", "D23", "Q12",
+           "R101", "R102", "R103", "R104", "R105", "R106", "R107"):
+    BLOCK[_r] = "feedA_in"
 for _r in ("U6", "L6", "D6", "R26", "R24", "R25"):
     BLOCK[_r] = "can"
 for _r in ("J2", "SW1", "SW2", "Q2", "Q3", "R28", "R29", "R22", "C37"):
@@ -211,9 +232,58 @@ KEEPOUTS = [
 ]
 
 # ---------------------------------------------------------------- copper (Tasks 5-7)
-ZONES = []            # filled in Task 5
-ROUTES = []           # hand routes, Task 6
-ROUTE_VIAS = []       # hand vias, Task 6
+# Three grounds (spec 5.2; check_grounds.py proves the split):
+#   R_IN  GND_IN island, feed A connector side: J1, Q10/Q11, R100, U10 and its parts, NT1.2,
+#         L2's input row.  Bounded above by SPLIT_Y, between L2's two pad rows.
+#   R_B   GND_B region, feed B: J10/J9/J11 pin 2s, C66-C70, D25.  Its top edge clears U14.
+#   GND   everything else, on the three plane layers, cut back SPLIT_GAP from both regions.
+SPLIT_Y = 61.1
+SPLIT_GAP = 1.0
+_IN_X, _IN_TAIL_X = 62.0, 39.05      # R_IN right edge; right edge of its J1 strip
+_B_X, _B_Y, _B_CX, _B_CY = 99.8, 93.0, 132.5, 82.0   # R_B: strip left edge / top, C68 block
+R_IN = [(X0, SPLIT_Y), (_IN_X, SPLIT_Y), (_IN_X, 97.0), (_IN_TAIL_X, 97.0), (_IN_TAIL_X, Y1),
+        (X0, Y1)]
+R_B = [(_B_X, _B_Y), (_B_CX, _B_Y), (_B_CX, _B_CY), (X1, _B_CY), (X1, Y1), (_B_X, Y1)]
+_g = SPLIT_GAP
+# The planes are also cut back from the antenna keep-out (0.5 mm beyond it), so no copper is
+# drawn there at all -- the rule area is the second line of defence, not the first.
+_AX0, _AX1, _AY1 = U5_X - 24.25 - 0.5, U5_X + 24.25 + 0.5, U5_Y - 6.31 + 0.5
+GND_POLY = [(X0, Y0), (_AX0, Y0), (_AX0, _AY1), (_AX1, _AY1), (_AX1, Y0), (X1, Y0), (X1, _B_CY - _g), (_B_CX - _g, _B_CY - _g),
+            (_B_CX - _g, _B_Y - _g), (_B_X - _g, _B_Y - _g), (_B_X - _g, Y1),
+            (_IN_TAIL_X + _g, Y1), (_IN_TAIL_X + _g, 97.0 + _g), (_IN_X + _g, 97.0 + _g),
+            (_IN_X + _g, SPLIT_Y - _g), (X0, SPLIT_Y - _g)]
+# In3 power areas.  VBAT: L1/C3 (feed A output) across the rails and the quads, stopping short
+# of the antenna keep-out and of R_IN.  VBAT_B: Q13 -> U14 VS -> C66-C68 / D25.
+VBAT_POLY = [(X0, Y0), (89.5, Y0), (89.5, 60.0), (98.5, 60.0), (98.5, 97.0), (_IN_X + _g, 97.0),
+             (_IN_X + _g, SPLIT_Y - _g), (X0, SPLIT_Y - _g)]
+VBATB_POLY = [(112.0, _B_CY), (X1, _B_CY), (X1, 97.0), (112.0, 97.0)]
+PLANES = ["In1.Cu", "In4.Cu", "In6.Cu"]
+ZONES = []    # (net, [layers], poly, name, priority)
+for _l in PLANES:
+    _n = _l.split(".")[0]
+    ZONES += [("GND", [_l], GND_POLY, "GND_" + _n, 0),
+              ("GND_IN", [_l], R_IN, "GNDIN_" + _n, 0),
+              ("GND_B", [_l], R_B, "GNDB_" + _n, 0)]
+ZONES += [("GND_B", ["B.Cu"], R_B, "GNDB_B", 0),
+          ("VBAT", ["In3.Cu"], VBAT_POLY, "VBAT_In3", 0),
+          ("VBAT_B", ["In3.Cu"], VBATB_POLY, "VBATB_In3", 0)]
+
+# Stitching vias, 0.6 / 0.3 through: (net, region polygon, pitch mm).  Laid on a grid inside the
+# region, at least STITCH_INSET from its edge and clear of every courtyard, keep-out, reserved
+# test-pad block and mounting hole (gen_pcb.stitch_vias).  GND_B is densest: it carries 6.4 A
+# across four layers and the vias are what share it between them.
+STITCH_INSET = 1.0
+STITCH = [("GND", GND_POLY, 8.0), ("GND_IN", R_IN, 5.0), ("GND_B", R_B, 4.0)]
+# (net, layer, width, [(x, y), ...], tag) / (net, x, y, size, drill, tag)
+# VBAT drop (Task 5): L1 pad 2 is where feed A's VBAT is born, and every VBAT pad on the board is
+# SMD on F.Cu -- without vias the In3 VBAT area is an island tied to nothing.  A 2.5 mm stub east
+# to three 0.8 / 0.4 vias (0.9 A for feed A today; three barrels are ~3 A).
+_L1V_X = 59.5
+ROUTES = [
+    ("VBAT", "F.Cu", 2.5, [(55.46, 26.0), (_L1V_X, 26.0)], "vbat_drop"),
+    ("VBAT", "F.Cu", 1.2, [(_L1V_X, 24.6), (_L1V_X, 27.4)], "vbat_drop_bar"),
+]
+ROUTE_VIAS = [("VBAT", _L1V_X, 24.6 + 1.4 * i, 0.8, 0.4, "vbat_drop%d" % i) for i in range(3)]
 
 # ---------------------------------------------------------------- drawing notes
 NOTES = [

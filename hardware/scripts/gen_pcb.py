@@ -990,12 +990,12 @@ def U(tag):
 # unique; renaming it would move a gerber filename for no fab-facing gain.
 LAYERS = """	(layers
 		(0 "F.Cu" signal)
-		(4 "In1.Cu" power "GND_In1")
+		(4 "In1.Cu" power "GND_1")
 		(6 "In2.Cu" signal)
-		(8 "In3.Cu" power "GND_In3")
-		(10 "In4.Cu" power "PWR")
+		(8 "In3.Cu" power "PWR_3")
+		(10 "In4.Cu" power "GND_4")
 		(12 "In5.Cu" signal)
-		(14 "In6.Cu" power "GND_In6")
+		(14 "In6.Cu" power "GND_6")
 		(2 "B.Cu" signal)
 		(9 "F.Adhes" user "F.Adhesive")
 		(11 "B.Adhes" user "B.Adhesive")
@@ -1877,6 +1877,66 @@ NETNAME = {}
 
 # ---------------------------------------------------------------- copper from layout_pcb tables
 CU_LAYERS = ["F.Cu"] + ["In%d.Cu" % i for i in range(1, 7)] + ["B.Cu"]
+STITCH_SIZE, STITCH_DRILL, STITCH_CLEAR = 0.6, 0.3, 0.4
+
+
+def _in_poly(x, y, poly):
+    hit = False
+    for i in range(len(poly)):
+        x0, y0 = poly[i]
+        x1, y1 = poly[(i + 1) % len(poly)]
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            hit = not hit
+    return hit
+
+
+def _edge_dist(x, y, poly):
+    best = 1e9
+    for i in range(len(poly)):
+        x0, y0 = poly[i]
+        x1, y1 = poly[(i + 1) % len(poly)]
+        dx, dy = x1 - x0, y1 - y0
+        n = dx * dx + dy * dy
+        t = 0.0 if n == 0 else max(0.0, min(1.0, ((x - x0) * dx + (y - y0) * dy) / n))
+        best = min(best, math.hypot(x0 + t * dx - x, y0 + t * dy - y))
+    return best
+
+
+def stitch_vias(comps, pos, netidx):
+    """Ground stitching from layout_pcb.STITCH: (net, polygon, pitch).
+
+    A grid on `pitch`, anchored on the polygon's bounding box so it is stable under edits
+    elsewhere; a point is kept only if it is inside the polygon by STITCH_INSET, clear of every
+    placed courtyard by STITCH_CLEAR, outside every keep-out and reserved test-pad block, and
+    clear of the mounting holes.  Through vias, F.Cu to B.Cu."""
+    by_ref = dict((c["ref"], c) for c in comps)
+    boxes = [box(by_ref[r]["fp"], x, y, rot) for r, (x, y, rot) in pos.items() if r in by_ref]
+    blocked = boxes + [k[1] for k in L.KEEPOUTS] + list(L.RESERVED)
+    holes = mount_holes()
+    out = []
+    r = STITCH_SIZE / 2 + STITCH_CLEAR
+    for net, poly, pitch in L.STITCH:
+        code = netidx[net]
+        xs = [p[0] for p in poly]
+        ys = [p[1] for p in poly]
+        n = 0
+        y = min(ys) + pitch / 2
+        while y < max(ys):
+            x = min(xs) + pitch / 2
+            while x < max(xs):
+                ok = (_in_poly(x, y, poly) and _edge_dist(x, y, poly) >= L.STITCH_INSET
+                      and L.X0 + 1.5 <= x <= L.X1 - 1.5 and L.Y0 + 1.5 <= y <= L.Y1 - 1.5
+                      and not any(b[0] - r < x < b[2] + r and b[1] - r < y < b[3] + r
+                                  for b in blocked)
+                      and all(math.hypot(x - hx, y - hy) > 4.0 for hx, hy in holes))
+                if ok:
+                    out.append(via(x, y, code, STITCH_SIZE, STITCH_DRILL,
+                                   "stitch:%s:%.2f:%.2f" % (net, x, y)))
+                    n += 1
+                x += pitch
+            y += pitch
+        print("stitching: %d via(s) on %s" % (n, net))
+    return out
 
 
 def keepouts():
@@ -1921,7 +1981,7 @@ def zones(netidx):
                    '\t\t(min_thickness 0.2)\n\t\t(filled_areas_thickness no)\n'
                    '\t\t(fill\n\t\t\t(thermal_gap 0.3)\n\t\t\t(thermal_bridge_width 0.4)\n\t\t)\n'
                    '\t\t(polygon\n\t\t\t(pts\n\t\t\t\t%s\n\t\t\t)\n\t\t)\n\t)'
-                   % (code, q(net), " ".join(q(x) for x in layers), U("zone:" + name), q(name),
+                   % (code, q(NETNAME[code]), " ".join(q(x) for x in layers), U("zone:" + name), q(name),
                       prio, pts))
     return out
 
@@ -2018,6 +2078,7 @@ def main():
     out += notes()
     if not frame_only:
         out += thermal_vias(comps, pos, padnet, netidx)
+        out += stitch_vias(comps, pos, netidx)
     _rt_lo, _rv_lo = len(TRACK_LOG), len(VIA_LOG)
     out += routes(netidx)
     if os.path.exists(FROZEN):

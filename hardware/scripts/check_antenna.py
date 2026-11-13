@@ -92,7 +92,8 @@ def poly_hits_rect(poly, r):
 
 
 def poly_covers_rect(poly, r):
-    corners = ((r[0], r[1]), (r[2], r[1]), (r[0], r[3]), (r[2], r[3]))
+    e = 0.01   # a rule area drawn exactly on the rectangle covers it; test just inside
+    corners = ((r[0] + e, r[1] + e), (r[2] - e, r[1] + e), (r[0] + e, r[3] - e), (r[2] - e, r[3] - e))
     return all(point_in_poly(x, y, poly) for x, y in corners) and not any(
         r[0] < px < r[2] and r[1] < py < r[3] for px, py in poly)
 
@@ -115,7 +116,9 @@ def zones(text):
     for blk in text.split("\n\t(zone")[1:]:
         net = re.search(r'\(net_name "([^"]*)"\)', blk)
         lay = re.search(r'\n\t\t\(layers? ([^)]*)\)', blk)
-        pts = re.search(r"\(polygon\s*\(pts(.*?)\)\s*\)", blk, re.S)
+        # The group must end at the closing line: ending it at "\)\s*\)" eats the last
+        # vertex's own ")" and findall then drops that vertex.
+        pts = re.search(r"\(polygon\s*\(pts(.*?)\n\s*\)", blk, re.S)
         poly = [(float(a), float(b)) for a, b in re.findall(r"\(xy ([-\d.]+) ([-\d.]+)\)",
                                                           pts.group(1))] if pts else []
         rule = "(keepout" in blk
