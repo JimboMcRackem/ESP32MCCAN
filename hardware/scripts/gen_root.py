@@ -35,7 +35,7 @@ BOX = {
     "power_input": (40.64,  40.64,  60.96, 45.72),
     "rails":       (165.1, 40.64,  60.96, 45.72),
     "mcu_can":     (40.64, 132.08, 60.96, 78.74),
-    "outputs":     (165.1, 132.08, 60.96, 78.74),
+    "outputs":     (165.1, 132.08, 60.96, 99.06),
 }
 
 OUT12 = ["OUT_FL_IND", "OUT_FR_IND", "OUT_RL_IND", "OUT_RR_IND",
@@ -49,8 +49,9 @@ PINS = {
     "power_input": [
         ("VBAT",      "output", "R"),
         ("VLOGIC_IN", "output", "R"),
-        # second feed, no consumer yet: root label + PWR_FLAG (see FLAG_NETS)
+        # second feed: both pod switches (U14, outputs).  PWR_FLAG at root (see FLAG_NETS)
         ("VBAT_B",    "output", "R"),
+        ("GND_B",     "output", "R"),
     ],
     "rails": [
         ("VBAT",      "input",  "L"),
@@ -66,6 +67,7 @@ PINS = {
         ("SNS_B",     "input",         "L"),
         ("SNS_C",     "input",         "L"),
         ("EN_5V",     "output",        "R"),
+        ("AUX_PWM",   "output",        "R"),
     ] + [(n, "output", "R") for n in OUT12 + DIAGQ] + [
         ("CANH",      "bidirectional", "R"),
         ("CANL",      "bidirectional", "R"),
@@ -74,6 +76,9 @@ PINS = {
         ("+3V3_ALW",  "input",         "L"),
         ("+5V",       "input",         "L"),
         ("VBAT",      "input",         "L"),
+        ("VBAT_B",    "input",         "L"),
+        ("GND_B",     "input",         "L"),
+        ("AUX_PWM",   "input",         "L"),
         ("SNS_A",     "output",        "R"),
         ("SNS_B",     "output",        "R"),
         ("SNS_C",     "output",        "R"),
@@ -274,9 +279,9 @@ def flag(n, nm, x, y):
 for b in blocks:
     A(b)
 for k, nm in enumerate(FLAG_NETS, 1):
-    for lbl, lx, ly, _r in LABELS:
-        if lbl == nm:
-            flag(k, nm, lx, ly)
+    # one flag per net, on its first root label: VBAT_B now has a consumer sheet as well
+    lx, ly = next((lx, ly) for lbl, lx, ly, _r in LABELS if lbl == nm)
+    flag(k, nm, lx, ly)
 
 A("\t(sheet_instances")
 A('\t\t(path "/"')

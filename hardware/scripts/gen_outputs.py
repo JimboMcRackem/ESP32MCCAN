@@ -3,8 +3,9 @@
 """Generate hardware/sheets/outputs.kicad_sch (KiCad 10.0.2, format 20260306).
 
 Plan4 phase A, Task 7: ten signal outputs on three TI TPS4H160B-Q1 quad smart high-side
-switches (U11-U13, channel allocation D1), their input, sense and control networks, the two
-kit-gated aux placeholders, and the harness tails J3/J4/J5 (D5) plus the CAN tail J8.
+switches (U11-U13, channel allocation D1), their input, sense and control networks, the aux
+stage (2026-11-13: U14 pod switch on feed B, U15 yellow PWM buffer, pod tails J10/J11), and
+the harness tails J3/J4/J5 (D5) plus the CAN tail J8.
 Pads and application values come from quadpins.py; nothing is re-typed here.
 """
 import os, re, sys, uuid, textwrap
@@ -90,7 +91,8 @@ def pins_of(blk):
     return out
 
 LIBS = []
-for lid in ("Device:C", "Device:D_Schottky", "Device:R", "power:GND"):
+for lid in ("Device:C", "Device:C_Polarized", "Device:D_Schottky", "Device:D_Zener", "Device:R",
+            "power:GND"):
     LIBS.append(from_schematic("power_input.kicad_sch", lid))
 CONN = {}
 for n in (2, 3, 4, 5):
@@ -101,6 +103,11 @@ for n in (2, 3, 4, 5):
 _qblk = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
                      quadpins.LIB_ID.split(":")[1], quadpins.LIB_ID)
 LIBS.append(_qblk)
+_bts = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
+                    "BTS7008_2EPA", "mccan_parts:BTS7008_2EPA")
+_buf = from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
+                    "SN74AHCT2G126", "mccan_parts:SN74AHCT2G126")
+LIBS += [_bts, _buf]
 LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
 
 # The quad's pin offsets, read from the symbol itself, and cross-checked against quadpins so
@@ -189,6 +196,7 @@ def hlab(name, shape, x, y, rot=0):
 # which KiCad joins to it.  Shapes follow the other generators: supplies and nets driven from
 # mcu_can are inputs here, the sense lines this sheet drives are outputs.
 SHAPE = {"VBAT": "input", "+3V3_ALW": "input", "+5V": "input",
+         "VBAT_B": "input", "GND_B": "input", "AUX_PWM": "input",
          "DIAG_EN_Q": "input", "DIAG_SEL0_Q": "input", "DIAG_SEL1_Q": "input",
          "SNS_A": "output", "SNS_B": "output", "SNS_C": "output"}
 _SEEN = set()
@@ -250,15 +258,18 @@ for ref, _s, fns in CHIPS:
         vpart(rpd, "Device:R", quadpins.R_IN_PULLDOWN, 45.72, y); gnd(45.72, round(y + 7.62, 4))
         lab(net, 50.8, y)
 
-# ================================================================ BLOCK B: aux placeholders
-# OUT_AUX_L / OUT_AUX_R: the switch stage is kit-gated (spec 9.1).  Until then each GPIO ends in
-# one pull-down and nothing else, so the pin is defined and the net exists for the kit plan.
-for net, rref in (("OUT_AUX_L", "R74"), ("OUT_AUX_R", "R75")):
+# ================================================================ BLOCK B: aux inputs
+# OUT_AUX_L / OUT_AUX_R -> 4.7 k series (R76/R77, Infineon RIN) -> IN_AUX_x with the 47 k
+# pull-down (R74/R75) on the chip side, exactly like block A: low at reset, no supply path.
+for net, ser, rref in (("OUT_AUX_L", "R76", "R74"), ("OUT_AUX_R", "R77", "R75")):
     y = round(ROW0 + row * PITCH, 4)
     row += 1
     hlab(net, "input", 25.4, y, 180)
-    w((25.4, y), (45.72, y))
+    w((25.4, y), (33.02, y))
+    hpart(ser, "Device:R", quadpins.R_IN_SERIES, 33.02, y)
+    w((40.64, y), (45.72, y)); w((45.72, y), (50.8, y)); j((45.72, y))
     vpart(rref, "Device:R", quadpins.R_IN_PULLDOWN, 45.72, y); gnd(45.72, round(y + 7.62, 4))
+    lab(net.replace("OUT_", "IN_"), 50.8, y)
 
 # ================================================================ BLOCK C: the three quads
 X0, Y0, DY = 152.4, 63.5, 101.6
@@ -366,6 +377,126 @@ for jref, nets, val, desc in TAILS:
             w(p, (round(TX + 20.32, 4), p[1])); lab(net, round(TX + 20.32, 4), p[1])
     ty = round(ty + 38.1, 4)
 
+# ================================================================ BLOCK E: aux stage
+# 2026-11-13, docs/superpowers/specs/2026-11-13-aux-stage-design.md.
+def glab_b(p):
+    """A GND_B return: short wire right from p, then the label."""
+    e = (round(p[0] + 2.54, 4), p[1]); w(p, e); xlab("GND_B", e[0], e[1], 0)
+
+BTS = pins_of(_bts)
+BUF = pins_of(_buf)
+
+# --- U14, BTS7008-2EPA: both pods, on VBAT_B (feed B)
+X, Y = 152.4, 342.9
+B = place("U14", "mccan_parts:BTS7008_2EPA", "BTS7008-2EPA", X, Y, 0, BTS,
+          [("Reference", "U14", X + 2.54, Y + 29.21, 0), ("Value", "BTS7008-2EPA", X + 2.54, Y + 31.75, 0)],
+          desc="Infineon BTS7008-2EPA: dual 8 mOhm smart high-side switch, PROFET+2 12V, "
+               "PG-TSDSO-14, exposed pad = VS")
+yb = round(Y - 30.48, 4)                                  # VS bus
+w(B["15"], (X, yb))
+xa, xc1, xc2 = round(X - 10.16, 4), round(X + 10.16, 4), round(X + 30.48, 4)
+w((xa, yb), (X, yb)); w((X, yb), (xc1, yb)); w((xc1, yb), (xc2, yb)); j((X, yb)); j((xc1, yb))
+xlab("VBAT_B", xa, yb, 180)
+_, c67 = vpart("C67", "Device:C", "100nF 100V", xc1, yb)
+place("C68", "Device:C_Polarized", "220uF 63V", xc2, round(yb + 3.81, 4), 0, TWOPIN,
+      [("Reference", "C68", xc2 + 1.651, round(yb + 2.54, 4), 0),
+       ("Value", "220uF 63V", xc2 + 1.651, round(yb + 5.08, 4), 0)])
+c68 = (xc2, round(yb + 7.62, 4))
+w(c67, c68); j(c68); glab_b(c68)
+gnd(*B["1"])
+xl = round(X - 20.32, 4)
+for pnum, net in (("2", "IN_AUX_L"), ("6", "IN_AUX_R")):
+    w(B[pnum], (xl, B[pnum][1])); lab(net, xl, B[pnum][1], 180)
+# DEN, DSEL: diagnosis off and defined (no GPIO left); 47 k pull-downs R78/R79
+xden, xsel = round(X - 25.4, 4), round(X - 17.78, 4)
+w(B["3"], (xden, B["3"][1]))
+_, b = vpart("R78", "Device:R", quadpins.R_IN_PULLDOWN, xden, B["3"][1]); gnd(*b)
+w(B["5"], (xsel, B["5"][1]))
+_, b = vpart("R79", "Device:R", quadpins.R_IN_PULLDOWN, xsel, B["5"][1]); gnd(*b)
+# IS: RSENSE 1.2 k to GND (Infineon typical; > 820 Ohm required)
+xis = round(X + 17.78, 4)
+w(B["4"], (xis, B["4"][1]))
+_, b = vpart("R80", "Device:R", "1.2k", xis, B["4"][1]); gnd(*b)
+nc(B["7"]); nc(B["11"])
+# OUT0 (12-14) -> POD_L_P, OUT1 (8-10) -> POD_R_P; 10 nF 100 V to GND_B at each (C69/C70)
+xcap, xend = round(X + 30.48, 4), round(X + 38.1, 4)
+for pads, net, cref in ((("14", "13", "12"), "POD_L_P", "C69"), (("10", "9", "8"), "POD_R_P", "C70")):
+    pts = [B[p] for p in pads]
+    for a, b2 in zip(pts, pts[1:]):
+        w(a, b2)
+    top = pts[0]
+    j(top)
+    w(top, (xcap, top[1])); w((xcap, top[1]), (xend, top[1])); j((xcap, top[1]))
+    lab(net, xend, top[1])
+    _, cb = vpart(cref, "Device:C", "10nF 100V", xcap, top[1]); glab_b(cb)
+
+# --- U15, SN74AHCT2G126: AUX_PWM -> each pod's yellow, enabled only while that pod is powered
+X2, Y2 = 266.7, 342.9
+Q2 = place("U15", "mccan_parts:SN74AHCT2G126", "SN74AHCT2G126", X2, Y2, 0, BUF,
+           [("Reference", "U15", X2 + 2.54, Y2 + 15.24, 0), ("Value", "SN74AHCT2G126", X2 + 2.54, Y2 + 17.78, 0)],
+           desc="TI SN74AHCT2G126: dual buffer, 3-state, active-high OE, TTL inputs, SSOP-8 (DCT)")
+vc = Q2["8"]; vt = (vc[0], round(vc[1] - 10.16, 4)); vtop = (vc[0], round(vt[1] - 5.08, 4))
+xdc = round(vc[0] + 7.62, 4)
+w(vc, vt); w(vt, vtop); w(vt, (xdc, vt[1])); j(vt)
+xlab("+5V", vtop[0], vtop[1], 90)
+_, b = vpart("C71", "Device:C", "100nF", xdc, vt[1]); gnd(*b)
+gnd(*Q2["4"])
+xin = round(X2 - 17.78, 4)                               # label column, clear of the pins
+for pnum, net in (("1", "OUT_AUX_L"), ("5", "AUX_PWM"), ("7", "OUT_AUX_R")):
+    w(Q2[pnum], (xin, Q2[pnum][1])); lab(net, xin, Q2[pnum][1], 180)
+# 1A is where AUX_PWM arrives from mcu_can, with its 47 k pull-down R81
+pa = Q2["2"]; xpd, xh = round(X2 - 35.56, 4), round(X2 - 43.18, 4)
+w(pa, (xpd, pa[1])); w((xpd, pa[1]), (xh, pa[1])); j((xpd, pa[1]))
+_, b = vpart("R81", "Device:R", quadpins.R_IN_PULLDOWN, xpd, pa[1]); gnd(*b)
+xlab("AUX_PWM", xh, pa[1], 180)
+# Y -> R82/R83 100 R -> clamp node (D26/D27 5.6 V Zener, R86/R87 100 k) -> R84/R85 220 R 1206 -> YEL_x
+for (ypin, ser1, pd, dz, ser2, net, yrow) in (
+        ("6", "R82", "R86", "D26", "R84", "YEL_L", None),
+        ("3", "R83", "R87", "D27", "R85", "YEL_R", round(Y2 + 15.24, 4))):
+    p = Q2[ypin]
+    x0 = round(p[0] + 2.54, 4)
+    if yrow is None:
+        yrow = p[1]
+        w(p, (x0, yrow))
+    else:
+        w(p, (x0, p[1])); w((x0, p[1]), (x0, yrow))
+    _, r1b = hpart(ser1, "Device:R", "100", x0, yrow)
+    vpart(pd, "Device:R", "100k", r1b[0], yrow); gnd(r1b[0], round(yrow + 7.62, 4))
+    xz = round(r1b[0] + 10.16, 4)
+    w(r1b, (xz, yrow)); j(r1b); j((xz, yrow))
+    place(dz, "Device:D_Zener", "BZT52C5V6", xz, round(yrow + 3.81, 4), 270, DIODE,
+          [("Reference", dz, xz + 2.54, round(yrow + 2.54, 4), 90),
+           ("Value", "BZT52C5V6", xz + 2.54, round(yrow + 5.08, 4), 90)],
+          desc="Zener diode")
+    gnd(xz, round(yrow + 7.62, 4))
+    x2 = round(xz + 7.62, 4)
+    w((xz, yrow), (x2, yrow))
+    _, r2b = hpart(ser2, "Device:R", "220", x2, yrow)
+    xe = round(r2b[0] + 5.08, 4)
+    w(r2b, (xe, yrow)); lab(net, xe, yrow)
+
+# --- pod tails J10 / J11: red, black, yellow, blue (blue unconnected until measured)
+TX2, ty2 = 368.3, 337.82
+for jref, side in (("J10", "L"), ("J11", "R")):
+    n = 4
+    top = min(-py for _, py in CONN[n].values())
+    Jn = place(jref, "Connector:Conn_01x04_Pin", "POD %s tail (4-core)" % side, TX2, ty2, 0, CONN[n],
+               [("Reference", jref, TX2 - 5.08, round(ty2 + top - 6.35, 4), 0),
+                ("Value", "POD %s tail (4-core)" % side, TX2 - 5.08, round(ty2 + top - 3.81, 4), 0)],
+               desc="Soldered wire tail, pod %s: red +12 V, black return, yellow PWM, blue (n.c.)" % side)
+    for i, net in enumerate(("POD_%s_P" % side, "GND_B", "YEL_%s" % side, None), 1):
+        p = Jn[str(i)]
+        if net is None:
+            nc(p)
+            continue
+        e = (round(TX2 + 20.32, 4), p[1])
+        w(p, e)
+        if net == "GND_B":
+            xlab(net, e[0], e[1], 0)
+        else:
+            lab(net, e[0], e[1])
+    ty2 = round(ty2 + 25.4, 4)
+
 # ================================================================ NOTES
 NOTEW = 135
 def note(*parts):
@@ -387,9 +518,8 @@ Both OUT pads of each channel are tied to the channel's net.  No output capacito
 application (Fig. 8-1) shows none.  VS is VBAT (feed A, behind the LTC4380) with one 100 nF
 100 V 0805 per chip (C41-C43) -- the SMBJ24A clamps at 50.6 V, so nothing on VBAT is under 63 V.""")
 
-note("""|U13 CH3 -- RESERVED FOR AUX_MODE (spec 3), WIRED IN THE KIT PLAN.  U13 CH4 -- SPARE.
-Both spare inputs are pulled down (R60, R61) and both spare outputs are no-connect.  Do not
-re-use U13 ch3 for anything else: the kit plan needs it.""")
+note("""|U13 CH3, CH4 -- SPARE.  (CH3 was held for AUX_MODE, superseded 2026-11-13: the pods take PWM on yellow.)
+Both spare inputs are pulled down (R60, R61) and both spare outputs are no-connect.""")
 
 note("""|INPUTS -- WHY EVERY IN NET IS LOW AT RESET
 Each OUT_* GPIO reaches its IN pin through R_IN_SERIES (4.7 kOhm, TI 7.3.7.5) and the IN net
@@ -419,10 +549,24 @@ node it would have no series resistor to limit its current.""",
 tau = (4.7 k + 1.8 k) x 10 nF = 65 us, so firmware waits >= 400 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above
 ~3.0 V means fault, not current.""")
 
-note("""|AUX OUTPUTS -- PLACEHOLDERS ONLY (spec 9.1, kit-gated)
-OUT_AUX_L and OUT_AUX_R each end in one 47 kOhm pull-down (R74, R75) and nothing else.  The
-switch stage, the pod tail and the R100 re-size are kit-gated (spec 9.1) and are added in the
-kit plan, not here.""")
+note("""|AUX STAGE (2026-11-13) -- U14 POD SWITCH, U15 YELLOW BUFFER, J10/J11 POD TAILS
+Spec: docs/superpowers/specs/2026-11-13-aux-stage-design.md.  Pods measured 2026-11-12: 3.2 A each
+worst case (12 V, full beam), drawn as 100 Hz pulses at the PWM rate; yellow = 5 V PWM, ~100 Hz.""",
+"""U14 (BTS7008-2EPA) switches both pods from VBAT_B (feed B): OUT0 -> POD_L_P, OUT1 -> POD_R_P.  7.5 A
+nominal per channel and an overload trip of 77-99 A (IL(OVL0), Rev. 1.21 p.33), so the pods' input-
+capacitor inrush cannot trip it -- the bench inrush test confirms this, it does not size it.  IN0/IN1
+take OUT_AUX_L/R through R76/R77 (4.7 k) with R74/R75 (47 k) pull-downs: 3.0 V high against VDI(TH)
+2.0 V max, low at reset.  DEN and DSEL are pulled down (R78, R79): no GPIO is left for pod diagnosis,
+so IS only carries RSENSE R80 (1.2 k, Infineon typical, > 820 Ohm required).  C67 100 nF 100 V and C68
+220 uF 63 V hold VBAT_B against the pulses; C69/C70 10 nF 100 V at the outputs.  Pod returns: GND_B.""",
+"""U15 (SN74AHCT2G126, +5V, TTL inputs) buffers AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to
+both yellows.  Each buffer's ACTIVE-HIGH enable is that pod's OUT_AUX_x, so yellow is driven only
+while its pod is powered -- never into an unpowered pod -- and idles low on R86/R87 (100 k).""",
+"""YELLOW PROTECTION: Y -> R82/R83 100 R -> clamp node (D26/D27 BZT52C5V6 to GND) -> R84/R85 220 R
+1206 -> wire.  A yellow shorted to 12 V puts 29 mA into the Zener and 0.19 W into the 1206; the 100 R
+keeps the buffer's output clamp current small.  SERIES VALUES ARE PROVISIONAL until the pod's yellow
+input current is measured (spec 9.1 item 1): 320 R total drops 0.3 V at 1 mA.""",
+"""BLUE (J10.4, J11.4) is unconnected until its role is measured (spec 9.1 item 1).""")
 
 note("""|HARNESS TAILS (D5) -- SOLDERED WIRE, NOT CONNECTORS
 J3 front: FL_DRL, FL_IND, FR_DRL, FR_IND, GND.  J4 rear part 1: RL_DRL, RL_IND, RL_BRK, GND.

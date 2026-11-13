@@ -98,7 +98,6 @@ EXPLICIT = {
     # --- diodes
     "D2":  "Diode_SMD:D_SMB",                  # SMBJ24A -- DO-214AA (SMB) per smbj.pdf
     "D3":  "Diode_SMD:D_SMA",                  # 40 V Schottky, logic-rail OR
-    "D5":  "LED_SMD:LED_0603_1608Metric",      # status LED
     # --- eFuse, spec 4.2.  D1/Q1/F1 used to be the front end and are gone: one LTC4380
     # and its pass pair now do reverse polarity, overcurrent and overvoltage together.
     "D21": "Diode_SMD:D_SOD-123",              # 22 V Zener, U10 VCC clamp
@@ -184,6 +183,31 @@ EXPLICIT = {
     "D25": "Diode_SMD:D_SMB",                  # SMBJ24A on VBAT_B -- DO-214AA, as D2
     "NT1": "NetTie:NetTie-2_SMD_Pad2.0mm",     # GND_B <-> GND_IN star point; wide so it outlasts the harness fuse
 }
+# ---- aux stage, 2026-11-13 (docs/superpowers/specs/2026-11-13-aux-stage-design.md)
+EXPLICIT.update({
+    # BTS7008-2EPA: KiCad's PG-TSDSO-14-22 is the former name of PG-TSDSO-14 (see symlib.py);
+    # pad 15 is the exposed pad = VS.
+    "U14": "Package_SO:Infineon_PG-TSDSO-14-22",
+    "U15": "Package_SO:SSOP-8_2.95x2.8mm_P0.65mm",   # SN74AHCT2G126 DCT (SM8)
+    "D26": "Diode_SMD:D_SOD-123",                   # BZT52C5V6, yellow clamp, pod L
+    "D27": "Diode_SMD:D_SOD-123",                   # BZT52C5V6, yellow clamp, pod R
+    # Pod tails: 4-core, 1.0 mm2 for red/black at 3.2 A (harness.md); the holes are sized for
+    # the largest conductor, so the yellow/blue cores seat too.
+    "J10": "Connector_Wire:SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief",
+    "J11": "Connector_Wire:SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief",
+})
+# R84/R85: the wire-side yellow series resistors.  A yellow wire shorted to 12 V puts
+# (12 - 5.6)^2 / 220 = 0.19 W into each: 1206 (0.25 W), not 0603.
+R_OVERRIDE["R84"] = R_1206
+R_OVERRIDE["R85"] = R_1206
+# C67, C69, C70: 100 nF / 10 nF on VBAT_B and the pod outputs, which see the SMBJ24A's 50.6 V
+# clamp: 100 V parts in 0805, same reasoning as C66.  C71 (100 nF on +5V) stays 0603.
+for _r in ("C67", "C69", "C70"):
+    C_OVERRIDE[_r] = C_0805
+# C68: 220 uF bulk on VBAT_B for the pods' 100 Hz pulses.  63 V for the same clamp, so an
+# aluminium V-chip like C3.
+C_OVERRIDE["C68"] = "Capacitor_SMD:CP_Elec_10x10.5"
+
 # D8-D10: BAT54 sense-line clamps, one per signal quad (SNS_A/B/C -> +3V3_ALW).
 for _i in range(8, 11):
     EXPLICIT["D%d" % _i] = "Diode_SMD:D_SOD-123"

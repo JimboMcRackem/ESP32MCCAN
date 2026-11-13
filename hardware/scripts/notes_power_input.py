@@ -48,7 +48,7 @@ This front end used to be a 10 A blade fuse, a P-channel reverse-polarity FET, a
 pull-down.  Spec 4.2 replaced all four with ONE element: U10, an LTC4380-2 surge stopper driving a
 back-to-back pair Q10/Q11.  It does three jobs the old arrangement did not do together --
   * REVERSE POLARITY, by the opposed body diodes of Q10/Q11 (see the common-drain note below).
-  * OVERCURRENT, as an active current limit across R100 (5.6 mOhm), with a C62-timed fault trip and the
+  * OVERCURRENT, as an active current limit across R100 (33 mOhm), with a C62-timed fault trip and the
     -2 suffix's AUTO-RETRY at roughly 0.1-0.2% duty -- about one retry every 1.5-3 s.  Auto-retry is
     required, not preferred: the MCU is powered downstream of this stage and could never clear a latch.
   * OVERVOLTAGE, by holding VBAT_PROT near 29.5 V through a linear clamp.  That is what the internal
@@ -124,9 +124,11 @@ lands on the rail.  Either swap in a unidirectional symbol, or change the part n
 bidirectional clamp is what is actually wanted.""")
 
 _box("right", """VALUE NOTES
-R100 = 5.6 mOhm, the current-limit sense.  It carries the whole 7.0 A night load: 0.27 W, so 2512 at a
-minimum and a 4-terminal (Kelvin) part if one can be had.  Task 8 must give it its own copper -- that
-0.27 W couples into the board, not into the heat-spreader plate.
+R100 = 33 mOhm, the current-limit sense: 45-55 mV / 33 mOhm = 1.36-1.67 A.  RE-SIZED 2026-11-13 from
+5.6 mOhm (a 9 A limit behind a 4 A fuse, which could never act): no pod rides on feed A any more, so the
+limit sits above feed A's ~0.87 A worst case (logic + signal lamps, with EL359) and below its ~2 A
+harness fuse.  0.03 W at that load.  2512 is kept for the Kelvin copper.  Re-check against the measured
+feed-A start-up current at bring-up (spec 9.1 item 2a).
 R101 = 30 kOhm sets the SOA multiplier from the voltage across the pair.  It is taken to MID, not to
 FEED_P: it senses Q11's Vds.  Sized from the DRN pin's 1 mA limit at the SMBJ24A's 50.6 V 8/20 us clamp
 -- (50.6 - 27) / 1 mA = 23.6 k, rounded up to the next standard value, giving 0.787 mA at 50.6 V.
@@ -159,8 +161,9 @@ SOA arithmetic depends on: the 23.6 V-at-7 A clamp case is computed with the TVS
 Moving D2 to FEED_P would protect Q10/Q11 from the surge directly and is arguably better -- it is logged
 as an open question for spec 4.3, and it invalidates the SOA numbers if it is done without redoing them.""")
 
-_box("right", """FEED B (J9 -> Q13) -- SERVES AUX_R ONLY.  NEVER DIODE-OR IT WITH VBAT.
-Feed B is a second, independent 12 V pigtail for the AUX_R pod switch.  It has no eFuse, no buck and no
+_box("right", """FEED B (J9 -> Q13) -- BOTH PODS.  NEVER DIODE-OR IT WITH VBAT.
+Feed B is a second, independent 12 V pigtail for the pod switch U14 (both pods, outputs sheet;
+revised 2026-11-13).  GND_B leaves this sheet as the pods' return.  It has no eFuse, no buck and no
 filter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.
   * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.
     R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the
@@ -177,9 +180,11 @@ filter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.
     disconnected, and when the whole harness is reversed.  One feed reversed while the other is connected
     shorts through the shared return (via NT1) until that harness fuse clears.
   * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.
-  * The 3 A fuse for feed B is HARNESS-SIDE, below the bike's 5 A circuit fuse.  There is no fuse here.
+  * The 10 A fuse for feed B is HARNESS-SIDE, below the bike's 15 A aux 3 (ratings to confirm on the bike,
+    spec 4.1.1).  There is no fuse here.
 Q13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L
-footprint's five pads; its Value field is SQJ461EP.  Worst case 2.48 A at 10.5 V is 0.10 W in Q13.""")
+footprint's five pads; its Value field is SQJ461EP.  Worst case 6.4 A (both pods at 12 V) is 0.66 W in Q13
+at its 16 mOhm max -- give it copper in layout.""")
 
 # ---------------------------------------------------------------- split ground
 _box("below", '''COMMON-MODE CHOKE AND THE SPLIT GROUND -- DO NOT "TIDY" THIS

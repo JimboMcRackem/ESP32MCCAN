@@ -573,5 +573,31 @@ blk = emit(_qname, "TPS4H160B-Q1",
 LIBTXT, how = install(LIBTXT, _qname, blk)
 print(_qname, how, "(from quadpins.PINS, SLVSCV8E Table 5-1)")
 
+# ---------------------------------------------------------------- SN74AHCT2G126
+# Aux stage, 2026-11-13: the pods' yellow PWM buffer (U15).  Dual non-inverting buffer,
+# 3-state outputs, ACTIVE-HIGH output enables, 5 V supply with TTL-level inputs (VIH 2.0 V),
+# so 3.3 V GPIOs drive it.  One unit, not KiCad's three-unit 74LVC2G126: the generators
+# place single-unit symbols.  Pinout, DCT (SM8) / DCU packages -- the standard 2G126 pinout,
+# identical to KiCad's own 74xGxx:74LVC2G126:
+#   1 1OE   2 1A   3 2Y   4 GND   5 2A   6 1Y   7 2OE   8 VCC
+# TO VERIFY against the TI SN74AHCT2G126 datasheet (not yet held; see datasheets/NEEDED.md).
+_buf = [
+    ("2", "1A",  "input",     -12.7,   5.08, 0),
+    ("1", "1OE", "input",     -12.7,   2.54, 0),
+    ("5", "2A",  "input",     -12.7,  -2.54, 0),
+    ("7", "2OE", "input",     -12.7,  -5.08, 0),
+    ("6", "1Y",  "tri_state",  12.7,   5.08, 180),
+    ("3", "2Y",  "tri_state",  12.7,  -2.54, 180),
+    ("8", "VCC", "power_in",    0.0,  12.7,  270),
+    ("4", "GND", "power_in",    0.0, -12.7,  90),
+]
+blk = emit("SN74AHCT2G126", "SN74AHCT2G126",
+           "Dual bus buffer, 3-state outputs, active-high output enables, TTL inputs, 5 V, "
+           "SSOP-8 (DCT)",
+           "https://www.ti.com/lit/ds/symlink/sn74ahct2g126.pdf",
+           {1: _buf}, rect=(-10.16, 10.16, 10.16, -10.16))
+LIBTXT, how = install(LIBTXT, "SN74AHCT2G126", blk)
+print("SN74AHCT2G126", how, "(standard 2G126 pinout, datasheet TO VERIFY)")
+
 io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
 print("written")

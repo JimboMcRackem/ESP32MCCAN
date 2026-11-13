@@ -3,8 +3,9 @@
 """Generate hardware/sheets/mcu_can.kicad_sch (KiCad 10.0.2, format 20260306).
 
 ESP32-WROOM-32E-N8 on the plan4 pin map (twelve outputs, shared diagnostics, three sense
-inputs), TJA1042T/3 with hardware-enforced listen-only, programming header with auto-reset,
-status LED.
+inputs), TJA1042T/3 with hardware-enforced listen-only, programming header with auto-reset.
+GPIO 13 (pad 16) is AUX_PWM, the pods' shared yellow PWM (aux stage, 2026-11-13); it was the
+status LED, D5, which is gone.
 """
 import os, re, sys, uuid
 import fpmap
@@ -94,7 +95,6 @@ LIBS = []
 # mccan_parts:PESD2CANFD24U); Device:D_Schottky dropped with the ignition clamp (plan4).
 for lid in ("Device:C", "Device:R", "power:GND"):
     LIBS.append(from_schematic(lid))
-LIBS.append(from_library(os.path.join(STOCK, "Device.kicad_sym"), "LED", "Device:LED"))
 LIBS.append(from_library(os.path.join(STOCK, "RF_Module.kicad_sym"),
                          "ESP32-WROOM-32E", "RF_Module:ESP32-WROOM-32E"))
 LIBS.append(from_library(os.path.join(STOCK, "Interface_CAN_LIN.kicad_sym"),
@@ -251,7 +251,7 @@ FANOUT = [
     ("34", "UART_RX",    None),
     ("26", "EN_5V",      "output"),   # pull-down R19 is on the rails sheet
     ("14", "IO12_STRAP", None),
-    ("16", "LED_STAT",   None),
+    ("16", "AUX_PWM",    "output"),   # pull-down R81 is on the outputs sheet, at the buffer
     ("13", "CAN_STB",    None),
     ("27", "OUT_RL_IND", "output"),
     ("28", "OUT_RL_BRK", "output"),
@@ -410,15 +410,6 @@ SW2 = place("SW2", "Switch:SW_Push", "EN/RESET", 110.49, 158.75, 0, SWP,
             desc="Push button switch, generic, two pins")
 w(SW2["1"], (100.33, 158.75)); lab("EN_MCU", 100.33, 158.75)
 w(SW2["2"], (120.65, 158.75)); gnd(120.65, 158.75)
-
-# ================================================================ BLOCK D: status LED
-D5 = place("D5", "Device:LED", "green", 209.55, 160.02, 0, DIODE,
-           [("Reference", "D5", 209.55, 154.94, 0), ("Value", "green", 209.55, 164.46, 0)],
-           desc="Light emitting diode")
-a, b = hpart("R27", "Device:R", "1k", 217.17, 160.02)
-w(D5["2"], a)
-w(b, (231.14, 160.02)); lab("LED_STAT", 231.14, 160.02)
-w(D5["1"], (199.39, 160.02)); gnd(199.39, 160.02)
 
 # ================================================================ BLOCK F: passive defaults
 # R36 is a boot requirement: GPIO 12 (MTDI) selects the flash voltage when sampled at reset.

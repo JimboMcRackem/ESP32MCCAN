@@ -175,7 +175,7 @@ MCU_PADS = {  # D2: bare net -> U5 pad
     "OUT_FL_DRL": "10", "OUT_FL_IND": "11", "OUT_FR_DRL": "8", "OUT_FR_IND": "9",
     "OUT_RL_DRL": "12", "OUT_RL_IND": "27", "OUT_RL_BRK": "28", "OUT_RR_DRL": "30",
     "OUT_RR_IND": "31", "OUT_RR_BRK": "33", "OUT_AUX_L": "36", "OUT_AUX_R": "37",
-    "EN_5V": "26", "LED_STAT": "16", "CAN_STB": "13", "CAN_RXD": "7",
+    "EN_5V": "26", "AUX_PWM": "16", "CAN_STB": "13", "CAN_RXD": "7",
     "DIAG_EN": "24", "DIAG_SEL0": "29", "DIAG_SEL1": "23",
     "SNS_A": "6", "SNS_B": "4", "SNS_C": "5", "IO12_STRAP": "14",
     "BOOT_N": "25", "EN_MCU": "3", "UART_RX": "34", "UART_TX": "35",
@@ -195,6 +195,12 @@ HARNESS = {  # D5: ref -> (footprint, [net per pin 1..n])
            ["RL_DRL", "RL_IND", "RL_BRK", "GND"]),
     "J5": ("SolderWire-0.5sqmm_1x03_P4.6mm_D0.9mm_OD2.1mm_Relief",
            ["RR_DRL", "RR_IND", "RR_BRK"]),
+    # Aux stage (2026-11-13): one 4-core tail per pod.  Pin 4 is blue, unconnected until its
+    # role is measured (spec 9.1 item 1).
+    "J10": ("SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief",
+            ["POD_L_P", "GND_B", "YEL_L", None]),
+    "J11": ("SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief",
+            ["POD_R_P", "GND_B", "YEL_R", None]),
 }
 
 
@@ -205,7 +211,8 @@ def chk_net_name_collisions(nl):
 
 def chk_deleted_parts(nl):
     gone = ["LM51571-Q1", "DML3017LDC", "PCA9685PW/Q900", "ADG706", "NX5020UNBKS",
-            "BTS7008-2EPA", "1206L050/24"]
+            "1206L050/24"]
+    # BTS7008-2EPA left this list 2026-11-13: it came back as the pod switch U14 (aux stage).
     return ["deleted part still present: %s value %s" % (ref, p.value)
             for ref, p in sorted(nl.parts.items()) if p.value in gone]
 
@@ -323,7 +330,8 @@ def chk_nt1(nl):
 
 
 def chk_gnd_b_members(nl):
-    want = {"J9", "R108", "D25", "C66", "NT1"}
+    # + the pod returns (J10.2, J11.2) and the pod switch's supply capacitors (aux stage)
+    want = {"J9", "R108", "D25", "C66", "NT1", "J10", "J11", "C67", "C68", "C69", "C70"}
     if "GND_B" not in nl.nets:
         return ["net GND_B does not exist"]
     got = {m.split(".")[0] for m in nl.nets["GND_B"]}
@@ -468,24 +476,74 @@ def chk_signal_channels(nl):
     return f
 
 
+# Aux stage (2026-11-13, spec: docs/superpowers/specs/2026-11-13-aux-stage-design.md).
+# U14 BTS7008-2EPA: pins 2 IN0, 6 IN1, 3 DEN, 5 DSEL, 4 IS, 1 GND, 15 VS (EP),
+# 12-14 OUT0, 8-10 OUT1, 7/11 n.c.   U15 SN74AHCT2G126: 1 1OE, 2 1A, 3 2Y, 4 GND, 5 2A,
+# 6 1Y, 7 2OE, 8 VCC.
+AUX = {  # side -> (GPIO net, IN net, U14 IN pin, U14 OUT pins, pod net, U15 OE, U15 Y, yellow net)
+    "L": ("OUT_AUX_L", "IN_AUX_L", "2", ("12", "13", "14"), "POD_L_P", "1", "6", "YEL_L"),
+    "R": ("OUT_AUX_R", "IN_AUX_R", "6", ("8", "9", "10"), "POD_R_P", "7", "3", "YEL_R"),
+}
+
+
 def chk_aux_outputs(nl):
     f = []
-    for net in ("OUT_AUX_L", "OUT_AUX_R"):
-        pad = MCU_PADS[net]
-        m = members(nl, net)
-        if not m:
-            f.append("net %s does not exist" % net)
-            continue
+    for ref in ("U14", "U15"):
+        if not has_part(nl, ref):
+            f.append("%s (aux stage) is not in the netlist" % ref)
+    if f:
+        return f
+    for side, (gpio, in_net, in_pin, out_pins, pod, oe, y, yel) in AUX.items():
+        pad = MCU_PADS[gpio]
+        m = members(nl, gpio)
+        want = {"U5." + pad, "U15." + oe}
         rs = sorted(x for x in m if re.fullmatch(r"R\d+", x.split(".")[0]))
-        others = sorted(x for x in m if x != "U5." + pad and x not in rs)
-        if "U5." + pad not in m:
-            f.append("%s should hold U5.%s" % (net, pad))
+        others = sorted(x for x in m if x not in want and x not in rs)
+        if not want <= m:
+            f.append("%s should hold %s, found %s" % (gpio, sorted(want), sorted(m)))
         if others:
-            f.append("%s holds %s besides U5.%s and its pull-down" % (net, others, pad))
-        if len(rs) != 1:
-            f.append("%s should hold exactly one resistor (the pull-down), found %s" % (net, rs))
-        elif nl.parts[rs[0].split(".")[0]].dnp or not resistors_between(nl, net, "GND"):
-            f.append("%s: resistor %s is not a live pull-down to GND" % (net, rs[0]))
+            f.append("%s holds %s besides %s and its series resistor" % (gpio, others, sorted(want)))
+        far = [o for r, o in resistors_on(nl, gpio) if value_is(nl, r, quadpins.R_IN_SERIES)]
+        if far != [in_net]:
+            f.append("%s should reach %s through one %s series resistor, found %s"
+                     % (gpio, in_net, quadpins.R_IN_SERIES, far))
+        f += expect_pin(nl, "U14", in_pin, in_net)
+        f += _pulldown(nl, in_net, "U14 IN" + side)
+        for p in out_pins:
+            f += expect_pin(nl, "U14", p, pod)
+        # yellow: U15 Y -> series R -> clamp node (Zener K to GND, pull-down) -> series R -> yel
+        ynode = nl.net_of("U15", y)
+        nodes = [o for r, o in resistors_on(nl, ynode)] if ynode else []
+        clamp = [n for n in nodes
+                 if any(nl.net_of(d, "1") == n and nl.net_of(d, "2") == "GND"
+                        for d in nl.parts if re.fullmatch(r"D\d+", d))]
+        if len(clamp) != 1:
+            f.append("U15.%s (%s): want one series resistor to a node clamped by a Zener to GND, "
+                     "found nodes %s" % (y, ynode, nodes))
+        else:
+            if not resistors_between(nl, clamp[0], "GND"):
+                f.append("%s has no pull-down to GND (yellow must idle low)" % clamp[0])
+            if not resistors_between(nl, clamp[0], yel):
+                f.append("%s does not reach %s through a series resistor" % (clamp[0], yel))
+    for pin, net in (("15", "VBAT_B"), ("1", "GND")):
+        f += expect_pin(nl, "U14", pin, net)
+    for pin in ("3", "5"):                               # DEN, DSEL: diagnosis off, defined
+        n = nl.net_of("U14", pin)
+        if not n or not resistors_between(nl, n, "GND"):
+            f.append("U14.%s (%s) is not pulled down to GND" % (pin, "DEN" if pin == "3" else "DSEL"))
+    n = nl.net_of("U14", "4")
+    if not n or not resistors_between(nl, n, "GND"):
+        f.append("U14.4 (IS) has no RSENSE to GND (Infineon: required, > 820 Ohm)")
+    for pin in ("7", "11"):
+        if not is_open(nl, "U14", pin):
+            f.append("U14.%s is n.c. but sits on %s" % (pin, nl.net_of("U14", pin)))
+    for pin, net in (("2", "AUX_PWM"), ("5", "AUX_PWM"), ("8", "+5V"), ("4", "GND")):
+        f += expect_pin(nl, "U15", pin, net)
+    if not resistors_between(nl, "AUX_PWM", "GND"):
+        f.append("AUX_PWM has no pull-down to GND (GPIO 13 floats at reset)")
+    for net in ("VBAT_B", "POD_L_P", "POD_R_P", "YEL_L", "YEL_R"):
+        if any(m.split(".")[0] == "U5" for m in members(nl, net)):
+            f.append("%s touches the ESP32 directly" % net)
     return f
 
 
@@ -603,7 +661,11 @@ def chk_harness(nl):
         if npins != len(nets):
             f.append("%s has %d pins, want %d" % (ref, npins, len(nets)))
         for i, net in enumerate(nets, 1):
-            f += expect_pin(nl, ref, str(i), net)
+            if net is None:
+                if not is_open(nl, ref, str(i)):
+                    f.append("%s.%d should be unconnected, found %s" % (ref, i, nl.net_of(ref, str(i))))
+            else:
+                f += expect_pin(nl, ref, str(i), net)
     return f
 
 

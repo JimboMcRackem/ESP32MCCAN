@@ -75,10 +75,10 @@ Reference designators are on F.Fab, except J*, F*, TP*, U*, Q*, D* and L*.
 
 | Sheet | Contents |
 |---|---|
-| power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` meets `GND_IN` (the connector side of choke L2) only at net-tie NT1, so neither feed's return current bypasses L2's return winding |
+| power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` (also the pods' return, out to the outputs sheet) meets `GND_IN` (the connector side of choke L2) only at net-tie NT1, so neither feed's return current bypasses L2's return winding |
 | rails | Low-Iq buck -> `+3V3_ALW`, gated `+5V` (`EN_5V`). No boost and no `+3V3_SW` |
-| mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, status LED, 4.7 k series resistors on the diagnostic lines |
-| outputs | Three TPS4H160-Q1 quads U11-U13 (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. The aux/pod switch is **not drawn**: it waits on the Oxford kit |
+| mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, 4.7 k series resistors on the diagnostic lines. GPIO 13 is `AUX_PWM` (the status LED is gone, 2026-11-13) |
+| outputs | Three TPS4H160-Q1 quads U11-U13 (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. Aux stage (2026-11-13): BTS7008-2EPA U14 switches both pods from `VBAT_B`, SN74AHCT2G126 U15 buffers `AUX_PWM` to each yellow (enabled only while that pod is powered), pod tails J10/J11. See `docs/superpowers/specs/2026-11-13-aux-stage-design.md` |
 
 The pin map and net names are the generators' (`scripts/gen_*.py`, `scripts/quadpins.py`) and the
 netlist `output/netlist.net`. The plan3 pin tables that used to be here (PCA9685, mux, ignition

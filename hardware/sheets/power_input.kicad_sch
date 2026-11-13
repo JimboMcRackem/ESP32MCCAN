@@ -3254,10 +3254,10 @@
 			(embedded_fonts no)
 		)
 	)
-	(text_box "VALUE NOTES\nR100 = 5.6 mOhm, the current-limit sense.  It carries the whole 7.0 A night load: 0.27 W, so 2512 at a\nminimum and a 4-terminal (Kelvin) part if one can be had.  Task 8 must give it its own copper -- that\n0.27 W couples into the board, not into the heat-spreader plate.\nR101 = 30 kOhm sets the SOA multiplier from the voltage across the pair.  It is taken to MID, not to\nFEED_P: it senses Q11's Vds.  Sized from the DRN pin's 1 mA limit at the SMBJ24A's 50.6 V 8/20 us clamp\n-- (50.6 - 27) / 1 mA = 23.6 k, rounded up to the next standard value, giving 0.787 mA at 50.6 V.\nC62 = 680 nF sets the fault timeout.  Worst-case inrush ramp with C64 fitted is 95 ms at 2.4 uA, and the\ndatasheet's guideline is to hold TMR's rise to 0.4 V during it.  Fault timeouts land at 9.2 ms into a\n12 V dead short and 8.6 ms in the 23.6 V clamp case, both inside Diagram 3 derated to a 65 C case.\nR104 / C63 / D21 = 10k / 220 nF / 22 V is U10's VCC feed, hold-up and clamp.  It appears in all three of\nthe datasheet's application circuits including the 20 V one, so it is not a high-voltage artefact.\nR102 = 10 Ohm damps Q11's gate.  R103 / C64 = 33 Ohm / 47 nF compensate the current-limit amplifier --\nPOPULATED, not DNP; see the eFuse note for why the value is the datasheet minimum rather than Figure 7's.\nR105 / R106 / R107 = 240k / 10k / 240k with Q12, D22 and D23 steer Q10's gate.  Jellybeans, but R105 and\nR107 stand off the full 50.6 V clamp so they are 1206 rather than 0603.\nR2 and R3 = 0R links.  Fit EITHER L2 OR R2+R3, never both -- see the split-ground note.\nD2 = SMBJ24A load-dump clamp.  D3 = 40 V Schottky feeding the logic rail.\nC3 = 220 uF electrolytic bulk; C1 / C2 / C4 / C5 ceramic; C65 = 22 uF, U10's mandatory output bypass.\nL1 = 1.5 uH, the series element of the pi filter; L2 = the common-mode choke.\n\nSTILL OPEN: no orderable is named for Q12, D21, D22, D23 or C65, and the HSOF-8 variant for Q10/Q11\n(-1 versus -2 versus -3) has not been confirmed against the Infineon package drawing."
+	(text_box "FEED B (J9 -> Q13) -- BOTH PODS.  NEVER DIODE-OR IT WITH VBAT.\nFeed B is a second, independent 12 V pigtail for the pod switch U14 (both pods, outputs sheet;\nrevised 2026-11-13).  GND_B leaves this sheet as the pods' return.  It has no eFuse, no buck and no\nfilter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.\n  * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.\n    R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the\n    +/-20 V rating at the 50.6 V clamp.\n  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with\n    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.\n  * NT1 joins GND_B to GND_IN (the connector side of choke L2) at one deliberate point, the star point for\n    the layout phase.  It is NOT tied to GND: that would let feed B's return wire carry part of feed A's load\n    current and bypass L2's return winding (DC common-mode imbalance), and the reverse for feed B's own\n    load.  On GND_IN all board current passes through L2's return winding, balanced.  GND_B must touch\n    nothing else.  NT1 is a wide (2.0 mm) tie: with one feed reversed and the other connected, fault current\n    runs through it until the reversed feed's harness fuse clears, and it must outlast the fuse.\n  * Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed\n    disconnected, and when the whole harness is reversed.  One feed reversed while the other is connected\n    shorts through the shared return (via NT1) until that harness fuse clears.\n  * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.\n  * The 10 A fuse for feed B is HARNESS-SIDE, below the bike's 15 A aux 3 (ratings to confirm on the bike,\n    spec 4.1.1).  There is no fuse here.\nQ13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L\nfootprint's five pads; its Value field is SQJ461EP.  Worst case 6.4 A (both pods at 12 V) is 0.66 W in Q13\nat its 16 mOhm max -- give it copper in layout."
 		(exclude_from_sim no)
-		(at 240.03 162.56 0)
-		(size 171.45 43.18)
+		(at 240.03 234.95 0)
+		(size 171.45 45.72)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
 			(width 0)
@@ -3272,11 +3272,11 @@
 			)
 			(justify left top)
 		)
-		(uuid "0fdceae6-6a91-5453-b9e6-456345205d88")
+		(uuid "117cf7b7-1c74-583c-aedf-4ad98994c0bc")
 	)
 	(text_box "INPUT FILTER ORDER: eFuse -> TVS -> CM choke -> pi filter -> bulk\nThe TVS (D2) must come BEFORE the choke.  Surge clamping degrades with series inductance between the\nentry point and the clamp, so any inductance ahead of D2 lets the clamped voltage overshoot.\nThe choke (L2) must come BEFORE the pi filter.  The common-mode noise being blocked originates INSIDE\nthe board -- it is the boost converter on the rails sheet -- so the choke has to sit between the\nswitcher and the harness, not out at the connector.\nD2 sits DOWNSTREAM of the eFuse, on VBAT_PROT.  That is deliberate and it is an assumption spec 4.2's\nSOA arithmetic depends on: the 23.6 V-at-7 A clamp case is computed with the TVS not clamping the input.\nMoving D2 to FEED_P would protect Q10/Q11 from the surge directly and is arguably better -- it is logged\nas an open question for spec 4.3, and it invalidates the SOA numbers if it is done without redoing them."
 		(exclude_from_sim no)
-		(at 240.03 208.28 0)
+		(at 240.03 212.09 0)
 		(size 171.45 20.32)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
@@ -3293,6 +3293,26 @@
 			(justify left top)
 		)
 		(uuid "515e48ee-6024-57ba-825d-e6711a2c12ba")
+	)
+	(text_box "VALUE NOTES\nR100 = 33 mOhm, the current-limit sense: 45-55 mV / 33 mOhm = 1.36-1.67 A.  RE-SIZED 2026-11-13 from\n5.6 mOhm (a 9 A limit behind a 4 A fuse, which could never act): no pod rides on feed A any more, so the\nlimit sits above feed A's ~0.87 A worst case (logic + signal lamps, with EL359) and below its ~2 A\nharness fuse.  0.03 W at that load.  2512 is kept for the Kelvin copper.  Re-check against the measured\nfeed-A start-up current at bring-up (spec 9.1 item 2a).\nR101 = 30 kOhm sets the SOA multiplier from the voltage across the pair.  It is taken to MID, not to\nFEED_P: it senses Q11's Vds.  Sized from the DRN pin's 1 mA limit at the SMBJ24A's 50.6 V 8/20 us clamp\n-- (50.6 - 27) / 1 mA = 23.6 k, rounded up to the next standard value, giving 0.787 mA at 50.6 V.\nC62 = 680 nF sets the fault timeout.  Worst-case inrush ramp with C64 fitted is 95 ms at 2.4 uA, and the\ndatasheet's guideline is to hold TMR's rise to 0.4 V during it.  Fault timeouts land at 9.2 ms into a\n12 V dead short and 8.6 ms in the 23.6 V clamp case, both inside Diagram 3 derated to a 65 C case.\nR104 / C63 / D21 = 10k / 220 nF / 22 V is U10's VCC feed, hold-up and clamp.  It appears in all three of\nthe datasheet's application circuits including the 20 V one, so it is not a high-voltage artefact.\nR102 = 10 Ohm damps Q11's gate.  R103 / C64 = 33 Ohm / 47 nF compensate the current-limit amplifier --\nPOPULATED, not DNP; see the eFuse note for why the value is the datasheet minimum rather than Figure 7's.\nR105 / R106 / R107 = 240k / 10k / 240k with Q12, D22 and D23 steer Q10's gate.  Jellybeans, but R105 and\nR107 stand off the full 50.6 V clamp so they are 1206 rather than 0603.\nR2 and R3 = 0R links.  Fit EITHER L2 OR R2+R3, never both -- see the split-ground note.\nD2 = SMBJ24A load-dump clamp.  D3 = 40 V Schottky feeding the logic rail.\nC3 = 220 uF electrolytic bulk; C1 / C2 / C4 / C5 ceramic; C65 = 22 uF, U10's mandatory output bypass.\nL1 = 1.5 uH, the series element of the pi filter; L2 = the common-mode choke.\n\nSTILL OPEN: no orderable is named for Q12, D21, D22, D23 or C65, and the HSOF-8 variant for Q10/Q11\n(-1 versus -2 versus -3) has not been confirmed against the Infineon package drawing."
+		(exclude_from_sim no)
+		(at 240.03 162.56 0)
+		(size 171.45 46.99)
+		(margins 0.9525 0.9525 0.9525 0.9525)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill
+			(type none)
+		)
+		(effects
+			(font
+				(size 1 1)
+			)
+			(justify left top)
+		)
+		(uuid "57917453-4774-5197-a0b5-75062f75ef7c")
 	)
 	(text_box "THE PASS PAIR IS COMMON DRAIN.  DO NOT \"SIMPLIFY\" IT.\nQ10 pin 3 (DRAIN) and Q11 pin 3 (DRAIN) meet at MID.  Q10 pin 2 (SOURCE) goes to FEED_P; Q11 pin 2\n(SOURCE) goes to R100 and on to VBAT_PROT.  Sources OUTWARD, drains tied in the middle.\n\nThat is what makes the body diodes OPPOSE each other, and it is the entire reverse-polarity block --\nforward current reaches the load through Q11's channel, reverse current is stopped by Q10's diode facing\nthe wrong way, and that holds with the part unpowered.\n\nWired common SOURCE instead, the board works normally, passes ERC, passes DRC, passes the pad count,\nand has no reverse-polarity protection at all.  An earlier draft of spec 4.2 instructed exactly that.\nThe tell that it is wrong is the gate network: under common source both gates would sit on one node and\nQ12/D22/D23/R105-R107 would have nothing to do.  They exist because Q10's gate must be referenced to\nFEED_P while U10's GATE pin is referenced to OUT.\n\nHOW Q10'S GATE IS DRIVEN.  U10's GATE sits at about OUT + 11.5 V.  R107 (240k) and D22 carry that across\nto Q10's gate, landing it near FEED_P + 10.8 V -- enough to enhance a FET whose source is at the input.\nR105 (240k from FEED_P) biases Q12's base through R106/D23; under reverse polarity GND_IN rises above the\nfeed, D23 conducts, Q12 turns on and clamps Q10's gate to its own source, holding Q10 hard off.\nD23 stands off up to 50.6 V in normal operation, which is why it is a 75 V part and not a Schottky.\n\nAFTER ANY CHANGE HERE, READ THE NETLIST BY HAND.  gen_power_input.py prints the expected coordinate for\nevery pin of every net; spec 4.2 makes that check a formal acceptance criterion.  This is the error class\nthat has got through every automated check on this board three times now -- the CM choke's pin numbering\nin Task 7, the RGB FET clamp path in review finding F6, and the first draft of this very paragraph."
 		(exclude_from_sim no)
@@ -3314,7 +3334,7 @@
 		)
 		(uuid "5ac230ff-4ef1-5737-87c0-9b03d4fd5bd4")
 	)
-	(text_box "THE eFUSE (U10) -- WHAT REPLACED F1, Q1, D1 AND R1\nThis front end used to be a 10 A blade fuse, a P-channel reverse-polarity FET, a gate Zener and a 1M gate\npull-down.  Spec 4.2 replaced all four with ONE element: U10, an LTC4380-2 surge stopper driving a\nback-to-back pair Q10/Q11.  It does three jobs the old arrangement did not do together --\n  * REVERSE POLARITY, by the opposed body diodes of Q10/Q11 (see the common-drain note below).\n  * OVERCURRENT, as an active current limit across R100 (5.6 mOhm), with a C62-timed fault trip and the\n    -2 suffix's AUTO-RETRY at roughly 0.1-0.2% duty -- about one retry every 1.5-3 s.  Auto-retry is\n    required, not preferred: the MCU is powered downstream of this stage and could never clear a latch.\n  * OVERVOLTAGE, by holding VBAT_PROT near 29.5 V through a linear clamp.  That is what the internal\n    31.5 V gate clamp gives with SEL tied to GND_IN.\n\nThe reference circuit is the datasheet's FIGURE 7 (12 V overcurrent-protected high-side switch), NOT\nFigure 5.  Figure 7 is 12 V in, back-to-back FETs, an LTC4380-2, 80 VDC max against our 50.6 V worst\ncase.  Only R100 (R_SNS), R101 (R_DRN) and C62 (C_TMR) are rescaled -- Figure 7 is a 2 A design.\n\nTWO DELIBERATE DEPARTURES FROM FIGURE 7, both checked:\n  * R103/C64 are 33 Ohm / 47 nF, where Figure 7 draws 150 Ohm / 0.1 uF.  33 Ohm / 47 nF is the\n    datasheet's own stated MINIMUM in PIN FUNCTIONS, and it is chosen because a larger C64 lengthens the\n    output ramp: 0.1 uF pushes the fault timeout past 10 ms, off the end of the SOA curve that was\n    checked.  Do not fit a larger C64 without re-checking the FETs' safe operating area.\n  * ON is left open on its internal 1 MOhm pull-up and FLT is not routed to the MCU.  Both carry\n    no-connect flags so ERC stays clean; both are available if a later revision wants them.\n\nC65 IS NOT OPTIONAL.  PIN FUNCTIONS requires a minimum of 22 uF bypassing OUT \"as close to the pin as\npossible\".  Nothing else on this sheet satisfies it -- C1 is 100 nF and sits behind the choke, C3 sits\nbehind L1 as well.  Layout must keep C65 next to U10 pin 5, not merely on the same net.\n\nREFERENCE DESIGNATORS: spec 4.2 names these parts R88-R95, C49-C52 and D22-D24.  Those are taken --\nR88-R99 and C49-C61 are the RGB output snubbers on the outputs sheet.  The mapping actually built is\nR88->R100 .. R95->R107, C49->C62 .. C52->C65, and D22->D21 / D23->D22 / D24->D23."
+	(text_box "THE eFUSE (U10) -- WHAT REPLACED F1, Q1, D1 AND R1\nThis front end used to be a 10 A blade fuse, a P-channel reverse-polarity FET, a gate Zener and a 1M gate\npull-down.  Spec 4.2 replaced all four with ONE element: U10, an LTC4380-2 surge stopper driving a\nback-to-back pair Q10/Q11.  It does three jobs the old arrangement did not do together --\n  * REVERSE POLARITY, by the opposed body diodes of Q10/Q11 (see the common-drain note below).\n  * OVERCURRENT, as an active current limit across R100 (33 mOhm), with a C62-timed fault trip and the\n    -2 suffix's AUTO-RETRY at roughly 0.1-0.2% duty -- about one retry every 1.5-3 s.  Auto-retry is\n    required, not preferred: the MCU is powered downstream of this stage and could never clear a latch.\n  * OVERVOLTAGE, by holding VBAT_PROT near 29.5 V through a linear clamp.  That is what the internal\n    31.5 V gate clamp gives with SEL tied to GND_IN.\n\nThe reference circuit is the datasheet's FIGURE 7 (12 V overcurrent-protected high-side switch), NOT\nFigure 5.  Figure 7 is 12 V in, back-to-back FETs, an LTC4380-2, 80 VDC max against our 50.6 V worst\ncase.  Only R100 (R_SNS), R101 (R_DRN) and C62 (C_TMR) are rescaled -- Figure 7 is a 2 A design.\n\nTWO DELIBERATE DEPARTURES FROM FIGURE 7, both checked:\n  * R103/C64 are 33 Ohm / 47 nF, where Figure 7 draws 150 Ohm / 0.1 uF.  33 Ohm / 47 nF is the\n    datasheet's own stated MINIMUM in PIN FUNCTIONS, and it is chosen because a larger C64 lengthens the\n    output ramp: 0.1 uF pushes the fault timeout past 10 ms, off the end of the SOA curve that was\n    checked.  Do not fit a larger C64 without re-checking the FETs' safe operating area.\n  * ON is left open on its internal 1 MOhm pull-up and FLT is not routed to the MCU.  Both carry\n    no-connect flags so ERC stays clean; both are available if a later revision wants them.\n\nC65 IS NOT OPTIONAL.  PIN FUNCTIONS requires a minimum of 22 uF bypassing OUT \"as close to the pin as\npossible\".  Nothing else on this sheet satisfies it -- C1 is 100 nF and sits behind the choke, C3 sits\nbehind L1 as well.  Layout must keep C65 next to U10 pin 5, not merely on the same net.\n\nREFERENCE DESIGNATORS: spec 4.2 names these parts R88-R95, C49-C52 and D22-D24.  Those are taken --\nR88-R99 and C49-C61 are the RGB output snubbers on the outputs sheet.  The mapping actually built is\nR88->R100 .. R95->R107, C49->C62 .. C52->C65, and D22->D21 / D23->D22 / D24->D23."
 		(exclude_from_sim no)
 		(at 240.03 11.43 0)
 		(size 171.45 55.88)
@@ -3353,26 +3373,6 @@
 			(justify left top)
 		)
 		(uuid "7ab1e7f9-3283-5702-822c-9622ce532b23")
-	)
-	(text_box "FEED B (J9 -> Q13) -- SERVES AUX_R ONLY.  NEVER DIODE-OR IT WITH VBAT.\nFeed B is a second, independent 12 V pigtail for the AUX_R pod switch.  It has no eFuse, no buck and no\nfilter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.\n  * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.\n    R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the\n    +/-20 V rating at the 50.6 V clamp.\n  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with\n    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.\n  * NT1 joins GND_B to GND_IN (the connector side of choke L2) at one deliberate point, the star point for\n    the layout phase.  It is NOT tied to GND: that would let feed B's return wire carry part of feed A's load\n    current and bypass L2's return winding (DC common-mode imbalance), and the reverse for feed B's own\n    load.  On GND_IN all board current passes through L2's return winding, balanced.  GND_B must touch\n    nothing else.  NT1 is a wide (2.0 mm) tie: with one feed reversed and the other connected, fault current\n    runs through it until the reversed feed's harness fuse clears, and it must outlast the fuse.\n  * Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed\n    disconnected, and when the whole harness is reversed.  One feed reversed while the other is connected\n    shorts through the shared return (via NT1) until that harness fuse clears.\n  * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.\n  * The 3 A fuse for feed B is HARNESS-SIDE, below the bike's 5 A circuit fuse.  There is no fuse here.\nQ13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L\nfootprint's five pads; its Value field is SQJ461EP.  Worst case 2.48 A at 10.5 V is 0.10 W in Q13."
-		(exclude_from_sim no)
-		(at 240.03 231.14 0)
-		(size 171.45 39.37)
-		(margins 0.9525 0.9525 0.9525 0.9525)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(fill
-			(type none)
-		)
-		(effects
-			(font
-				(size 1 1)
-			)
-			(justify left top)
-		)
-		(uuid "8a4d1748-3bcf-5bb1-8b3f-910705ecd049")
 	)
 	(text_box "COMMON-MODE CHOKE AND THE SPLIT GROUND -- DO NOT \"TIDY\" THIS\n\nGND_IN (connector side) and GND (board side) are SEPARATE NETS, joined only through choke winding B.\nNothing else may bridge them -- no wire, no capacitor, and on the PCB no ground-plane copper.\n\nThe usual way this gets broken is CAPACITIVE, not a wire: a decoupling cap from VBAT_PROT (upstream) to\nGND (downstream) bridges winding A's input to winding B's output, giving HF a path straight around the\nchoke.  The circuit then works perfectly and filters nothing, and no ERC or DRC check will complain.\n\nThat is why C1 sits on VBAT_F (downstream) and the TVS anode sits on GND_IN (upstream).\n\nTHE ENTIRE eFUSE SITS ON GND_IN.  U10's GND and SEL, C62, C63, C64, C65 and D21/D23's anodes all return\nto the connector side, because U10 measures the feed and must reference the return the battery is\nactually connected to.  Do not move any of them to board GND to \"shorten the return path\".\n\nBUILD OPTION: fit EITHER L2 (the choke) OR R2+R3 (0R links that short the windings).  Links give the\nsimple tied-ground case for the first prototype; the footprint is present either way so fitting a real\nchoke later needs no board revision.\n\nLAYOUT (Task 8): the ground plane must not bridge the choke.\n\nGND_IN is a LOCAL label, never a power symbol.  A second power symbol named GND would merge the two\nreturns globally and silently defeat the whole arrangement."
 		(exclude_from_sim no)
@@ -3509,6 +3509,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "ad0c7cb8-3e66-502e-bb06-c3b44e4f32e3")
+	)
+	(junction
+		(at 160.02 147.32)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "ae2ee743-f794-58fd-a16d-a2ea07aa6ac4")
 	)
 	(junction
 		(at 209.55 76.2)
@@ -4262,6 +4268,16 @@
 	)
 	(wire
 		(pts
+			(xy 160.02 147.32) (xy 160.02 152.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c89d2cea-4ad3-5ada-9659-0740f72ce3d3")
+	)
+	(wire
+		(pts
 			(xy 172.72 147.32) (xy 203.2 147.32)
 		)
 		(stroke
@@ -4830,6 +4846,17 @@
 			(justify left)
 		)
 		(uuid "4412f5be-0354-5120-859f-3cfd7b9bbfc6")
+	)
+	(hierarchical_label "GND_B"
+		(shape output)
+		(at 160.02 152.4 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "613fe039-864e-5f50-b069-d31a70543e7c")
 	)
 	(hierarchical_label "VBAT_B"
 		(shape output)
@@ -7880,7 +7907,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "5m6 1% 1W"
+		(property "Value" "33m 1% 1W"
 			(at 114.3 69.85 90)
 			(show_name no)
 			(do_not_autoplace no)

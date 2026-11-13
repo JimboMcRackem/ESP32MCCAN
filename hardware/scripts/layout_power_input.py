@@ -49,8 +49,8 @@
 #   L1 = Vishay IHLP-4040DZ-01, 1.5 uH   ->  5.80 mOhm max
 #   L2 = Wurth WE-CMBNC 7448031002       -> 6.3 mOhm max per winding = 12.6 mOhm
 #   total 18.40 mOhm, 0.90 W at 7.0 A, 16.4% inside the ceiling.
-# The eFuse pass pair and R100 add to that budget: 2 x 0.8 mOhm plus 5.6 mOhm = 7.2 mOhm,
-# 0.35 W at 7.0 A.  Spec 4.2 accounts for it; do not re-spend it here.
+# The eFuse pass pair and R100 add to that budget: 2 x 0.8 mOhm plus 33 mOhm (re-sized
+# 2026-11-13, no pod on feed A) -- 30 mW at feed A's 0.9 A worst case.  Spec 4.2 accounts for it; do not re-spend it here.
 
 SH = 73.66   # the input filter moved right by this much to make room for the eFuse
 
@@ -60,7 +60,7 @@ COMPS = [
     # ---- eFuse: the pass pair, the sense resistor and the output bypass
     ("Q10", "Transistor_FET:Q_NMOS_GSD",  76.20,  73.66, 270, "IPT008N06NM5LF", ""),
     ("Q11", "Transistor_FET:Q_NMOS_GSD", 104.14,  78.74,  90, "IPT008N06NM5LF", ""),
-    ("R100", "Device:R",                 116.84,  76.20,  90, "5m6 1% 1W", ""),
+    ("R100", "Device:R",                 116.84,  76.20,  90, "33m 1% 1W", ""),
     # C65: the datasheet's PIN FUNCTIONS entry for OUT requires a minimum of 22 uF bypass
     # "as close to the pin as possible".  Nothing else on this sheet satisfies it -- C1 is
     # 100 nF and sits behind the common-mode choke, C3 sits behind L1 as well.
@@ -249,6 +249,8 @@ WIRES = [
     ((203.20, 147.32), (210.82, 147.32)),
     ((210.82, 132.08), (210.82, 147.32)),
     ((210.82, 147.32), (215.90, 147.32)),
+    # GND_B out to the outputs sheet: the pods' return (aux stage, 2026-11-13)
+    ((160.02, 147.32), (160.02, 152.40)),
     # NT1 pin 2 -> GND_IN (connector side of L2), through a local label like the other GND_IN members
     ((220.98, 147.32), (226.06, 147.32)),
 ]
@@ -264,6 +266,7 @@ JUNCTIONS = [
     # feed B
     (172.72, 132.08), (185.42, 124.46), (203.20, 124.46), (210.82, 124.46),
     (172.72, 147.32), (203.20, 147.32), (210.82, 147.32),
+    (160.02, 147.32),
 ]
 
 LABELS = [
@@ -309,7 +312,8 @@ LABELS = [
 HLABELS = [
     ("VBAT",      209.55, 68.58, 90, "output"),
     ("VLOGIC_IN", 231.14, 76.20,  0, "output"),
-    ("VBAT_B",    223.52, 124.46, 0, "output"),   # feed B, no consumer until Task 8 wires the root
+    ("VBAT_B",    223.52, 124.46, 0, "output"),   # feed B: both pod switches (U14, outputs sheet)
+    ("GND_B",     160.02, 152.40, 270, "output"),  # feed B's return: the pods' return wires
 ]
 
 
