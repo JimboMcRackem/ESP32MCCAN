@@ -40,8 +40,8 @@ No bench supply, no jumper wiring, no adapter to choose.
 2. **Powers the MCCAN board's 3.3 V rail from USB** through J2 pin 1, enough for flashing and for
    the ESP32 with WiFi running.
 3. **Never drives against a powered MCCAN board.** If the MCCAN board's own supply (bench or bike)
-   is present, the programmer's 3.3 V output must block reverse current and supply nothing that
-   fights the board's regulator.
+   is present, no current may flow backwards into the programmer, and the programmer must never
+   pull the rail away from the board's regulator. Sharing the load is acceptable (*my call*, §6.3).
 4. **Survives a reversed or misplugged cable** without damage to either board (§6.4).
 5. **Built like the main board:** generated from scripts in the repo, checked by gates, every part
    from JLCPCB's own stock, assembled by JLCPCB, top side only, no hand soldering.
@@ -111,10 +111,15 @@ USB-C VBUS (5 V) → 3.3 V regulator → reverse-current-blocking switch → hea
 - **USB-C:** a USB 2.0 device. CC1 and CC2 each pulled down with 5.1 kΩ, so any USB-C source
   provides default USB power. No USB-PD.
 - **Reverse blocking (goal 3):** when the MCCAN board's own rail is up, the programmer's output must
-  not conduct backwards into its regulator and must not hold the rail against the board's buck.
-  An ideal-diode or load switch with reverse-current blocking meets this *(part: builder's call)*.
-  A plain Schottky is not acceptable if it leaves the rail below 3.0 V at full load (the ESP32's
-  minimum).
+  not conduct backwards into its regulator. An ideal diode or a load switch with reverse-current
+  blocking meets this *(part: builder's call)*. A plain Schottky is not acceptable if it leaves the
+  rail below 3.0 V at full load (the ESP32's minimum), counting the cable's drop.
+- **Both powered: load sharing is accepted** (*my call*). U1 holds the rail at about 3.24–3.34 V
+  (R5 348k / R6 200k on a 1.2 V reference), which overlaps any 3.3 V regulator's tolerance, so
+  "supplies exactly nothing" would need the output set below about 3.2 V or a presence detector.
+  Neither is worth it: the ideal diode lets whichever source is higher carry the load, nothing
+  flows backwards into either, and the LM5164 simply stops switching while the rail sits above its
+  set point. No harm either way.
 - **Short-circuit:** the output must survive a short to ground indefinitely (current limit and
   thermal shutdown in the regulator or the switch).
 
@@ -135,9 +140,12 @@ USB-C VBUS (5 V) → 3.3 V regulator → reverse-current-blocking switch → hea
 
 ### 6.5 USB-to-serial chip
 
-- **CP2102N** (*my call*), or **CH340** if JLCPCB's stock decides it (*builder's call*,
-  recorded with the reason). Either must provide TXD, RXD, DTR and RTS at 3.3 V logic and work
-  with `esptool` at up to 921 600 baud without a vendor driver on current Windows.
+- **A USB CDC-ACM part, so Windows' built-in driver runs it with nothing to install** (*my
+  call*): for example the CH343P or the CH9102F, whichever JLCPCB stocks. CP2102N and CH340 both
+  need a vendor driver, which Windows Update usually fetches when online; either is the fallback
+  if no CDC-ACM part is in stock, recorded with the reason.
+- Whichever part: TXD, RXD, DTR and RTS at 3.3 V logic, working with `esptool` at up to 921 600
+  baud.
 - The chip's own supply comes from USB, not from the MCCAN board.
 
 ### 6.6 Indicators
@@ -172,18 +180,20 @@ USB-C VBUS (5 V) → 3.3 V regulator → reverse-current-blocking switch → hea
 
 ## 8. Acceptance (on the bench, when the boards arrive)
 
-1. USB only: the power LED lights, and the laptop sees a serial port with no driver install.
+1. USB only: the power LED lights, and the laptop sees a serial port with no driver install (a
+   vendor driver from Windows Update only if the CP2102N/CH340 fallback was used).
 2. Programmer on an MCCAN board, USB only: `platformio run -t upload` flashes with no button
    presses; the serial monitor shows the boot log; the WiFi access point appears.
-3. MCCAN board on its bench supply, programmer plugged in: measure the programmer's output current
-   — it supplies nothing that fights the board's rail; flashing still works.
+3. MCCAN board on its bench supply, programmer plugged in: no current flows back into the
+   programmer (measure at its output; it may be supplying part of the load), the rail stays between
+   3.2 and 3.4 V, and flashing still works.
 4. Cable reversed at one end, USB connected, for 10 s: neither board is damaged; the ESP32 is held
    in reset; with the cable put right, step 2 passes again.
 5. Output shorted to ground for 10 s: the programmer recovers when the short is removed.
 
 ## 9. Left to the builder
 
-The exact parts (regulator, reverse-blocking switch, USB-serial chip between CP2102N and CH340,
+The exact parts (regulator, reverse-blocking switch, USB-serial chip per §6.5,
 ESD part, LEDs, resistor values), the board size and placement, the project's location in the
 repo, and which main-board scripts to reuse. Each choice that departs from a *my call* above is
 recorded with its reason.
