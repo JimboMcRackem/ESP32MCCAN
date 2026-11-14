@@ -21,9 +21,9 @@ within a layer a straight cut is an UPPER bound on the narrowest section, not a 
 neck that no row or column crosses square-on -- a diagonal row of vias, a curved wall -- reads
 wider than it is, so a pour that passes here can still be necked.  Diagonal cuts do not repair
 that (they clip every pour's corners and run down the diagonals of via grids, reading ~0 where
-current flows round).  The sound measure is a raster min-cut between the net's terminals;
-until then, look at any new obstacle inside a 6.4 A pour by eye, and KiCad DRC's unconnected
-test catches a wall that cuts a pour in two.
+current flows round).  check_plane_mincut.py is the sound measure: a raster max-flow /
+min-cut between each power path's terminals, at any angle, along any path.  This check stays
+as the fast first look, and it also grades the GND planes, which have no single path.
 
 Plan3's version graded one net (/VBAT, 7 A, IPC-2221 at 10 K) on one layer.  Plan4 carries
 6.4 A on feed B's rail and return and 1 A on feed A (spec 5.2); the rise allowance and the

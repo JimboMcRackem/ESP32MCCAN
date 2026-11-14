@@ -92,7 +92,8 @@ python scripts/gen_pcb.py && python scripts/gen_netclasses.py
 "$K" pcb drc --severity-all --schematic-parity --refill-zones --exit-code-violations \
   -o output/drc.rpt mccan.kicad_pcb
 ok=1; for c in frame placement antenna courtyards grounds zone_islands power_paths \
-                plane_width vias geometry; do python scripts/check_$c.py || ok=0; done; [ $ok = 1 ]
+                plane_width plane_mincut vias geometry; do python scripts/check_$c.py || ok=0; done
+python scripts/test_check_plane_mincut.py || ok=0; [ $ok = 1 ]
 
 # 3. fabrication
 python scripts/gen_fab.py && python scripts/gen_fab.py --check && python scripts/check_stock.py
@@ -108,6 +109,10 @@ board's copper to `error` (`SEVERITIES`). But if a KiCad upgrade adds a rule tha
 The accepted residual is **zero**: 0 violations, 0 unconnected and 0 parity issues, at every
 severity. With `--exit-code-violations`, any finding exits 5.
 
+`check_plane_mincut.py` (about a minute) measures each power path's narrowest copper by max-flow
+/ min-cut on a 0.1 mm raster, so it finds a neck at any angle. `check_plane_width.py` only cuts
+along rows and columns, which can pass a diagonally necked pour; keep it as the fast first look.
+
 `check_density.py` reports how full each region is. It is informational, not a gate.
 
 ### Last full run (2026-11-14, on 69ce5bb plus the docs)
@@ -120,6 +125,7 @@ severity. With `--exit-code-violations`, any finding exits 5.
 | `gen_pcb.py` | board byte-identical; 2137 frozen segments, 504 router vias |
 | DRC, all severities, parity | **0 violations, 0 unconnected, 0 parity issues** |
 | `check_frame`, `placement`, `antenna`, `grounds`, `power_paths`, `plane_width` | PASS |
+| `check_plane_mincut` (2026-11-14, after the review fixes) | PASS; tightest is feed B's rail (VBAT_B) at 7.00 mm against 6.10 mm, on In3 |
 | `check_courtyards` | 195 footprints, no overlaps |
 | `check_zone_islands`, `check_vias`, `check_geometry` | OK |
 | `gen_fab.py --check` | PASS: 64 BOM lines, 153 placed parts, 39 orientation-checked parts (13 recalled, 26 unverified; none confirmed) |
