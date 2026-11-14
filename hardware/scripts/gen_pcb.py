@@ -314,6 +314,10 @@ worth probing.
 SILK_REF_GAP = 0.15
 """Clearance, mm, between a designator this moves and whatever it was moved off."""
 
+SILK_EDGE = 0.3
+"""How far inside the board outline a designator's box must stay (KiCad's silk_edge_clearance
+is 0; JLCPCB clips silk within ~0.15 mm of the routed edge, so this leaves margin)."""
+
 
 def _font(prop):
     """(size_x, size_y, thickness) of a property's text, with KiCad's defaults."""
@@ -386,7 +390,7 @@ def _hits(box, obstacles, skip):
     return False
 
 
-def silk_refs(built, comps, pos, padnet):
+def silk_refs(built, comps, pos, padnet, extra=()):
     """Put every kept designator somewhere it does not land on silk or on copper.
 
     All 68 of the board's silkscreen warnings were one thing: a reference field over a
@@ -406,7 +410,7 @@ def silk_refs(built, comps, pos, padnet):
     footprint's silk and against EVERY pad including its own, which is the pair of rules KiCad
     itself applies -- it does not flag a footprint's text against its own outline.
     """
-    obstacles, own = [], {}
+    obstacles, own = list(extra), {}   # extra: the TP net labels, placed first
     for ref, fx, fy, rot, fp in built:
         for g in fp:
             if not isinstance(g, list) or g[0] not in SILK_GFX:
@@ -461,7 +465,16 @@ def silk_refs(built, comps, pos, padnet):
 
         put = None
         for cx, cy in cands:
-            if not _hits(box_at(cx, cy), obstacles, ref):
+            bb = box_at(cx, cy)
+            # Inside the outline by SILK_EDGE (Task 7's DRC: L1's designator was clipped by the
+            # top edge), and clear of the part's OWN outline and pads too: KiCad 10 does grade a
+            # reference against its own footprint's silk (Q13/Q14, silk_overlap).
+            if (bb[0] < L.X0 + SILK_EDGE or bb[1] < L.Y0 + SILK_EDGE
+                    or bb[2] > L.X1 - SILK_EDGE or bb[3] > L.Y1 - SILK_EDGE):
+                continue
+            if _hits(bb, [(None,) + m for m in own.get(ref, [])], ref):
+                continue
+            if not _hits(bb, obstacles, ref):
                 put = (cx, cy)
                 break
         if put is None:
@@ -1193,7 +1206,7 @@ STACKUP = """	(setup
 			(mirror no)
 			(drillshape 1)
 			(scaleselection 1)
-			(outputdirectory "output/gerbers/")
+			(outputdirectory "output/jlcpcb/gerbers/")
 		)
 	)"""
 
@@ -1224,6 +1237,40 @@ def edge_cuts():
     arc(x0 + r, y1, x0 + k, y1 - k, x0, y1 - r, "bl")
     arc(x0, y0 + r, x0 + k, y0 + k, x0 + r, y0, "tl")
     return out
+
+
+TP_LABEL_SIZE, TP_LABEL_GAP, TP_PAD = 1.0, 0.25, 1.5
+
+
+def tp_label_list(pos, padnet, nets):
+    """[(ref, text, x, y, box)] for every test pad: its net name, left-justified beside it.
+
+    Spec 8: bare SMD test pads "labelled on the silkscreen with their net names".  The TP
+    designators live on F.Fab (Task 4); on the bare board a pad is identified by its net,
+    printed in the column Task 4 reserved to its right (TP_COL leaves room for the longest
+    name).  The hierarchy prefix is dropped: /power_input/GND_IN prints as GND_IN.
+    """
+    names = dict(nets)
+    out = []
+    for ref in sorted((r for r in pos if r.startswith("TP")), key=natkey):
+        code = padnet.get((ref, "1"))
+        if not code:
+            continue
+        text = names[code].split("/")[-1]
+        x, y = pos[ref][0] + TP_PAD / 2.0 + TP_LABEL_GAP, pos[ref][1]
+        tw = TP_LABEL_SIZE * 0.15
+        w, h = len(text) * TP_LABEL_SIZE * 0.8 + tw, TP_LABEL_SIZE + tw
+        out.append((ref, text, x, y, (x, y - h / 2.0, x + w, y + h / 2.0)))
+    return out
+
+
+def tp_labels(labels):
+    return ['\t(gr_text %s (at %s %s) (layer "F.SilkS") (uuid %s)\n'
+            '\t\t(effects (font (size %s %s) (thickness %s)) (justify left))\n'
+            '\t)'
+            % (q(text), num(x), num(y), U("tplabel_" + ref), num(TP_LABEL_SIZE),
+               num(TP_LABEL_SIZE), num(TP_LABEL_SIZE * 0.15))
+            for ref, text, x, y, _b in labels]
 
 
 def notes():
@@ -2095,8 +2142,9 @@ def main():
         fp = build_footprint(c, x, y, rot, padnet)
         if fp:
             built.append((c["ref"], x, y, rot, fp))
+    labels = tp_label_list(pos, padnet, nets)
     if built:
-        silk_refs(built, comps, pos, padnet)
+        silk_refs(built, comps, pos, padnet, [("tplabel",) + lb[4] for lb in labels])
     body = ["\t" + dump(fp, 2) for _r, _x, _y, _rt, fp in built]
 
     # Mounting holes: plain, NON-plated (no enclosure ground bond decided).
@@ -2129,6 +2177,7 @@ def main():
     out += body
     out += edge_cuts()
     out += notes()
+    out += tp_labels(labels)
     if not frame_only:
         out += thermal_vias(comps, pos, padnet, netidx)
         out += stitch_vias(comps, pos, netidx)

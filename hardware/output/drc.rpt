@@ -1,20 +1,8 @@
 ** Drc report for mccan.kicad_pcb **
-** Created on 2026-11-14T14:11:57 **
+** Created on 2026-11-14T14:23:39 **
 ** Report includes: Errors, Warnings, Exclusions **
 
-** Found 3 DRC violations **
-[silk_edge_clearance]: Silkscreen clipped by board edge
-    Rule: board setup constraints silk; warning
-    @(21.0000 mm, 20.0000 mm): Segment on Edge.Cuts
-    @(50.9500 mm, 19.9000 mm): Reference field of L1
-[silk_overlap]: Silkscreen clearance
-    Rule: board setup constraints silk; warning
-    @(117.0000 mm, 85.5000 mm): Reference field of Q13
-    @(114.8000 mm, 86.1750 mm): Segment of Q13 on F.Silkscreen
-[silk_overlap]: Silkscreen clearance
-    Rule: board setup constraints silk; warning
-    @(114.8000 mm, 74.6750 mm): Segment of Q14 on F.Silkscreen
-    @(117.0000 mm, 74.0000 mm): Reference field of Q14
+** Found 0 DRC violations **
 
 ** Found 0 unconnected pads **
 
