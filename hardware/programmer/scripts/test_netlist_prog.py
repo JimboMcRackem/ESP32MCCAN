@@ -65,7 +65,9 @@ def test_txrx_crossed():
 
 def test_dtr_rts_through_buffer():
     n = nl()
-    for hdr, rref, upin in (("DTR", "R5", "~{DTR}"), ("RTS", "R6", "~{RTS}")):
+    # crossed: the MCCAN board's Q2/Q3 have DTR and RTS the other way round from Espressif's
+    # circuit (see test_esptool_auto_reset)
+    for hdr, rref, upin in (("DTR", "R5", "~{RTS}"), ("RTS", "R6", "~{DTR}")):
         mid = [x for x in C.series_nets(n, hdr) if x != hdr]
         assert C.series(n, hdr, mid[0]) == [rref], (hdr, mid)
         assert C.ohms(n.parts[rref].value) == 270
@@ -75,7 +77,21 @@ def test_dtr_rts_through_buffer():
         assert n.net_of("U5", a) == n.net_of("U1", C.pin_named(n, "U1", upin)), (hdr, a)
     for p in ("3", "4", "5", "6"):
         assert not any(x.startswith("U1.") for x in C.members(n, n.net_of("J2", p))), p
-    fails_with(moved(n, "R5", "1", n.net_of("U1", C.pin_named(n, "U1", "~{DTR}"))), "DTR")
+    fails_with(moved(n, "R5", "1", n.net_of("U1", C.pin_named(n, "U1", "~{RTS}"))), "DTR")
+
+
+def test_esptool_auto_reset():
+    """esptool's reset: pin DTR high, pin RTS low (setDTR(False), setRTS(True)) must pull the
+    MCCAN board's EN low; its boot step, pin DTR low, pin RTS high, must pull IO0 low.  Traced
+    through this netlist and the MCCAN board's (hardware/output/netlist.net)."""
+    n, m = nl(), C.load(C.MCCAN_NETLIST)
+    st = C.auto_reset_states(n, m)
+    assert st["reset"] == {"EN_MCU": True, "BOOT_N": False}, st
+    assert st["boot"] == {"EN_MCU": False, "BOOT_N": True}, st
+    # wired straight through (U1 ~DTR to header DTR), the transistors swap roles
+    a, b = C.U5_INPUT_OF["6"], C.U5_INPUT_OF["3"]
+    straight = moved(moved(n, "U5", a, n.net_of("U5", b)), "U5", b, n.net_of("U5", a))
+    fails_with(straight, "auto-reset")
 
 
 def test_cc_pulldowns():
@@ -128,6 +144,9 @@ def test_power_budget():
     b = C.budget(nl())
     assert b["v_at_mccan_min"] >= 3.0, b
     assert b["u3_tj_c"] <= 125.0, b
+    # U3's input is USB VBUS at its minimum, less a USB cable, less U3's worst dropout
+    assert b["v_u3_out_min"] <= C.VBUS_MIN - C.I_LOAD * C.R_USB_CABLE - C.U3_DROPOUT + 1e-9, b
+    assert C.VBUS_MIN == 4.75 and C.U3_DROPOUT >= 1.3, (C.VBUS_MIN, C.U3_DROPOUT)
 
 
 def test_misplug_currents():
@@ -140,7 +159,11 @@ def test_unpowered_backfeed_budget():
     b = C.budget(nl())
     assert b["rxd_backfeed_ma"] <= 1.0, b
     assert b["en_hold_v"] >= 2.5, b
-    assert b["en_hold_v_without_buffer"] < 2.5, b   # why U5 exists
+    # the ESP's TX back-feeds +3V3_USB through U1's ESD diode; the bleeder must hold that rail
+    # below 1.0 V, so U5 (VCC min 1.65 V) stays off and its Ioff outputs hold
+    assert b["usb_rail_backfed_v"] < 1.0, b
+    assert "en_hold_v_without_buffer" not in b, b
+    fails_with(moved(nl(), "R10", "2", "+3V3_USB"), "back-feed")
 
 
 def main():

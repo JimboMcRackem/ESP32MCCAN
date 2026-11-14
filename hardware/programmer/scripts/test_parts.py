@@ -39,7 +39,7 @@ def test_symbols_exist_in_kicad():
 
 def test_refs_match_plan():
     want = {"J1", "J2", "U1", "U2", "U3", "U4", "U5"}
-    want |= {"R%d" % i for i in range(1, 10)}
+    want |= {"R%d" % i for i in range(1, 11)}      # R10: back-feed bleeder (final review I1)
     want |= {"D1", "D2", "D3"}
     want |= {"C%d" % i for i in range(1, 10)}
     assert set(parts.PARTS) == want, sorted(set(parts.PARTS) ^ want)
@@ -47,7 +47,7 @@ def test_refs_match_plan():
 
 def test_bom_lines_group_shared_parts():
     groups = [refs for _key, refs in parts.bom_lines()]
-    assert ["R7", "R8", "R9"] in groups, groups
+    assert ["R7", "R8", "R9", "R10"] in groups, groups
     assert ["C3", "C4", "C5"] in groups, groups
     allrefs = sorted(r for g in groups for r in g)
     assert allrefs == sorted(parts.PARTS), allrefs

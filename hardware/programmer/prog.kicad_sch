@@ -3532,6 +3532,16 @@
 	)
 	(wire
 		(pts
+			(xy 299.72 219.71) (xy 299.72 222.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6091eef2-c370-5917-853c-db02e805a9ff")
+	)
+	(wire
+		(pts
 			(xy 177.8 212.09) (xy 177.8 209.55)
 		)
 		(stroke
@@ -3719,6 +3729,16 @@
 			(type default)
 		)
 		(uuid "8befa290-7e28-5e5f-88b4-af9601991b7a")
+	)
+	(wire
+		(pts
+			(xy 299.72 212.09) (xy 299.72 209.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8f68950d-9088-512d-903d-5701248c19a3")
 	)
 	(wire
 		(pts
@@ -4081,6 +4101,16 @@
 		(uuid "01c617da-d664-5c65-9363-c60beca7e28e")
 	)
 	(label "GND"
+		(at 299.72 222.25 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "0243ee25-a930-552c-ad24-83934aa18dfd")
+	)
+	(label "GND"
 		(at 57.15 254 180)
 		(effects
 			(font
@@ -4119,6 +4149,16 @@
 			(justify left bottom)
 		)
 		(uuid "16728d0b-0ef8-5e9a-9c5c-bc579cc9d2ad")
+	)
+	(label "+3V3_USB"
+		(at 299.72 209.55 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1811a12c-0005-5a12-9d33-18cc05a9f111")
 	)
 	(label "LED_TX"
 		(at 269.24 222.25 270)
@@ -4730,16 +4770,6 @@
 		)
 		(uuid "b2546c21-79ea-58bc-98e9-d89b23ccdb82")
 	)
-	(label "B_DTR"
-		(at 294.64 50.8 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "b44e5648-ba70-5ea7-9f1a-8737fe3d4438")
-	)
 	(label "+3V3_OUT"
 		(at 71.12 209.55 90)
 		(effects
@@ -4810,6 +4840,16 @@
 		)
 		(uuid "cb686c11-ecf9-5aef-a479-ba0de45c4884")
 	)
+	(label "B_RTS"
+		(at 294.64 50.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "cff3db04-5cdd-52a1-b996-f48bec48b5b2")
+	)
 	(label "DTR"
 		(at 182.88 157.48 180)
 		(effects
@@ -4849,16 +4889,6 @@
 			(justify left bottom)
 		)
 		(uuid "d9c8d9ec-e6c1-5857-9f70-617161651948")
-	)
-	(label "B_RTS"
-		(at 294.64 101.6 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "da1b526a-5c8c-52c0-be9d-3d8eb52c5e84")
 	)
 	(label "LED_TX"
 		(at 107.95 254 0)
@@ -4989,6 +5019,16 @@
 			(justify right bottom)
 		)
 		(uuid "fe17a59e-1c05-5c07-b3c7-547ccd2eecdb")
+	)
+	(label "B_DTR"
+		(at 294.64 101.6 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "ffe0f586-0dfe-54c6-9bb8-63473750b9b3")
 	)
 	(symbol
 		(lib_id "Device:C")
@@ -5633,6 +5673,87 @@
 			(project "prog"
 				(path "/76dab21d-33bc-57fe-89cf-d8a53fbb0221"
 					(reference "C6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 299.72 215.9 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "21db332b-5fbf-55f0-850a-f038b1760e70")
+		(property "Reference" "R10"
+			(at 302.26 210.82 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "1k"
+			(at 302.26 220.98 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 299.72 215.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C21190"
+			(at 299.72 215.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "0603WAF1001T5E"
+			(at 299.72 215.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "62f412f8-b44f-5638-b3d1-879ef8938c87")
+		)
+		(pin "2"
+			(uuid "ea702d7c-8c69-554c-84ef-72f8f5caf42b")
+		)
+		(instances
+			(project "prog"
+				(path "/76dab21d-33bc-57fe-89cf-d8a53fbb0221"
+					(reference "R10")
 					(unit 1)
 				)
 			)

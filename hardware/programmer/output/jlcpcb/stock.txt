@@ -1,20 +1,20 @@
-OK 10uF|Capacitor_SMD:C_0805_2012Metric C15850 stock=8881501 need=10 fallback=-
-OK 100nF|Capacitor_SMD:C_0603_1608Metric C14663 stock=34560140 need=25 fallback=-
-OK 22uF|Capacitor_SMD:C_0805_2012Metric C45783 stock=4135206 need=20 fallback=-
-OK 1uF|Capacitor_SMD:C_0603_1608Metric C15849 stock=13315264 need=10 fallback=-
+OK 10uF|Capacitor_SMD:C_0805_2012Metric C15850 stock=8881199 need=10 fallback=-
+OK 100nF|Capacitor_SMD:C_0603_1608Metric C14663 stock=34559471 need=25 fallback=-
+OK 22uF|Capacitor_SMD:C_0805_2012Metric C45783 stock=4135135 need=20 fallback=-
+OK 1uF|Capacitor_SMD:C_0603_1608Metric C15849 stock=13315144 need=10 fallback=-
 OK PWR yellow-green|LED_SMD:LED_0603_1608Metric C2289 stock=31597 need=10 fallback=-
-OK TX red|LED_SMD:LED_0603_1608Metric C2286 stock=5812191 need=10 fallback=-
+OK TX red|LED_SMD:LED_0603_1608Metric C2286 stock=5812141 need=10 fallback=-
 OK RX yellow|LED_SMD:LED_0603_1608Metric C2287 stock=61267 need=10 fallback=-
-OK USB-C|Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12 C165948 stock=530738 need=7 fallback=-
+OK USB-C|Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12 C165948 stock=530726 need=7 fallback=-
 OK Prog 1x6|Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical C492405 stock=74359 need=7 fallback=-
-OK 5.1k|Resistor_SMD:R_0603_1608Metric C23186 stock=19234738 need=15 fallback=-
-OK 4.7k|Resistor_SMD:R_0603_1608Metric C23162 stock=14940341 need=10 fallback=-
-OK 470|Resistor_SMD:R_0603_1608Metric C23179 stock=3590047 need=10 fallback=-
-OK 270|Resistor_SMD:R_0603_1608Metric C22966 stock=635748 need=15 fallback=-
-OK 1k|Resistor_SMD:R_0603_1608Metric C21190 stock=27171505 need=20 fallback=-
+OK 5.1k|Resistor_SMD:R_0603_1608Metric C23186 stock=19234678 need=15 fallback=-
+OK 4.7k|Resistor_SMD:R_0603_1608Metric C23162 stock=14940156 need=10 fallback=-
+OK 470|Resistor_SMD:R_0603_1608Metric C23179 stock=3590027 need=10 fallback=-
+OK 270|Resistor_SMD:R_0603_1608Metric C22966 stock=635728 need=15 fallback=-
+OK 1k|Resistor_SMD:R_0603_1608Metric C21190 stock=27171160 need=25 fallback=-
 OK CH343P|Package_DFN_QFN:WCH_QFN-16-1EP_3x3mm_P0.5mm_EP1.8x1.8mm C2846043 stock=17761 need=7 fallback=C2858418
-OK USBLC6-2SC6|Package_TO_SOT_SMD:SOT-23-6 C7519 stock=41196 need=7 fallback=C2827654
-OK AMS1117-3.3|Package_TO_SOT_SMD:SOT-223-3_TabPin2 C6186 stock=1442380 need=7 fallback=-
+OK USBLC6-2SC6|Package_TO_SOT_SMD:SOT-23-6 C7519 stock=41159 need=7 fallback=C2827654
+OK AMS1117-3.3|Package_TO_SOT_SMD:SOT-223-3_TabPin2 C6186 stock=1442373 need=7 fallback=-
 OK LM66100|Package_TO_SOT_SMD:SOT-363_SC-70-6 C2869734 stock=39632 need=7 fallback=-
 OK 74LVC2G125|Package_SO:SSOP-8_2.95x2.8mm_P0.65mm C206035 stock=4651 need=7 fallback=-
 

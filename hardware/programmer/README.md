@@ -15,9 +15,22 @@ Plan: `docs/superpowers/plans/2026-11-14-programmer-board.md`.
   LM66100 ideal diode → J2 pin 1. ≥ 600 mA. The ideal diode stops any current flowing back
   into the programmer when the MCCAN board's own supply is up; the two then share the load.
   Only the 3.3 V rail is powered: lights, pod outputs and CAN stay dead on the bench.
+  **Plug it into a laptop port directly, not through a hub:** at a full 600 mA from a 4.75 V
+  port through a 1 m cable, the AMS1117 is in dropout and the MCCAN rail is 3.03 V (ESP32
+  minimum 3.0 V); a bus-powered hub's 4.4 V would take it below. 600 mA is also above USB 2.0's
+  500 mA default; the ESP32's real average draw (~200–300 mA) is well inside both.
 - **TX/RX crossed on the board**, so the cable is straight-through, pin 1 to pin 1.
-- **DTR/RTS** go through a 74LVC2G125 buffer (powered from USB, I_off inputs/outputs) so an
-  unplugged programmer cannot drag the MCCAN board's EN down and hold the ESP32 in reset.
+- **DTR and RTS are crossed on the board** (CH343 ~DTR → header pin 6 RTS, ~RTS → pin 5 DTR).
+  The MCCAN board's EN transistor Q2 has its emitter on DTR and its base fed from RTS, the
+  reverse of Espressif's dev-board circuit, so esptool's reset reaches EN only through the
+  swap. `check_netlist_prog` traces esptool's two steps through both boards' netlists.
+  *Consequence for the main board:* any other USB-serial adapter on J2 also needs DTR and RTS
+  swapped; `hardware/docs/bring-up.md` and the note in `hardware/scripts/gen_mcu_can.py`
+  (esptool "DTR=0/RTS=1") read esptool's logical states as pin levels and are left for the owner.
+- **DTR/RTS** go through a 74LVC2G125 buffer powered from USB, whose I_off outputs go
+  high-impedance when it is unpowered, so an unplugged programmer leaves the auto-reset pair
+  alone. **R10 (1k) bleeds +3V3_USB**: with USB unplugged, the ESP's TX back-feeds that rail
+  through the CH343's RXD ESD diode, and without a load it would rise to ~2 V and wake U5.
 - **Series resistors** on every signal, so a reversed cable damages nothing.
 - **LEDs:** PWR (3.3 V output present), TX and RX activity.
 
@@ -51,13 +64,14 @@ bash scripts/gate.sh                          # every gate; exit 0 only if all P
 
 | Quantity | Value | Meaning |
 |---|---|---|
-| `v_at_mccan_min` | 3.057 V | rail at the MCCAN board at 600 mA, worst-case regulator, LM66100 and cable drop (ESP32 min 3.0 V) |
+| `v_u3_out_min` | 3.206 V | U3 output at 600 mA: the lower of its −2 % regulation and 4.75 V VBUS − 1 m USB cable − 1.3 V max dropout |
+| `v_at_mccan_min` | 3.029 V | rail at the MCCAN board: `v_u3_out_min` less the LM66100 and jumper-cable drops (ESP32 min 3.0 V) |
 | `u3_watts` | 1.23 W | AMS1117 dissipation at 600 mA from 5.25 V |
 | `u3_tj_c` | 111.1 °C | U3 junction at a 25 °C bench, θ 70 °C/W on the 200 mm² heatsink pour (limit 125 °C) |
 | `misplug_ma` | R3 0.71, R4 7.11, R5 12.37, R6 12.37 mA | worst current through each series resistor with the cable reversed |
 | `rxd_backfeed_ma` | 0.604 mA | ESP32 TX back into the unpowered CH343P's RXD |
-| `en_hold_v` | 3.24 V | MCCAN EN with the programmer attached and unpowered (buffer outputs off) |
-| `en_hold_v_without_buffer` | 2.235 V | what EN would sit at without U5: marginal, so U5 is there |
+| `usb_rail_backfed_v` | 0.604 V | +3V3_USB with USB unplugged, that current into the R10 bleeder alone (U5 needs 1.65 V to wake) |
+| `en_hold_v` | 3.24 V | MCCAN EN with the programmer attached and unpowered (U5 Ioff leakage only) |
 
 ## Decided here
 
@@ -65,7 +79,10 @@ bash scripts/gate.sh                          # every gate; exit 0 only if all P
 |---|---|
 | CH343P (C2846043), fallback CH9102F (C2858418) | CDC-ACM: no driver install (spec 6.5) |
 | AMS1117-3.3 + LM66100 ideal diode | ≥ 600 mA; no back-current when both boards are powered (spec 6.3) |
-| SN74LVC2G125 on DTR/RTS | unpowered programmer would otherwise hold EN at ~2.2 V (budget above) |
+| SN74LVC2G125 on DTR/RTS | an unpowered CH343's I/O pins are not high-impedance; the buffer's I_off outputs are |
+| DTR/RTS crossed on the programmer, not on the MCCAN board | the MCCAN board is merged and DRC-clean (spec 4: no change to it); the auto-reset trace gate fails if either side changes |
+| R10 1k bleeder on +3V3_USB | keeps the back-fed rail at 0.6 V so U5 stays off (costs 3.3 mA from USB) |
+| AMS1117 kept, with the laptop-port warning above | 3.03 V worst case still meets the ESP32's 3.0 V; a low-dropout part would mean a new part and layout for a bench-only corner |
 | USBLC6-2SC6 on D+/D− | USB ESD (spec 6.7) |
 | R3 4.7k in ESP32 TX → CH343 RXD, R4 470 in CH343 TXD → ESP32 RX, R5/R6 270 on DTR/RTS | misplug and back-feed currents above; 270 not 220 keeps DTR/RTS ≤ 15 mA |
 | PWR LED yellow-green KT-0603YG (C2289), RX LED yellow KT-0603Y (C2287) | the planned green/yellow were out of stock; pure green's 3.1 V Vf is too high for 3.3 V through 1k |

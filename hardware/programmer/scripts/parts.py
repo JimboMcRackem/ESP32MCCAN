@@ -54,6 +54,7 @@ PARTS = OrderedDict([
     ("R7", _r("1k", "C21190", "0603WAF1001T5E", "PWR LED")),
     ("R8", _r("1k", "C21190", "0603WAF1001T5E", "TX LED")),
     ("R9", _r("1k", "C21190", "0603WAF1001T5E", "RX LED")),
+    ("R10", _r("1k", "C21190", "0603WAF1001T5E", "+3V3_USB bleeder: back-fed rail < 1 V")),
     ("D1", _p("PWR yellow-green", "Device:LED", LED0603, "C2289", "KT-0603YG", None,
               "Vf ~2.1 V; pure green (Vf 3.1 V) is too high for a 3.3 V rail")),
     ("D2", _p("TX red", "Device:LED", LED0603, "C2286", "KT-0603R", None, "")),

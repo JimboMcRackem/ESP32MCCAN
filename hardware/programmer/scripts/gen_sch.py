@@ -50,6 +50,9 @@ CONNECT = {
     "R7": {"1": U, "2": "LED_PWR"},
     "R8": {"1": U, "2": "LED_TX"},
     "R9": {"1": U, "2": "LED_RX"},
+    # bleeder: with USB unplugged, the ESP's TX back-feeds this rail through U1's RXD ESD
+    # diode; 1k holds it near 0.6 V, so U5 stays unpowered and its Ioff outputs hold
+    "R10": {"1": U, "2": G},
     "D1": {"2": "LED_PWR", "1": G},                    # Device:LED: 1 = K, 2 = A
     "D2": {"2": "LED_TX", "1": "U_TXD"},
     "D3": {"2": "LED_RX", "1": "UART_TX"},
@@ -58,9 +61,12 @@ CONNECT = {
     "C4": {"1": O, "2": G}, "C5": {"1": O, "2": G},
     "C8": {"1": "V3_U1", "2": G},
 }
-# 74LVC2G125, one entry per unit: 1 = DTR buffer, 2 = RTS buffer, 3 = supply
-U5_UNITS = {1: {"1": G, "2": "U_DTR", "6": "B_DTR"},
-            2: {"7": G, "5": "U_RTS", "3": "B_RTS"},
+# 74LVC2G125, one entry per unit (3 = supply).  DTR and RTS CROSS here: the MCCAN board's
+# EN transistor Q2 has its emitter on DTR and its base fed from RTS, the reverse of
+# Espressif's circuit, so U1 ~DTR drives header RTS and U1 ~RTS drives header DTR
+# (check_netlist_prog.HEADER_FROM_U1, test_esptool_auto_reset).
+U5_UNITS = {1: {"1": G, "2": "U_DTR", "6": "B_RTS"},
+            2: {"7": G, "5": "U_RTS", "3": "B_DTR"},
             3: {"4": G, "8": U}}
 
 # sheet positions (A3, mm, on the 2.54 grid); two-pin parts are laid out in rows below
