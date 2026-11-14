@@ -67,7 +67,7 @@ U4: ~CE → `GND` (active-low enable); ST no-connect. J1: A6/B6 → `USB_DP`, A7
 
 ## Review Focus
 
-1. **Programmer on a powered MCCAN board with USB unplugged.** Back-feed may hold the ESP32 in reset or brown out U1. EN_MCU (R22 10k pull-up, C37 1 µF) can forward-bias Q2's collector-base junction, and the current then runs through R28 (10k), `RTS`, R6 and U1's ESD diode into an unpowered `+3V3_USB`. The ESP's TX also feeds R3 → U1 RXD. Expected: the ESP32 keeps running and the back-current is ≤ 1 mA per line. *Test:* `test_unpowered_backfeed_budget` in Task 2.
+1. **Programmer on a powered MCCAN board with USB unplugged.** Back-feed may hold the ESP32 in reset or brown out U1. EN_MCU (R22 10k pull-up, C37 1 µF) can forward-bias Q2's collector-base junction, and the current then runs through R28 (10k), `RTS`, and R6 into U5. U5's Ioff is what stops that current, so it must not be bypassed. The ESP's TX also feeds R3 → U1 RXD. Expected: the ESP32 keeps running and the back-current is ≤ 1 mA per line. *Test:* `test_unpowered_backfeed_budget` in Task 2.
 2. **Both boards powered.** No current may flow into U3's output, and the rail stays 3.2–3.4 V. *Test:* `test_reverse_blocking_topology` in Task 2.
 3. **Cable reversed end-for-end.** Every programmer output that lands on GND or 3.3 V must be limited to ≤ 15 mA by its series resistor or by U4/U3's current limit. *Test:* `test_misplug_currents` in Task 2.
 4. **ESP32 at full WiFi load.** At 0.6 A the rail at the MCCAN board must stay ≥ 3.0 V, and U3 must not cross into thermal shutdown on the bench. *Test:* `test_power_budget` in Task 2 for the numbers, and `test_regulator_heatsink_pour` in Task 3 for U3's tab copper.
