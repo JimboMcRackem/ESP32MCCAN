@@ -127,7 +127,7 @@ def check(out=OUT, pcb=PCB):
                 "gen_fab_prog.py"]
 
     rpt = io.open(P("drc.rpt"), encoding="utf-8").read()
-    for what in ("DRC violations", "unconnected pads"):
+    for what in ("DRC violations", "unconnected pads", "Footprint errors"):
         if "** Found 0 %s **" % what not in rpt:
             fails.append("drc.rpt: not 0 %s" % what)
 
@@ -217,9 +217,9 @@ def build():
     cli("pcb", "drc", "--severity-all", "--schematic-parity", "--refill-zones",
         "-o", P("drc.rpt"), PCB)
     rpt = io.open(P("drc.rpt"), encoding="utf-8").read()
-    for what in ("DRC violations", "unconnected pads", "schematic parity issues"):
-        if "** Found 0 %s **" % what not in rpt and \
-                not (what == "schematic parity issues" and "parity" not in rpt):
+    # the report file words schematic parity as "Footprint errors"
+    for what in ("DRC violations", "unconnected pads", "Footprint errors"):
+        if "** Found 0 %s **" % what not in rpt:
             raise SystemExit("gen_fab_prog: DRC is not clean (%s) -- see %s" % (what, P("drc.rpt")))
 
     cli("pcb", "export", "gerbers", "--layers", ",".join(GERBER_LAYERS), "--subtract-soldermask",
