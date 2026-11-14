@@ -710,8 +710,13 @@ which is only while awake.
 
 Each transistor's **emitter sits on the other control line**, so the pair only acts when DTR and
 RTS differ. Both high or both low is run mode — which is what stops a plain serial monitor, which
-asserts one line when it opens, from dropping the board into the bootloader. esptool drives
-DTR=0/RTS=1 to assert reset, then DTR=1/RTS=0 to hold IO0 low while EN releases.
+asserts one line when it opens, from dropping the board into the bootloader.
+
+> **Corrected 2026-11-14.** This said "esptool drives DTR=0/RTS=1 to assert reset", reading
+> esptool's logical states as pin levels. The modem lines are active low: esptool's reset step
+> puts an adapter's DTR pin high and RTS pin low, which on this board turns on Q3 (IO0), not Q2
+> (EN) — Q2's emitter is on DTR, the reverse of Espressif's circuit. Flashing needs adapter DTR
+> on J2.6 and adapter RTS on J2.5; the programmer board crosses them for you.
 
 ### Additions beyond the plan — flagged, not smuggled in
 

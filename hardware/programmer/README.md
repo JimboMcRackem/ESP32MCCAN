@@ -25,8 +25,8 @@ Plan: `docs/superpowers/plans/2026-11-14-programmer-board.md`.
   reverse of Espressif's dev-board circuit, so esptool's reset reaches EN only through the
   swap. `check_netlist_prog` traces esptool's two steps through both boards' netlists.
   *Consequence for the main board:* any other USB-serial adapter on J2 also needs DTR and RTS
-  swapped; `hardware/docs/bring-up.md` and the note in `hardware/scripts/gen_mcu_can.py`
-  (esptool "DTR=0/RTS=1") read esptool's logical states as pin levels and are left for the owner.
+  swapped (adapter DTR → J2.6, RTS → J2.5). The main board's notes (`bring-up.md`,
+  `part-selection.md`, `enclosure.md`, the schematic note from `gen_mcu_can.py`) say so.
 - **DTR/RTS** go through a 74LVC2G125 buffer powered from USB, whose I_off outputs go
   high-impedance when it is unpowered, so an unplugged programmer leaves the auto-reset pair
   alone. **R10 (1k) bleeds +3V3_USB**: with USB unplugged, the ESP's TX back-feeds that rail
