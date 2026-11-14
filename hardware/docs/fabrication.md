@@ -27,7 +27,7 @@ on 2026-11-14.
 | Quantity | 5 |
 | Thickness | **1.6 mm** |
 | Outer copper | **1 oz** |
-| Inner copper | **1 oz.** Not JLCPCB's 0.5 oz default: the feed-B pours on In3/In5 carry 6.4 A |
+| Inner copper | **1 oz** (owner, 2026-11-14). Not JLCPCB's 0.5 oz default: feed B's rail (VBAT_B, 6.4 A) necks to 7.00 mm on In3 alone (`check_plane_mincut.py`), which needs 1 oz; at 0.5 oz it would act like 3.5 mm against 6.10 mm needed |
 | Impedance control | **No.** CAN at 500 kbit/s does not need it, and no trace carries RF |
 | Surface finish | **ENIG.** U10 has a 0.15 mm pad gap (§4), and HASL's uneven deposit is a poor fit for it |
 | Via covering | **Epoxy filled & capped** (via-in-pad, §3) |
