@@ -1,0 +1,169 @@
+#include <unity.h>
+#include "domain/test_mode.h"
+
+static Config cfg;
+static EngineState est;
+static EngineState testEst;
+
+void setUp(void) {
+  cfg = defaultConfig();
+  est = EngineState{};
+  testEst = EngineState{};
+}
+void tearDown(void) {}
+
+// Time at which the blink phase is ON (nowMs % (2*period) < period).
+static const uint32_t kOn = 0;
+
+void test_off_passes_the_real_state_through(void) {
+  LogicalState real; real.run = true;
+  TestMode t;                                  // kind defaults to Off
+  OutputIntent got  = resolveOutputs(real, t, cfg, kOn, est, testEst);
+  EngineState ref;
+  OutputIntent want = computeOutputs(real, cfg, kOn, ref);
+  TEST_ASSERT_EQUAL_UINT16(want.on, got.on);
+}
+
+void test_scenario_ignores_the_real_state(void) {
+  LogicalState real;                            // bike is off
+  TestMode t;
+  t.kind = TestKind::Scenario;
+  TEST_ASSERT_TRUE(scenarioByName("brake", t.scenario));
+
+  OutputIntent o = resolveOutputs(real, t, cfg, kOn, est, testEst);
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL,
+            OUT_RL_BRK, OUT_RR_BRK),
+    o.on);
+}
+
+void test_scenario_blinks_at_the_configured_rate(void) {
+  LogicalState real;
+  TestMode t;
+  t.kind = TestKind::Scenario;
+  TEST_ASSERT_TRUE(scenarioByName("hazards", t.scenario));
+  // Generate's phase starts at the request, so the first sample is a full
+  // on-phase and the second lands in the dark half.
+  cfg.flashSource = FlashSource::Generate;
+
+  // On-phase and off-phase of one blink cycle at the configured period.
+  OutputIntent on  = resolveOutputs(real, t, cfg, 0, est, testEst);
+  OutputIntent off = resolveOutputs(real, t, cfg, cfg.blinkPeriodMs, est, testEst);
+  TEST_ASSERT_EQUAL_UINT16(
+    outMask(OUT_FL_IND, OUT_FR_IND, OUT_RL_IND, OUT_RR_IND), on.on);
+  TEST_ASSERT_EQUAL_UINT16(0, off.on);
+}
+
+void test_zones_pass_through_verbatim(void) {
+  LogicalState real; real.run = true; real.rearBrake = true;
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.zones.on = outMask(OUT_RL_BRK, OUT_AUX_L);
+
+  OutputIntent o = resolveOutputs(real, t, cfg, kOn, est, testEst);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_BRK, OUT_AUX_L), o.on);
+}
+
+void test_a_stale_bus_does_not_disturb_a_held_test_session(void) {
+  // CAN stale: every logical input reads false (Task 4's staleness rule).
+  // A held zones override must survive that, or the lights drop out mid-test
+  // for no reason the rider can see.
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.zones.on = outMask(OUT_AUX_L, OUT_AUX_R);
+  LogicalState stale;                           // bus-stale: all false
+  OutputIntent o = resolveOutputs(stale, t, cfg, 5000, est, testEst);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_AUX_L, OUT_AUX_R), o.on);
+}
+
+// The output walk lights a pod at the Low duty, never at Full.
+void test_zones_aux_bit_lights_at_low_duty(void) {
+  LogicalState real;
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.zones.on = outMask(OUT_AUX_L);
+  TEST_ASSERT_EQUAL_UINT8(15, resolveOutputs(real, t, cfg, 0, est, testEst).auxDuty);
+  t.zones.on = outMask(OUT_FL_DRL);
+  TEST_ASSERT_EQUAL_UINT8(0, resolveOutputs(real, t, cfg, 0, est, testEst).auxDuty);
+}
+
+void test_scenario_cannot_corrupt_the_real_engine_state(void) {
+  LogicalState real;
+  TestMode t;
+  TEST_ASSERT_TRUE(scenarioByName("lowBeam", t.scenario));   // night scenario
+  t.kind = TestKind::Scenario;
+  t.scenario.flash = true;
+  for (uint32_t ms = 0; ms <= cfg.nightHoldMs + 100; ms += 10) {
+    resolveOutputs(real, t, cfg, ms, est, testEst);
+  }
+  TEST_ASSERT_TRUE_MESSAGE(testEst.nightToggled, "the scenario runs at night");
+  TEST_ASSERT_FALSE_MESSAGE(est.nightToggled, "the real engine must stay in day");
+  TEST_ASSERT_FALSE(est.flashPrev);
+}
+
+void test_night_scenario_shows_night_with_daynight_unassigned(void) {
+  LogicalState real;
+  TestMode t;
+  TEST_ASSERT_TRUE(scenarioByName("lowBeam", t.scenario));
+  t.kind = TestKind::Scenario;
+  OutputIntent o = resolveOutputs(real, t, cfg, 0, est, testEst);
+  TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
+  TEST_ASSERT_EQUAL_INT((int)AuxLevel::Low, (int)o.auxL);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
+}
+
+void test_expiry_is_false_when_off(void) {
+  TestMode t;                                   // Off
+  TEST_ASSERT_FALSE(testExpired(t, cfg, 0xFFFFFFFFu));
+}
+
+void test_expiry_at_the_cap(void) {
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.startedMs = 1000;
+  TEST_ASSERT_FALSE(testExpired(t, cfg, 1000 + cfg.testMaxMs - 1));
+  TEST_ASSERT_TRUE(testExpired(t, cfg, 1000 + cfg.testMaxMs));
+}
+
+void test_expiry_survives_millis_rollover(void) {
+  TestMode t;
+  t.kind = TestKind::Zones;
+  t.startedMs = 0xFFFFF000u;                    // ~4 s before rollover
+  TEST_ASSERT_FALSE(testExpired(t, cfg, 0x00000100u));   // 4352 ms elapsed
+  TEST_ASSERT_TRUE(testExpired(t, cfg, 0xFFFFF000u + cfg.testMaxMs));
+}
+
+void test_scenario_lookup_rejects_unknown_names(void) {
+  LogicalState s;
+  TEST_ASSERT_FALSE(scenarioByName("nope", s));
+  TEST_ASSERT_FALSE(scenarioByName("", s));
+}
+
+void test_every_advertised_scenario_name_resolves(void) {
+  // kScenarioNames is what the UI mirrors; a name in the list that does not
+  // resolve would be a dead button.
+  TEST_ASSERT_EQUAL_INT(8, kScenarioCount);
+  LogicalState s;
+  for (int i = 0; i < kScenarioCount; ++i) {
+    TEST_ASSERT_TRUE_MESSAGE(scenarioByName(kScenarioNames[i], s),
+                             "an advertised scenario name did not resolve");
+  }
+}
+
+int main(int, char**) {
+  UNITY_BEGIN();
+  RUN_TEST(test_off_passes_the_real_state_through);
+  RUN_TEST(test_scenario_ignores_the_real_state);
+  RUN_TEST(test_scenario_blinks_at_the_configured_rate);
+  RUN_TEST(test_zones_pass_through_verbatim);
+  RUN_TEST(test_a_stale_bus_does_not_disturb_a_held_test_session);
+  RUN_TEST(test_zones_aux_bit_lights_at_low_duty);
+  RUN_TEST(test_scenario_cannot_corrupt_the_real_engine_state);
+  RUN_TEST(test_night_scenario_shows_night_with_daynight_unassigned);
+  RUN_TEST(test_expiry_is_false_when_off);
+  RUN_TEST(test_expiry_at_the_cap);
+  RUN_TEST(test_expiry_survives_millis_rollover);
+  RUN_TEST(test_scenario_lookup_rejects_unknown_names);
+  RUN_TEST(test_every_advertised_scenario_name_resolves);
+  return UNITY_END();
+}

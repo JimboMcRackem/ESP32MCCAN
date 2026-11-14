@@ -1,5 +1,6 @@
 #include "domain/web_protocol.h"
 #include "domain/config_json.h"
+#include "domain/wifi_settings.h"
 #include <ArduinoJson.h>
 
 ProtocolAction handleRequest(const std::string& json) {
@@ -43,6 +44,63 @@ ProtocolAction handleRequest(const std::string& json) {
     return act;
   }
 
+  if (t == "set_wifi_password") {
+    // Absent or non-string password is treated as empty (-> TooShort).
+    const char* pw = doc["password"].is<const char*>() ? doc["password"].as<const char*>() : "";
+    std::string p = pw ? pw : "";
+    const PasswordCheck chk = checkWifiPassword(p);
+    if (chk != PasswordCheck::Ok) {
+      act.error = passwordCheckText(chk);
+      return act;
+    }
+    act.setWifiPassword = true;
+    act.wifiPasswordOut = p;
+    return act;
+  }
+
+  if (t == "test") {
+    const char* modeStr = doc["mode"] | "";
+    std::string m = modeStr;
+    TestMode tm;
+
+    if (m == "off") {
+      tm.kind = TestKind::Off;
+    } else if (m == "scenario") {
+      const char* name = doc["scenario"] | "";
+      if (!scenarioByName(name, tm.scenario)) {
+        act.error = std::string("unknown scenario: ") + name;
+        return act;
+      }
+      tm.kind = TestKind::Scenario;
+    } else if (m == "zones") {
+      // A missing or non-numeric zones field must be rejected, not treated
+      // as mask 0: that would silently turn a malformed request into
+      // "energise nothing" while still reporting success, which contradicts
+      // the reasoning below for the out-of-range case.
+      if (!doc["zones"].is<uint32_t>()) {
+        act.error = "zones field missing or not a non-negative integer";
+        return act;
+      }
+      const uint32_t mask = doc["zones"];
+      // Reject rather than truncate: a client sending a bit we do not have is
+      // out of sync with the firmware, and silently dropping it would make the
+      // test tab lie about what it just energised.
+      if (mask >= (1u << (uint32_t)OUT_COUNT)) {
+        act.error = "zones mask has bits above OUT_COUNT";
+        return act;
+      }
+      tm.zones.on = (uint16_t)mask;
+      tm.kind = TestKind::Zones;
+    } else {
+      act.error = "test mode must be off, scenario or zones";
+      return act;
+    }
+
+    act.setTest = true;
+    act.testOut = tm;
+    return act;
+  }
+
   act.error = "unknown type";
   return act;
 }
@@ -50,6 +108,7 @@ ProtocolAction handleRequest(const std::string& json) {
 std::string configMessage(const Config& c) {
   JsonDocument doc;
   doc["type"] = "config";
+  doc["protocolVersion"] = kProtocolVersion;
   doc["config"] = serialized(configToJson(c));  // insert pre-formatted JSON verbatim
   std::string out;
   serializeJson(doc, out);
@@ -71,10 +130,42 @@ std::string framesMessage(const CanFrameSnapshot* frames, int count) {
   return out;
 }
 
+std::string deviceInfoMessage(const DeviceInfo& d) {
+  JsonDocument doc;
+  doc["type"] = "device_info";
+  doc["protocolVersion"] = kProtocolVersion;
+  doc["version"] = d.version;
+  doc["build"] = d.build;
+  doc["ssid"] = d.ssid;
+  doc["defaultPassword"] = d.defaultPassword;
+  std::string out;
+  serializeJson(doc, out);
+  return out;
+}
+
 std::string errorMessage(const std::string& msg) {
   JsonDocument doc;
   doc["type"] = "error";
   doc["message"] = msg;
+  std::string out;
+  serializeJson(doc, out);
+  return out;
+}
+
+std::string testStateMessage(const TestMode& t, const Config& cfg, uint32_t nowMs) {
+  JsonDocument doc;
+  doc["type"] = "test_state";
+  doc["active"] = (t.kind != TestKind::Off);
+  doc["kind"] = t.kind == TestKind::Scenario ? "scenario"
+              : t.kind == TestKind::Zones    ? "zones"
+                                             : "off";
+  doc["zones"] = t.zones.on;
+  uint32_t remaining = 0;
+  if (t.kind != TestKind::Off) {
+    const uint32_t elapsed = nowMs - t.startedMs;     // rollover-safe
+    remaining = elapsed >= cfg.testMaxMs ? 0u : (cfg.testMaxMs - elapsed);
+  }
+  doc["remainingMs"] = remaining;
   std::string out;
   serializeJson(doc, out);
   return out;

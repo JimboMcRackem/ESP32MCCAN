@@ -26,3 +26,30 @@ footer button, .filebtn { flex: 1; padding: .7rem; border: none; border-radius: 
 .mapfn h3 { margin: 0 0 .3rem; font-size: .9rem; }
 .filebtn input { display: none; }
 small { color: #888; }
+
+/* The UA's [hidden] rule loses to .banner's display, so restate it. */
+[hidden] { display: none !important; }
+
+header { flex-direction: column; align-items: stretch; }
+.hrow { display: flex; align-items: center; gap: .75rem; }
+.banner { display: flex; align-items: center; gap: .5rem; margin-top: .5rem;
+          padding: .5rem .6rem; border-radius: .4rem; font-size: .85rem; }
+.banner span { flex: 1; }
+.banner button { padding: .35rem .7rem; border: none; border-radius: .3rem;
+                 background: #fff; color: #111; font-size: .8rem; }
+.banner.danger { background: #a11; color: #fff; }
+.banner.warn { background: #7a5b00; color: #fff; }
+
+.scenarios { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
+.scenarios button { padding: .5rem .7rem; border: none; border-radius: .4rem;
+                    background: #2e3340; color: #eee; font-size: .85rem; }
+.scenarios button.active { background: #4b8bff; color: #fff; }
+
+.outputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.outputs label { display: flex; align-items: center; gap: 6px; }
+
+input[type=password] { width: 100%; padding: .5rem; margin-top: .25rem; background: #12141a; color: #eee; border: 1px solid #333; border-radius: .4rem; }
+.actbtn { width: 100%; padding: .7rem; border: none; border-radius: .4rem; background: #4b8bff; color: #fff; font-size: .9rem; margin: .4rem 0; }
+.actbtn:disabled { background: #444; }
+#updProg { width: 100%; }
+#updMsg { font-size: .9rem; }

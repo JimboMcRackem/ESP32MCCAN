@@ -1,15 +1,14 @@
 #include "domain/config_json.h"
 #include <ArduinoJson.h>
+#include <cstring>
 
 static const char* kFuncNames[(size_t)Function::COUNT] = {
   "run", "leftInd", "rightInd", "frontBrake", "rearBrake",
   "lowBeam", "highBeam", "highBeamFlash", "dayNight", "kickStand"
 };
 
-static void rgbTo(JsonArray a, const Rgb& c) { a.add(c.r); a.add(c.g); a.add(c.b); }
-static Rgb rgbFrom(JsonArrayConst a, Rgb def) {
-  if (a.size() != 3) return def;
-  return Rgb{ (uint8_t)a[0].as<int>(), (uint8_t)a[1].as<int>(), (uint8_t)a[2].as<int>() };
+static uint8_t clampPercent(int v) {
+  return (uint8_t)(v < 0 ? 0 : v > 100 ? 100 : v);
 }
 
 std::string configToJson(const Config& c) {
@@ -29,21 +28,13 @@ std::string configToJson(const Config& c) {
   }
 
   doc["blinkPeriodMs"] = c.blinkPeriodMs;
-  doc["spotHoldMs"] = c.spotHoldMs;
-
-  JsonObject col = doc["colors"].to<JsonObject>();
-  rgbTo(col["drlWhiteDay"].to<JsonArray>(), c.drlWhiteDay);
-  rgbTo(col["drlWhiteNight"].to<JsonArray>(), c.drlWhiteNight);
-  rgbTo(col["drlDimRedDay"].to<JsonArray>(), c.drlDimRedDay);
-  rgbTo(col["drlDimRedNight"].to<JsonArray>(), c.drlDimRedNight);
-  rgbTo(col["indicatorOrange"].to<JsonArray>(), c.indicatorOrange);
-  rgbTo(col["brakeRed"].to<JsonArray>(), c.brakeRed);
-
-  JsonObject den = doc["denali"].to<JsonObject>();
-  den["day"] = c.denaliDay;
-  den["low"] = c.denaliLow;
-  den["high"] = c.denaliHigh;
-  den["spot"] = c.denaliSpot;
+  doc["nightHoldMs"] = c.nightHoldMs;
+  doc["auxOffOnIndicateHighBeam"] = c.auxOffOnIndicateHighBeam;
+  doc["auxLowDuty"] = c.auxLowDuty;
+  doc["auxFullDuty"] = c.auxFullDuty;
+  static const char* kFlashSourceNames[] = { "auto", "follow", "generate" };
+  doc["flashSource"] = kFlashSourceNames[(uint8_t)c.flashSource];
+  doc["testMaxMs"] = c.testMaxMs;
 
   std::string out;
   serializeJson(doc, out);
@@ -80,25 +71,24 @@ Config configFromJson(const std::string& json, bool& ok) {
   }
 
   c.blinkPeriodMs = doc["blinkPeriodMs"] | c.blinkPeriodMs;
-  c.spotHoldMs = doc["spotHoldMs"] | c.spotHoldMs;
-
-  JsonObjectConst col = doc["colors"];
-  if (!col.isNull()) {
-    c.drlWhiteDay = rgbFrom(col["drlWhiteDay"], c.drlWhiteDay);
-    c.drlWhiteNight = rgbFrom(col["drlWhiteNight"], c.drlWhiteNight);
-    c.drlDimRedDay = rgbFrom(col["drlDimRedDay"], c.drlDimRedDay);
-    c.drlDimRedNight = rgbFrom(col["drlDimRedNight"], c.drlDimRedNight);
-    c.indicatorOrange = rgbFrom(col["indicatorOrange"], c.indicatorOrange);
-    c.brakeRed = rgbFrom(col["brakeRed"], c.brakeRed);
+  // nightHoldMs replaced spotHoldMs; a config saved before the rename keeps
+  // its hold time.
+  c.nightHoldMs = doc["nightHoldMs"] | (doc["spotHoldMs"] | c.nightHoldMs);
+  // auxDarkenOnIndicate (protocol 5-6) is gone: the indicating side's pod is
+  // now always off at night, so the old key has nothing left to set.
+  c.auxOffOnIndicateHighBeam = doc["auxOffOnIndicateHighBeam"] | c.auxOffOnIndicateHighBeam;
+  // Read wide and clamp before narrowing, so 250 or -5 cannot wrap a uint8_t.
+  c.auxLowDuty  = clampPercent(doc["auxLowDuty"]  | (int)c.auxLowDuty);
+  c.auxFullDuty = clampPercent(doc["auxFullDuty"] | (int)c.auxFullDuty);
+  // Unknown or non-string values resolve to the default, Generate, rather
+  // than to an undefined enum value.
+  const char* fs = doc["flashSource"].as<const char*>();
+  c.flashSource = FlashSource::Generate;
+  if (fs) {
+    if (!strcmp(fs, "follow"))    c.flashSource = FlashSource::Follow;
+    else if (!strcmp(fs, "auto")) c.flashSource = FlashSource::Auto;
   }
-
-  JsonObjectConst den = doc["denali"];
-  if (!den.isNull()) {
-    c.denaliDay = (uint8_t)(den["day"] | c.denaliDay);
-    c.denaliLow = (uint8_t)(den["low"] | c.denaliLow);
-    c.denaliHigh = (uint8_t)(den["high"] | c.denaliHigh);
-    c.denaliSpot = (uint8_t)(den["spot"] | c.denaliSpot);
-  }
+  c.testMaxMs = doc["testMaxMs"] | c.testMaxMs;
 
   return c;
 }

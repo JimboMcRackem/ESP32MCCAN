@@ -2,6 +2,20 @@
 
 **Date:** 2026-09-21
 **Status:** approved, ready for implementation planning
+
+> **SUPERSEDED IN PART, 2026-10-17.** "Design 1: the colour model" (the `ColorLevel` hue/level
+> split, the gamma table and its migration, and "Denali stays raw") is replaced by
+> `2026-10-17-emarked-module-redesign-design.md`: the lighting modules are bought, E-marked and
+> on/off, so there is nothing left to dim and no colour to separate brightness from. The
+> "Appearance tab preview" part of "Design 4: web app" goes with it, since the Appearance tab no
+> longer exists. The RGB-triples-plus-`denali` wire example in "Design 3: protocol" is likewise
+> superseded by protocol v3's numeric `zones` mask. "Design 2: test-mode core" (scenario table,
+> exit paths), the single-holder/last-writer-wins rule and the protocol-version banner in
+> "Design 3", and the warning banner in "Design 4" remain current. Within "Design 4"'s test tab,
+> the nav entry and the scenario buttons remain current; its four zone controls of hue picker
+> plus level slider and its Denali level slider are superseded by the same redesign, replaced by
+> twelve on/off checkboxes, one per output.
+
 **Scope:** firmware (`src/`) and web app (`data/`). No hardware changes.
 
 ---
@@ -146,7 +160,9 @@ upgrade, and the levels shown in the UI are the honest current values rather tha
 **Known imprecision, stated so test failures are not mistaken for bugs:** integer rounding can
 shift a resolved duty by one count, and at the very bottom of the range (duty 1-2) the gamma curve
 is steep enough that the `gammaInv` then `gamma8` round trip may land one off. Neither is visible.
-Tests assert a tolerance of ±1, not equality.
+Tests assert equality for the six shipped defaults (measured delta is zero),
+±1 for a single-channel ramp, and ±2 for arbitrary non-neutral triples, where
+hue normalization rounds as well as the gamma round trip.
 
 Migration triggers on load when `config_json` sees an entry in the old shape (a bare 3-element
 array rather than an object). Serialization always writes the new shape, so the first save
@@ -307,6 +323,10 @@ bike's lights are still lying about brake and indicator state.
 
 ### Test tab
 
+> **Superseded in part, 2026-10-17** — see the banner at the top of this document. The nav
+> entry and the scenario buttons below are current; the four zone controls and the Denali
+> slider are not — the shipped tab is twelve on/off checkboxes, one per output.
+
 New nav entry. Contains scenario buttons (from a JS const mirroring the firmware table, carrying
 the same "must match" comment style as `FUNCS` at `app.js:4`), four zone controls of hue picker
 plus level slider, and a Denali level slider.
@@ -339,7 +359,7 @@ suite file.
 
 | Suite | Covers |
 |---|---|
-| `test_color_level` | Resolution math; gamma table monotonic and endpoint-exact; hue preserved across levels; migration round trip duty-preserving within ±1 for all six defaults and a swept set of triples |
+| `test_color_level` | Resolution math; gamma table monotonic and endpoint-exact; hue preserved across levels; migration round trip duty-preserving exact for all six defaults, ±1 on a ramp, ±2 on a swept set of triples |
 | `test_test_mode` | `resolveOutputs` per kind; scenario blink follows `blinkPeriodMs`; zones passthrough verbatim; `testExpired` including a millis-rollover case; scenario `flash` leaves the real `EngineState` untouched |
 | `test_web_protocol` | Parse of all three `test` shapes; rejection of bad zone length, out-of-range values, unknown scenario; `test_state` serialization; `config` carries `protocolVersion`; an unknown inbound `type` still yields an error rather than a crash |
 | `test_config_json` | Round trip of the new schema; migration from the old schema; unknown fields ignored |

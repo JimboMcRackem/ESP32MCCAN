@@ -12,7 +12,7 @@ static FunctionMap single(uint32_t id, uint8_t bit) {
 }
 
 Config defaultConfig() {
-  Config c;  // colors/timing use struct defaults above
+  Config c;  // timing and flashSource use the struct defaults in config.h
 
   // Energica Experia map (spec section 3). Run and DayNight left unassigned
   // (count 0) until discovered; Run unassigned is treated as always-true.

@@ -1,63 +1,124 @@
 #include "domain/behavior_engine.h"
 
-static const Rgb OFF{0, 0, 0};
-
 static bool flashIsOn(const Config& cfg, uint32_t nowMs) {
-  uint32_t period = cfg.blinkPeriodMs ? cfg.blinkPeriodMs : 340;
+  const uint32_t period = cfg.blinkPeriodMs ? cfg.blinkPeriodMs : 340;
   return (nowMs % (2 * period)) < period;
+}
+
+// The on/off phase for one indicator side. Elapsed time is computed with
+// unsigned subtraction, so it is correct across millis() rollover.
+// Generated phase measured from the anchor, so the first on-phase is full
+// whenever the request starts. Unsigned subtraction keeps it rollover-safe.
+static bool anchoredFlashIsOn(const Config& cfg, uint32_t nowMs, uint32_t anchorMs) {
+  const uint32_t period = cfg.blinkPeriodMs ? cfg.blinkPeriodMs : 340;
+  return ((uint32_t)(nowMs - anchorMs) % (2 * period)) < period;
+}
+
+static bool indicatorPhase(bool bit, const Config& cfg, uint32_t nowMs,
+                           IndTimer& t, uint32_t anchorMs) {
+  if (bit && !t.prev) t.sinceMs = nowMs;   // rising edge restarts the window
+  t.prev = bit;
+  if (!bit) return false;
+
+  switch (cfg.flashSource) {
+    case FlashSource::Follow:
+      return true;
+    case FlashSource::Generate:
+      return anchoredFlashIsOn(cfg, nowMs, anchorMs);
+    case FlashSource::Auto:
+    default:
+      if ((uint32_t)(nowMs - t.sinceMs) >= kFlashFollowTimeoutMs)
+        return flashIsOn(cfg, nowMs);
+      return true;
+  }
 }
 
 OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
                             uint32_t nowMs, EngineState& est) {
   OutputIntent o;
-  const bool on = flashIsOn(cfg, nowMs);
-  const Rgb orange = cfg.indicatorOrange;
-  const Rgb white  = s.night ? cfg.drlWhiteNight : cfg.drlWhiteDay;
-  const Rgb dimRed = s.night ? cfg.drlDimRedNight : cfg.drlDimRedDay;
-  const Rgb flashCol = on ? orange : OFF;
+  const bool li = s.leftInd, ri = s.rightInd;
 
-  if (!s.run) {
-    // DRL & brake off; indicators/hazards still function.
-    o.frontL = s.leftInd  ? flashCol : OFF;
-    o.frontR = s.rightInd ? flashCol : OFF;
-    o.rearL  = s.leftInd  ? flashCol : OFF;
-    o.rearR  = s.rightInd ? flashCol : OFF;
-  } else {
-    const bool brakeOn = s.brake();
-    o.frontL = s.leftInd  ? flashCol : white;
-    o.frontR = s.rightInd ? flashCol : white;
-    o.rearL  = s.leftInd  ? flashCol : (brakeOn ? cfg.brakeRed : dimRed);
-    o.rearR  = s.rightInd ? flashCol : (brakeOn ? cfg.brakeRed : dimRed);
-  }
+  // A request starting from nothing anchors the generated phase. A side that
+  // starts while the other is already flashing joins it, so hazards stay in
+  // step even when the two bits arrive a tick apart.
+  const bool stillFlashing = (est.leftTimer.prev && li) || (est.rightTimer.prev && ri);
+  const bool starting = (li && !est.leftTimer.prev) || (ri && !est.rightTimer.prev);
+  if (starting && !stillFlashing) est.flashAnchorMs = nowMs;
 
-  // --- Spot latch state machine (flash long-press) ---
+  const bool lp = indicatorPhase(li, cfg, nowMs, est.leftTimer, est.flashAnchorMs);
+  const bool rp = indicatorPhase(ri, cfg, nowMs, est.rightTimer, est.flashAnchorMs);
+
+  // Indicator/hazard beats brake beats DRL. An indicating corner shows ONLY
+  // its indicator: the same-side DRL is off per ECE R48, and on the rear the
+  // brake is off too. The Oxford units could run both at once; amber alone is
+  // the user's choice because it reads more clearly (spec 5.3).
+  //
+  // Both the DRL drop and the brake drop key off the REQUEST (li / ri), never
+  // off the phase. Keying them off the phase would blink them back on in the
+  // indicator's dark half, which is exactly what R48 forbids.
+  o.set(OUT_FL_IND, lp);
+  o.set(OUT_RL_IND, lp);
+  o.set(OUT_FR_IND, rp);
+  o.set(OUT_RR_IND, rp);
+
+  // --- Night mode: flash long press, used only while DayNight is unassigned ---
   // NOTE: on the Energica Experia, flash / high beam / low beam are mutually
-  // exclusive positions of ONE switch, so s.lowBeam and s.flash are never both
-  // true. The sequential auto-drop-then-latch below is safe under that assumption.
-  // Porting to a bike with independent flash + low-beam signals? Gate the latch
-  // with `&& !s.lowBeam` (or use else-if).
-  if (s.lowBeam) {
-    est.spotLatched = false;                 // auto-drop on low beam
-  }
-  if (s.flash && !est.flashPrev) {
-    est.flashRisingMs = nowMs;               // rising edge: start hold timer
-  }
-  if (s.flash && (nowMs - est.flashRisingMs) >= cfg.spotHoldMs) {
-    est.spotLatched = true;
+  // exclusive positions of ONE switch. HighBeam is bit 6 AND bit 16 and
+  // HighBeamFlash is bit 16, so s.flash also reads true on steady high beam:
+  // high beam at any point in a press spends it, or holding high beam would
+  // toggle night mode. These bit states are unconfirmed on the bike.
+  const bool dayNightMapped = mapFor(cfg, Function::DayNight).count != 0;
+  const uint32_t hold = cfg.nightHoldMs >= kMinNightHoldMs ? cfg.nightHoldMs : 800;
+  if (s.flash && !est.flashPrev) { est.flashRisingMs = nowMs; est.pressUsed = false; }
+  if (s.highBeam) est.pressUsed = true;
+  if (s.flash && !est.pressUsed && s.run && !dayNightMapped &&
+      (uint32_t)(nowMs - est.flashRisingMs) >= hold) {
+    est.nightToggled = !est.nightToggled;
+    est.pressUsed = true;
   }
   est.flashPrev = s.flash;
+  const bool night = dayNightMapped ? s.night : est.nightToggled;
 
-  // --- Denali level selection ---
-  if (!s.run) {
-    o.denali = 0;
-  } else if (est.spotLatched) {
-    o.denali = cfg.denaliSpot;
-  } else if (s.highBeam) {
-    o.denali = cfg.denaliHigh;
-  } else if (s.lowBeam || s.night) {
-    o.denali = cfg.denaliLow;
-  } else {
-    o.denali = cfg.denaliDay;
+  if (s.run) {
+    const bool brakeOn = s.brake();
+    // Front white is the day running light; at night the pods take over.
+    o.set(OUT_FL_DRL, !li && !night);
+    o.set(OUT_RL_DRL, !li);
+    o.set(OUT_FR_DRL, !ri && !night);
+    o.set(OUT_RR_DRL, !ri);
+    o.set(OUT_RL_BRK, brakeOn && !li);
+    o.set(OUT_RR_BRK, brakeOn && !ri);
   }
+
+  // Aux pods: full on high beam, low at night. Each pod's DRL LEDs light
+  // whenever it is powered, and a DRL must be off beside an indicating corner,
+  // so an indicating side's pod goes Off (hazards: both). At Full this is the
+  // user's setting, trading forward light against the rule. It keys off the
+  // request like the DRL drop, so the pod does not pulse with the flash.
+  const AuxLevel base = !s.run      ? AuxLevel::Off
+                      : s.highBeam  ? AuxLevel::Full
+                      : night       ? AuxLevel::Low
+                                    : AuxLevel::Off;
+  const bool darken = base == AuxLevel::Low ||
+                      (base == AuxLevel::Full && cfg.auxOffOnIndicateHighBeam);
+  o.auxL = (darken && li) ? AuxLevel::Off : base;
+  o.auxR = (darken && ri) ? AuxLevel::Off : base;
+  // A pod that is not Off is powered; its brightness is the yellow duty.
+  // Darkening only makes a pod Off, so both lit pods share `base`'s duty.
+  o.set(OUT_AUX_L, o.auxL != AuxLevel::Off);
+  o.set(OUT_AUX_R, o.auxR != AuxLevel::Off);
+  const bool anyLit = o.auxL != AuxLevel::Off || o.auxR != AuxLevel::Off;
+  o.auxDuty = anyLit ? auxDutyFor(base, cfg) : 0;
   return o;
+}
+
+uint8_t auxDutyFor(AuxLevel level, const Config& cfg) {
+  switch (level) {
+    case AuxLevel::Full: return cfg.auxFullDuty;
+    // Low is never brighter than Full, whatever the two settings say.
+    case AuxLevel::Low:  return cfg.auxLowDuty < cfg.auxFullDuty ? cfg.auxLowDuty
+                                                                  : cfg.auxFullDuty;
+    case AuxLevel::Off:
+    default:             return 0;
+  }
 }

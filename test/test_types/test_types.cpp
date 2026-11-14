@@ -1,6 +1,6 @@
 #include <unity.h>
 #include "domain/logical_state.h"
-#include "domain/output_intent.h"
+#include "domain/outputs.h"
 
 void test_hazards_requires_both_indicators() {
   LogicalState s;
@@ -21,9 +21,7 @@ void test_brake_is_front_or_rear() {
 }
 
 void test_output_intent_defaults_dark() {
-  OutputIntent o;
-  TEST_ASSERT_TRUE((o.frontL == Rgb{0, 0, 0}));
-  TEST_ASSERT_EQUAL_UINT8(0, o.denali);
+  TEST_ASSERT_EQUAL_UINT16(0, OutputIntent{}.on);
 }
 
 void setUp(void) {}

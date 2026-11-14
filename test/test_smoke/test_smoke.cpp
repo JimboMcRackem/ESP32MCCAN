@@ -1,12 +1,8 @@
 #include <unity.h>
-#include "domain/color.h"
+#include "domain/outputs.h"
 
-void test_rgb_equality() {
-  Rgb a{255, 80, 0};
-  Rgb b{255, 80, 0};
-  Rgb c{0, 0, 0};
-  TEST_ASSERT_TRUE(a == b);
-  TEST_ASSERT_TRUE(a != c);
+void test_output_intent_defaults_dark() {
+  TEST_ASSERT_EQUAL_UINT16(0, OutputIntent{}.on);
 }
 
 void setUp(void) {}
@@ -14,6 +10,6 @@ void tearDown(void) {}
 
 int main(int, char**) {
   UNITY_BEGIN();
-  RUN_TEST(test_rgb_equality);
+  RUN_TEST(test_output_intent_defaults_dark);
   return UNITY_END();
 }
