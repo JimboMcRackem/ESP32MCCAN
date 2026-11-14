@@ -159,9 +159,10 @@ python scripts/gen_fab.py && python scripts/gen_fab.py --check && python scripts
 As of 2026-11-14 (`stock.txt`), JLCPCB stocks every line for 5 boards with attrition, except
 **U10, LTC4380HMS-2 (C688451)**. That part is marked GLOBAL: JLCPCB holds 3 and the order needs 7.
 The owner approved global sourcing for it; the part is still machine-placed, but lead time grows.
-**L2, Würth 7448031002 (C1519839), is the next tightest: 11 in stock against 10 needed.** One
-more sale and it goes SHORT, and `check_stock.py` exits 1. If it does, either wait for stock or
-order L2 through global sourcing as for U10. Stock moves, so re-run `check_stock.py` on the day
+**L2, Würth 7448031002 (C1519839), is the next tightest: 11 in stock against 10 needed.** The
+owner approved global sourcing for it too (2026-11-14), so if it runs short `check_stock.py`
+reports it GLOBAL, not SHORT; order it through global sourcing as for U10, at a longer lead
+time. Stock moves, so re-run `check_stock.py` on the day
 of the order.
 
 ---

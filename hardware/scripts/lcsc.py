@@ -63,7 +63,7 @@ LCSC = {
     'Schottky 40V|Diode_SMD:D_SMA': {"lcsc": 'C2480', "mpn": 'SS14', "fallback": None, "note": 'basic, 40 V 1 A'},
     'PESD2CANFD24LT-Q|Package_TO_SOT_SMD:SOT-23': {"lcsc": 'C6952426', "mpn": 'PESD2CANFD24LT-QR', "fallback": 'C14486', "note": 'fallback SZ... NUP2105LT1G-family pinning must be re-checked before use'},
     '1.5uH|Inductor_SMD:L_Vishay_IHLP-4040': {"lcsc": 'C845071', "mpn": 'IHLP4040DZER1R5M01', "fallback": 'GLOBAL', "note": 'stock 320 at selection; fallback = JLCPCB global sourcing of the same part'},
-    '7448031002|mccan:Wurth_WE-CMBNC_7448031002': {"lcsc": 'C1519839', "mpn": '7448031002', "fallback": 'GLOBAL', "note": 'THROUGH-HOLE: JLCPCB THT assembly (owner 2026-11-13); stock 11 at selection'},
+    '7448031002|mccan:Wurth_WE-CMBNC_7448031002': {"lcsc": 'C1519839', "mpn": '7448031002', "fallback": 'GLOBAL', "note": 'THROUGH-HOLE: JLCPCB THT assembly (owner 2026-11-13); stock 11 at selection. OWNER 2026-11-14: global-source if JLCPCB stock runs short'},
     'ACT45B-510-2P-TL003|mccan:TDK_ACT45B': {"lcsc": 'C76584', "mpn": 'ACT45B-510-2P-TL003', "fallback": None, "note": 'CAN choke'},
     'MDA7030-220M|Inductor_SMD:L_KOHERelec_MDA7030': {"lcsc": 'C2847487', "mpn": 'MDA7030-220M', "fallback": 'C2847545', "note": 'replaces XAL7070-223ME (no stock); fallback MDA7050-220M needs a footprint change'},
     '74AHCT1G126GV|Package_TO_SOT_SMD:SOT-23-5': {"lcsc": 'C52140416', "mpn": '74AHCT1G126GV', "fallback": 'C842288', "note": 'fallback 74AHCT1G126W5-7 (Diodes SOT-25) -- re-check pinout before use'},

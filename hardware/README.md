@@ -25,7 +25,8 @@ On Windows, set `PYTHONIOENCODING=utf-8`, because several scripts print non-ASCI
 
 - DRC is clean at every severity.
 - The JLCPCB package is generated and checked.
-- Every BOM line is in stock. One line relies on owner-approved global sourcing.
+- Every BOM line is in stock. U10 relies on owner-approved global sourcing, and L2 (11 in
+  stock against 10) is approved for it if it runs short.
 
 See "Last full run" below for the evidence.
 
