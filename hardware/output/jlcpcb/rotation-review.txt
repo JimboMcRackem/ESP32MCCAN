@@ -1,13 +1,17 @@
-Polarised parts: JLCPCB rotation = KiCad + ROT_FIX (scripts/gen_fab.py).
-'unverified' rows MUST be checked in JLCPCB's placement preview (pin 1 /
-cathode / + marking against the board's silk) before the order is paid.
+Parts whose orientation matters: JLCPCB rotation = KiCad + ROT_FIX
+(scripts/gen_fab.py).  No offset has been checked against JLCPCB: 'recalled'
+is from memory of the community tables, 'unverified' is in no table.
+Check EVERY row in JLCPCB's placement preview before the order is paid:
+pin 1 / cathode / + marking against the board's silk; SW1/SW2, L2 and L6
+against their pads (wrong by 90 degrees shorts or cross-connects them);
+J2 and L2 are placed at their pad centre, not KiCad's pin-1 origin.
 
-C3    CP_Elec_10x10.5                              KiCad     0 + 180 =   180  table
-C65   CP_Elec_6.3x7.7                              KiCad     0 + 180 =   180  table
-C68   CP_Elec_10x10.5                              KiCad     0 + 180 =   180  table
+C3    CP_Elec_10x10.5                              KiCad     0 + 180 =   180  recalled
+C65   CP_Elec_6.3x7.7                              KiCad     0 + 180 =   180  recalled
+C68   CP_Elec_10x10.5                              KiCad     0 + 180 =   180  recalled
 D2    D_SMB                                        KiCad     0 +   0 =     0  unverified
 D3    D_SMA                                        KiCad     0 +   0 =     0  unverified
-D6    SOT-23                                       KiCad    90 + 180 =   270  table
+D6    SOT-23                                       KiCad    90 + 180 =   270  recalled
 D8    D_SOD-123                                    KiCad     0 +   0 =     0  unverified
 D9    D_SOD-123                                    KiCad     0 +   0 =     0  unverified
 D10   D_SOD-123                                    KiCad     0 +   0 =     0  unverified
@@ -18,21 +22,26 @@ D24   D_SOD-123                                    KiCad     0 +   0 =     0  un
 D25   D_SMB                                        KiCad     0 +   0 =     0  unverified
 D26   D_SOD-123                                    KiCad     0 +   0 =     0  unverified
 D27   D_SOD-123                                    KiCad     0 +   0 =     0  unverified
-Q2    SOT-23                                       KiCad     0 + 180 =   180  table
-Q3    SOT-23                                       KiCad     0 + 180 =   180  table
+J2    PinHeader_1x06_P2.54mm_Vertical              KiCad     0 +   0 =     0  unverified
+L2    Wurth_WE-CMBNC_7448031002                    KiCad     0 +   0 =     0  unverified
+L6    TDK_ACT45B                                   KiCad     0 +   0 =     0  unverified
+Q2    SOT-23                                       KiCad     0 + 180 =   180  recalled
+Q3    SOT-23                                       KiCad     0 + 180 =   180  recalled
 Q10   Infineon_PG-HSOF-8-1                         KiCad     0 +   0 =     0  unverified
 Q11   Infineon_PG-HSOF-8-1                         KiCad   180 +   0 =   180  unverified
-Q12   SOT-23                                       KiCad     0 + 180 =   180  table
+Q12   SOT-23                                       KiCad     0 + 180 =   180  recalled
 Q13   PowerPAK_SO-8L_Single                        KiCad     0 + 270 =   270  unverified
 Q14   PowerPAK_SO-8L_Single                        KiCad     0 + 270 =   270  unverified
-U1    SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm   KiCad     0 + 270 =   270  table
-U2    SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm   KiCad     0 + 270 =   270  table
+SW1   SW_Push_1P1T_XKB_TS-1187A                    KiCad     0 +   0 =     0  unverified
+SW2   SW_Push_1P1T_XKB_TS-1187A                    KiCad     0 +   0 =     0  unverified
+U1    SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm   KiCad     0 + 270 =   270  recalled
+U2    SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm   KiCad     0 + 270 =   270  recalled
 U5    ESP32-WROOM-32E                              KiCad     0 +   0 =     0  unverified
-U6    SOIC-8_3.9x4.9mm_P1.27mm                     KiCad     0 + 270 =   270  table
-U10   MSOP-10_3x3mm_P0.5mm                         KiCad     0 + 270 =   270  table
+U6    SOIC-8_3.9x4.9mm_P1.27mm                     KiCad     0 + 270 =   270  recalled
+U10   MSOP-10_3x3mm_P0.5mm                         KiCad     0 + 270 =   270  recalled
 U11   TI_DGQ0028C                                  KiCad    90 + 270 =     0  unverified
 U12   TI_DGQ0028C                                  KiCad    90 + 270 =     0  unverified
 U13   TI_DGQ0028C                                  KiCad    90 + 270 =     0  unverified
 U14   Infineon_PG-TSDSO-14-22                      KiCad     0 + 270 =   270  unverified
-U15   SOT-23-5                                     KiCad     0 + 180 =   180  table
-U16   SOT-23-5                                     KiCad     0 + 180 =   180  table
+U15   SOT-23-5                                     KiCad     0 + 180 =   180  recalled
+U16   SOT-23-5                                     KiCad     0 + 180 =   180  recalled

@@ -18,6 +18,7 @@ Nothing here is hand-edited; re-run after any board change.
 import csv
 import glob
 import io
+import math
 import os
 import re
 import shutil
@@ -50,22 +51,25 @@ PROTEL = dict([("F.Cu", ".gtl"), ("B.Cu", ".gbl"), ("F.Paste", ".gtp"), ("B.Past
                ("Edge.Cuts", ".gm1")] + [("In%d.Cu" % i, ".g%d" % i) for i in range(1, 7)])
 
 # JLCPCB's placement rotation = KiCad's + this offset, per footprint (KiCad Package column).
-# JLCPCB's part library draws some packages turned relative to the IPC/KiCad zero orientation;
-# the offsets are the community tables' (JLCKicadTools rotations.cf, jlcpcb-tools), and
-#   "table"       the package appears in those tables with this offset;
-#   "unverified"  it does not -- the value is the nearest package family's -- so the part MUST
-#                 be checked in JLCPCB's placement preview before the order is paid.
+# JLCPCB's part library draws some packages turned relative to the IPC/KiCad zero orientation.
+# NO offset here has been checked against JLCPCB; check() refuses any other label:
+#   "recalled"    the offset as recalled from the community tables (JLCKicadTools rotations.cf,
+#                 jlcpcb-tools), not re-fetched -- likely right, not known right;
+#   "unverified"  the package is in no table; the value is the nearest family's, or 0.
+# So EVERY polarised part is checked in JLCPCB's placement preview before the order is paid
+# (rotation-review.txt).  A row confirmed there may be relabelled "confirmed" -- and check()'s
+# allowed set widened with it -- only by whoever confirmed it.
 # Every footprint a polarised part uses has an entry; check() enforces that.  Non-polarised
-# two-terminal parts (R, C, L, non-polar connectors) need none: 0 and 180 place the same.
+# two-terminal parts (R, C, non-polar connectors) need none: 0 and 180 place the same.
 ROT_FIX = {
-    "SOT-23": (180, "table"),
-    "SOT-23-5": (180, "table"),
-    "SOIC-8_3.9x4.9mm_P1.27mm": (270, "table"),
-    "SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm": (270, "table"),
-    "MSOP-10_3x3mm_P0.5mm": (270, "table"),
+    "SOT-23": (180, "recalled"),
+    "SOT-23-5": (180, "recalled"),
+    "SOIC-8_3.9x4.9mm_P1.27mm": (270, "recalled"),
+    "SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm": (270, "recalled"),
+    "MSOP-10_3x3mm_P0.5mm": (270, "recalled"),
     "PowerPAK_SO-8L_Single": (270, "unverified"),  # table has PowerPAK_SO-8_Single, not -8L
-    "CP_Elec_10x10.5": (180, "table"),
-    "CP_Elec_6.3x7.7": (180, "table"),
+    "CP_Elec_10x10.5": (180, "recalled"),
+    "CP_Elec_6.3x7.7": (180, "recalled"),
     "TI_DGQ0028C": (270, "unverified"),            # HTSSOP-28: the table's HTSSOP family
     "Infineon_PG-TSDSO-14-22": (270, "unverified"),  # TSSOP-like: the table's TSSOP family
     "Infineon_PG-HSOF-8-1": (0, "unverified"),     # TOLL: in no table
@@ -74,13 +78,49 @@ ROT_FIX = {
     "D_SOD-323": (0, "unverified"),
     "D_SMA": (0, "unverified"),
     "D_SMB": (0, "unverified"),
+    # Not polarised by a mark, but wrong if turned 90 degrees (rotation-review.txt):
+    "SW_Push_1P1T_XKB_TS-1187A": (0, "unverified"),   # pins joined in pairs: 90 = always pressed
+    "TDK_ACT45B": (0, "unverified"),                  # 90 cross-connects CANH and CANL
+    "PinHeader_1x06_P2.54mm_Vertical": (0, "unverified"),
+    "Wurth_WE-CMBNC_7448031002": (0, "unverified"),   # 90 cross-connects the two windings
 }
 
-POLARISED_EXTRA = ("C3", "C65", "C68")   # the electrolytics; plus every D*, Q*, U*
+# Parts whose placement must be checked: the electrolytics, the switches (pins joined in pairs),
+# the two-winding chokes, and the header; plus every D*, Q*, U*.
+POLARISED_EXTRA = ("C3", "C65", "C68", "SW1", "SW2", "L2", "L6", "J2")
+
+# KiCad's origin for these through-hole footprints is pin 1, not the body centre, which is what
+# JLCPCB's CPL "Mid X/Y" means.  Their CPL position is the centre of their pads.
+CENTROID_FROM_PADS = ("J2", "L2")
 
 
 def polarised(ref):
     return ref in POLARISED_EXTRA or ref.rstrip("0123456789") in ("D", "Q", "U")
+
+
+def pad_centre(ref, text):
+    """(dx, dy) board-frame offset from `ref`'s origin to the centre of its pads' positions."""
+    i = text.index('(property "Reference" "%s"' % ref)
+    s = text.rfind("\t(footprint ", 0, i)
+    e = text.find("\n\t(footprint ", i)
+    blk = text[s:e if e > 0 else len(text)]
+    at = re.search(r"^\t\t\(at [-\d.]+ [-\d.]+(?: ([-\d.]+))?\)", blk, re.M)
+    rot = math.radians(float(at.group(1) or 0))
+    pts = [(float(x), float(y)) for x, y in
+           re.findall(r'\(pad "[^"]*" \w+ \w+\s*\(at ([-\d.]+) ([-\d.]+)', blk)]
+    cx = (min(p[0] for p in pts) + max(p[0] for p in pts)) / 2
+    cy = (min(p[1] for p in pts) + max(p[1] for p in pts)) / 2
+    # KiCad: board y down, angle counter-clockwise as seen from the top.
+    return (cx * math.cos(rot) + cy * math.sin(rot), -cx * math.sin(rot) + cy * math.cos(rot))
+
+
+def cpl_xy(ref, k, text):
+    """CPL Mid X/Y: KiCad's position-file origin, moved to the pad centre where it is pin 1.
+    The position file is y-up, so a board-frame dy goes in negated."""
+    if ref not in CENTROID_FROM_PADS:
+        return k["x"], k["y"]
+    dx, dy = pad_centre(ref, text)
+    return k["x"] + dx, k["y"] - dy
 
 
 def fp_name(fp):
@@ -162,6 +202,7 @@ def check():
             fail("bom.csv lists %s, which is DNP or unknown" % ref)
 
     # cpl.csv: the same set of parts, rotations = KiCad's + ROT_FIX
+    text = io.open(PCB, encoding="utf-8").read()
     kicad = kicad_pos()
     rows = read_csv(CPL)
     if rows[0] != ["Designator", "Mid X", "Mid Y", "Layer", "Rotation"]:
@@ -180,8 +221,10 @@ def check():
             continue
         k = kicad[ref]
         fix = ROT_FIX.get(k["pkg"], (0, None))[0]
-        if abs(mm(r[1]) - k["x"]) > 1e-3 or abs(mm(r[2]) - k["y"]) > 1e-3:
-            fail("cpl.csv %s at (%s, %s), KiCad (%g, %g)" % (ref, r[1], r[2], k["x"], k["y"]))
+        ex, ey = cpl_xy(ref, k, text)
+        if abs(mm(r[1]) - ex) > 1e-3 or abs(mm(r[2]) - ey) > 1e-3:
+            fail("cpl.csv %s at (%s, %s), want the part's centre (%g, %g)"
+                 % (ref, r[1], r[2], ex, ey))
         if abs((float(r[4]) - (k["rot"] + fix)) % 360.0) > 1e-3 and \
                 abs((float(r[4]) - (k["rot"] + fix)) % 360.0 - 360.0) > 1e-3:
             fail("cpl.csv %s rotation %s, want KiCad %g + ROT_FIX %d" % (ref, r[4], k["rot"], fix))
@@ -193,9 +236,19 @@ def check():
         if ref not in placed:
             fail("%s is in the BOM but not in cpl.csv" % ref)
 
+    # rotation-review.txt: every polarised part listed, none presented as settled
+    rev = io.open(ROTREV, encoding="utf-8").read()
+    listed = set(re.findall(r"^(\w+)\s", rev.split("\n\n", 1)[-1], re.M))
+    for ref in sorted(r for r in want if polarised(r)):
+        if ref not in listed:
+            fail("rotation-review.txt does not list polarised %s" % ref)
+    if "EVERY row" not in rev:
+        fail("rotation-review.txt does not ask for every row to be checked")
+    for how in sorted(set(h for _f, h in ROT_FIX.values()) - set(("recalled", "unverified"))):
+        fail("ROT_FIX trust %r: no offset here has been checked against JLCPCB" % how)
+
     # silkscreen: every TP labelled with its net on F.SilkS; KiCad's own DRC grades placement
     # (silk_over_copper = on a pad, silk_edge_clearance = clipped, silk_overlap = on silk)
-    text = io.open(PCB, encoding="utf-8").read()
     silk = set(re.findall(r'\(gr_text "([^"]*)" \(at ([-\d.]+) ([-\d.]+)\) \(layer "F\.SilkS"\)',
                           text))
     labelled = dict(((float(x), float(y)), t) for t, x, y in silk)
@@ -278,6 +331,7 @@ def build():
             val, fp = key.split("|", 1)
             w.writerow([val, ",".join(refs), fp_name(fp), lcsc.LCSC[key]["lcsc"]])
 
+    text = io.open(PCB, encoding="utf-8").read()
     review = []
     with io.open(CPL, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f, lineterminator="\n")
@@ -289,16 +343,21 @@ def build():
                 raise SystemExit("gen_fab: %s is in the BOM but KiCad did not place it" % ref)
             fix, how = ROT_FIX.get(k["pkg"], (0, None))
             rot = (k["rot"] + fix) % 360.0
-            w.writerow([ref, "%.4fmm" % k["x"], "%.4fmm" % k["y"],
+            x, y = cpl_xy(ref, k, text)
+            w.writerow([ref, "%.4fmm" % x, "%.4fmm" % y,
                         "Top" if k["side"] == "top" else "Bottom", "%g" % rot])
             if polarised(ref):
                 review.append("%-5s %-44s KiCad %5g + %3d = %5g  %s"
                               % (ref, k["pkg"], k["rot"], fix, rot, how or "NO ENTRY"))
 
     with io.open(ROTREV, "w", encoding="utf-8", newline="\n") as f:
-        f.write("Polarised parts: JLCPCB rotation = KiCad + ROT_FIX (scripts/gen_fab.py).\n"
-                "'unverified' rows MUST be checked in JLCPCB's placement preview (pin 1 /\n"
-                "cathode / + marking against the board's silk) before the order is paid.\n\n")
+        f.write("Parts whose orientation matters: JLCPCB rotation = KiCad + ROT_FIX\n"
+                "(scripts/gen_fab.py).  No offset has been checked against JLCPCB: 'recalled'\n"
+                "is from memory of the community tables, 'unverified' is in no table.\n"
+                "Check EVERY row in JLCPCB's placement preview before the order is paid:\n"
+                "pin 1 / cathode / + marking against the board's silk; SW1/SW2, L2 and L6\n"
+                "against their pads (wrong by 90 degrees shorts or cross-connects them);\n"
+                "J2 and L2 are placed at their pad centre, not KiCad's pin-1 origin.\n\n")
         f.write("\n".join(review) + "\n")
 
     cli("pcb", "export", "pdf", "--mode-single", "--layers", "F.Fab,Edge.Cuts",

@@ -62,8 +62,8 @@ See "Last full run" below for the evidence.
 1. Re-run the stock check on the day of the order: `python scripts/check_stock.py`. It exits 1 on
    any SHORT or MISSING line. Use `--boards N` for a different quantity.
 2. Follow `docs/fabrication.md` §8:
-   - confirm the 21 "unverified" rotations in `output/jlcpcb/rotation-review.txt` in JLCPCB's
-     placement preview;
+   - confirm **every** row of `output/jlcpcb/rotation-review.txt` (39 parts) in JLCPCB's
+     placement preview: no rotation offset has been checked against JLCPCB;
    - read JLCPCB's DFM report.
 
 ### Open items
@@ -122,7 +122,7 @@ severity. With `--exit-code-violations`, any finding exits 5.
 | `check_frame`, `placement`, `antenna`, `grounds`, `power_paths`, `plane_width` | PASS |
 | `check_courtyards` | 195 footprints, no overlaps |
 | `check_zone_islands`, `check_vias`, `check_geometry` | OK |
-| `gen_fab.py --check` | PASS: 64 BOM lines, 153 placed parts, 34 polarised (21 rotations unverified) |
+| `gen_fab.py --check` | PASS: 64 BOM lines, 153 placed parts, 39 orientation-checked parts (13 recalled, 26 unverified; none confirmed) |
 | `check_stock.py --boards 5` | exit 0. U10 (LTC4380) is GLOBAL: JLCPCB stocks 3 against 7 needed; global sourcing is owner-approved |
 
 ## Board setup decisions

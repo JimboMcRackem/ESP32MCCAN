@@ -126,9 +126,9 @@ neck.
 |---|---|
 | `gerbers.zip` | 8 copper, 2 mask, 2 paste and 2 silk layers, Edge.Cuts, PTH and NPTH Excellon, job file. **Upload this.** |
 | `bom.csv` | `Comment,Designator,Footprint,LCSC`: 64 lines covering 153 placed parts |
-| `cpl.csv` | `Designator,Mid X,Mid Y,Layer,Rotation`: KiCad's placement plus `ROT_FIX` |
+| `cpl.csv` | `Designator,Mid X,Mid Y,Layer,Rotation`: KiCad's placement plus `ROT_FIX`; J2 and L2 at their pad centre (KiCad's origin for them is pin 1) |
 | `assembly.pdf` | F.Fab (every designator and value) plus the outline, for hand assembly and inspection |
-| `rotation-review.txt` | each polarised part's rotation, and whether its offset is trusted (§8) |
+| `rotation-review.txt` | every part whose orientation matters, with its rotation and where the offset came from (§8) |
 | `stock.txt` | `check_stock.py --boards 5` against JLCPCB's own parts stock, at generation time |
 | `drc.rpt` | the DRC run the package was cut from |
 | `render-top.png`, `render-bottom.png` | 3D views from `kicad-cli pcb render` |
@@ -156,8 +156,10 @@ python scripts/gen_fab.py && python scripts/gen_fab.py --check && python scripts
 As of 2026-11-14 (`stock.txt`), JLCPCB stocks every line for 5 boards with attrition, except
 **U10, LTC4380HMS-2 (C688451)**. That part is marked GLOBAL: JLCPCB holds 3 and the order needs 7.
 The owner approved global sourcing for it; the part is still machine-placed, but lead time grows.
-LM5164DDA (C477928) is the next tightest, with 187 in stock against 12 needed. Stock moves, so
-re-run `check_stock.py` on the day of the order.
+**L2, Würth 7448031002 (C1519839), is the next tightest: 11 in stock against 10 needed.** One
+more sale and it goes SHORT, and `check_stock.py` exits 1. If it does, either wait for stock or
+order L2 through global sourcing as for U10. Stock moves, so re-run `check_stock.py` on the day
+of the order.
 
 ---
 
@@ -177,19 +179,23 @@ re-run `check_stock.py` on the day of the order.
 
 ## 8. Three checks before paying
 
-1. **Rotations.** `rotation-review.txt` lists 34 polarised parts, and 21 of them are
-   `unverified`:
-   - every diode (SOD-123, SOD-323, SMA, SMB);
-   - Q10 and Q11 (TOLL);
-   - Q13 and Q14 (PowerPAK SO-8L);
-   - U5 (the ESP32 module);
-   - U11–U13 and U14.
+1. **Rotations: check every row.** `rotation-review.txt` lists 39 parts whose orientation
+   matters. **None of their offsets has been checked against JLCPCB.**
+   - 13 are `recalled`: the electrolytics, SOT-23, SOIC-8 and MSOP-10 offsets, as remembered from
+     the community rotation tables, not re-fetched. Likely right, not known right. A wrong one
+     turns U10 or an electrolytic 180° on every board.
+   - 26 are `unverified`: their packages are in no table (every diode; Q10/Q11, TOLL; Q13/Q14,
+     PowerPAK SO-8L; U5; U11–U14), plus SW1/SW2, L2, L6 and J2.
+   - SW1/SW2, L2 and L6 have no polarity mark, but turned 90° they short or cross-connect: the
+     switches read as always pressed, and the chokes cross CANH/CANL or the two windings. Check
+     them against their pads.
+   - J2 and L2 are placed at their pad centre, not KiCad's pin-1 origin. Check they sit on their
+     holes.
 
-   No community rotation table lists these packages, so their `ROT_FIX` is either the nearest
-   package family's offset or 0. In JLCPCB's placement preview, compare each part's pin-1, cathode
-   or + mark with the board silk, and correct any that are wrong there. Then write the correct
-   offset into `ROT_FIX` in `scripts/gen_fab.py` and mark it `"table"`, so the next order comes
-   out right.
+   In JLCPCB's placement preview, compare each part's pin-1, cathode or + mark with the board
+   silk, and correct any that are wrong there. Then write the correct offset into `ROT_FIX` in
+   `scripts/gen_fab.py` and label it `"confirmed"` (widening `check()`'s allowed set), so the
+   next order comes out right.
 2. **Stock.** Re-run `check_stock.py`.
 3. **DFM.** Read JLCPCB's DFM report for the U10 mask dam (§4) and the via-in-pad option (§3).
 

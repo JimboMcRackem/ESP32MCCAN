@@ -46,7 +46,7 @@ tight conductor here -- but do not "save" a wire by sharing the pod returns with
 | Run | Board ref | Pins | Cable | Pinout |
 |---|---|---|---|---|
 | Feed A | **J1** | 2 | 2 x 18 AWG | `FEED_P`, `GND_IN` |
-| Feed B | **J9** | 2 | 2 x 18 AWG | `FEED_B_P`, `GND_B` |
+| Feed B | **J9** | 2 | 2 x 1.5 mm² **[TO CONFIRM]** (§4) | `FEED_B_P`, `GND_B` |
 | Front modules | **J3** | 5 | 5-core 22 AWG | `FL_DRL`, `FL_IND`, `FR_DRL`, `FR_IND`, `GND` |
 | Rear modules, part 1 | **J4** | 4 | one 7-core 22 AWG cable, one gland | `RL_DRL`, `RL_IND`, `RL_BRK`, `GND` |
 | Rear modules, part 2 | **J5** | 3 | (same 7-core cable) | `RR_DRL`, `RR_IND`, `RR_BRK` |
@@ -219,8 +219,9 @@ whether either is switched with the ignition (spec §9.3 item 4a).
 ### Accepted risk: the cable from the outlet to the fuse is unprotected
 
 The harness fuses (≈ 2 A feed A, 10 A feed B) protect the cable downstream of themselves. Anything
-between the Experia outlet and the fuse is protected only by the bike's own 5 A circuit fuse.
-**[TO CONFIRM]** what that is. Mitigations, all of which the harness build must honour:
+between the Experia outlet and the fuse is protected only by the bike's own circuit fuse: 5 A
+for feed A's circuit, and aux 3's 15 A for feed B, so feed B's pre-fuse run must be sized for
+15 A, not 10 A. **[TO CONFIRM]** both ratings on the bike. Mitigations, all of which the harness build must honour:
 
 - Fit each fuse **as close to the supply end as practical**, and keep the run short
 - Abrasion-resistant loom over the **entire** length, with no unsleeved sections
