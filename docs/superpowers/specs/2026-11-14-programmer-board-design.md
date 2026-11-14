@@ -198,6 +198,8 @@ ESD part, LEDs, resistor values), the board size and placement, the project's lo
 repo, and which main-board scripts to reuse. Each choice that departs from a *my call* above is
 recorded with its reason.
 
-## 10. Owner decisions still open
+## 10. Ordering (owner, 2026-11-14)
 
-None for the design. On ordering: the cable (§7) is a separate purchase.
+**The MCCAN board order waits until the programmer is ready**, so both go to JLCPCB in one order.
+The programmer is therefore built with its full gate suite (§6.8) before anything is ordered. The
+cable (§7) is a separate purchase.
