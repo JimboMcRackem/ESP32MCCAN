@@ -1065,6 +1065,17 @@ _check_layer_names(LAYERS)
 SIGNAL_LAYERS = ("F.Cu", "In2.Cu", "In5.Cu", "B.Cu")
 PLANE_LAYERS = ("In1.Cu", "In3.Cu", "In4.Cu", "In6.Cu")
 
+# The external router's geometry (plan4 Task 7).  Task 3 removed gen_pcb's own grid router
+# with the rest of the plan3 paths; these are the numbers route_external.py hands to
+# KiCadRoutingTools and check_geometry.py / freeze_routes.py grade against.  They are the
+# Default net class (layout_pcb.NETCLASSES / mccan.kicad_pro): 0.2 mm track and clearance,
+# 0.6 / 0.3 mm via, on the 0.1 mm grid the hand routes use, 0.5 mm from the board edge.
+AR_GRID = 0.1
+AR_W = 0.2
+AR_CLEAR = 0.2
+AR_VIA, AR_VIA_DRILL = 0.6, 0.3
+AR_EDGE = 0.5
+
 # 8-layer, 1.6 mm, 1 oz throughout (2026-09-23).  Was six.
 #
 #   F.Cu   signal -- component escapes, short runs
@@ -2123,7 +2134,8 @@ def main():
         out += stitch_vias(comps, pos, netidx)
     _rt_lo, _rv_lo = len(TRACK_LOG), len(VIA_LOG)
     out += routes(netidx)
-    if os.path.exists(FROZEN):
+    # AR_SKIP=1: route_external.py's input board -- everything except the frozen router copper
+    if os.path.exists(FROZEN) and not os.environ.get("AR_SKIP"):
         out += frozen_routes(netidx)
     check_track_crossings(_rt_lo, len(TRACK_LOG))
     check_via_holes(_rv_lo, len(VIA_LOG))

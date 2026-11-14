@@ -141,6 +141,24 @@ def via_histogram(counts):
                      for (s, d), n in sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
+OWN_POURS = set()   # (net name, layer) of every zone on the board, filled by own_pours()
+
+
+def own_pours(text, names):
+    """Every (net name, layer) a copper zone covers; rule-area keep-outs carry no net."""
+    out = set()
+    for m in re.finditer(r"\(zone\s", text):
+        head = text[m.start():m.start() + 600]
+        nt = re.search(r'\(net (\d+)\)', head) or re.search(r'\(net_name "([^"]*)"\)', head)
+        lays = re.search(r'\(layers? ((?:"[^"]*"\s*)+)\)', head)
+        if not (nt and lays):
+            continue
+        name = names.get(int(nt.group(1)), "") if nt.group(1).isdigit() else nt.group(1)
+        for lay in re.findall(r'"([^"]*)"', lays.group(1)):
+            out.add((name, lay))
+    return out
+
+
 def segments(text, names, lim, fails, widths, layers, necked):
     n = 0
     for blk in blocks(text, "segment"):
@@ -160,7 +178,10 @@ def segments(text, names, lim, fails, widths, layers, necked):
                          % (lim["min_track_width"], wd, where))
         elif wd < WANT_W - 1e-6:
             necked[wd] = necked.get(wd, 0) + 1
-        if lay not in ROUTING_LAYERS:
+        # A track on a plane layer is a slot through somebody else's reference -- unless the
+        # layer carries a pour of the track's OWN net, where the track is part of that pour
+        # (plan4: VBAT_B's test-pad feed runs on In3.Cu inside the VBAT_B pour).
+        if lay not in ROUTING_LAYERS and (name, lay) not in OWN_POURS:
             fails.append("track on a plane layer, which is a slot cut through it: %s" % where)
         if math.hypot(st[0] - en[0], st[1] - en[1]) <= MIN_LEN + 1e-9:
             fails.append("zero-length segment: %s" % where)
@@ -195,12 +216,18 @@ def vias(text, names, lim, fails, sizes, necked):
 
 
 def main(argv):
+    # --freeze-drops: grade a ROUTER OUTPUT the way freeze_routes.py will fold it in.  It drops
+    # every segment at or under MIN_LEN (and says so), so on that board such a nub is reported,
+    # not failed; on any board WITHOUT the flag -- mccan.kicad_pcb included -- it still fails.
+    drops = "--freeze-drops" in argv
+    argv = [a for a in argv if a != "--freeze-drops"]
     board = argv[0] if argv else os.path.join(HW, "mccan.kicad_pcb")
     if not os.path.exists(board):
         print("FAIL: %s is missing" % board)
         return 2
     text = io.open(board, encoding="utf-8").read()
     names = netmap(text)
+    OWN_POURS.update(own_pours(text, names))
     lim = rules(board)
 
     fails = []
@@ -222,6 +249,12 @@ def main(argv):
     if necked_v:
         print("  necked vias, legal but under the %g/%g request: %s"
               % (WANT_VIA, WANT_DRILL, via_histogram(necked_v)))
+
+    if drops:
+        nubs = [f for f in fails if f.startswith("zero-length segment")]
+        if nubs:
+            print("  %d zero-length segment(s) -- freeze_routes.py drops these" % len(nubs))
+        fails = [f for f in fails if not f.startswith("zero-length segment")]
 
     if not fails:
         print("OK: all copper is at or above the board's own declared floors, and no track")

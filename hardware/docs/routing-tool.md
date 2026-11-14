@@ -444,3 +444,79 @@ nets the router *did* attempt and nearly closed. The extra layer pair did what �
 2026-09-23 re-layout spec predicted — it did not just make the congested region easier to route,
 it converted the failure mode from "no room to try" to "a handful of individual nets to finish
 by hand", which is a much smaller remaining task.
+
+---
+
+## 7. Plan4 (140 × 100 mm, phase B Task 7) — what changed
+
+Sections 1–6 describe the plan3 200 × 140 mm board. For plan4:
+
+- **`gen_pcb.py` has no built-in router any more** (phase B Task 3 removed it). `AR_GRID`,
+  `AR_W`, `AR_CLEAR`, `AR_VIA`/`AR_VIA_DRILL` and `AR_EDGE` survive as the router geometry only —
+  the Default net class: 0.2 mm track and clearance, 0.6/0.3 mm via, 0.1 mm grid, 0.5 mm from the
+  edge. `routes_signal.json` absent means no signal copper, not a fallback router. `AR_SKIP=1`
+  still makes the input board (it skips the frozen file).
+- **Stack:** signal layers F.Cu, In2.Cu, In5.Cu, B.Cu; GND planes In1, In4, In6; In3 the power
+  layer (VBAT, VBAT_B). In5 also carries the FEED_B_P pour, which is an obstacle.
+- **Hands-off classes:** `FEED_B`, `FEED`, `CAN` (hand-routed in Task 6), except **GND_IN**, which
+  has no hand copper and is handed to the router as a plane net.
+- **Plane nets:** GND and GND_IN go in `--nets` and `--power-nets`. KiCadRoutingTools places no
+  plane taps in the pour step (its #562), so the route step welds every SMD ground pad into its
+  pour with a drop via. This replaces plan3's `gnd_drops`.
+- **POWER rails** (`+3V3_ALW`, `+5V`, `VLOGIC_IN`) are routed at 0.5 mm, joining the buck copper
+  Task 5 laid by hand.
+- **Passes**, each protected from the ones after it (the protection map in each pass's
+  .kicad_pro; route.py's via-in-pad decline path once ripped SNS_A and could not put it back):
+  1. `SNS_A/B/C` only, on In5.Cu (GND on In4 and In6), F.Cu priced 10x for the pad escapes,
+     with `--keepout` polygons on User.2 over the feed-B region and the bucks.
+  1b. The quads' control nets (U11-U13 pins 2-13), on a 0.05 mm grid, before anything else
+     crowds the field south of them.
+  2. Every other signal net and the GND/GND_IN pad welds, on all four signal layers -- but
+     not the logic rails: routed together, +3V3_ALW went first and walled in U11's pins.
+  2b. The POWER rails (`+3V3_ALW`, `+5V`, `VLOGIC_IN`) at 0.5 mm.
+  3. Whatever 2/2b left open, on the 0.05 mm grid, with rip authority over every router-owned
+     net (never the SNS lines or hand-routed nets).
+  The freeze diffs the unrouted input against the final output, so every pass's copper is frozen.
+- **Hand-routed in `layout_pcb.py`, not left to the router**, because the router boxed them in
+  on a near-empty board (geometry, not congestion -- more layers would not have helped):
+  the quads' shared `DIAG_SEL0_Q/SEL1_Q/EN_Q` (pins 6-8 stub to staggered vias under NC pins
+  9/10, three parallel In2 buses) and U14's control pins 2-6 (stubs to two via columns in a
+  notch in the F.Cu FEED_B_P pour, picked up on In2 under feed B).
+- **Rule-area keep-outs** (real KiCad keep-out zones, per layer, honoured by route.py in every
+  pass without a flag) are written into the pass-1 input and carried through: the FEED_B_P
+  pour on F.Cu/In5 (notched) and B.Cu, the VBAT_B source pour on F.Cu, and a strip east of
+  U10's ON pin.  A signal through a power pour is DRC-legal -- the pour clears around it -- and
+  carves a slot across a 6.4 A path; the ON strip is check_power_paths' 0.5 mm guard.  They live
+  only in the router's scratch boards.
+- **Floors.** `--escalation board` lets a failing net descend to the board's declared floors,
+  and the board declares 0.15 mm clearance for its fine-pitch fan-outs -- below the Default
+  class's 0.2, which KiCad's DRC enforces.  So the router's scratch project gets
+  `rules.min_clearance` = 0.2 (width may still neck to 0.15), and because route.py writes its
+  own relaxed floors back into each OUTPUT project ("FAB FLOOR RELAXED"), routed.kicad_pro is
+  reset from the pass-2 copy before pass 3 reads it and again before the gates grade it.
+- **Gates** (all must pass): `check_geometry --freeze-drops`, the tool's `check_connected` /
+  `check_drc` / `check_weird`, then `check_vias`, `check_grounds`, `check_plane_width` (IPC-2152
+  on every power pour) and `check_power_paths`.  Three are graded for what they cannot see:
+  `--freeze-drops` reports (not fails) the sub-0.01 mm nubs freeze_routes.py drops;
+  `check_drc` items are accepted only where the pad belongs to a part with a `land pattern`
+  rule in mccan.kicad_dru and the real gap meets it (the tool skips those rules and grades the
+  net class instead); `check_weird` accepts only spare copper (redundant-cycle,
+  removable-segment).  KiCad's own DRC on the regenerated board is the final word.
+- **Folding in** is a loop with KiCad as the oracle for stubs:
+  ```
+  python scripts/freeze_routes.py && python scripts/gen_pcb.py
+  kicad-cli pcb drc --severity-all --schematic-parity --refill-zones -o output/drc.rpt mccan.kicad_pcb
+  python scripts/freeze_routes.py --drop-dangling output/drc.rpt && python scripts/gen_pcb.py
+  kicad-cli pcb drc --severity-all --schematic-parity --refill-zones --exit-code-violations -o output/drc.rpt mccan.kicad_pcb
+  ```
+  route.py's cleanup leaves the odd stub in a corner whose two tracks already meet (route13: two,
+  0.14 and 0.175 mm), under check_weird's tolerance.  Three attempts at predicting KiCad's
+  track_dangling test in freeze_routes.py either missed them or dropped a hundred pieces KiCad
+  never flagged, so `--drop-dangling` drops exactly the router segments KiCad's report names.
+  `--refill-zones` matters: without it every pad weld into a pour reads as unconnected.
+- **Rules touched in Task 7:** `min_connection` 0.2 -> 0.15 (= `min_track_width`; a legal
+  0.15 mm track is a 0.15 mm connection, and the quads' fine passes need 0.15), and a
+  `GND plane neck` rule in mccan.kicad_dru letting GND zone copper neck to 0.12 mm between via
+  antipads (four spots on each GND plane; tracks and every other pour keep 0.15).
+- **`check_geometry`** allows a track on a plane layer only where its own net is poured on that
+  layer (VBAT_B's test-pad feed on In3); any other plane-layer track is still a slot and fails.

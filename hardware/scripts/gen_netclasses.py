@@ -144,6 +144,20 @@ def scan_tight_footprints(clearance):
             out[m.group(1)] = worst
     return out
 
+# GND plane necks (Task 7).  The three GND planes are perforated by ~500 vias' 0.3 mm antipads,
+# and KiCad's connection_width test finds four spots (the same four on In1/In4/In6) where the
+# fill necks to 0.1205-0.1309 mm against the board's 0.15 mm min_connection.  A neck in a solid
+# plane carries no current of its own -- the plane around it does -- and 0.12 mm is above JLC's
+# 0.09 mm etch floor, so the GND planes may neck to DRU_MIN.  Scoped to zone copper on GND:
+# tracks still answer to min_track_width / min_connection (0.15), and every other pour --
+# VBAT, FEED_B_P, GND_B, GND_IN -- still answers to 0.15.
+PLANE_NECK_RULE = ('# GND plane necks between via antipads may be %smm (see gen_netclasses.py)\n'
+                   '(rule "GND plane neck"\n'
+                   '\t(constraint connection_width (min %smm))\n'
+                   '\t(condition "A.Type == \'Zone\' && A.NetName == \'GND\'"))\n'
+                   % (DRU_MIN, DRU_MIN))
+
+
 def write_dru(clearance):
     tight = scan_tight_footprints(clearance)
     parts = [DRU_HEAD]
@@ -154,6 +168,7 @@ def write_dru(clearance):
             '\t(constraint clearance (min %smm))\n'
             '\t(condition "A.memberOfFootprint(\'%s\')"))\n'
             % (ref, tight[ref], ref, DRU_MIN, ref))
+    parts.append(PLANE_NECK_RULE)
     io.open(DRU, "w", encoding="utf-8", newline="\n").write("\n".join(parts))
     return tight
 

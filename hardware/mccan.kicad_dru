@@ -42,3 +42,8 @@
 (rule "land pattern U14"
 	(constraint clearance (min 0.12mm))
 	(condition "A.memberOfFootprint('U14')"))
+
+# GND plane necks between via antipads may be 0.12mm (see gen_netclasses.py)
+(rule "GND plane neck"
+	(constraint connection_width (min 0.12mm))
+	(condition "A.Type == 'Zone' && A.NetName == 'GND'"))

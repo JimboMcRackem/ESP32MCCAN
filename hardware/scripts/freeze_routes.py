@@ -134,7 +134,50 @@ def copper(path):
     return segs, vias, degenerate
 
 
+DANGLING = re.compile(r"\[track_dangling\][^\n]*\n[^\n]*\n\s+@\(([-\d.]+) mm, ([-\d.]+) mm\): "
+                      r"Track \[([^\]]*)\] on (\S+), length ([\d.]+) mm")
+
+
+def dangling_from_report(path):
+    """(x, y, net, layer, length) for every track_dangling item in a KiCad DRC report."""
+    text = io.open(path, encoding="utf-8").read()
+    return [(float(x), float(y), net, ly, float(n)) for x, y, net, ly, n in DANGLING.findall(text)]
+
+
+def drop_dangling(s0, s1, report):
+    """Drop the ROUTER segments KiCad's DRC named as track_dangling, and return their keys.
+
+    route.py's cleanup leaves the odd stub -- route13 shipped two, a 0.14 mm IN_AUX_R piece on
+    In5 and a 0.175 mm GND piece on F.Cu, each in a corner whose two tracks already meet, too
+    short for check_weird's 0.1 mm tolerance -- and KiCad fails them.  Three attempts to
+    predict KiCad's test here either missed those two or dropped a hundred pieces KiCad never
+    flagged (and thinned corners into connection_width errors), so KiCad is the oracle: run
+    its DRC on the generated board, pass the report back, and exactly the segments it names
+    go, matched by net, layer, length and the end it reports.  Input copper is never dropped;
+    a named segment that is not router copper is reported and left for a human.
+    """
+    out = []
+    for x, y, net, ly, n in dangling_from_report(report):
+        hit = [k for k in s1 if k[6] == net and k[5] == ly
+               and abs(math.hypot(k[0] - k[2], k[1] - k[3]) - n) < 2e-3
+               and min(math.hypot(k[0] - x, k[1] - y), math.hypot(k[2] - x, k[3] - y)) < 2e-3]
+        mine = [k for k in hit if k not in s0]
+        if len(mine) != 1:
+            print("NOTE: track_dangling %s on %s at (%g, %g) is not one router segment -- kept"
+                  % (net, ly, x, y))
+            continue
+        del s1[mine[0]]
+        out.append(mine[0])
+    return out
+
+
 def main(argv):
+    # --drop-dangling REPORT: see drop_dangling().
+    report = None
+    if "--drop-dangling" in argv:
+        i = argv.index("--drop-dangling")
+        report = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
     src = argv[0] if len(argv) > 0 else UNROUTED
     dst = argv[1] if len(argv) > 1 else ROUTED
     out = argv[2] if len(argv) > 2 else FROZEN
@@ -162,6 +205,34 @@ def main(argv):
         for name in sorted(set(k[-1] for k in lost)):
             print("        %s" % (name or "(no net)"))
         return 1
+
+    # Router copper on a layer it was never offered (plan4 Task 7: route.py left a 0.045 mm
+    # back-and-forth pair on In1.Cu, a GND plane, at a via).  A sub-grid one joins nothing
+    # and is dropped, and said so; a longer one would be a real route through a plane, and
+    # dropping it would break the net, so that fails instead.  A track inside its OWN net's
+    # pour on that layer is not stray: it is the router welding a pad into the pour (GND_IN on
+    # In1.Cu, inside the R_IN island) -- the same exemption check_geometry.py makes.
+    import check_geometry as _CG  # here, not at the top: check_geometry imports this module
+    dtext = io.open(dst, encoding="utf-8").read()
+    pours = _CG.own_pours(dtext, netmap(dtext))
+    stray = [k for k in s1 if k not in s0 and k[5] not in _G.SIGNAL_LAYERS
+             and (k[6], k[5]) not in pours]
+    long_stray = [k for k in stray if math.hypot(k[0] - k[2], k[1] - k[3]) > _G.AR_GRID]
+    if long_stray:
+        print("FAIL: the router laid %d track(s) on a non-signal layer:" % len(long_stray))
+        for k in long_stray[:8]:
+            print("        %s on %s (%g, %g)-(%g, %g)" % (k[6], k[5], k[0], k[1], k[2], k[3]))
+        return 1
+    if stray:
+        print("dropped %d sub-grid router segment(s) on non-signal layers: %s"
+              % (len(stray), ", ".join(sorted(set("%s on %s" % (k[6], k[5]) for k in stray)))))
+    for k in stray:
+        del s1[k]
+    if report:
+        tails = drop_dangling(s0, s1, report)
+        print("dropped %d router segment(s) KiCad's DRC named as track_dangling%s"
+              % (len(tails), "".join("\n        %s on %s (%g, %g)-(%g, %g)"
+                                     % (k[6], k[5], k[0], k[1], k[2], k[3]) for k in tails)))
 
     nets = {}
     for k in sorted(k for k in s1 if k not in s0):

@@ -65,7 +65,7 @@ JLC_FLOOR = {
 RULES = {
     "min_track_width": 0.15,
     "min_clearance": 0.15,
-    "min_connection": 0.2,
+    "min_connection": 0.15,   # = min_track_width: a legal 0.15 mm track IS a 0.15 mm connection (Task 7)
     "min_via_diameter": 0.5,
     "min_through_hole_diameter": 0.2,
     "min_via_annular_width": 0.15,
@@ -127,6 +127,8 @@ CABLE_ROW = [  # ref, x of pad 1 (origin), relief offset
 U5_X = 115.0
 U5_Y = Y0 + 12.75
 
+# The three output quads (Task 7): centres in a row, 8 mm apart, rotated 90.
+QUAD_X, QUAD_Y = (66.35, 74.35, 82.35), 75.7   # x.x5: puts the 0.5 mm-pitch pins on the 0.1 mm routing grid
 PLACE = dict((ref, (x, TAIL_RELIEF_Y - off, 0)) for ref, x, off in CABLE_ROW)
 PLACE.update({
     "U5": (U5_X, U5_Y, 0),
@@ -175,14 +177,22 @@ PLACE.update({
     # pads: the flow now steers round F.Cu routes (gen_pcb.place) and would otherwise move them.
     "C1": (46.58, 33.83, 0), "C2": (36.8, 34.08, 0), "C3": (36.25, 26.1, 0),
     "C4": (31.4, 34.25, 0), "D3": (24.1, 31.35, 0), "L1": (50.95, 26.0, 0),
-    "C41": (70.3, 80.08, 0), "C42": (75.3, 80.08, 0), "C43": (80.3, 80.08, 0),
-    "U11": (65.8, 73.9, 0), "U12": (73.8, 73.9, 0), "U13": (81.8, 73.9, 0),
+    # Task 7: the quads turned 90 so their control pins (IN, SEL, DIAG, SNS, ILIM, GND) face
+    # south to the resistor field and VS / OUT face north.  Side by side at rot 0, each chip's
+    # control pins faced the next chip's OUT pins across a 2.15 mm gap that both sides needed
+    # for escape vias, and the router left eleven of their nets open.  C41-C43 (VS decoupling)
+    # sit north of each chip's VS pins, fed by the VS bar's drop (ROUTES).
+    "C41": (QUAD_X[0], QUAD_Y - 5.1, 90), "C42": (QUAD_X[1], QUAD_Y - 5.1, 90),
+    "C43": (QUAD_X[2], QUAD_Y - 5.1, 90),
+    "U11": (QUAD_X[0], QUAD_Y, 90), "U12": (QUAD_X[1], QUAD_Y, 90), "U13": (QUAD_X[2], QUAD_Y, 90),
     "C65": (25.3, 75.25, 0), "D2": (55.75, 67.45, 0), "Q12": (22.53, 63.9, 0),
     "R101": (57.38, 72.33, 0), "R104": (22.08, 83.93, 0), "R105": (33.88, 72.83, 0),
     "U6": (90.3, 77.3, 0), "L6": (98.8, 76.55, 0),
     # outputs-sheet parts the flow otherwise spills into the GND_IN island (their GND pads
-    # would land over GND_IN): their Task 5 neighbourhood, below D6's old place.
-    "R72": (105.0, 84.5, 0), "R73": (105.0, 86.5, 0),
+    # would land over GND_IN).  Task 7: moved from (105, 84.5/86.5), which sat inside the
+    # GND_B region R_B -- they carry SNS_B / SNS_C, which must stay out of feed B -- into free
+    # cells of the outputs sense grid beside R70.
+    "R72": (93.08, 94.83, 0), "R73": (88.58, 97.83, 0),
 })
 
 # Test points.  Each pad gets its NET NAME on the silkscreen to its right (spec 8; drawn in the
@@ -309,14 +319,28 @@ ZONES = [z + ("solid",) if z[0] in ("GND_B", "VBAT_B") else z for z in ZONES]
 # pins (1-3) and D24's anode on an F.Cu pour west of Q13, dropped by 12 vias to In3.
 FEEDB_POLY = [(115.8, 74.6), (124.0, 74.6), (124.0, 93.3), (126.5, 93.3), (126.5, 102.4),
               (119.95, 102.4), (119.95, 96.5), (115.8, 92.2)]
+# F.Cu only: a notch beside U14's west pins (2-6: IN_AUX_L, DEN, IS, DSEL, IN_AUX_R).  Those
+# pads end at x 124.5, half a millimetre from the pour, and every one of them has to reach the
+# ESP32 west across feed B.  Through the F.Cu pour is a slot in a 6.4 A path; so the pour steps
+# back 1.4 mm here, the control lines drop to In2 (no pour under feed B there) in the notch, and
+# FEED_B_P keeps 6.4 mm or more of F.Cu, with the full-width In5 pour beside it.
+FEEDB_NOTCH_X, FEEDB_NOTCH_Y0, FEEDB_NOTCH_Y1 = 122.6, 87.4, 92.6
+FEEDB_F_POLY = [(115.8, 74.6), (124.0, 74.6), (124.0, FEEDB_NOTCH_Y0),
+                (FEEDB_NOTCH_X, FEEDB_NOTCH_Y0), (FEEDB_NOTCH_X, FEEDB_NOTCH_Y1),
+                (124.0, FEEDB_NOTCH_Y1), (124.0, 93.3), (126.5, 93.3), (126.5, 102.4),
+                (119.95, 102.4), (119.95, 96.5), (115.8, 92.2)]
 FEEDB_BOT = [(115.5, 74.6), (124.0, 74.6), (124.0, 92.4), (115.5, 92.4)]
 VBATB_SRC = [(107.6, 74.6), (114.64, 74.6), (114.64, 90.25), (109.4, 90.25), (109.4, 92.6),
              (107.6, 92.6)]
-ZONES += [("FEED_B_P", ["F.Cu"], FEEDB_POLY, "FEEDB_F", 0, "solid"),
+ZONES += [("FEED_B_P", ["F.Cu"], FEEDB_F_POLY, "FEEDB_F", 0, "solid"),
           ("FEED_B_P", ["In5.Cu"], FEEDB_POLY, "FEEDB_In5", 0, "solid"),
           ("FEED_B_P", ["B.Cu"], FEEDB_BOT, "FEEDB_B", 0, "solid"),
           ("VBAT_B", ["F.Cu"], VBATB_SRC, "VBATB_F", 0, "solid")]
 RESERVED += [(115.5, 74.6, 126.5, 102.4), (107.0, 74.6, 116.0, 92.6)]
+# Task 7: a strip south of each quad, kept from the auto-flow, for its silk designator (vertical
+# at rot 90, ~3 mm tall; C4x takes the north side and the neighbouring chips are ~1 mm away
+# east and west) and as the first few millimetres of the control pins' escape fan.
+RESERVED += [(_qx - 1.5, QUAD_Y + 2.95, _qx + 1.5, QUAD_Y + 6.6) for _qx in QUAD_X]
 
 # Stitching vias, 0.6 / 0.3 through: (net, region polygon, pitch mm).  Laid on a grid inside the
 # region, at least STITCH_INSET from its edge and clear of every courtyard, keep-out, reserved
@@ -457,12 +481,60 @@ _drop("VBAT", (33.1, 27.0), (33.1, 28.4), "vbat_c3b")
 _drop("VBAT", (26.1, 30.6), (26.1, 29.3), "vbat_d3")
 _drop("VBAT", (29.92, 34.9), (29.92, 36.3), "vbat_c4")
 _drop("VBAT", (35.85, 34.6), (35.85, 36.0), "vbat_c2")
-for _x, _c in ((69.35, "c41"), (74.35, "c42"), (79.35, "c43")):
-    _drop("VBAT", (_x, 79.4), (_x, 78.3), "vbat_" + _c)
 _drop("VBAT", (64.0, 52.0), (62.4, 52.0), "vbat_tp1", w=0.5, size=0.6, drill=0.3)
-for _qx, _q in ((68.0, "u11"), (76.0, "u12"), (84.0, "u13")):   # pins 20-23 (VS) of each quad
-    _t("VBAT", "F.Cu", 0.3, [(_qx, 73.15), (_qx, 74.65)], "vbat_" + _q + "_bar")
-    _drop("VBAT", (_qx, 73.9), (_qx + 1.9, 73.9), "vbat_" + _q, w=0.5, size=0.6, drill=0.3)
+# Each quad (rot 90): pins 20-23 (VS) in a row 2.2 mm north of the chip centre, barred; the
+# bar's centre drops north to an In3 via and on to C4x's VBAT pad (pad 1, 0.95 mm south of the
+# cap's centre).  The drop runs up the 3 mm channel between OUT2 and OUT3, where only NC pins
+# 19 and 24 sit beside VS.
+for _qx, _q in zip(QUAD_X, ("u11", "u12", "u13")):
+    _t("VBAT", "F.Cu", 0.3, [(_qx - 0.75, QUAD_Y - 2.2), (_qx + 0.75, QUAD_Y - 2.2)],
+       "vbat_" + _q + "_bar")
+    _drop("VBAT", (_qx, QUAD_Y - 2.2), (_qx, QUAD_Y - 3.6), "vbat_" + _q,
+          w=0.5, size=0.6, drill=0.3)
+    _t("VBAT", "F.Cu", 0.5, [(_qx, QUAD_Y - 3.6), (_qx, QUAD_Y - 4.15)], "vbat_" + _q + "_c")
+    # GND pin 13 to the chip's own exposed pad (GND, with its thermal-via array): straight up
+    # from the pad's inner end, clear of pins 12 and 14 by 0.225 mm, then onto the EP's corner.
+    # The router could not weld it once ILIM (pin 12) had escaped beside it (U12, Task 7).
+    _t("GND", "F.Cu", 0.25, [(_qx + 2.75, QUAD_Y + 1.7), (_qx + 2.75, QUAD_Y + 1.0),
+                             (_qx + 2.2, QUAD_Y + 0.6)], "gnd13_" + _q)
+
+# The quads' shared diagnostic bus, by hand (Task 7).  SEL1/SEL0/DIAG_EN are pins 6/7/8 -- the
+# middle of the 0.5 mm control row -- and each net joins all three chips, so it has to cross
+# every other quad's IN/CS/ILIM escapes heading south.  Left to the router, that box failed
+# CS_B and DIAG_SEL0_Q on a near-empty board (pass 1b, route10).  Here each of the three pins
+# drops to its own via in the room under NC pins 9 and 10, staggered 0.8 mm in y, and the
+# three nets run east-west as parallel In2 buses (no pour on In2).  The router then sees only
+# straight-south escapes for pins 2-5, 11 and 12, plus one via-to-driver link per bus.
+#   pin 8 (EN, +0.25)   -> 45 deg east under pin 9 -> via (+1.0,  pad end + 0.725)
+#   pin 7 (SEL0, -0.25) -> south, then 45 deg      -> via (+0.15, pad end + 1.525)
+#   pin 6 (SEL1, -0.75) -> south, then 45 deg      -> via (-0.35, pad end + 2.325)
+# Clearances (0.2 mm track, 0.6 mm via): via-to-via >= 0.94; the vias sit >= 0.75 off the
+# pin-5 and pin-11 centre lines; the pin-8 diagonal clears pad 9 by 0.24 and the pin-7 track
+# by 0.3; the In2 buses are 0.8 mm apart and clear each other's vias by 0.4.
+_QPAD_END = QUAD_Y + 2.2 + 0.725                     # control pads' outer (south) end
+DIAG_BUS = (("DIAG_EN_Q", 0.25, [(0.25, 0.125), (0.85, 0.725), (1.0, 0.725)]),
+            ("DIAG_SEL0_Q", -0.25, [(-0.25, 1.125), (0.15, 1.525)]),
+            ("DIAG_SEL1_Q", -0.75, [(-0.75, 1.925), (-0.35, 2.325)]))
+for _qx, _q in zip(QUAD_X, ("u11", "u12", "u13")):
+    for _net, _px, _path in DIAG_BUS:
+        _pts = [(_qx + _px, _QPAD_END - 0.3)] + [(_qx + dx, _QPAD_END + dy) for dx, dy in _path]
+        _t(_net, "F.Cu", 0.2, _pts, "diag_%s_%s" % (_net.lower(), _q))
+        _v(_net, _pts[-1][0], _pts[-1][1], "diag_%s_%s" % (_net.lower(), _q), 0.6, 0.3)
+# U14's control pins (2-6, 0.65 mm pitch, pads x 124.5-125.8) into the FEED_B_P notch, by hand
+# for the same reason: route12 left IN_AUX_L boxed in there after the others took the room.
+# Each pin runs west to a via in one of two columns -- x 124.0 (0.2 mm off the pads' ends) and
+# 123.25 (0.35 mm off the notch edge, so the FEED_B pour's 0.3 mm clearance just meets the
+# outline) -- alternating, so a track from the inner column passes the outer column's vias at
+# 0.25 mm.  The router picks each via up on In2, under the pour.
+U14_FAN = (("IN_AUX_L", 88.7, 124.0), ("Net-(U14-DEN)", 89.35, 123.25),
+           ("Net-(U14-IS)", 90.0, 124.0), ("Net-(U14-DSEL)", 90.65, 123.25),
+           ("IN_AUX_R", 91.3, 124.0))
+for _net, _y, _vx in U14_FAN:
+    _drop(_net, (125.15, _y), (_vx, _y), "u14_fan_%.2f" % _y, w=0.2, size=0.6, drill=0.3)
+for _net, _px, _path in DIAG_BUS:
+    _vx, _vy = _path[-1]
+    _t(_net, "In2.Cu", 0.2, [(QUAD_X[0] + _vx, _QPAD_END + _vy),
+                             (QUAD_X[-1] + _vx, _QPAD_END + _vy)], "diag_%s_bus" % _net.lower())
 
 # ---- NT1 star tie (README: a 2.0 mm tie that outlasts the harness fuse).  NT1.1 (GND_B) ->
 # 2 mm F.Cu -> four vias in the 1 mm gap between R_IN and the GND planes (in neither pour) ->
