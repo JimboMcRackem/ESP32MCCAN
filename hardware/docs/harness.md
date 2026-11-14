@@ -113,8 +113,9 @@ back through. **That second hole is the strain relief and it is not optional** -
 mechanically restrains these wires, and without it a pull on the cable lifts a pad off the board.
 
 Hole sizes are set by the **largest conductor in each cable**: J1 and J9 use the 1.5 mm2
-footprint (1.7 mm holes), J10/J11 the 1.0 mm2 footprint (1.4 mm holes), and J3-J5 and J8 the
-0.5 mm2 footprint (0.9 mm holes) for 22 AWG.
+footprint (2.15 mm plated holes), J10/J11 the 1.0 mm2 footprint (1.75 mm), and J3-J5 and J8 the
+0.5 mm2 footprint (1.15 mm) for 22 AWG. The strain-relief holes beside them are 3.5, 3.2 and
+2.6 mm.
 
 **Leave a service loop inside the box.** The board can only be lifted clear if there is enough
 slack to pull it out with the glands slackened.

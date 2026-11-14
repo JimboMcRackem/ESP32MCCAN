@@ -91,8 +91,8 @@ python scripts/check_netlist.py
 python scripts/gen_pcb.py && python scripts/gen_netclasses.py
 "$K" pcb drc --severity-all --schematic-parity --refill-zones --exit-code-violations \
   -o output/drc.rpt mccan.kicad_pcb
-for c in frame placement antenna courtyards grounds zone_islands power_paths plane_width \
-         vias geometry; do python scripts/check_$c.py || break; done
+ok=1; for c in frame placement antenna courtyards grounds zone_islands power_paths \
+                plane_width vias geometry; do python scripts/check_$c.py || ok=0; done; [ $ok = 1 ]
 
 # 3. fabrication
 python scripts/gen_fab.py && python scripts/gen_fab.py --check && python scripts/check_stock.py

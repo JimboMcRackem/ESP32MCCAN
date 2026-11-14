@@ -70,7 +70,10 @@ DRU_HEAD = """(version 1)
 # The list comes from scanning the generated board for intra-footprint pad pairs on DIFFERENT
 # nets closer than the clearance being applied, so it cannot drift out of step with the
 # schematic.  The condition has to name each ref: A.memberOfFootprint('U1') works; the tempting
-# A.memberOfFootprint(B) parses, never matches, and fails open with no error at all.
+# A.memberOfFootprint(B) parses, never matches, and fails open with no error at all.  The
+# other side must be one of the part's own pads, or copper on one of its own nets (a pin's
+# fan-out stub passes its neighbour at the pad gap); a one-sided condition would also relax the
+# gap between those pads and any foreign track, via or pour.
 """
 
 
@@ -142,7 +145,11 @@ def scan_tight_footprints(clearance):
                     worst = gap
         if worst is not None:
             out[m.group(1)] = worst
+            FP_NETS[m.group(1)] = sorted(set(p[4] for p in pads))
     return out
+
+
+FP_NETS = {}   # ref -> the nets on its pads, filled by scan_tight_footprints
 
 # GND plane necks (Task 7).  The three GND planes are perforated by ~500 vias' 0.3 mm antipads,
 # and KiCad's connection_width test finds four spots (the same four on In1/In4/In6) where the
@@ -162,12 +169,14 @@ def write_dru(clearance):
     tight = scan_tight_footprints(clearance)
     parts = [DRU_HEAD]
     for ref in sorted(tight, key=refkey):
+        own = " || ".join(["B.memberOfFootprint('%s')" % ref] +
+                          ["B.NetName == '%s'" % n for n in FP_NETS[ref]])
         parts.append(
             '# %s needs %.3f mm pad-to-pad\n'
             '(rule "land pattern %s"\n'
             '\t(constraint clearance (min %smm))\n'
-            '\t(condition "A.memberOfFootprint(\'%s\')"))\n'
-            % (ref, tight[ref], ref, DRU_MIN, ref))
+            '\t(condition "A.memberOfFootprint(\'%s\') && (%s)"))\n'
+            % (ref, tight[ref], ref, DRU_MIN, ref, own))
     parts.append(PLANE_NECK_RULE)
     io.open(DRU, "w", encoding="utf-8", newline="\n").write("\n".join(parts))
     return tight

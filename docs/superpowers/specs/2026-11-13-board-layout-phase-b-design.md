@@ -46,6 +46,9 @@ solder-tail pads.
    - the 6-pin programming header J2 is the only through-hole part. It is either fitted by the
      assembler or left DNP with its pads kept. Choose one and record it, but the owner must
      never be left with a part to fit.
+   - *Amended 2026-11-13 (owner):* L2, the Würth 7448031002 common-mode choke, is through-hole
+     too (owner decision, recorded in `hardware/scripts/lcsc.py`). J2 and L2 are both fitted by
+     JLCPCB's THT service.
 5. **All cables leave from one edge:** J1, J9, J3, J4, J5, J8, J10 and J11, all soldered
    wire-tail pads with strain-relief holes (the D5 convention). Each cable passes through a gland
    in the box wall on that edge.

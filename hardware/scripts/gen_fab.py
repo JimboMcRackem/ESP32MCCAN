@@ -17,6 +17,7 @@ Nothing here is hand-edited; re-run after any board change.
 
 import csv
 import glob
+import hashlib
 import io
 import math
 import os
@@ -43,6 +44,14 @@ BOM, CPL, ZIP, PDF = (os.path.join(OUT, n) for n in ("bom.csv", "cpl.csv", "gerb
                                                      "assembly.pdf"))
 STOCK, ROTREV, DRC = (os.path.join(OUT, n) for n in ("stock.txt", "rotation-review.txt",
                                                      "drc.rpt"))
+# sha256 of the board the package was cut from; --check refuses a package from another board.
+STAMP = os.path.join(OUT, "board.sha256")
+
+
+def board_hash():
+    """sha256 of mccan.kicad_pcb, line endings normalised (git may check it out CRLF)."""
+    with io.open(PCB, "rb") as f:
+        return hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()
 
 GERBER_LAYERS = ["F.Cu", "In1.Cu", "In2.Cu", "In3.Cu", "In4.Cu", "In5.Cu", "In6.Cu", "B.Cu",
                  "F.Paste", "B.Paste", "F.SilkS", "B.SilkS", "F.Mask", "B.Mask", "Edge.Cuts"]
@@ -70,7 +79,7 @@ ROT_FIX = {
     "PowerPAK_SO-8L_Single": (270, "unverified"),  # table has PowerPAK_SO-8_Single, not -8L
     "CP_Elec_10x10.5": (180, "recalled"),
     "CP_Elec_6.3x7.7": (180, "recalled"),
-    "TI_DGQ0028C": (270, "unverified"),            # HTSSOP-28: the table's HTSSOP family
+    "TI_DGQ0028C": (270, "unverified"),            # HVSSOP-28: the table's HTSSOP family
     "Infineon_PG-TSDSO-14-22": (270, "unverified"),  # TSSOP-like: the table's TSSOP family
     "Infineon_PG-HSOF-8-1": (0, "unverified"),     # TOLL: in no table
     "ESP32-WROOM-32E": (0, "unverified"),          # module: in no table
@@ -161,10 +170,13 @@ def check():
     def fail(msg):
         fails.append(msg)
 
-    for p in (ZIP, BOM, CPL, PDF, STOCK, ROTREV):
+    for p in (ZIP, BOM, CPL, PDF, STOCK, ROTREV, STAMP):
         if not os.path.exists(p):
             fail("missing output %s" % os.path.relpath(p, HW))
     if fails:
+        return fails
+    if io.open(STAMP, encoding="utf-8").read().strip() != board_hash():
+        fail("the package was cut from a different mccan.kicad_pcb -- re-run gen_fab.py")
         return fails
 
     nl = check_netlist.load(NETLIST)
@@ -370,6 +382,8 @@ def build():
 
     # The DRC the package was cut from, all severities, zones refilled (see routing-tool.md).
     cli("pcb", "drc", "--severity-all", "--schematic-parity", "--refill-zones", "-o", DRC, PCB)
+    with io.open(STAMP, "w", encoding="utf-8", newline="\n") as f:
+        f.write(board_hash() + "\n")
 
     # Stock, as of now: a report, not a gate here -- check_stock's own exit code is the gate.
     r = subprocess.run([sys.executable, os.path.join(HERE, "check_stock.py"), "--boards", "5"],

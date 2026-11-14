@@ -9,7 +9,8 @@ approved JLCPCB global sourcing of that exact part (lcsc.py fallback "GLOBAL" pl
 note) -- still machine-placed, but it adds lead time: read those lines before ordering.
 
 --offline checks only that every BOM line has an LCSC entry.
-need = qty_per_board * N + attrition (max(5, 10 %) for passives, 2 for the rest).
+need = qty_per_board * N + attrition (max(5, 10 %) for passives, 2 for the rest).  Lines that
+share a C-number draw on one stock, so each is graded, and shown, with their combined need.
 
 Stock source: JLCPCB's own assembly-parts API (the stock the assembler places from),
   POST https://jlcpcb.com/api/overseas-pcb-order/v1/shoppingCart/smtGood/selectSmtComponentList
@@ -55,7 +56,15 @@ def main(argv=None):
     ap.add_argument("--offline", action="store_true")
     a = ap.parse_args(argv)
     bad = 0
-    for key, refs in lcsc.bom_lines(NETLIST):
+    lines = lcsc.bom_lines(NETLIST)
+    # Lines that share a C-number (SW1 and SW2 differ only in value) draw on one stock: grade
+    # each against the combined need, and fetch each C-number once.
+    total, stock = {}, {}
+    for key, refs in lines:
+        e = lcsc.LCSC.get(key)
+        if e:
+            total[e["lcsc"]] = total.get(e["lcsc"], 0) + need(refs, a.boards)
+    for key, refs in lines:
         e = lcsc.LCSC.get(key)
         q = need(refs, a.boards)
         if not e:
@@ -66,7 +75,11 @@ def main(argv=None):
         if a.offline:
             print("OK %s %s stock=? need=%d fallback=%s" % (key, e["lcsc"], q, fb))
             continue
-        s = fetch_stock(e["lcsc"])
+        if e["lcsc"] not in stock:
+            stock[e["lcsc"]] = fetch_stock(e["lcsc"])
+        s = stock[e["lcsc"]]
+        if total[e["lcsc"]] > q:
+            q = total[e["lcsc"]]   # shown as need=<combined>
         if s is None:
             st, s = "MISSING", 0
         elif s >= q:

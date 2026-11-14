@@ -5,7 +5,8 @@
 Asserts, against the generated mccan.kicad_pcb:
   * U5 (ESP32-WROOM-32E) is rotated so its antenna end faces layout_pcb.ANTENNA_EDGE, and the
     module's antenna-end edge is flush with that board edge or overhangs it (<= 0.5 mm inboard);
-  * nothing copper -- pad, track, arc, via or copper zone, on any of the 8 layers -- lies in the
+  * nothing copper -- pad, track, arc, via, copper zone, or a drawing or text on a copper layer
+    (board gr_* or footprint fp_*), on any of the 8 layers -- lies in the
     keep-out rectangle KEEPOUT_LOCAL (module frame), clipped to the board.  A copper zone whose
     outline crosses the rectangle passes only if a rule area with `copperpour not_allowed` on
     that layer covers the whole rectangle (that is what stops the fill).
@@ -128,6 +129,70 @@ def zones(text):
     return out
 
 
+GR_RE = re.compile(r"\n\t\((gr_\w+)(.*?)\n\t\)", re.S)
+FP_GR_RE = re.compile(r"\n\t\t\((fp_\w+)(.*?)\n\t\t\)", re.S)
+PT_RE = re.compile(r"\((?:start|end|mid|center|at|xy) ([-\d.]+) ([-\d.]+)")
+
+
+def graphic_hits(kind, body, r, place):
+    """Does one gr_*/fp_* item on a copper layer touch the box r?  `place` maps its own
+    coordinates to the board's (identity for gr_*, the footprint's transform for fp_*)."""
+    pts = [place(float(x), float(y)) for x, y in PT_RE.findall(body)]
+    if not pts:
+        return False
+    w = re.search(r"\((?:width|thickness) ([-\d.]+)\)", body)
+    grow = float(w.group(1)) / 2 if w else 0.0
+    if kind.endswith("_text"):
+        # Judged generously: a box of (characters x height) about the anchor, whatever the
+        # justification.
+        size = re.search(r"\(size ([-\d.]+) ([-\d.]+)\)", body)
+        s = re.match(r'\s*(?:\w+\s+)?"([^"]*)"', body)
+        h = max(float(size.group(1)), float(size.group(2))) if size else 1.0
+        grow += h * max(1, len(s.group(1)) if s else 1)
+        pts = pts[:1]
+    if kind.endswith("_circle") and len(pts) >= 2:
+        (cx, cy), (ex, ey) = pts[0], pts[1]
+        rad = math.hypot(ex - cx, ey - cy)
+        pts = [(cx - rad, cy - rad), (cx + rad, cy - rad), (cx + rad, cy + rad), (cx - rad, cy + rad)]
+    if len(pts) == 1:
+        x, y = pts[0]
+        return r[0] - grow < x < r[2] + grow and r[1] - grow < y < r[3] + grow
+    ring = pts + ([pts[0]] if kind.endswith(("_poly", "_rect", "_circle")) else [])
+    if kind.endswith("_rect") and len(pts) == 2:
+        (x0, y0), (x1, y1) = pts
+        ring = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
+    if any(seg_hits_rect(a[0], a[1], b[0], b[1], r, grow) for a, b in zip(ring, ring[1:])):
+        return True
+    return len(ring) > 3 and point_in_poly((r[0] + r[2]) / 2, (r[1] + r[3]) / 2, ring[:-1])
+
+
+def copper_graphics_in(text, r):
+    """Descriptions of every copper-layer drawing or text (board gr_*, footprint fp_*) in r."""
+    out = []
+    for m in GR_RE.finditer(text):
+        lay = re.search(r'\(layer "([^"]+)"', m.group(2))
+        if lay and lay.group(1) in CU and graphic_hits(m.group(1), m.group(2), r,
+                                                         lambda x, y: (x, y)):
+            out.append("%s on %s" % (m.group(1), lay.group(1)))
+    for blk in text.split("\n\t(footprint ")[1:]:
+        ref = re.search(r'\(property "Reference" "([^"]*)"', blk)
+        at = re.search(r"\n\t\t\(at ([-\d.]+) ([-\d.]+)(?: ([-\d.]+))?\)", blk)
+        if not at:
+            continue
+        fx, fy, frot = float(at.group(1)), float(at.group(2)), float(at.group(3) or 0)
+
+        def place(x, y, fx=fx, fy=fy, frot=frot):
+            dx, dy = G.rot_local(x, y, frot)
+            return fx + dx, fy + dy
+
+        for m in FP_GR_RE.finditer(blk):
+            lay = re.search(r'\(layer "([^"]+)"', m.group(2))
+            if lay and lay.group(1) in CU and graphic_hits(m.group(1), m.group(2), r, place):
+                out.append("%s of %s on %s" % (m.group(1), ref.group(1) if ref else "?",
+                                               lay.group(1)))
+    return out
+
+
 def check():
     f = []
     text = open(BOARD, encoding="utf-8").read()
@@ -168,6 +233,8 @@ def check():
         x, y, s = float(m.group(1)), float(m.group(2)), float(m.group(3))
         if r[0] - s / 2 < x < r[2] + s / 2 and r[1] - s / 2 < y < r[3] + s / 2:
             f.append("via at (%.2f, %.2f) is in the antenna keep-out" % (x, y))
+
+    f += [g + " is in the antenna keep-out" for g in copper_graphics_in(text, r)]
 
     zs = zones(text)
     covered = set()
