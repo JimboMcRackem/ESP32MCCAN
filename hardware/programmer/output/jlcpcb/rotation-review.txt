@@ -1,0 +1,19 @@
+Programmer board: parts whose orientation matters.  JLCPCB rotation = KiCad +
+ROT_FIX (scripts/gen_fab_prog.py).  No offset has been checked against JLCPCB:
+'recalled' follows the main board's recalled value for the same family,
+'unverified' is from memory or 0.
+Check EVERY row in JLCPCB's placement preview before the order is paid:
+U1-U5 pin-1 dot on KiCad's pin 1; D1-D3 cathode (pin 1) towards J1, the USB
+end of the board; J1 and J2 sit on their pads (both are placed at their pad
+centre, not KiCad's origin).
+
+J1  USB_C_Receptacle_HRO_TYPE-C-31-M-12        KiCad   180 +   0 =   180  unverified
+J2  PinHeader_1x06_P2.54mm_Vertical            KiCad    90 +   0 =    90  unverified
+U1  WCH_QFN-16-1EP_3x3mm_P0.5mm_EP1.8x1.8mm    KiCad   270 + 270 =   180  unverified
+U2  SOT-23-6                                   KiCad   270 + 180 =    90  recalled
+U3  SOT-223-3_TabPin2                          KiCad    90 + 180 =   270  unverified
+U4  SOT-363_SC-70-6                            KiCad     0 + 180 =   180  unverified
+U5  SSOP-8_2.95x2.8mm_P0.65mm                  KiCad     0 + 270 =   270  unverified
+D1  LED_0603_1608Metric                        KiCad   270 +   0 =   270  unverified
+D2  LED_0603_1608Metric                        KiCad   270 +   0 =   270  unverified
+D3  LED_0603_1608Metric                        KiCad   270 +   0 =   270  unverified
