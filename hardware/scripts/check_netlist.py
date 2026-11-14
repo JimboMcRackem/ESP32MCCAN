@@ -277,18 +277,26 @@ def chk_feed_b_no_bridge(nl):
 
 
 def chk_q13(nl):
+    """Q13 and Q14: two SQJ461EP in parallel on feed B (Task 6 tally, owner 2026-11-14).
+
+    One SQJ461EP at 6.4 A runs its junction to 128-153 C at 85 C ambient (enclosure.md s.9);
+    two in parallel carry 3.2 A each, ~0.26 W, ~102 C.  Both must sit D/S/G on the same nets.
+    """
     f = []
-    if not has_part(nl, "Q13"):
-        return ["Q13 (SQJ461EP) is not in the netlist"]
-    if not value_is(nl, "Q13", "SQJ461EP"):
-        f.append("Q13 value is %r, want SQJ461EP" % nl.parts["Q13"].value)
-    for role, net in (("D", "FEED_B_P"), ("S", "VBAT_B"), ("G", "GATE_B")):
-        pins = nl.pins_of("Q13", role)
-        if not pins:
-            f.append("Q13 has no %s pin (pinfunction)" % role)
-        for p in pins:
-            if nl.net_of("Q13", p) != net:
-                f.append("Q13.%s (%s) should be on %s, found %s" % (p, role, net, nl.net_of("Q13", p)))
+    for ref in ("Q13", "Q14"):
+        if not has_part(nl, ref):
+            f.append("%s (SQJ461EP) is not in the netlist" % ref)
+            continue
+        if not value_is(nl, ref, "SQJ461EP"):
+            f.append("%s value is %r, want SQJ461EP" % (ref, nl.parts[ref].value))
+        for role, net in (("D", "FEED_B_P"), ("S", "VBAT_B"), ("G", "GATE_B")):
+            pins = nl.pins_of(ref, role)
+            if not pins:
+                f.append("%s has no %s pin (pinfunction)" % (ref, role))
+            for p in pins:
+                if nl.net_of(ref, p) != net:
+                    f.append("%s.%s (%s) should be on %s, found %s"
+                             % (ref, p, role, net, nl.net_of(ref, p)))
     return f
 
 

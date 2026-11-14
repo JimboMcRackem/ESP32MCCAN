@@ -3377,10 +3377,10 @@
 			(embedded_fonts no)
 		)
 	)
-	(text_box "FEED B (J9 -> Q13) -- BOTH PODS.  NEVER DIODE-OR IT WITH VBAT.\nFeed B is a second, independent 12 V pigtail for the pod switch U14 (both pods, outputs sheet;\nrevised 2026-11-13).  GND_B leaves this sheet as the pods' return.  It has no eFuse, no buck and no\nfilter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.\n  * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.\n    R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the\n    +/-20 V rating at the 50.6 V clamp.\n  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with\n    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.\n  * NT1 joins GND_B to GND_IN (the connector side of choke L2) at one deliberate point, the star point for\n    the layout phase.  It is NOT tied to GND: that would let feed B's return wire carry part of feed A's load\n    current and bypass L2's return winding (DC common-mode imbalance), and the reverse for feed B's own\n    load.  On GND_IN all board current passes through L2's return winding, balanced.  GND_B must touch\n    nothing else.  NT1 is a wide (2.0 mm) tie: with one feed reversed and the other connected, fault current\n    runs through it until the reversed feed's harness fuse clears, and it must outlast the fuse.\n  * Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed\n    disconnected, and when the whole harness is reversed.  One feed reversed while the other is connected\n    shorts through the shared return (via NT1) until that harness fuse clears.\n  * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.\n  * The 10 A fuse for feed B is HARNESS-SIDE, below the bike's 15 A aux 3 (ratings to confirm on the bike,\n    spec 4.1.1).  There is no fuse here.\nQ13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L\nfootprint's five pads; its Value field is SQJ461EP.  Worst case 6.4 A (both pods at 12 V) is 0.66 W in Q13\nat its 16 mOhm max -- give it copper in layout."
+	(text_box "FEED B (J9 -> Q13) -- BOTH PODS.  NEVER DIODE-OR IT WITH VBAT.\nFeed B is a second, independent 12 V pigtail for the pod switch U14 (both pods, outputs sheet;\nrevised 2026-11-13).  GND_B leaves this sheet as the pods' return.  It has no eFuse, no buck and no\nfilter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.\n  * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.\n    R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the\n    +/-20 V rating at the 50.6 V clamp.\n  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with\n    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.\n  * NT1 joins GND_B to GND_IN (the connector side of choke L2) at one deliberate point, the star point for\n    the layout phase.  It is NOT tied to GND: that would let feed B's return wire carry part of feed A's load\n    current and bypass L2's return winding (DC common-mode imbalance), and the reverse for feed B's own\n    load.  On GND_IN all board current passes through L2's return winding, balanced.  GND_B must touch\n    nothing else.  NT1 is a wide (2.0 mm) tie: with one feed reversed and the other connected, fault current\n    runs through it until the reversed feed's harness fuse clears, and it must outlast the fuse.\n  * Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed\n    disconnected, and when the whole harness is reversed.  One feed reversed while the other is connected\n    shorts through the shared return (via NT1) until that harness fuse clears.\n  * NEVER diode-OR VBAT_B with VBAT.  The feeds stay separate so a fault on one cannot take out the other.\n  * The 10 A fuse for feed B is HARNESS-SIDE, below the bike's 15 A aux 3 (ratings to confirm on the bike,\n    spec 4.1.1).  There is no fuse here.\nQ13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L\nfootprint's five pads; its Value field is SQJ461EP.  Q14 is a second SQJ461EP in PARALLEL (same D/S/G nets):\n6.4 A (both pods at 12 V) in one FET is 0.66-1.05 W and a 128-153 C junction at 85 C ambient; split across\ntwo it is 3.2 A and ~0.26 W each, ~102 C (enclosure.md s.9).  Give both copper in layout."
 		(exclude_from_sim no)
 		(at 240.03 234.95 0)
-		(size 171.45 45.72)
+		(size 171.45 46.99)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
 			(width 0)
@@ -3971,6 +3971,16 @@
 	)
 	(wire
 		(pts
+			(xy 185.42 109.22) (xy 185.42 124.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "69e5f487-6c23-5756-92df-5087f72461b7")
+	)
+	(wire
+		(pts
 			(xy 93.98 118.11) (xy 93.98 114.3)
 		)
 		(stroke
@@ -4261,6 +4271,16 @@
 	)
 	(wire
 		(pts
+			(xy 172.72 116.84) (xy 172.72 119.38)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a5c4cb7d-ee3a-5adf-b976-584cf721b2f5")
+	)
+	(wire
+		(pts
 			(xy 139.7 83.82) (xy 139.7 101.6)
 		)
 		(stroke
@@ -4391,6 +4411,16 @@
 	)
 	(wire
 		(pts
+			(xy 177.8 109.22) (xy 185.42 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c1fcc4a0-7f50-5be9-99fc-35e8a1cce5e0")
+	)
+	(wire
+		(pts
 			(xy 63.5 116.84) (xy 63.5 113.03)
 		)
 		(stroke
@@ -4468,6 +4498,16 @@
 			(type default)
 		)
 		(uuid "d7625795-a3aa-52b5-b6f9-70f300d7c24a")
+	)
+	(wire
+		(pts
+			(xy 152.4 109.22) (xy 167.64 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d9c4f24d-570c-5da3-a13c-9c5373c0e7d7")
 	)
 	(wire
 		(pts
@@ -4648,6 +4688,16 @@
 			(type default)
 		)
 		(uuid "fa3d72d1-0951-582c-8533-853174f48d89")
+	)
+	(label "FEED_B_P"
+		(at 152.4 109.22 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "088e5cce-9e53-545b-ac9f-722a035fb5d9")
 	)
 	(label "FEED_P"
 		(at 34.29 76.2 0)
@@ -4888,6 +4938,16 @@
 			(justify left bottom)
 		)
 		(uuid "ba324f96-dd9d-5789-8167-c4d9d2ddcd65")
+	)
+	(label "GATE_B"
+		(at 172.72 119.38 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "be683704-1988-5c0b-8f90-fd6370e43364")
 	)
 	(label "SNS"
 		(at 104.14 114.3 90)
@@ -6138,6 +6198,96 @@
 			(project "mccan"
 				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/bb7f7a86-b153-4a57-9167-66f1a7c26371"
 					(reference "R3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Transistor_FET:Si7141DP")
+		(at 172.72 111.76 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "4fe067fc-dd1a-54b8-a6c6-1bf479bb69a5")
+		(property "Reference" "Q14"
+			(at 175.26 101.6 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SQJ461EP"
+			(at 175.26 104.14 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Package_SO:PowerPAK_SO-8L_Single"
+			(at 172.72 111.76 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 172.72 111.76 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 172.72 111.76 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "e51c1598-57f5-5061-bfa5-663c8cc2aa12")
+		)
+		(pin "2"
+			(uuid "ce926111-9f64-5cb5-b72c-f4986fa904db")
+		)
+		(pin "3"
+			(uuid "0ce70871-b624-5118-b49c-2695204ddc25")
+		)
+		(pin "4"
+			(uuid "31a977d2-e8c7-5ce4-bccc-8b3c1a271fa0")
+		)
+		(pin "5"
+			(uuid "61d8ef7f-4931-58c5-ad09-390d86409146")
+		)
+		(instances
+			(project "mccan"
+				(path "/7410bb74-5653-4f1b-8c7c-ce17eb633f20/bb7f7a86-b153-4a57-9167-66f1a7c26371"
+					(reference "Q14")
 					(unit 1)
 				)
 			)
@@ -7450,7 +7600,7 @@
 		(dnp no)
 		(uuid "bf25853b-d783-54b5-a0f8-fee7f1187172")
 		(property "Reference" "Q13"
-			(at 175.26 116.84 90)
+			(at 165.1 129.54 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7461,7 +7611,7 @@
 			)
 		)
 		(property "Value" "SQJ461EP"
-			(at 175.26 119.38 90)
+			(at 165.1 132.08 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects

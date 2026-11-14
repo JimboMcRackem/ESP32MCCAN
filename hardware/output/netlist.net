@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN-pcb\\hardware\\mccan.kicad_sch")
-		(date "2026-11-13T23:23:21")
+		(date "2026-11-14T09:02:14")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -1640,6 +1640,69 @@
 				(tstamps "/bb7f7a86-b153-4a57-9167-66f1a7c26371/")
 			)
 			(tstamps "bf25853b-d783-54b5-a0f8-fee7f1187172")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "Q14")
+			(value "SQJ461EP")
+			(footprint "Package_SO:PowerPAK_SO-8L_Single")
+			(fields
+				(field
+					(name "Footprint") "Package_SO:PowerPAK_SO-8L_Single")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "Transistor_FET")
+				(part "Si7141DP")
+				(description "-60A Id, -20V Vds, 1.9 mOhm Ron, PowerPAK-8")
+			)
+			(property
+				(name "Sheetname")
+				(value "power_input")
+			)
+			(property
+				(name "Sheetfile")
+				(value "sheets/power_input.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "P-Channel MOSFET")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "PowerPAK*SO*Single*")
+			)
+			(sheetpath
+				(names "/power_input/")
+				(tstamps "/bb7f7a86-b153-4a57-9167-66f1a7c26371/")
+			)
+			(tstamps "4fe067fc-dd1a-54b8-a6c6-1bf479bb69a5")
 			(units
 				(unit
 					(name "A")
@@ -12812,7 +12875,7 @@
 		(net
 			(code "1")
 			(name "/+3V3_ALW")
-			(class "Default")
+			(class "POWER")
 			(node
 				(ref "C10")
 				(pin "1")
@@ -13204,7 +13267,7 @@
 		(net
 			(code "10")
 			(name "/GND_B")
-			(class "Default")
+			(class "FEED_B")
 			(node
 				(ref "C66")
 				(pin "2")
@@ -13719,7 +13782,7 @@
 		(net
 			(code "27")
 			(name "/VBAT_B")
-			(class "Default")
+			(class "FEED_B")
 			(node
 				(ref "C66")
 				(pin "1")
@@ -13761,6 +13824,24 @@
 			)
 			(node
 				(ref "Q13")
+				(pin "3")
+				(pinfunction "S_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q14")
+				(pin "1")
+				(pinfunction "S_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q14")
+				(pin "2")
+				(pinfunction "S_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q14")
 				(pin "3")
 				(pinfunction "S_3")
 				(pintype "passive")
@@ -14890,6 +14971,12 @@
 				(pinfunction "D_5")
 				(pintype "passive")
 			)
+			(node
+				(ref "Q14")
+				(pin "5")
+				(pinfunction "D_5")
+				(pintype "passive")
+			)
 		)
 		(net
 			(code "76")
@@ -14936,6 +15023,12 @@
 			)
 			(node
 				(ref "Q13")
+				(pin "4")
+				(pinfunction "G_4")
+				(pintype "input")
+			)
+			(node
+				(ref "Q14")
 				(pin "4")
 				(pinfunction "G_4")
 				(pintype "input")

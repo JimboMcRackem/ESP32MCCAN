@@ -145,59 +145,27 @@ def seg_in_poly(x0, y0, x1, y1, w, poly):
     return False
 
 
-def reach(fps, zs, trs, vs, tht):
-    """Failures for GND_B copper not connected to J9.2."""
-    f = []
-    j92 = [p for p in fps.get("J9", {"pads": []})["pads"] if p[0] == "2"]
-    if not j92:
+def reach(text):
+    """Failures for GND_B copper not connected to J9.2.
+
+    Task 6: connectivity is check_power_paths.Graph's -- a track joins a pad anywhere it
+    overlaps the pad (SMD or THT), and a track joins a track anywhere they touch.  The Task 5
+    version linked a track to a pad only at the pad centre and to another track only at a
+    shared endpoint, which reported the feed-B decoupling stubs as islands."""
+    from check_power_paths import load, Graph
+    g = Graph(load(text), "GND_B")
+    start = g.index("J9.2")
+    if not start:
         return ["reach: J9 pad 2 not found"]
-    bz = [z for z in zs if z[0] == "GND_B"]
-    bt = [t for t in trs if t[0] == "GND_B"]
-    bv = [v for v in vs if v[0] == "GND_B"]
-    bp = [p for _r, p in tht if p[5] == "GND_B"]
-    pts = {"v": [(v[1], v[2]) for v in bv], "p": [(p[1], p[2]) for p in bp]}
-
-    def touch(a, b):
-        (ka, ia), (kb, ib) = sorted((a, b))
-        if kb == "z" and ka in ("p", "v"):       # pierces every layer
-            x, y = pts[ka][ia]
-            return point_in_poly(x, y, bz[ib][2])
-        if ka == "t" and kb == "z":
-            t = bt[ia]
-            return t[1] == bz[ib][1] and seg_in_poly(t[2], t[3], t[4], t[5], t[6], bz[ib][2])
-        if ka == "t" and kb == "t":
-            t, u = bt[ia], bt[ib]
-            return t[1] == u[1] and any(math.hypot(a0 - b0, a1 - b1) < 1e-3
-                                        for a0, a1 in ((t[2], t[3]), (t[4], t[5]))
-                                        for b0, b1 in ((u[2], u[3]), (u[4], u[5])))
-        if ka == "p" and kb == "t" or ka == "t" and kb == "v":
-            ti, (k, i) = (ib, (ka, ia)) if kb == "t" else (ia, (kb, ib))
-            t = bt[ti]
-            x, y = pts[k][i]
-            return seg_point_dist(t[2], t[3], t[4], t[5], x, y) < t[6] / 2 + 0.05
-        return False
-
-    nodes = ([("z", i) for i in range(len(bz))] + [("t", i) for i in range(len(bt))]
-             + [("v", i) for i in range(len(bv))] + [("p", i) for i in range(len(bp))])
-    start = [("p", i) for i, (x, y) in enumerate(pts["p"])
-             if abs(x - j92[0][1]) < 1e-3 and abs(y - j92[0][2]) < 1e-3]
-    seen, todo = set(start), list(start)
-    while todo:
-        a = todo.pop()
-        for b in nodes:
-            if b not in seen and touch(a, b):
-                seen.add(b)
-                todo.append(b)
-    for k, i in nodes:
-        if (k, i) in seen or k == "p":
+    seen = g.component(start[0])
+    f = []
+    for i, it in enumerate(g.items):
+        if i in seen or it[0] == "pad":
             continue
-        if k == "z":
-            f.append("reach: GND_B zone %s on %s is not connected to J9.2" % (bz[i][3], bz[i][1]))
-        elif k == "t":
-            f.append("reach: GND_B track at (%.2f, %.2f) on %s is not connected to J9.2"
-                     % (bt[i][2], bt[i][3], bt[i][1]))
-        else:
-            f.append("reach: GND_B via at (%.2f, %.2f) is not connected to J9.2" % pts["v"][i])
+        f.append("reach: GND_B %s %s is not connected to J9.2" % (it[0], it[1]))
+    for i, it in enumerate(g.items):
+        if it[0] == "pad" and i not in seen:
+            f.append("reach: GND_B pad %s is not connected to J9.2" % it[1])
     return f
 
 
@@ -249,7 +217,7 @@ def check():
                          % (tn, x0, y0, x1, y1, tl, zname, net))
 
     # 4. GND_B reachability from J9.2
-    f += reach(fps, zs, trs, vs, tht)
+    f += reach(text)
 
     # 5. pod returns over GND_B copper only
     for ref, pad in POD_PADS:

@@ -183,8 +183,9 @@ filter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.
   * The 10 A fuse for feed B is HARNESS-SIDE, below the bike's 15 A aux 3 (ratings to confirm on the bike,
     spec 4.1.1).  There is no fuse here.
 Q13 uses the Si7141DP symbol (S = pins 1-3, G = 4, D = 5) because it matches the SQJ461EP PowerPAK SO-8L
-footprint's five pads; its Value field is SQJ461EP.  Worst case 6.4 A (both pods at 12 V) is 0.66 W in Q13
-at its 16 mOhm max -- give it copper in layout.""")
+footprint's five pads; its Value field is SQJ461EP.  Q14 is a second SQJ461EP in PARALLEL (same D/S/G nets):
+6.4 A (both pods at 12 V) in one FET is 0.66-1.05 W and a 128-153 C junction at 85 C ambient; split across
+two it is 3.2 A and ~0.26 W each, ~102 C (enclosure.md s.9).  Give both copper in layout.""")
 
 # ---------------------------------------------------------------- split ground
 _box("below", '''COMMON-MODE CHOKE AND THE SPLIT GROUND -- DO NOT "TIDY" THIS

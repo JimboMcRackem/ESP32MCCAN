@@ -322,7 +322,7 @@ def main():
     # graded with the power/route population instead: counted, their pad landings named, and
     # only a landing in ANOTHER net's pad is a failure -- which is the rule that fits them.
     import layout_pcb as _L
-    route = set((round(x, 3), round(y, 3)) for _n, x, y, _d, _dr in _L.ROUTE_VIAS)
+    route = set((round(x, 3), round(y, 3)) for _n, x, y, *_rest in _L.ROUTE_VIAS)
 
     def _small_route(v):
         # Only the sub-0.6 ones need rescuing; at 0.6 and above the two rules below already

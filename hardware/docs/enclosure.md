@@ -444,3 +444,41 @@ elsewhere. Both are drawn on the board's `Cmts.User` layer so the coating house 
 | Vent part number | Catalogue lookup |
 | Gland cutout diameters and minimum spacing | Gland datasheets (5 × M12, 2 × M16) |
 | ~~`harness.md` §6~~ **RESOLVED 2026-09-22** | Rewritten for the eFuse. §4 no longer claims a 10 A panel fuse, and §6's accepted risk now says what it always meant: the protection is at the wrong end of the cable, and that was as true of the panel fuse as it is of F1. The one thing it could not answer is what the **vehicle** fuses the peripheral outlet with, which is now a **[TO CONFIRM]** in harness.md rather than an assumption. |
+
+---
+
+## 9. Plan4 dissipation tally (140 × 100 mm, no plate) — 2026-11-14
+
+The phase B spec's decision table decided "no heat-spreader plate, copper alone is enough", subject to this
+tally at the **85 °C design ambient**. Sections 1–3 above are the retired plan3 board and do not
+apply to plan4. Loads: pods 3.2 A each, 6.4 A on feed B (spec), indicator/DRL/brake channels
+≤ 0.08 A (emarked spec §2.1), feed A ≤ 0.87 A (aux-stage spec A10), 3V3 ≤ 0.5 A (WiFi TX peak
+taken as continuous), 5 V ≤ 0.1 A (2026-09-11 hardware spec, rail table).
+
+| Part | Loss | θJA used | Tj at 85 °C | Verdict |
+|---|---|---|---|---|
+| **Q13 SQJ461EP** (feed B reverse-polarity P-FET) | 6.4² × 16 mΩ = **0.66 W** at the 25 °C max R<sub>DS(on)</sub>; **0.85–1.05 W** once R<sub>DS(on)</sub> rises 1.3–1.6× with temperature (typical P-FET coefficient — the SQJ461EP curve was not re-read in this pass) | 65 °C/W (datasheet, PCB-mounted). Not scaled down: the drain copper is 125 mm² on F.Cu + 125 mm² on In5 + 65 mm² on B.Cu, tied by a 4 × 4 via array — less than the datasheet's 1 in² (645 mm²) reference pad | **128 °C** cold-R; **140–153 °C** self-consistent | **FAIL alone** — Tj > 125 °C (below the 175 °C rating, over the brief's 125 °C line). **Fixed by Q14, below** |
+| U14 BTS7008-2EPA (pod switch) | 2 × 3.2² × 16 mΩ (max, 150 °C) = 0.33 W | 30.9 K/W (JEDEC 2s2p); EP on the solid VBAT_B pours | ≈ 95 °C | PASS |
+| U11–U13 TPS4HC120A | 4 × 0.08² × 250 mΩ (150 °C) = 6 mW per chip, plus quiescent (bounded at 10 mA × 14.4 V = 0.14 W, not read from the datasheet) | 32.1 °C/W | ≤ 90 °C | PASS |
+| U1 LM5164 (3V3) | 1.65 W out at an assumed 80 % → 0.41 W (bound) | 43.4 °C/W | ≈ 103 °C | PASS |
+| U2 LM5164 (5 V) | 0.5 W out at an assumed 75 % → 0.17 W | 43.4 °C/W | ≈ 92 °C | PASS |
+| R100 33 mΩ | 0.87² × 33 mΩ = 25 mW of 1 W | — | — | PASS |
+| Q10/Q11 IPT007N06N | 0.87² × 0.7 mΩ ≈ 0.5 mW each | — | — | PASS |
+| D2/D25 SMBJ24A, D24 Zener | 0 steady state (24 V standoff > 14.4 V) | — | — | PASS |
+| **Board total** | **≈ 1.8–2.2 W** | | | |
+
+**Q13 alone fails.** One SQJ461EP needs θJA ≤ (125 − 85) / 1.05 ≈ 38 °C/W at its hot
+resistance, which 315 mm² of drain copper does not give.
+
+**Resolved 2026-11-14 (owner's choice of four): Q14, a second SQJ461EP in parallel.** It
+sits 11.5 mm north of Q13 on the same pours (tab on FEED_B_P on F.Cu / In5 / B.Cu, source pins
+on the VBAT_B F.Cu pour with its own 12 vias to In3). Each FET now carries 3.2 A:
+
+| Part | Loss | θJA used | Tj at 85 °C | Verdict |
+|---|---|---|---|---|
+| Q13, Q14 SQJ461EP (each) | 3.2² × 25.6 mΩ (16 mΩ × 1.6, hot) = **0.26 W** | 65 °C/W, unscaled | **≈ 102 °C** | PASS |
+
+Two parallel P-FETs share current well: R<sub>DS(on)</sub> rises with temperature, so the hotter
+one sheds current to the cooler one. Board total with the split: ≈ 1.4–1.6 W. The options not
+taken were an N-FET ideal diode (≈ 30 mW, a controller and charge pump), reinstating a plate,
+and lowering the design ambient (65 °C still leaves one FET at ≈ 125 °C).

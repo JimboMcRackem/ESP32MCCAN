@@ -687,10 +687,25 @@ def place(comps):
         hand["H%d" % (i + 1)] = (mx + ox - w / 2, my + oy - h / 2,
                                  mx + ox + w / 2, my + oy + h / 2)
         grid.mark(mx - 3.5, my - 3.5, mx + 3.5, my + 3.5)
-    for _name, (kx0, ky0, kx1, ky1), _lays in L.KEEPOUTS:
-        grid.mark(kx0, ky0, kx1, ky1)
+    for ko in L.KEEPOUTS:
+        grid.mark(*ko[1])
     for rx0, ry0, rx1, ry1 in L.RESERVED:
         grid.mark(rx0, ry0, rx1, ry1)
+    # Hand routes (Task 6) are laid before the auto-flow runs: F.Cu tracks and every (through)
+    # via are stamped on the grid, so the flow cannot drop a part on them.  Inner-layer tracks
+    # do not collide with parts and are left off.
+    for _n, layer, w, pts, _t in L.ROUTES:
+        if layer != "F.Cu":
+            continue
+        r = w / 2 + 0.4
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            k = max(1, int(math.hypot(x1 - x0, y1 - y0) / (RES / 2)))
+            for i in range(k + 1):
+                x, y = x0 + (x1 - x0) * i / k, y0 + (y1 - y0) * i / k
+                grid.mark(x - r, y - r, x + r, y + r)
+    for _n, x, y, size, _d, _t in L.ROUTE_VIAS:
+        r = size / 2 + 0.4
+        grid.mark(x - r, y - r, x + r, y + r)
 
     # Accumulate rather than print-and-continue, for the reason routes() now accumulates:
     # an "ERROR:" that still writes a board is not a gate.  Demonstrated, on a throwaway copy
@@ -845,7 +860,8 @@ BOOST_PITCH = 3.0       # denser around the switch node, per Step 6
 # is deliberately absent: its island is F.Cu only, so a via from a GND_IN pad would arrive at
 # the In1.Cu GND plane -- the one net it must not touch.
 # Nets that own a plane or pour a thermal-via array can land in (plan4: Task 5 zones).
-PLANED_NETS = ("GND", "/VBAT", "/VBAT_B", "/GND_B", "/power_input/GND_IN")
+PLANED_NETS = ("GND", "/VBAT", "/VBAT_B", "/GND_B", "/power_input/GND_IN",
+               "/power_input/FEED_B_P")   # Q13's tab -> its In5 / B.Cu pours (Task 6)
 
 
 def pads_local(c):
@@ -1902,6 +1918,23 @@ def _edge_dist(x, y, poly):
     return best
 
 
+def _clear_of_routes(x, y):
+    """A stitching via keeps STITCH_CLEAR from every hand route and route via (Task 6): the
+    grid knows nothing of them otherwise and lands on them."""
+    r = STITCH_SIZE / 2 + STITCH_CLEAR
+    for _n, _l, w, pts, _t in L.ROUTES:
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            dx, dy = x1 - x0, y1 - y0
+            n = dx * dx + dy * dy
+            t = 0.0 if n == 0 else max(0.0, min(1.0, ((x - x0) * dx + (y - y0) * dy) / n))
+            if math.hypot(x0 + t * dx - x, y0 + t * dy - y) < r + w / 2:
+                return False
+    for _n, vx, vy, size, _d, _t in L.ROUTE_VIAS:
+        if math.hypot(vx - x, vy - y) < r + size / 2:
+            return False
+    return True
+
+
 def stitch_vias(comps, pos, netidx):
     """Ground stitching from layout_pcb.STITCH: (net, polygon, pitch).
 
@@ -1928,7 +1961,8 @@ def stitch_vias(comps, pos, netidx):
                       and L.X0 + 1.5 <= x <= L.X1 - 1.5 and L.Y0 + 1.5 <= y <= L.Y1 - 1.5
                       and not any(b[0] - r < x < b[2] + r and b[1] - r < y < b[3] + r
                                   for b in blocked)
-                      and all(math.hypot(x - hx, y - hy) > 4.0 for hx, hy in holes))
+                      and all(math.hypot(x - hx, y - hy) > 4.0 for hx, hy in holes)
+                      and _clear_of_routes(x, y))
                 if ok:
                     out.append(via(x, y, code, STITCH_SIZE, STITCH_DRILL,
                                    "stitch:%s:%.2f:%.2f" % (net, x, y)))
@@ -1945,7 +1979,12 @@ def keepouts():
     No tracks, vias, pads or pour inside; footprints are allowed (U5's own antenna end lies in
     the antenna keep-out -- it is the antenna).  "*.Cu" expands to the board's 8 layers."""
     out = []
-    for name, (x0, y0, x1, y1), layers in L.KEEPOUTS:
+    for ko in L.KEEPOUTS:
+        # optional 4th element: the kinds NOT allowed (default all four)
+        name, (x0, y0, x1, y1), layers = ko[:3]
+        deny = ko[3] if len(ko) > 3 else ("tracks", "vias", "pads", "copperpour")
+        rule = "".join("\t\t\t(%s %s)\n" % (k, "not_allowed" if k in deny else "allowed")
+                       for k in ("tracks", "vias", "pads", "copperpour"))
         lays = []
         for l in layers:
             lays += CU_LAYERS if l == "*.Cu" else [l]
@@ -1954,12 +1993,11 @@ def keepouts():
         out.append('\t(zone\n\t\t(net 0)\n\t\t(net_name "")\n\t\t(layers %s)\n\t\t(uuid %s)\n'
                    '\t\t(name %s)\n\t\t(hatch edge 0.5)\n\t\t(connect_pads\n\t\t\t(clearance 0)\n'
                    '\t\t)\n\t\t(min_thickness 0.25)\n\t\t(filled_areas_thickness no)\n'
-                   '\t\t(keepout\n\t\t\t(tracks not_allowed)\n\t\t\t(vias not_allowed)\n'
-                   '\t\t\t(pads not_allowed)\n\t\t\t(copperpour not_allowed)\n'
+                   '\t\t(keepout\n%s'
                    '\t\t\t(footprints allowed)\n\t\t)\n'
                    '\t\t(fill\n\t\t\t(thermal_gap 0.5)\n\t\t\t(thermal_bridge_width 0.5)\n\t\t)\n'
                    '\t\t(polygon\n\t\t\t(pts\n\t\t\t\t%s\n\t\t\t)\n\t\t)\n\t)'
-                   % (" ".join(q(l) for l in lays), U("keepout:" + name), q(name), pts))
+                   % (" ".join(q(l) for l in lays), U("keepout:" + name), q(name), rule, pts))
     return out
 
 
@@ -1970,19 +2008,23 @@ def zones(netidx):
     only, so it stays byte-stable across regenerations.
     """
     out = []
-    for net, layers, poly, name, prio in L.ZONES:
+    for zn in L.ZONES:
+        # optional 6th element "solid": pads connect with no thermal relief (power pours --
+        # two 0.4 mm spokes per layer cannot carry 6.4 A; check_power_paths.py)
+        net, layers, poly, name, prio = zn[:5]
+        solid = len(zn) > 5 and zn[5] == "solid"
         code = netidx.get(net)
         if code is None:
             raise SystemExit("gen_pcb: zone %s names net %s, which is not in the netlist" % (name, net))
         pts = " ".join("(xy %s %s)" % (num(x), num(y)) for x, y in poly)
         out.append('\t(zone\n\t\t(net %d)\n\t\t(net_name %s)\n\t\t(layers %s)\n'
                    '\t\t(uuid %s)\n\t\t(name %s)\n\t\t(hatch edge 0.5)\n\t\t(priority %d)\n'
-                   '\t\t(connect_pads\n\t\t\t(clearance 0.3)\n\t\t)\n'
+                   '\t\t(connect_pads%s\n\t\t\t(clearance 0.3)\n\t\t)\n'
                    '\t\t(min_thickness 0.2)\n\t\t(filled_areas_thickness no)\n'
                    '\t\t(fill\n\t\t\t(thermal_gap 0.3)\n\t\t\t(thermal_bridge_width 0.4)\n\t\t)\n'
                    '\t\t(polygon\n\t\t\t(pts\n\t\t\t\t%s\n\t\t\t)\n\t\t)\n\t)'
                    % (code, q(NETNAME[code]), " ".join(q(x) for x in layers), U("zone:" + name), q(name),
-                      prio, pts))
+                      prio, " yes" if solid else "", pts))
     return out
 
 
