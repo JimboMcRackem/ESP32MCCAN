@@ -1,0 +1,602 @@
+# -*- coding: utf-8 -*-
+"""Fix LM51571-Q1 pin electrical types and add the DML3017LDC smart load switch."""
+import io, os, re
+
+# Resolved from this file, not hard-coded, so a worktree regenerates its own library.
+LIB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "symbols", "mccan_parts.kicad_sym")
+s = io.open(LIB, encoding="utf-8").read()
+
+# ---------------------------------------------------------------- 1. pin types
+# Datasheet SNVSBK8B Table 7-1 types, mapped to KiCad electrical types so that
+# ERC stops inventing violations that do not exist in the circuit.
+NEWTYPE = {
+    "2":  "power_out",     # VCC is the OUTPUT of the internal LDO, not a supply input
+    # BIAS is the supply input to that LDO, but R16 sits between it and VBAT, so as
+    # far as ERC is concerned the pin lives on an isolated passive net.
+    "3":  "passive",
+    "4":  "open_collector",# PGOOD
+    "5":  "passive",       # RT  - resistor to AGND
+    "8":  "passive",       # COMP - compensation network
+    "10": "passive",       # SS  - capacitor
+    "11": "passive",       # MODE - resistor to AGND
+    "12": "passive",       # SW x3 are one internal node; 'power_in' was wrong and
+    "13": "passive",       # made ERC demand a driver for the converter's own
+    "14": "passive",       # switch node
+    "15": "no_connect",    # NC
+    "17": "passive",       # EP thermal pad
+}
+
+def balanced_end(text, at):
+    """Index just past the s-expression whose first '(' is at or after `at`."""
+    depth, j = 0, text.index("(", at)
+    while True:
+        c = text[j]
+        if c == '"':
+            j += 1
+            while text[j] != '"' or text[j - 1] == "\\":
+                j += 1
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return j + 1
+        j += 1
+
+# Bound the scan to the LM51571 symbol.  The DML3017LDC further down the file reuses
+# the same pin numbers, so an unbounded scan retypes its pins as well.
+start = s.index('(symbol "LM51571QRTERQ1_0_1"')
+stop = balanced_end(s, s.index('\t(symbol "LM51571QRTERQ1"'))
+
+def fix(m):
+    body = m.group(0)
+    num = re.search(r'\(number "(\d+)"', body)
+    if num and num.group(1) in NEWTYPE:
+        return re.sub(r'\(pin \w+ line', '(pin %s line' % NEWTYPE[num.group(1)], body, count=1)
+    return body
+
+PIN_RE = re.compile(r'\(pin \w+ line\n(?:\t+\(.*\n|\t+\).*\n|.*?\n)*?\t+\)\n(?=\t+\(pin |\t+\)\n)')
+head, tail, rest = s[:start], s[start:stop], s[stop:]
+n = [0]
+def fix2(m):
+    body = m.group(0)
+    num = re.search(r'\(number "(\d+)"', body)
+    if num and num.group(1) in NEWTYPE:
+        n[0] += 1
+        return re.sub(r'\(pin \w+ line', '(pin %s line' % NEWTYPE[num.group(1)], body, count=1)
+    return body
+
+# operate pin-block by pin-block using a simple scanner
+out, i = [], 0
+while True:
+    k = tail.find("(pin ", i)
+    if k < 0:
+        out.append(tail[i:]); break
+    out.append(tail[i:k])
+    # find the matching close paren
+    depth, j = 0, k
+    while True:
+        c = tail[j]
+        if c == '"':
+            j += 1
+            while tail[j] != '"' or tail[j-1] == "\\":
+                j += 1
+        elif c == "(": depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0: break
+        j += 1
+    body = tail[k:j+1]
+    num = re.search(r'\(number "(\d+)"', body)
+    if num and num.group(1) in NEWTYPE:
+        body = re.sub(r'\(pin \w+ line', '(pin %s line' % NEWTYPE[num.group(1)], body, count=1)
+        n[0] += 1
+    out.append(body)
+    i = j + 1
+s = head + "".join(out) + rest
+print("LM51571 pin types changed:", n[0], "of", len(NEWTYPE))
+assert n[0] == len(NEWTYPE)
+
+# ---------------------------------------------------------------- 2. DML3017LDC
+# Diodes DS46371 Rev. 1-2, October 2024.  Pin Description table, p.3:
+#   1,13 VIN (pin 1 must connect to pin 13)   2 EN (active high, internal pulldown)
+#   3 VCC (3.0-5.5 V)   4 GND   5 SR (slew rate)   6 PG (open drain)
+#   7 BLEED (must tie to VOUT)   8-12 VOUT
+PINS = [
+    # num, name, type, x, y, angle
+    ("1",  "VIN",   "power_in",       -12.7,  10.16,   0),
+    ("13", "VIN",   "power_in",       -12.7,   7.62,   0),
+    ("3",  "VCC",   "power_in",       -12.7,   2.54,   0),
+    ("2",  "EN",    "input",          -12.7,  -2.54,   0),
+    ("5",  "SR",    "passive",        -12.7,  -7.62,   0),
+    ("12", "VOUT",  "passive",         12.7,  10.16, 180),
+    ("11", "VOUT",  "passive",         12.7,   7.62, 180),
+    ("10", "VOUT",  "passive",         12.7,   5.08, 180),
+    ("9",  "VOUT",  "passive",         12.7,   2.54, 180),
+    ("8",  "VOUT",  "passive",         12.7,   0.0,  180),
+    ("7",  "BLEED", "passive",         12.7,  -5.08, 180),
+    ("6",  "PG",    "passive",         12.7, -10.16, 180),
+    ("4",  "GND",   "power_in",         0.0, -15.24,  90),
+]
+
+def num(v):
+    t = ("%.4f" % v).rstrip("0").rstrip(".")
+    return t if t not in ("", "-0") else "0"
+
+L = []
+A = L.append
+A('\t(symbol "DML3017LDC"')
+A('\t\t(pin_names')
+A('\t\t\t(offset 0.254)')
+A('\t\t)')
+A('\t\t(exclude_from_sim no)')
+A('\t\t(in_bom yes)')
+A('\t\t(on_board yes)')
+A('\t\t(in_pos_files yes)')
+A('\t\t(duplicate_pin_numbers_are_jumpers no)')
+for name, val, hide in (("Reference", "U", False), ("Value", "DML3017LDC", False),
+                        ("Footprint", "", True),
+                        ("Datasheet", "https://www.diodes.com/assets/Datasheets/DML3017LDC.pdf", True),
+                        ("Description", "Single-channel smart load switch, 0.5-20 V in, active-high EN with internal pulldown, soft-start, short-circuit and thermal protection, power-good, V-DFN3030-12", True)):
+    A('\t\t(property "%s" "%s"' % (name, val))
+    A('\t\t\t(at 0 %s 0)' % ("17.78" if name == "Reference" else "15.24" if name == "Value" else "0"))
+    A('\t\t\t(show_name no)')
+    A('\t\t\t(do_not_autoplace no)')
+    if hide:
+        A('\t\t\t(hide yes)')
+    A('\t\t\t(effects')
+    A('\t\t\t\t(font')
+    A('\t\t\t\t\t(size 1.27 1.27)')
+    if hide:
+        A('\t\t\t\t\t(italic yes)')
+    A('\t\t\t\t)')
+    A('\t\t\t)')
+    A('\t\t)')
+A('\t\t(symbol "DML3017LDC_0_1"')
+A('\t\t\t(rectangle')
+A('\t\t\t\t(start -10.16 12.7)')
+A('\t\t\t\t(end 10.16 -12.7)')
+A('\t\t\t\t(stroke')
+A('\t\t\t\t\t(width 0.254)')
+A('\t\t\t\t\t(type default)')
+A('\t\t\t\t)')
+A('\t\t\t\t(fill')
+A('\t\t\t\t\t(type background)')
+A('\t\t\t\t)')
+A('\t\t\t)')
+for pnum, pname, ptype, x, y, ang in PINS:
+    A('\t\t\t(pin %s line' % ptype)
+    A('\t\t\t\t(at %s %s %d)' % (num(x), num(y), ang))
+    A('\t\t\t\t(length 2.54)')
+    A('\t\t\t\t(name "%s"' % pname)
+    A('\t\t\t\t\t(effects')
+    A('\t\t\t\t\t\t(font')
+    A('\t\t\t\t\t\t\t(size 1.27 1.27)')
+    A('\t\t\t\t\t\t)')
+    A('\t\t\t\t\t)')
+    A('\t\t\t\t)')
+    A('\t\t\t\t(number "%s"' % pnum)
+    A('\t\t\t\t\t(effects')
+    A('\t\t\t\t\t\t(font')
+    A('\t\t\t\t\t\t\t(size 1.27 1.27)')
+    A('\t\t\t\t\t\t)')
+    A('\t\t\t\t\t)')
+    A('\t\t\t\t)')
+    A('\t\t\t)')
+A('\t\t)')
+A('\t)')
+NEW = "\n".join(L) + "\n"
+
+if '(symbol "DML3017LDC"' in s:
+    a = s.index('\t(symbol "DML3017LDC"')
+    # find its balanced end
+    depth, j = 0, s.index("(", a)
+    while True:
+        c = s[j]
+        if c == '"':
+            j += 1
+            while s[j] != '"' or s[j-1] == "\\":
+                j += 1
+        elif c == "(": depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0: break
+        j += 1
+    s = s[:a] + NEW.rstrip("\n") + s[j+1:]
+    print("DML3017LDC symbol replaced")
+else:
+    k = s.rstrip().rfind(")")
+    s = s[:k] + NEW + ")\n"
+    print("DML3017LDC symbol appended")
+
+io.open(LIB, "w", encoding="utf-8", newline="\n").write(s)
+print("written")
+
+STOCKFET = r"C:\Program Files\KiCad\10.0\share\kicad\symbols\Transistor_FET.kicad_sym"
+STOCKDEV = r"C:\Program Files\KiCad\10.0\share\kicad\symbols\Device.kicad_sym"
+
+
+def extract_graphics(path, symname):
+    """Return the graphic children of <symname>_0_1, at 2-tab indentation."""
+    src = io.open(path, encoding="utf-8").read()
+    i = src.index('(symbol "%s_0_1"' % symname)
+    end = balanced_end(src, i)
+    blk = src[src.index("(", i):end]
+    lines = blk.split("\n")[1:-1]          # drop the wrapper and its closing paren
+    out = []
+    for ln in lines:
+        stripped = ln.lstrip("\t")
+        depth = len(ln) - len(stripped)
+        out.append("\t" * (depth - 2 + 2) + stripped)
+    return "\n".join(out)
+
+
+
+# ================================================================ generic builder
+def emit(name, value, desc, datasheet, units, rect=None, graphics_from=None):
+    """units: {unit_no: [(number, pinname, type, x, y, angle), ...]}"""
+    L = []
+    A = L.append
+    A('\t(symbol "%s"' % name)
+    A('\t\t(pin_names')
+    A('\t\t\t(offset 0.254)')
+    A('\t\t)')
+    A('\t\t(exclude_from_sim no)')
+    A('\t\t(in_bom yes)')
+    A('\t\t(on_board yes)')
+    A('\t\t(in_pos_files yes)')
+    A('\t\t(duplicate_pin_numbers_are_jumpers no)')
+    for pname, pval, hide in (("Reference", "U", False), ("Value", value, False),
+                              ("Footprint", "", True), ("Datasheet", datasheet, True),
+                              ("Description", desc, True)):
+        A('\t\t(property "%s" "%s"' % (pname, pval))
+        A('\t\t\t(at 0 %s 0)' % ("2.54" if pname == "Reference" else "0"))
+        A('\t\t\t(show_name no)')
+        A('\t\t\t(do_not_autoplace no)')
+        if hide:
+            A('\t\t\t(hide yes)')
+        A('\t\t\t(effects')
+        A('\t\t\t\t(font')
+        A('\t\t\t\t\t(size 1.27 1.27)')
+        if hide:
+            A('\t\t\t\t\t(italic yes)')
+        A('\t\t\t\t)')
+        A('\t\t\t)')
+        A('\t\t)')
+    for unit, pinlist in sorted(units.items()):
+        A('\t\t(symbol "%s_%d_1"' % (name.split(":")[-1], unit))
+        if graphics_from:
+            for ln in graphics_from.split("\n"):
+                A("\t" + ln if ln.strip() else ln)
+        elif rect:
+            x0, y0, x1, y1 = rect
+            A('\t\t\t(rectangle')
+            A('\t\t\t\t(start %s %s)' % (x0, y0))
+            A('\t\t\t\t(end %s %s)' % (x1, y1))
+            A('\t\t\t\t(stroke')
+            A('\t\t\t\t\t(width 0.254)')
+            A('\t\t\t\t\t(type default)')
+            A('\t\t\t\t)')
+            A('\t\t\t\t(fill')
+            A('\t\t\t\t\t(type background)')
+            A('\t\t\t\t)')
+            A('\t\t\t)')
+        for pnum, pname, ptype, px, py, ang in pinlist:
+            A('\t\t\t(pin %s line' % ptype)
+            A('\t\t\t\t(at %s %s %d)' % (fs_(px), fs_(py), ang))
+            A('\t\t\t\t(length 2.54)')
+            A('\t\t\t\t(name "%s"' % pname)
+            A('\t\t\t\t\t(effects')
+            A('\t\t\t\t\t\t(font')
+            A('\t\t\t\t\t\t\t(size 1.27 1.27)')
+            A('\t\t\t\t\t\t)')
+            A('\t\t\t\t\t)')
+            A('\t\t\t\t)')
+            A('\t\t\t\t(number "%s"' % pnum)
+            A('\t\t\t\t\t(effects')
+            A('\t\t\t\t\t\t(font')
+            A('\t\t\t\t\t\t\t(size 1.27 1.27)')
+            A('\t\t\t\t\t\t)')
+            A('\t\t\t\t\t)')
+            A('\t\t\t\t)')
+            A('\t\t\t)')
+        A('\t\t)')
+    A('\t)')
+    return "\n".join(L) + "\n"
+
+
+def fs_(v):
+    t = ("%.4f" % v).rstrip("0").rstrip(".")
+    return t if t not in ("", "-0") else "0"
+
+
+def install(lib_text, name, block):
+    if '(symbol "%s"' % name in lib_text:
+        a = lib_text.index('\t(symbol "%s"' % name)
+        b = balanced_end(lib_text, a)
+        return lib_text[:a] + block.rstrip("\n") + lib_text[b:], "replaced"
+    k = lib_text.rstrip().rfind(")")
+    return lib_text[:k] + block + ")\n", "appended"
+
+
+# ---------------------------------------------------------------- ADG706
+# ADG706_707.pdf, PIN CONFIGURATIONS (TSSOP-28):
+#   1 VDD  2 NC  3 NC  4 S16  5 S15  6 S14  7 S13  8 S12  9 S11  10 S10  11 S9
+#   12 GND  13 NC  14 A3  15 A2  16 A1  17 A0  18 EN  19 S1  20 S2  21 S3  22 S4
+#   23 S5  24 S6  25 S7  26 S8  27 VSS  28 D
+_S_NUM = {1: "19", 2: "20", 3: "21", 4: "22", 5: "23", 6: "24", 7: "25", 8: "26",
+          9: "11", 10: "10", 11: "9", 12: "8", 13: "7", 14: "6", 15: "5", 16: "4"}
+_adg = []
+for _i in range(1, 17):
+    _adg.append((_S_NUM[_i], "S%d" % _i, "passive", -15.24, 17.78 - (_i - 1) * 2.54, 0))
+_adg += [
+    ("28", "D",   "passive",    15.24,  17.78, 180),
+    ("18", "EN",  "input",      15.24,   7.62, 180),
+    ("17", "A0",  "input",      15.24,   2.54, 180),
+    ("16", "A1",  "input",      15.24,   0.0,  180),
+    ("15", "A2",  "input",      15.24,  -2.54, 180),
+    ("14", "A3",  "input",      15.24,  -5.08, 180),
+    ("2",  "NC",  "no_connect", 15.24, -12.7,  180),
+    ("3",  "NC",  "no_connect", 15.24, -15.24, 180),
+    ("13", "NC",  "no_connect", 15.24, -17.78, 180),
+    ("1",  "VDD", "power_in",    0.0,   25.4,  270),
+    ("12", "GND", "power_in",   -5.08, -27.94,  90),
+    ("27", "VSS", "power_in",    5.08, -27.94,  90),
+]
+LIBTXT = io.open(LIB, encoding="utf-8").read()
+blk = emit("ADG706", "ADG706",
+           "16-to-1 analog multiplexer, 1.8 V to 5.5 V single supply, 2.5 ohm on-resistance, TSSOP-28",
+           "https://www.analog.com/media/en/technical-documentation/data-sheets/ADG706_707.pdf",
+           {1: _adg}, rect=(-12.7, 22.86, 12.7, -25.4))
+LIBTXT, how = install(LIBTXT, "ADG706", blk)
+print("ADG706", how)
+
+# ---------------------------------------------------------------- NX5020UNBKS
+# NX5020UNBKS.pdf Table 2: 1 S1, 2 G1, 3 D2, 4 S2, 5 G2, 6 D1.
+# Two units so each RGB channel draws as one FET; 6 packages cover 12 channels.
+_g = extract_graphics(STOCKFET, "Q_NMOS_GSD")
+_u1 = [("2", "G1", "input", -5.08, 0.0, 0),
+       ("1", "S1", "passive", 2.54, -5.08, 90),
+       ("6", "D1", "passive", 2.54, 5.08, 270)]
+_u2 = [("5", "G2", "input", -5.08, 0.0, 0),
+       ("4", "S2", "passive", 2.54, -5.08, 90),
+       ("3", "D2", "passive", 2.54, 5.08, 270)]
+blk = emit("NX5020UNBKS", "NX5020UNBKS",
+           "50 V dual N-channel Trench MOSFET, Rds(on) specified at Vgs = 2.5 V, SOT363",
+           "https://assets.nexperia.com/documents/data-sheet/NX5020UNBKS.pdf",
+           {1: _u1, 2: _u2}, graphics_from=_g)
+LIBTXT, how = install(LIBTXT, "NX5020UNBKS", blk)
+print("NX5020UNBKS", how)
+
+# ---------------------------------------------------------------- CM_CHOKE_4T
+# A four-terminal common-mode choke, and it exists for exactly one reason:
+#
+#   KiCad Device:L_Coupled   winding A = pins 1-2,  winding B = pins 3-4
+#   Every real CM choke      winding A = pins 1-4,  winding B = pins 2-3
+#
+# VERIFIED 2026-09-19 from the VECTOR GEOMETRY of both datasheets held in this repo, not
+# from a text dump -- a flat text extraction gives you four bare numerals and no way to
+# tell which coil each belongs to:
+#
+#   Wurth WE-CMBNC 7448031002 (L2), "Schematic" figure: the upper coil's two lead lines
+#     end under the labels "1" (left, x=347.0) and "4" (right, x=488.6); the lower coil's
+#     under "2" and "3" at the same x.  Four arcs per coil, core lines between.
+#   TDK ACT45B-510-2P-TL003 (L6), "CIRCUIT DIAGRAM": identical -- "1"/"4" share the upper
+#     coil's y, "2"/"3" the lower.
+#
+# Built from L_Coupled's own graphics, so the symbol LOOKS identical and no wire moves.
+# Only the pin numbers change, which is the entire fix.  Left-upper 1, right-upper 4,
+# left-lower 2, right-lower 3 -- so a signal entering on the left at 1 leaves on the right
+# at 4, through one winding, which is what a common-mode choke actually does.
+#
+# DO NOT "simplify" this back to Device:L_Coupled.  ERC passes either way, DRC passes
+# either way, and the footprint pad count matches either way.  Nothing catches it.
+_gcm = extract_graphics(STOCKDEV, "L_Coupled")
+_cm = [("1", "~", "passive", -5.08,  2.54, 0),
+       ("4", "~", "passive",  5.08,  2.54, 180),
+       ("2", "~", "passive", -5.08, -2.54, 0),
+       ("3", "~", "passive",  5.08, -2.54, 180)]
+blk = emit("CM_CHOKE_4T", "CM_CHOKE_4T",
+           "Four-terminal common-mode choke. Winding A = pins 1-4, winding B = pins 2-3, "
+           "per the Wurth 7448031002 and TDK ACT45B datasheets. NOT the same numbering as "
+           "KiCad's Device:L_Coupled.",
+           "", {1: _cm}, graphics_from=_gcm)
+LIBTXT, how = install(LIBTXT, "CM_CHOKE_4T", blk)
+print("CM_CHOKE_4T", how, "(winding A = 1-4, winding B = 2-3 - VERIFIED)")
+
+# ---------------------------------------------------------------- BTS7008-2EPA
+# VERIFIED 2026-09-15 against Infineon BTS7008-2EPA Data Sheet Rev. 1.21, 2024-07-29
+# (hardware/datasheets/infineon_bts7008_2epa_datasheet_en.pdf), Table 2 "Pin Definition",
+# p.6, cross-checked against Figure 4 "Pin Configuration", p.5:
+#
+#   EP     VS     supply voltage (battery), the exposed pad -- this is the ONLY VS
+#   1      GND    signal ground
+#   2, 6   INn    input channel n, "high" active        (2 = IN0, 6 = IN1 per Figure 4)
+#   3      DEN    diagnostic enable, "high" active
+#   4      IS     SENSE current output
+#   5      DSEL   diagnosis channel select, "high" active
+#   7, 11  n.c.   not connected, internally not bonded
+#   8-10   OUT1   |  Table 2 note: "All output pins of the channel must be connected
+#   12-14  OUT0   |  together on the PCB."  Modelled as three pins each, tied on the sheet.
+#
+# The exposed pad is numbered 15 to match KiCad's own footprint for this package,
+# Package_SO:Infineon_PG-TSDSO-14-22 (pad 15 = 2.65 x 4 mm thermal pad at the origin).
+# PG-TSDSO-14-22 is the former name of PG-TSDSO-14 -- see the datasheet revision history,
+# "Page 1: updated (Package PG-TSDSO-14-22 -> PG-TSDSO-14)".
+_bts = [
+    ("2",  "IN0",  "input",      -12.7,  10.16, 0),
+    ("6",  "IN1",  "input",      -12.7,   5.08, 0),
+    ("3",  "DEN",  "input",      -12.7,  -2.54, 0),
+    ("5",  "DSEL", "input",      -12.7,  -7.62, 0),
+    ("14", "OUT0", "passive",     12.7,  10.16, 180),
+    ("13", "OUT0", "passive",     12.7,   7.62, 180),
+    ("12", "OUT0", "passive",     12.7,   5.08, 180),
+    ("10", "OUT1", "passive",     12.7,   0.0,  180),
+    ("9",  "OUT1", "passive",     12.7,  -2.54, 180),
+    ("8",  "OUT1", "passive",     12.7,  -5.08, 180),
+    ("4",  "IS",   "passive",     12.7, -12.7,  180),
+    ("7",  "n.c.", "no_connect",  12.7, -17.78, 180),
+    ("11", "n.c.", "no_connect",  12.7, -20.32, 180),
+    ("15", "VS",   "power_in",     0.0,  22.86, 270),
+    ("1",  "GND",  "power_in",     0.0, -25.4,  90),
+]
+blk = emit("BTS7008_2EPA", "BTS7008-2EPA",
+           "Dual smart high-side switch, 8 mOhm, one multiplexed IS output selected by DSEL, "
+           "PG-TSDSO-14 with the exposed pad as VS (pin 15)",
+           "https://www.infineon.com/dgdl/Infineon-BTS7008-2EPA-DataSheet-v01_21-EN.pdf",
+           {1: _bts}, rect=(-10.16, 20.32, 10.16, -22.86))
+LIBTXT, how = install(LIBTXT, "BTS7008_2EPA", blk)
+print("BTS7008_2EPA", how, "(Rev. 1.21 Table 2 - VERIFIED)")
+
+# ---------------------------------------------------------------- PESD2CANFD24U-T
+# PESD2CANFD24U-T.pdf (Nexperia, 8 September 2020), Table 2 "Pinning information":
+#   1 K1 cathode (diode 1)   2 K2 cathode (diode 2)   3 CC common cathode
+# SOT23 (TO-236AB), 3 terminals, 2.9 x 1.3 x 1 mm.  ONE package protects BOTH bus
+# lines, which is why it replaces the two placeholder discretes D6 and D7.
+# VRWM 24 V, VCL 33 V typ / 43 V max at IPP 1 A (8/20 us), Cd 3.5 pF, AEC-Q101.
+_pesd = [
+    ("1", "K1", "passive", -7.62,  2.54,   0),
+    ("2", "K2", "passive", -7.62, -2.54,   0),
+    ("3", "CC", "passive",  0.0,  -10.16, 90),
+]
+blk = emit("PESD2CANFD24U", "PESD2CANFD24U-T",
+           "Dual bidirectional ESD protection for CAN / CAN-FD, VRWM 24 V, "
+           "Cd 3.5 pF, 15 kV IEC 61000-4-2, SOT23, AEC-Q101",
+           "https://assets.nexperia.com/documents/data-sheet/PESD2CANFD24U-T.pdf",
+           {1: _pesd}, rect=(-5.08, 5.08, 5.08, -7.62))
+LIBTXT, how = install(LIBTXT, "PESD2CANFD24U", blk)
+print("PESD2CANFD24U", how, "(Table 2 - VERIFIED)")
+
+# ---------------------------------------------------------------- LTC4380 (MS package)
+# VERIFIED 2026-09-20 against Analog Devices LTC4380 Rev. C, "PIN CONFIGURATION" and
+# "PIN FUNCTIONS" (hardware/datasheets/LTC4380.pdf, pp. 2 and 8).  MSOP-10 (MS) pinout:
+#
+#   1 DRN   2 VCC   3 GATE   4 SNS   5 OUT   6 SEL   7 FLT   8 GND   9 ON   10 TMR
+#
+# The MS package has NO exposed pad -- only the DD (DFN) package does, and that one numbers
+# the pad 11.  Do not add an eleventh pin here or the MSOP footprint will not map.
+#
+# ELECTRICAL TYPES -- deliberately mostly passive, for the same reason the LM51571 pins were
+# retyped at the top of this file.  This part sits on GND_IN, the connector-side return, which
+# by design carries NO power symbol (see the split-ground note on the power_input sheet).  A
+# power_in GND or VCC pin there makes ERC demand a driver that must never exist, so it would
+# report a violation that is not in the circuit.  GATE is a real driver and is typed output;
+# FLT is open_collector, which is what the datasheet calls it.
+_ltc4380 = [
+    ("1",  "DRN",  "passive",         -7.62,  12.7,  270),
+    ("3",  "GATE", "output",          -2.54,  12.7,  270),
+    ("4",  "SNS",  "passive",          2.54,  12.7,  270),
+    ("5",  "OUT",  "passive",          7.62,  12.7,  270),
+    ("2",  "VCC",  "passive",        -15.24,   5.08,   0),
+    ("9",  "ON",   "passive",        -15.24,  -5.08,   0),
+    ("7",  "FLT",  "open_collector",  15.24,   5.08, 180),
+    ("8",  "GND",  "passive",         -7.62, -12.7,   90),
+    ("10", "TMR",  "passive",          0.0,  -12.7,   90),
+    ("6",  "SEL",  "passive",          7.62, -12.7,   90),
+]
+blk = emit("LTC4380", "LTC4380HMS-2",
+           "Surge stopper / overcurrent controller for back-to-back N-channel MOSFETs, "
+           "auto-retry (-2), 4 to 80 V, internal gate clamp 31.5 V with SEL = GND, MSOP-10",
+           "https://www.analog.com/media/en/technical-documentation/data-sheets/4380fc.pdf",
+           {1: _ltc4380}, rect=(-12.7, 10.16, 12.7, -10.16))
+LIBTXT, how = install(LIBTXT, "LTC4380", blk)
+print("LTC4380", how, "(Rev. C PIN FUNCTIONS - VERIFIED)")
+
+
+# ---------------------------------------------------------------- D_SCHOTTKY_TAB
+# D4 is an SS5PH102 in TO-277A: three pads, the third of which is the cathode tab that
+# carries the heat out.  Device:D_Schottky has only pins 1 and 2, so however the tab pad was
+# aliased, board parity reported it as copper with no schematic pin behind it.  This is the
+# stock symbol with a third pin added -- hidden, and stacked on the cathode -- so the tab is
+# the cathode electrically and the footprint has a pin to answer to.
+_dsrc = io.open(STOCKDEV, encoding="utf-8").read()
+_da = _dsrc.index('\t(symbol "D_Schottky"')
+blk = _dsrc[_da:balanced_end(_dsrc, _da)]
+for _old, _new in (('(symbol "D_Schottky"', '(symbol "D_SCHOTTKY_TAB"'),
+                   ('"D_Schottky_0_1"', '"D_SCHOTTKY_TAB_0_1"'),
+                   ('"D_Schottky_1_1"', '"D_SCHOTTKY_TAB_1_1"')):
+    blk = blk.replace(_old, _new)
+_p = blk.rfind("(pin ", 0, blk.index('(number "1"'))
+_e = balanced_end(blk, _p)
+_ind = blk[blk.rfind("\n", 0, _p) + 1:_p]
+_pin3 = blk[_p:_e].replace('(number "1"', '(number "3"', 1)
+_pin3 = _pin3.replace("(length 2.54)", "(length 2.54)\n%s\t(hide yes)" % _ind, 1)
+blk = blk[:_e] + "\n" + _ind + _pin3 + blk[_e:] + "\n"
+LIBTXT, how = install(LIBTXT, "D_SCHOTTKY_TAB", blk)
+print("D_SCHOTTKY_TAB", how, "(TO-277A cathode tab = hidden pin 3)")
+
+# ---------------------------------------------------------------- TPS4HC120A_Q1
+# Built FROM quadpins.PINS so a pad number is written exactly once (quadpins.py).  Pin names
+# are the PINS keys; a multi-pad key repeats its name on every pad, so the netlist
+# pinfunction reads e.g. OUT1_27.  The exposed pad (29) is a pin so the symbol's pin count
+# matches the footprint's 29 pads; the NC pads (1, 14, 19, 24) are no_connect pins named NC.
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quadpins as _qp
+
+# OUTn are passive: each channel has two pads that are one output tied together on the sheet,
+# and two Output-type pins on one net is a pin_to_pin error that is not in the circuit
+# (same treatment as the BTS7008 OUTn pads above).
+_QTYPE = {"IN1": "input", "IN2": "input", "IN3": "input", "IN4": "input",
+          "DIAG_EN": "input", "SEL0": "input", "SEL1": "input", "LPM": "open_collector",
+          "OUT1": "passive", "OUT2": "passive", "OUT3": "passive", "OUT4": "passive",
+          "SNS": "output", "FAULT": "open_collector", "ILIM": "passive",
+          "VS": "power_in", "GND": "power_in", "EP": "passive", "OTHER": "no_connect"}
+# (key, x, y, angle) per pad slot, 2.54 mm grid.  Left: inputs and control.  Right: outputs,
+# SNS, FAULT, NC.  Top: VS.  Bottom: GND and the exposed pad.
+_QLAYOUT = [
+    ("IN1", -12.7, 12.7, 0), ("IN2", -12.7, 10.16, 0), ("IN3", -12.7, 7.62, 0),
+    ("IN4", -12.7, 5.08, 0), ("DIAG_EN", -12.7, 0.0, 0), ("SEL0", -12.7, -2.54, 0),
+    ("SEL1", -12.7, -5.08, 0), ("LPM", -12.7, -7.62, 0), ("ILIM", -12.7, -10.16, 0),
+    ("OUT1", 12.7, 12.7, 180), ("OUT1", 12.7, 10.16, 180),
+    ("OUT2", 12.7, 7.62, 180), ("OUT2", 12.7, 5.08, 180),
+    ("OUT3", 12.7, 2.54, 180), ("OUT3", 12.7, 0.0, 180),
+    ("OUT4", 12.7, -2.54, 180), ("OUT4", 12.7, -5.08, 180),
+    ("SNS", 12.7, -7.62, 180), ("FAULT", 12.7, -10.16, 180),
+    ("OTHER", 12.7, -12.7, 180), ("OTHER", 12.7, -15.24, 180), ("OTHER", 12.7, -17.78, 180),
+    ("VS", -7.62, 20.32, 270), ("VS", -2.54, 20.32, 270),
+    ("VS", 2.54, 20.32, 270), ("VS", 7.62, 20.32, 270),
+    ("GND", -5.08, -22.86, 90), ("EP", 0.0, -22.86, 90), ("OTHER", 5.08, -22.86, 90),
+]
+_qnext = {k: list(v) for k, v in _qp.PINS.items()}
+_quad = []
+for _k, _x, _y, _a in _QLAYOUT:
+    _quad.append((_qnext[_k].pop(0), "NC" if _k == "OTHER" else _k, _QTYPE[_k], _x, _y, _a))
+assert all(not v for v in _qnext.values()), "quadpins.PINS has pads the layout does not place"
+assert len(_quad) == 29 and len({q[0] for q in _quad}) == 29
+_qname = _qp.LIB_ID.split(":")[-1]
+blk = emit(_qname, "TPS4HC120A-Q1",
+           "Quad-channel 120 mOhm smart high-side switch, resistor-set current limit, multiplexed "
+           "current-sense output, thermal latch-off (Version A), HVSSOP-28 DGQ with exposed pad "
+           "(pin 29, internally GND)",
+           "https://www.ti.com/lit/ds/symlink/tps4hc120-q1.pdf",
+           {1: _quad}, rect=(-10.16, 17.78, 10.16, -20.32))
+LIBTXT, how = install(LIBTXT, _qname, blk)
+print(_qname, how, "(from quadpins.PINS, SLVSH18C Table 5-1)")
+
+# ---------------------------------------------------------------- 74AHCT1G126
+# Aux stage: the pods' yellow PWM buffers, one per pod (U15 left, U16 right), Nexperia
+# 74AHCT1G126GV.  Replaced the dual 74AHCT2G126DC on 2026-11-13: no JLCPCB/LCSC stock.
+# Non-inverting buffer, 3-state output, ACTIVE-HIGH OE, 5 V supply, TTL-level input (VIH 2.0 V),
+# so 3.3 V GPIOs drive it.
+# VERIFIED 2026-11-13 against Nexperia 74AHC_AHCT1G126 Rev. 1.0, 8 August 2024 (via LCSC
+# C52140416), Table 2 "Pin description" and Table 3 "Function table":
+#   1 OE   2 A   3 GND   4 Y   5 VCC   (OE HIGH -> Y = A; OE LOW -> Z)
+# SOT-23-5 ("GV", SOT753).  The GW is SOT-353 -- a different footprint; do not substitute.
+_buf = [
+    ("2", "A",   "input",     -10.16,  2.54, 0),
+    ("1", "OE",  "input",     -10.16, -2.54, 0),
+    ("4", "Y",   "tri_state",  10.16,  0.0,  180),
+    ("5", "VCC", "power_in",    0.0,  10.16, 270),
+    ("3", "GND", "power_in",    0.0, -10.16, 90),
+]
+blk = emit("74AHCT1G126", "74AHCT1G126GV",
+           "Single bus buffer, 3-state output, active-high output enable, TTL input, 5 V, "
+           "SOT-23-5 (Nexperia GV, SOT753)",
+           "https://assets.nexperia.com/documents/data-sheet/74AHC_AHCT1G126.pdf",
+           {1: _buf}, rect=(-7.62, 7.62, 7.62, -7.62))
+LIBTXT, how = install(LIBTXT, "74AHCT1G126", blk)
+print("74AHCT1G126", how, "(Nexperia Rev. 1.0 Table 2 - VERIFIED)")
+
+io.open(LIB, "w", encoding="utf-8", newline="\n").write(LIBTXT)
+print("written")

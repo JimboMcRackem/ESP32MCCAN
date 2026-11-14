@@ -2,12 +2,14 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Produce a fab-ready 4-layer PCB — schematic, layout, BOM, fabrication outputs — plus
+**Goal:** Produce a fab-ready 6-layer PCB — schematic, layout, BOM, fabrication outputs — plus
 enclosure and harness documentation and a bring-up procedure, for the ESP32 MCCAN motorcycle
 lighting controller.
 
-**Architecture:** Dual 12 V feed with domain-split protection; synchronous boost to 24 V for four
-common-anode RGB COB strings switched low-side through octal smart switches with SPI diagnostics;
+**Architecture:** Single 12 V feed, 3-way connector (**no second-feed provision** — see amendments);
+**non-synchronous** boost to 24 V for four
+common-anode RGB COB strings switched low-side through discrete MOSFETs with a shunt/mux/ADC
+per-channel diagnostic chain;
 Denali D4 2.0 pair switched high-side through a dual PROFET; ESP32-WROOM-32E-N8 with a PCA9685
 generating RGB PWM and LEDC generating Denali PWM; deep sleep with wake on CAN bus activity.
 
@@ -15,6 +17,97 @@ generating RGB PWM and LEDC generating Denali PWM; deep sleep with wake on CAN b
 design records committed alongside the design files.
 
 **Spec:** `docs/superpowers/specs/2026-09-11-esp32-mccan-pcb-hardware-design.md`
+
+---
+
+## AMENDMENTS — read before working any task
+
+**The spec is the source of truth, and it has moved ahead of this plan in several places.** The
+schematic is built to the *spec*. Do **not** "correct" the schematic to match a plan row listed
+below — the row is what is wrong.
+
+Recorded at the Task 7 schematic review (2026-09-18), observation **O6** plus the **F5** ruling:
+
+| Plan says | Current truth | Superseded |
+|---|---|---|
+| Second feed retained as **DNP footprints**; `VBAT_B`; **Schottky OR pair** | **No second-feed provision at all.** One feed, one fuse, one P-FET stage, and **D3 is a single Schottky**. `VBAT_B` does not exist. Restoring the domain split needs a respin | **F5, 2026-09-18** — spec §4.4 amended |
+| PWR connector **2-way** | **3-way** — the third cavity carries `IGN_IN` for the topology-B battery feed | spec §8.1a |
+| **1 Ω** RGB shunt, 0.14 A, 140 mV, 2512 | **10 Ω**, 26.7 mA, 267 mV — the RGB load fell ~4x | spec §5.1, 2026-09-13 |
+| **Synchronous** boost | **Non-synchronous** — the selected LM51571-Q1 is non-sync, hence D4 | part selection |
+| Boost **UVLO divider ≥ 1 MΩ** | **No divider.** The enable pin is driven straight from the GPIO | spec §6 |
+| P-FET **SQJ415EP** (40 V) | **SQJ461EP** (60 V) — the SMBJ24A clamps at 38.9 V | 2026-09-13 |
+
+**Task 3 Steps 3–5** (lay out the second feed as DNP, draw the Schottky OR, verify the DNP feed is
+isolated) are **withdrawn by F5** and must not be executed. Task 3 is complete without them.
+
+**Feed currents swept 2026-09-19.** The plan quoted **7.8 A night / 3.9 A day / 10.5 A transient**
+in **eleven** places. Spec §2.2 has read **1.2 A day / 7.0 A night / 7.8 A flash-to-pass** since
+2026-09-13 and says in terms that 10.5 A was *"the arithmetic sum … an envelope that no steady
+state occupies."* All eleven are corrected. Two were load-bearing rather than cosmetic:
+
+- **Task 8 Step 1 writes its figure onto the board as a text layer**, so the stale pair would have
+  been fabricated into the artwork.
+- **The closing consistency statement certified the plan as "consistent throughout"** while it was
+  not — the most misleading kind of stale line, because it invites the reader not to check.
+
+*(Sizing was conservative rather than unsafe in every case — the stale figures were all higher than
+the real ones — but the P-FET parenthetical at "Also relaxed in this pass" additionally had night
+and daytime dissipation the wrong way round, and that one did mislead: **night governs.**)*
+
+**One conflict the sweep exposed, now SETTLED AT 5-6 mm (2026-09-20).** The constraints list
+(Prerequisites) called the power polygon **>= 4-5 mm**; Task 8 Step 1 called it **>= 5-6 mm**
+with no stated basis. **Two different widths for the same net, in the document that writes one
+of them onto the board.** Working it by IPC-2221 shows **5-6 mm was right and 4-5 mm was not**:
+7.0 A on an **internal** layer at 2 oz and a 10 C rise is **5.75 mm**. The catch is that it was
+never achievable while spec 10 put the 2 oz on the OUTER layers and left the plane at 1 oz,
+where the same current needs 11.5 mm. **The 2026-09-20 copper swap (1 oz outer / 2 oz inner)
+is what makes the requirement satisfiable**, and it was adopted for an unrelated reason -- 2 oz
+cannot etch U10's 0.15 mm land pattern. See spec 10.
+
+**Task 8 Step 3's thermal figures are STALE and its part list is wrong.** The step reads *"These are
+~3.8 W of the board's dissipation in daytime — 3.50 W boost + 0.30 W P-FET"*, and names *"Boost
+high-side and low-side FETs, the boost inductor, the single P-FET and the PROFET"*. All of that
+predates the 2026-09-13 rewrite of spec §9.4. Corrected:
+
+| Step 3 says | Current truth | Source |
+|---|---|---|
+| ~3.8 W, **daytime** governs | **NIGHT governs.** ~2.70 W here, **superseded below: 2.31 W.** Daytime is ~1.4 W + inductors | spec §9.4 |
+| 3.50 W boost | **0.83 W daytime / ~0.20 W night** — the RGB load fell ~4× | spec §9.4 |
+| "Boost high-side and low-side FETs" | **THERE ARE NO EXTERNAL BOOST FETs.** The LM51571-Q1 integrates the switch | part-selection row 3.6 (VOID) |
+| — | **L1 + L2 dissipate 0.90 W of the ~2.70 W** and are not mentioned at all | review F4 |
+
+**The thermal group to place on the plate edge is therefore:** **L2** (input CM choke, **0.78 W
+across both windings — the largest single term**), **U9** (PROFET, 0.35 W), **L1** (0.28 W),
+**U3** (boost IC, 0.20 W night / 0.83 W daytime) and **L3** (boost inductor).
+
+> **AMENDED AGAIN 2026-09-20 — Q1 has left this list, and R100 has joined it with a different
+> requirement.** §4.2's rewrite (commit `0b61648`) replaced the lone P-FET with **Q10/Q11**, a
+> back-to-back pair at **2.4 mΩ hot — 0.12 W between them**. The pass element is no longer a
+> thermal term worth placing for, and **the plate edge does not need to host it.** What *did*
+> survive is **R100**, the 5.6 mΩ sense resistor at **0.27 W**, and it is **explicitly not a
+> plate part** — §4.2 requires its own copper area and a Kelvin connection, and the datasheet's
+> layout note ("1 oz copper exhibits a sheet resistance of about 530 µΩ/square") makes the
+> copper around it part of the *measurement*, not merely part of the cooling. **Place Q10, Q11,
+> R100, U10 and C65 as one tight island near J1, not on the plate edge**, and keep the SNS pair
+> Kelvin-tapped at the resistor body.
+>
+> **The night total therefore becomes ~2.31 W, not ~2.70 W:** 2.70 - 0.78 (the P-FET that
+> no longer exists) + 0.12 (Q10/Q11) + 0.27 (R100) = **2.31 W**. That is the figure the rest
+> of this plan and `hardware/docs/enclosure.md` quote; the 2.70 W in the table above is the
+> previous step of the same correction, kept for the audit trail.
+
+> **L2 is the most constrained placement on the board** and should be placed first: it is
+> simultaneously a top-two heat source, **the tallest part at ~24 mm**, **through-hole** on an
+> otherwise-SMD board, and **23.0 × 17.0 mm** in the board plane.
+
+**Two review findings gate Task 8:**
+- **F4** — L1, L2, L4, L5 and L6 have **no part numbers**, and L1/L2 carry the full 7.0 A. New
+  requirement: **L1 plus both L2 windings ≤ 22 mΩ total** (budget L1 ≤ 8 mΩ, L2 ≤ 7 mΩ/winding).
+  Also reconsider L1 = 10 µH; ~2.2 µH still gives ~70 dB at 400 kHz with far less DCR and size.
+- Nothing in the project has a footprint except the PROFET's
+  (`Package_SO:Infineon_PG-TSDSO-14-22`). Assigning them all is Task 8's job.
+
+Full detail: `hardware/docs/schematic-review.md`.
 
 ---
 
@@ -34,6 +127,27 @@ cannot deliver the diagnostics the design is built around.
 
 ---
 
+## REVISION 2026-09-11 — read before any task
+
+Task 2b's datasheet verification **failed the row 1.1 go/no-go category-wide**, and the spec was
+revised in response (commit `99add32`). Three changes propagate through every later task:
+
+1. **The RGB output stage is 12 discrete logic-level MOSFETs**, not octal smart low-side switches.
+   Diagnostics come from a **1 Ω shunt in each FET source leg → 16:1 analog mux → one ADC1 input**.
+2. **There is no SPI on this board.** The switch ICs were its only devices. Any step below that
+   mentions SPI nets, daisy-chaining, or SPI diagnostics is void — follow the revised text.
+3. **A 5 V rail is mandatory** (TJA1042 VCC is 4.5–5.5 V; the "/3" suffix is VIO only). Four power
+   domains, not three.
+
+Pin allocation changed accordingly: Denali PWM moved to 18/19, freeing **GPIO 32 (ADC1_CH4)** for
+the mux output, with mux select on 23/4/16/5. **GPIO 37/38 do not exist on WROOM-32 modules** — an
+earlier revision listed 38 as spare in error, which is what forced this reshuffle.
+
+The spec (§5.1, §6, §7.3) is the authority. Where this plan's task text still reflects the old
+design, the spec wins.
+
+---
+
 ## Global Constraints
 
 Copy these values verbatim; every task's requirements implicitly include this section.
@@ -45,18 +159,33 @@ Copy these values verbatim; every task's requirements implicitly include this se
 - Repo root: `D:\Projects\ESP32MCCAN`. All hardware files live under `hardware/`.
 
 **Electrical — exact values from the spec**
-- Feed A: 12 V, **3.9 A** (boost + logic), **7.5 A** fuse, 61% margin on a 10 A outlet
-- Feed B: 12 V, **6.6 A** (Denali D4 2.0 pair), **10 A** fuse, 34% margin
-- System total **10.5 A / ~128 W**. Feeds are **domain-split, never paralleled**
-- RGB rail: **24 V**, boost design point **60 W / 2.5 A**, actual load 40 W
-- Per RGB channel: **0.14 A**. Per RGB string (white): **0.42 A**. Per Denali channel: **3.3 A**
-- Sleep budget target **< 200 µA**, hard ceiling **500 µA**
+- **SINGLE 12 V feed**, one **10 A** fuse. Loads never coincide (spec §2.4):
+  **daytime 1.2 A (12%)**, **night 7.0 A (70% — the governing case)**, flash-to-pass transient 7.8 A
+  (78%). **Revised 2026-09-13** when the RGB load fell ~4×; the old 105% overload case is gone
+- Second feed: **board footprints retained, unpopulated**; no second panel connector or fuse holder
+- RGB rail: **24 V**, boost **LM51571-Q1**, design point **12 W / 0.5 A**, actual load **7.7 W**
+  (BTF-LIGHTING COB RGB, **16 W/m**, 12 cm per corner; 6 cm would be half)
+- Per RGB channel: **26.7 mA**. Per RGB string (white): **80 mA**. Per Denali channel: **3.3 A**
+- **Sense shunt 10 Ω** (was 1 Ω) → **267 mV** at full channel current, 133 mV at the 6 cm length
+- Sleep budget target **< 200 µA**, hard ceiling **500 µA**; predicted **85–100 µA**
 - All input front-end parts rated **≥ 40 V**; both switchers rated **40–60 V** input
-- TVS standoff **~24 V**; low-side switch outputs rated **≥ 40 V**
+- TVS standoff **~24 V**; RGB MOSFET **Vds ≥ 40 V**, with **Id ≥ 0.5 A at Vgs ≤ 3.3 V** from the
+  output-characteristic curve (the earlier "fully enhanced at 3.3 V" wording is **withdrawn** — I9)
+- **5 V rail mandatory** (TJA1042 VCC is 4.5–5.5 V), **ENABLE-GATED off in sleep** alongside
+  `+3V3_SW` using the same enable — the transceiver's low-power receiver detects bus activity on VIO
+  alone, so VCC is needed only for normal mode
+- RGB sense: **1 Ω** shunt per channel = **140 mV** at 0.14 A; ADC at **0 dB attenuation** (0–1.1 V)
 - PWM: RGB **400 Hz** (PCA9685), Denali **150 Hz** (ESP32 LEDC)
-- Total internal dissipation target **~3.6 W**
-- Stackup: **4 layers**, signal / GND / power / signal, **2 oz outer copper**
-- Feed B power polygon: **≥ 4–5 mm** width at 2 oz for a 10 °C rise at 6.6 A
+- Total internal dissipation: **~1.9 W, and NIGHT now governs** — the P-FET's 0.98 W at the Denali
+  pair's 7.0 A is the largest single term. Daytime is the lighter case at ~1.2 W. Plate: **FLAT,
+  ≥150 cm²** — **fins are no longer required**; they were needed only at the superseded 4.5 W
+- Stackup: **6 layers**, F.Cu sig / In1.Cu GND / In2.Cu sig / In3.Cu VBAT / In4.Cu sig / B.Cu sig,
+  **1 oz copper on all six** (revised 2026-09-22; was 4 layers at 1 oz outer / 2 oz inner, and
+  before that spec §10's 2 oz outer, which cannot etch U10's 0.15 mm land pattern)
+- Power polygon: **≥ 11.44 mm** on In3.Cu for a 10 °C rise at the single feed's **7.0 A**;
+  measured at **71 mm** on its worst cut by `scripts/check_plane_width.py`
+  continuous (7.8 A transient) — this is spec §10's "5–6 mm", now derived. The superseded
+  "≥ 4–5 mm" was never a valid figure for an internal layer.
 
 **Firmware-imposed, non-negotiable**
 - `ChannelIndex` (`src/domain/channel_map.h`) fixes PWM ordering. PCA9685 **LED0–11** =
@@ -74,16 +203,20 @@ Copy these values verbatim; every task's requirements implicitly include this se
 | `CAN_TXD` | 17 | |
 | `CAN_STB` | 14 | RTC-capable |
 | `I2C_SDA` / `I2C_SCL` | 21 / 22 | |
-| `SPI_SCK` / `SPI_MOSI` / `SPI_MISO` / `SPI_CS` | 18 / 23 / 19 / 5 | Both switch ICs daisy-chained, one CS |
-| `PWM_DEN_A` / `PWM_DEN_B` | 32 / 33 | LEDC |
-| `ISNS_DEN_A` / `ISNS_DEN_B` | 34 / 39 | **ADC1 only** — ADC2 fails while WiFi is active |
+| `PWM_DEN_A` / `PWM_DEN_B` | 18 / 19 | LEDC (moved off 32/33 — see REVISION note) |
+| `ISNS_DEN` (**one** multiplexed output) | 34 | **ADC1 only** — ADC2 fails while WiFi is active |
+| `DEN_DSEL` — PROFET channel select | 33 | **ADDED (C1)** — the BTS7008-2EPA has ONE `IS` output |
+| `RGB_ISNS` (mux output) | 32 | **ADC1_CH4** — the §5.1 diagnostic chain |
+| `MUX_S0` / `S1` / `S2` / `S3` | 23 / 4 / 16 / 5 | GPIO 5 is a strapping pin — pulldown mandatory |
 | `EN_BOOST` | 25 | |
 | `EN_3V3SW` | 26 | |
 | `EN_DIAG` | 27 | |
 | `LED_STAT` | 13 | |
 | Programming | 0, 1, 3, EN | Reserved |
 
-Spare: GPIO 4, 12, 15, 16, 38. Never use GPIO 6–11 (flash).
+Spare: GPIO 2, 12, 15, **39**. Never use GPIO 6–11 (flash). **GPIO 37/38 do not exist on WROOM-32
+modules** — an earlier revision wrongly listed 38 as spare. Leave GPIO 12 unused: it selects flash
+voltage at boot.
 
 **Passive-default biasing — mandatory on every one of these nets**
 
@@ -93,19 +226,27 @@ Spare: GPIO 4, 12, 15, 16, 38. Never use GPIO 6–11 (flash).
 | `EN_3V3SW` | pulldown to GND | Peripheral rail off |
 | `CAN_STB` | pull-up to VIO | Transceiver in standby |
 | All 14 `PWM_*` | pulldown to GND | All outputs off |
+| `MUX_S0`–`S3` | pulldown to GND | Defined channel; **required on GPIO 5** (strapping pin) |
+| **`IGN_SENSE`** | **pulldown, ALWAYS POPULATED** | **GPIO 34–39 have NO internal pulls; EXT1 `ANY_HIGH` is armed here (C2)** |
+| `DEN_DSEL` | pulldown to GND | Defined channel selection |
+| **`EN_DIAG`** (GPIO 27) | **pulldown to GND** | PROFET Sleep mode needs ALL of `INn`/`DEN`/`DSEL` low; GPIO 27 is not RTC-capable so it floats in sleep |
 
 **Net naming contract** — sheets connect only through these names. Use them exactly.
 
 ```
-Power:    VBAT_A  VBAT_B  VLOGIC_IN  +3V3_ALW  +3V3_SW  +24V  GND
+Power:    VBAT  VLOGIC_IN  +3V3_ALW  +3V3_SW  +5V  +24V  GND
+          (VBAT_B exists only on the DNP second-feed footprints — spec 4.4)
 Per-str:  +24V_FL  +24V_FR  +24V_RL  +24V_RR          (after each PTC)
 RGB PWM:  PWM_FL_R PWM_FL_G PWM_FL_B PWM_FR_R PWM_FR_G PWM_FR_B
           PWM_RL_R PWM_RL_G PWM_RL_B PWM_RR_R PWM_RR_G PWM_RR_B
 RGB ret:  RET_FL_R RET_FL_G RET_FL_B RET_FR_R RET_FR_G RET_FR_B
           RET_RL_R RET_RL_G RET_RL_B RET_RR_R RET_RR_G RET_RR_B
-Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN_A ISNS_DEN_B
+Denali:   PWM_DEN_A PWM_DEN_B  DEN_A_OUT DEN_B_OUT  ISNS_DEN  DEN_DSEL
 Control:  EN_BOOST EN_3V3SW EN_DIAG LED_STAT IGN_SENSE
-Bus:      I2C_SDA I2C_SCL SPI_SCK SPI_MOSI SPI_MISO SPI_CS
+Bus:      I2C_SDA I2C_SCL
+Sense:    SENSE_FL_R SENSE_FL_G SENSE_FL_B SENSE_FR_R SENSE_FR_G SENSE_FR_B
+          SENSE_RL_R SENSE_RL_G SENSE_RL_B SENSE_RR_R SENSE_RR_G SENSE_RR_B
+          MUX_S0 MUX_S1 MUX_S2 MUX_S3  RGB_ISNS
 CAN:      CAN_TXD CAN_RXD CAN_STB CANH CANL
 Prog:     UART_TX UART_RX BOOT_N EN_MCU
 ```
@@ -122,10 +263,10 @@ shown. Never leave a task's work uncommitted.
 | `hardware/README.md` | How to open the project, invoke `kicad-cli`, regenerate outputs |
 | `hardware/mccan.kicad_pro` | KiCad project |
 | `hardware/mccan.kicad_sch` | Root schematic — sheet instances only, no components |
-| `hardware/sheets/power_input.kicad_sch` | Both feeds: fuses, P-FETs, TVS, π+CM filters, Schottky OR |
+| `hardware/sheets/power_input.kicad_sch` | Single feed: 10 A fuse, P-FET, TVS, π+CM filter → `VBAT`; second feed + Schottky OR as DNP footprints |
 | `hardware/sheets/rails.kicad_sch` | Sync boost, low-Iq buck, 3V3 load switch |
 | `hardware/sheets/mcu_can.kicad_sch` | ESP32 module, TJA1042, programming header, status LED |
-| `hardware/sheets/outputs.kicad_sch` | PCA9685, 2× octal low-side switch, dual PROFET, PTCs, connectors |
+| `hardware/sheets/outputs.kicad_sch` | PCA9685, 12× MOSFET + shunt, 16:1 mux, dual PROFET, PTCs, connectors |
 | `hardware/mccan.kicad_pcb` | Board layout |
 | `hardware/docs/part-selection.md` | Verification record: every part vs every spec criterion |
 | `hardware/docs/enclosure.md` | Box, heat-spreader plate, panel layout, vent, mounting |
@@ -183,10 +324,10 @@ DRC (must exit 0, includes schematic parity):
 
 | Sheet | Contents |
 |---|---|
-| power_input | Both feeds: fuses, P-FETs, TVS, pi+CM filters, Schottky OR |
+| power_input | Single feed: 10 A fuse, P-FET, TVS, pi+CM filter -> VBAT; 2nd feed + Schottky OR as DNP |
 | rails | Sync boost, low-Iq buck, 3V3 load switch |
 | mcu_can | ESP32 module, TJA1042, programming header, status LED |
-| outputs | PCA9685, 2x octal low-side switch, dual PROFET, PTCs, connectors |
+| outputs | PCA9685, 12x MOSFET + shunt, 16:1 mux, dual PROFET, PTCs, connectors |
 
 ## Net naming contract
 
@@ -262,21 +403,101 @@ stops a convenient part from redefining the requirement.
 Every criterion below comes from the spec. A part may be chosen ONLY if every
 row for it reads PASS. Candidate families are suggestions, not decisions.
 
-## 1. Octal smart low-side switch (2 required) — RGB channels
-Candidates: ST VNI8200XP, Infineon TLE8110ED / TLE8108EM, NXP MC33996
+## 1. RGB output stage (REVISED 2026-09-11) — discrete MOSFET + sense chain
+Replaces the octal smart low-side switches, whose row 1.1 failed category-wide.
+Three part classes to verify: the FET, the sense resistor, the analog mux.
 
+### 1a. Logic-level N-MOSFET (12 required)
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 1.1 | **GO/NO-GO:** open-load detection resolves a **0.14 A** load, and works in the ON state (not only OFF) | | |
-| 1.2 | Output voltage rating >= 40 V | | |
-| 1.3 | Continuous current per channel >= 0.3 A | | |
-| 1.4 | >= 6 channels per package (2 packages cover 12) | | |
-| 1.5 | Parallel/direct PWM input mode exists, usable at 400 Hz | | |
-| 1.6 | SPI diagnostics: open load, short to battery, short to GND, overtemperature | | |
-| 1.7 | Daisy-chainable on one CS, or 2 CS available in spare GPIO | | |
-| 1.8 | Standby current <= 20 uA total for both packages | | |
-| 1.9 | On-resistance, and resulting dissipation at 0.14 A x 12 channels <= 0.2 W | | |
-| 1.10 | In stock, multi-source or >= 12 month lead visibility | | |
+| 1a.1 | Vds >= 40 V (24 V rail plus transients) | | |
+| 1a.2 | **REVISED TWICE** (see below): the datasheet establishes conduction of **Id >= 0.5 A at Vgs <= 3.3 V** — via an Rds(on) spec at <=3.3 V Vgs, or a transfer/output curve. **No Vgs(th) threshold is imposed.** | | |
+| 1a.3 | Id >= 1 A continuous | | |
+| 1a.4 | Total series resistance (FET + the 1 ohm shunt) keeps per-channel loss <= 50 mW at 0.14 A | | |
+| 1a.5 | Gate charge low enough to switch cleanly at 400 Hz from a PCA9685 output (25 mA sink / 10 mA source) | | |
+| 1a.6 | In stock, multi-source | | |
+| 1a.7 | **PACKAGE: small SMD only** — SOT-23/SOT-323/SOT-523 class, footprint <= ~8 mm2. **TO-220, TO-252/DPAK, D2PAK and other power packages are EXCLUDED**: 12 must fit a small board in a sealed box, and the load is 0.14 A | | |
+| 1a.8 | **Off-state leakage (Idss) at 24 V, 25 C, <= 2 uA per device** — 12 devices land directly in the sleep budget | | |
+
+### 1b. Sense resistor (12 required)
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 1b.1 | 1 ohm, tolerance <= 1% (tolerance sets channel-to-channel reading spread) | | |
+| 1b.2 | **Power rating >= 1 W** (2512) — not the 20 mW of normal operation. In the "shorted" state the design classifies, the boost's 2.5 A limit puts **6.25 W** into a 1 ohm shunt until the PTC opens (spec 5.1, I15) | | |
+| 1b.3 | Temperature coefficient low enough that drift does not swamp open/working/short classification | | |
+
+### 1c. 16-channel analog multiplexer (1 required)
+**Must be SPECIFIED FOR 3.3 V OPERATION.** Target **ADG706**-class (1.8-5.5 V, ~2.5 ohm on-resistance).
+CD74HC4067 is NOT acceptable: HC on-resistance rises steeply below 4.5 V and is uncharacterised at
+3.3 V (Task 2c could not verify rows 1c.3/1c.4 for it).
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 1c.1 | 16 channels, single-ended, 4 binary select lines | | |
+| 1c.2 | **Specified** (not merely tolerant) for 3.3 V operation, with on-resistance tabulated at 3.3 V | | |
+| 1c.3 | **On-resistance low enough not to corrupt a 140 mV reading** into the ESP32 ADC's input impedance | | |
+| 1c.4 | Off-channel leakage small enough not to shift a 140 mV reading measurably | | |
+| 1c.5 | Channel-to-channel on-resistance match (mismatch appears as per-channel offset) | | |
+| 1c.6 | Settling time. **The binding constraint is the I15 10 kOhm series resistor with the 10 nF ADC buffer cap: tau = 100 us, so >= 500 us (5 tau) per step before sampling** - not the mux transition | | |
+
+### Rulings 11 and 12 — why 1a.2 changed and what the mux must be
+
+**1a.2 was relaxed because the original criterion was wrong for this load, not because parts failed
+it.** "Fully enhanced at Vgs = 3.3 V" is a requirement for an amperes-level load. This channel
+carries **0.14 A**. At a pessimistic 1 ohm Rds(on) that is a 140 mV drop and 20 mW of loss, on a rail
+with 24 V of headroom — and the design **deliberately inserts a 1 ohm sense resistor in the same
+leg**, so 0.3-1 ohm of FET resistance is the same order as a component chosen on purpose. The
+strip's own internal resistors (~171 ohm) set the channel current, so 1-2 ohm of series resistance
+shifts it by under 1%. Nothing here needs low Rds: not heat, not headroom, not current accuracy, not
+switching speed (that is gate charge, row 1a.5).
+
+Verify via **Vgs(th) max**, which every datasheet specifies, plus the **output-characteristic
+curve**. Reading a value off a datasheet graph is legitimate datasheet evidence — it is not the
+banned interpolation from a similar part.
+
+**1c gained a hard 3.3 V requirement plus a design fix**, because a 70-270 ohm mux (worse and
+uncharacterised at 3.3 V) genuinely threatens the 140 mV signal the whole diagnostic chain rests on:
+- **Part:** ADG706-class, specified at 3.3 V, ~2.5 ohm — two orders of magnitude better, which
+  removes the question rather than arguing about its size
+- **Design:** a **~10 nF buffer capacitor at the ADC input** (Task 6) - 10 nF, not 100 nF, so the RC with the 10 kOhm series resistor settles in 100 us rather than 1 ms. The ESP32's SAR ADC is a
+  sample-and-hold; the cap supplies S/H charge locally so source resistance stops mattering almost
+  regardless of the mux
+
+Running the mux from the 5 V rail was considered and **rejected**: HC inputs at 5 V need ~3.5 V for a
+logic high, making 3.3 V select lines marginal and requiring HCT or level shifting.
+
+Fallback if 140 mV still proves noisy at bring-up Stage 5: a 2.2 ohm shunt (308 mV, 0.5 W) or an
+op-amp gain stage.
+
+### Ruling 15 — 1a.2 revised a second time, and the package constraint I omitted
+
+The first revision replaced "fully enhanced at 3.3 V" with a `Vgs(th) max <= 2.0 V` gate. **That gate
+was itself an arbitrary proxy and it drove a bad selection:** it rejected SOT-23 parts
+(PMV60ENEA/PMV30ENEA, Vgs(th) max 2.5 V) in favour of an **IRLZ44N in TO-220** — a 55 V / 47 A
+through-hole power brick — to switch **0.14 A**. Twelve of those would dominate a small board inside
+a sealed enclosure and force through-hole assembly.
+
+A part with Vgs(th) max 2.5 V driven at 3.3 V has 0.8 V of overdrive, which at 0.14 A is plainly
+sufficient. So the threshold is withdrawn entirely: what matters is **direct evidence of >=0.5 A
+conduction at Vgs <= 3.3 V**, from an Rds(on) spec at that gate voltage or from a characteristic
+curve.
+
+Two criteria I should have stated from the start are now explicit:
+- **1a.7 package:** small SMD only, power packages excluded. A 0.14 A load does not need, and this
+  board cannot afford, a TO-220.
+- **1a.8 off-state leakage:** <=2 uA per device at 24 V. This is what blew the sleep budget in the
+  previous pass — the power FET's 25 uA leakage x 12 gave a ~405 uA bound. A SOT-23 part is
+  typically ~1 uA, so the right package fixes the budget as a side effect.
+
+Also relaxed in this pass, both arbitrary on my part: **6.1** P-FET Rds(on) from <=10 to <=20 mOhm
+(at the single feed's **7.0 A**, 14 mOhm gives **0.69 W** and the 20 mOhm ceiling **0.98 W** — both
+acceptable; note the comparison in the original text was backwards and is corrected here: **night
+governs at ~2.70 W against daytime's ~1.4 W**, not the other way round), with its Vgs rating to be judged
+**with the Zener gate clamp in circuit**, since the clamp is already in the design and the gate
+therefore never sees the full rail; and **3.4** spread-spectrum, which is an EMC nicety that an
+external SYNC input or a documented mitigation plan satisfies equally well.
+
+**A PASS must rest on a primary datasheet.** Any row currently passing on a search-summary or
+distributor-parametric figure must be downgraded to UNVERIFIED with a note on what is needed.
 
 ## 2. Dual smart high-side switch (1 required) — Denali
 Candidate: Infineon BTS7008-2EPA or PROFET+2 12V family
@@ -297,9 +518,9 @@ Candidate: TI LM5122-Q1
 | # | Required | Actual | Verdict |
 |---|---|---|---|
 | 3.1 | Input rating 40-60 V (must exceed the 24 V TVS clamp voltage) | | |
-| 3.2 | Synchronous (external FETs), efficiency >= 94% at 40 W out | | |
+| 3.2 | Synchronous (external FETs). **Efficiency: 92% is the budgeted figure (spec 9.4); >= 94% is the datasheet target and UNVERIFIED** | | |
 | 3.3 | Enable pin, 3.3 V logic compatible | | |
-| 3.4 | Spread-spectrum or frequency dither available | | |
+| 3.4 | Spread-spectrum, frequency dither, **an external SYNC/dither input, or a documented EMC mitigation plan** (relaxed — this is an EMC nicety, not a functional requirement) | | |
 | 3.5 | Disabled-state current draw <= 10 uA, or gated externally | | |
 | 3.6 | Dissipation at 40 W out <= 3 W including both FETs | | |
 
@@ -312,6 +533,20 @@ Candidate: TI LM5164
 | 4.2 | Output current >= 1 A (ESP32 WiFi TX peaks ~500 mA) | | |
 | 4.3 | Input rating 40-60 V | | |
 | 4.4 | Stable with no load (sleep condition) | | |
+
+## 4b. 5 V regulator — mandatory, **enable-gated off in sleep**
+Feeds the TJA1042's VCC (4.5-5.5 V). **Gated off in deep sleep** (spec 6): the
+transceiver's low-power receiver runs on VIO alone and detects bus activity with
+VIO as its only supply, so VCC is not needed for wake. Its quiescent draw
+therefore does NOT count against the sleep budget.
+
+| # | Required | Actual | Verdict |
+|---|---|---|---|
+| 4b.1 | Quiescent current <= 30 uA (does not count in sleep since the rail is gated, but matters if gating is ever dropped) | | |
+| 4b.2 | Output 5.0 V +/- 5%, >= 100 mA (transceiver active draw) | | |
+| 4b.3 | Input rating 40-60 V (survives the 24 V TVS clamp) | | |
+| 4b.4 | Clean start-up when `EN_3V3SW` asserts, since the rail is gated rather than always on | | |
+| 4b.5 | If an LDO: dissipation at (12 V - 5 V) x active current is acceptable; if a buck: EMI acceptable | | |
 
 ## 5. CAN transceiver
 Candidate: NXP TJA1042T/3
@@ -327,9 +562,9 @@ Candidate: NXP TJA1042T/3
 
 | # | Required | Actual | Verdict |
 |---|---|---|---|
-| 6.1 | P-FET: Vds >= 40 V, Rds(on) <= 10 mOhm, Vgs rated for 24 V jump | | |
+| 6.1 | P-FET: Vds >= 40 V, **Rds(on) <= 20 mOhm** (relaxed from 10), Vgs rating evaluated **WITH the Zener gate clamp in circuit** (spec 4.2) — the gate never sees the full rail, so a +/-20 V Vgs part is acceptable | | |
 | 6.2 | TVS: standoff ~24 V, clamp < 40 V, rated for the feed current | | |
-| 6.3 | PTC: 0.5 A hold at 24 V, trip < 1 A, 4 required | | |
+| 6.3 | PTC: **hold >= 0.42 A AT 65 degC** (≈ >= 0.75 A nominal at 23 degC — APPLY the datasheet's derating table, do not use the 23 degC figure), Vmax >= 24 V, trip below the boost's 2.5 A limit, 4 required. **NOTE: the 1206L family fails this; a larger family is needed.** | | |
 | 6.4 | Schottky OR pair: 40 V, >= 0.5 A, low leakage | | |
 | 6.5 | Boost inductor: shielded, saturation current >= 1.5x peak | | |
 
@@ -401,7 +636,8 @@ git commit -m "hw: part selection verification record, all criteria verified aga
 
 **Interfaces:**
 - Consumes: parts 6.1 (P-FET), 6.2 (TVS), 6.4 (Schottky) from `part-selection.md`
-- Produces: hierarchical output pins `VBAT_A`, `VBAT_B`, `VLOGIC_IN`, `GND`. No other sheet may
+- Produces: hierarchical output pins **`VBAT`**, `VLOGIC_IN`, `GND`. (`VBAT_B` exists only on the DNP
+  second-feed footprints and is not a live rail.) No other sheet may
   reference anything else from this sheet.
 
 - [ ] **Step 1: Write the sheet's acceptance criteria as a comment block on the sheet**
@@ -409,35 +645,48 @@ git commit -m "hw: part selection verification record, all criteria verified aga
 Place a KiCad text box on the sheet stating what must be true when it is done:
 
 ```
-ACCEPTANCE (spec 4.1-4.4):
-- Two independent feeds. NO net connects VBAT_A to VBAT_B except the Schottky OR.
-- Feed A: 7.5 A fuse, P-FET reverse polarity, 24 V TVS, pi + CM filter -> VBAT_A
-- Feed B: 10 A fuse, P-FET reverse polarity, 24 V TVS, pi + CM filter -> VBAT_B
-- Schottky OR: VBAT_A and VBAT_B -> VLOGIC_IN (logic survives either feed failing)
+ACCEPTANCE (spec 4.1-4.4) -- SINGLE FEED, decided 2026-09-12:
+- ONE populated feed: 10 A panel fuse, P-FET reverse polarity, 24 V TVS, pi + CM filter -> VBAT
+- Sized for the night case: **7.0 A continuous (70% of the 10 A feed), 7.8 A transient**
+- Second feed laid out but DNP: connector position, P-FET stage, Schottky OR -- all footprints
+  only, so the domain split can be restored by populating parts rather than respinning
+- NO second panel connector and NO second fuse holder (the panel is 9 penetrations, not 11)
 - All front-end parts rated >= 40 V
-- Bulk capacitance on each VBAT rail
+- Bulk capacitance on the VBAT rail
 ```
 
-- [ ] **Step 2: Draw Feed A**
+- [ ] **Step 2: Draw the populated feed**
 
-Panel fuse holder footprint → P-FET reverse-polarity stage (source to feed, drain to load, gate
-to GND via resistor, Zener clamping Vgs) → TVS to GND → π filter (C–L–C) and common-mode choke →
-bulk electrolytic + ceramic → net label `VBAT_A`.
+Panel fuse holder footprint (**10 A**) → P-FET reverse-polarity stage (source to feed, drain to load,
+gate to GND via resistor, Zener clamping Vgs) → TVS to GND → π filter (C–L–C) and common-mode choke →
+bulk electrolytic + ceramic → net label `VBAT`.
 
-- [ ] **Step 3: Draw Feed B identically, output `VBAT_B`**
+**Size the P-FET for the night case, 7.0 A**, not the daytime 1.2 A: at the 20 mΩ ceiling that is
+**0.98 W** in one device — the part actually selected, the SQJ461EP at 16 mΩ, gives **0.78 W**
+(spec §9.4). Also place the **PWR connector** here (controller Ruling 2).
 
-Same topology, different fuse value (10 A) and a P-FET sized for 6.6 A rather than 3.9 A.
+**Keep the gate/Zener network ≥ 1 MΩ.** This is a sleep-budget requirement, not a style preference —
+see spec §8.2 (C3); a low-value divider here silently blows the parked-current budget.
 
-- [ ] **Step 4: Draw the Schottky OR**
+- [ ] **Step 3: Lay out the second feed as DNP footprints only**
 
-Anode of each Schottky to `VBAT_A` and `VBAT_B` respectively; cathodes tied to `VLOGIC_IN`.
-Add a ceramic to GND on `VLOGIC_IN`.
+Same topology as Step 2, placed but **do-not-populate**: connector position, P-FET stage, TVS, filter.
+Mark every part DNP in the BOM. This preserves the dual-feed upgrade path without a respin if the 78%
+night loading ever proves uncomfortable (spec §4.4).
 
-- [ ] **Step 5: Verify no accidental A↔B connection**
+- [ ] **Step 4: Draw the Schottky OR — footprints only, DNP**
 
-Run ERC, then visually trace: there must be **no** path between `VBAT_A` and `VBAT_B` other than
-through the two Schottky diodes. A short here silently defeats the entire domain split and would
-put both feeds on one load.
+With one feed there is nothing to OR, so the buck takes its input from `VBAT` directly. Place the two
+Schottky footprints anyway (anodes to `VBAT` and the DNP second feed, cathodes to `VLOGIC_IN`) and
+**populate only the `VBAT`-side diode**, or link `VBAT` → `VLOGIC_IN` with a 0 Ω. Keep a ceramic to
+GND on `VLOGIC_IN`.
+
+- [ ] **Step 5: Verify the DNP second feed is genuinely isolated**
+
+Run ERC, then visually trace: with the second feed unpopulated there must be **no** powered path into
+it, and no net shorting `VBAT` to the DNP stage except through the Schottky footprints. If the split
+is ever restored by populating parts, the same check becomes "no path between the two VBAT rails
+except through the diodes" — a short there would defeat the split and put both feeds on one load.
 
 ```bash
 cd hardware && "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" sch erc \
@@ -451,7 +700,7 @@ warnings, but no errors).
 
 ```bash
 git add hardware/sheets/power_input.kicad_sch hardware/output/erc.rpt
-git commit -m "hw(sch): dual-feed power input with domain split and Schottky logic OR"
+git commit -m "hw(sch): single-feed power input, second feed as DNP footprints"
 ```
 
 ---
@@ -462,18 +711,22 @@ git commit -m "hw(sch): dual-feed power input with domain split and Schottky log
 - Modify: `hardware/sheets/rails.kicad_sch`
 
 **Interfaces:**
-- Consumes: `VBAT_A`, `VLOGIC_IN`, `GND` from Task 3; parts 3 (boost), 4 (buck), 6.5 (inductor)
-- Produces: `+24V`, `+3V3_ALW`, `+3V3_SW`, and input pins `EN_BOOST`, `EN_3V3SW`
+- Consumes: **`VBAT`**, `VLOGIC_IN`, `GND` from Task 3; parts 3 (boost), 4 (buck), **4b (5 V regulator)**, 6.5 (inductor)
+- Produces: `+24V`, `+3V3_ALW`, `+3V3_SW`, **`+5V`**, and input pins `EN_BOOST`, `EN_3V3SW`
 
 - [ ] **Step 1: Write the sheet's acceptance criteria on the sheet**
 
 ```
 ACCEPTANCE (spec 6, 3):
-- Buck input from VLOGIC_IN (NOT VBAT_A) so logic survives either feed failing
+- Buck input from VLOGIC_IN (which is VBAT via the populated Schottky/0 ohm link)
 - Buck -> +3V3_ALW, always on, >= 1 A, quiescent per part-selection row 4.1
+- **5 V REGULATOR -> +5V, GATED by EN_3V3SW** (same enable as +3V3_SW, no extra GPIO).
+  Feeds ONLY the TJA1042 VCC. Off in sleep.
 - Load switch: +3V3_ALW -> +3V3_SW, controlled by EN_3V3SW
 - EN_3V3SW pulldown to GND (floating = peripheral rail OFF)
-- Sync boost input from VBAT_A -> +24V, 60 W design point, EN_BOOST
+- Sync boost input from VBAT -> +24V, 60 W design point, EN_BOOST
+- **EN_BOOST's UVLO divider MUST be >= 1 MOhm total** (spec 8.2 C3). The LM5122 datasheet's worked
+  example is 57.96 kOhm, which draws ~207 uA continuously and blows the entire sleep budget.
 - EN_BOOST pulldown to GND (floating = boost OFF)
 - Boost and buck both rated 40-60 V input
 ```
@@ -481,14 +734,24 @@ ACCEPTANCE (spec 6, 3):
 - [ ] **Step 2: Draw the low-Iq buck from `VLOGIC_IN` to `+3V3_ALW`**
 
 Follow the chosen part's datasheet reference design exactly. Note the input is `VLOGIC_IN`, not
-`VBAT_A` — this is what keeps the MCU alive when Feed A dies so it can report the fault.
+`VBAT` directly. With one feed this is a formality, but it keeps the topology unchanged if the second
+feed is ever populated, when it becomes what keeps the MCU alive through a single-feed failure.
 
 - [ ] **Step 3: Draw the 3.3 V load switch to `+3V3_SW`**
 
 Load switch from `+3V3_ALW` to `+3V3_SW`, enable from `EN_3V3SW`.
 **Add a pulldown resistor on `EN_3V3SW`** per the passive-default table.
 
-- [ ] **Step 4: Draw the synchronous boost from `VBAT_A` to `+24V`**
+- [ ] **Step 3b: Draw the 5 V regulator, gated**
+
+`VBAT` → 5 V regulator (part 4b) → `+5V`, **enable tied to `EN_3V3SW`** — the same enable as
+`+3V3_SW`, so no extra GPIO. This rail feeds **only** the TJA1042's VCC and is **off in deep sleep**;
+the transceiver's VIO stays on `+3V3_ALW` and is what detects bus activity.
+
+Without this step nothing on any sheet instantiates the rail, even though it has a net name, a
+verification section and a BOM line.
+
+- [ ] **Step 4: Draw the synchronous boost from `VBAT` to `+24V`**
 
 Controller per its datasheet reference design: high-side and low-side FETs, shielded inductor,
 current-sense resistor, compensation network, bootstrap, soft-start, output bulk capacitance.
@@ -499,7 +762,7 @@ Design the current-sense resistor for the **60 W / 2.5 A** design point, not the
 - [ ] **Step 5: Add a text note recording the expected behaviour of the disabled boost**
 
 ```
-NOTE: with EN_BOOST low, +24V sits near VBAT_A through the high-side FET body
+NOTE: with EN_BOOST low, +24V sits near VBAT through the high-side FET body
 diode. This is expected and benign: with all low-side switches off there is no
 return path, so no current flows and the strings do not glow.
 ```
@@ -526,8 +789,8 @@ Expected: `exit=0`.
 
 **Interfaces:**
 - Consumes: `+3V3_ALW`, `GND`
-- Produces: every control and bus net the outputs sheet needs — `I2C_SDA`, `I2C_SCL`, `SPI_SCK`,
-  `SPI_MOSI`, `SPI_MISO`, `SPI_CS`, `PWM_DEN_A`, `PWM_DEN_B`, `ISNS_DEN_A`, `ISNS_DEN_B`,
+- Produces: every control and bus net the outputs sheet needs — `I2C_SDA`, `I2C_SCL`,
+  `MUX_S0`–`MUX_S3`, `RGB_ISNS`, `PWM_DEN_A`, `PWM_DEN_B`, `ISNS_DEN`, `DEN_DSEL`,
   `EN_BOOST`, `EN_3V3SW`, `EN_DIAG`, `LED_STAT` — plus `CANH`, `CANL` to the connector
 
 - [ ] **Step 1: Write the sheet's acceptance criteria on the sheet**
@@ -538,7 +801,8 @@ ACCEPTANCE (spec 7, 8.1):
 - Module powered from +3V3_ALW (stays up in sleep)
 - Pin assignment EXACTLY per the plan's Global Constraints table
 - CAN_RXD on GPIO 35 (RTC-capable, EXT0 wake); IGN_SENSE on GPIO 36 (EXT1)
-- ISNS_DEN_A/B on GPIO 34/39 -- ADC1 ONLY, never ADC2
+- ISNS_DEN on GPIO 34 (ADC1 ONLY, never ADC2); DEN_DSEL on GPIO 33 -- the PROFET has ONE
+  multiplexed IS output, not two (C1). GPIO 39 is spare.
 - CAN_STB on GPIO 14, PULLED UP to VIO (floating = standby)
 - TJA1042T/3 TXD routed through an UNPOPULATED 0 ohm link, TXD pulled to VIO
 - NO 120 ohm terminator populated; unpopulated footprint present
@@ -557,7 +821,9 @@ module's antenna area, on any layer. This carries into Task 8.
 
 - [ ] **Step 3: Wire every pin per the Global Constraints pin table**
 
-Label each net with its exact contract name. Double-check GPIO 34/39 are the current-sense inputs
+Label each net with its exact contract name. Double-check **GPIO 34 is the single `ISNS_DEN` input and
+GPIO 33 is `DEN_DSEL`** — the PROFET has one multiplexed sense output, not two (C1). **GPIO 39 is
+spare.** Confirm `RGB_ISNS` is on GPIO 32 and that these are the ADC1 inputs
 (ADC1) and that nothing analog landed on ADC2 pins.
 
 - [ ] **Step 4: Add the passive-default pull resistors**
@@ -567,7 +833,9 @@ Pulldowns on `EN_BOOST`, `EN_3V3SW`. Pull-up on `CAN_STB` to the transceiver's V
 
 - [ ] **Step 5: Draw the CAN transceiver with hardware-enforced listen-only**
 
-TJA1042T/3: VIO to `+3V3_ALW`, `CAN_RXD` to GPIO 35, `CAN_STB` to GPIO 14.
+TJA1042T/3: **VIO to `+3V3_ALW`** (always on — this is what detects bus activity in sleep), **VCC to
+`+5V`** (gated off in sleep; the rail is drawn on the rails sheet, Task 4), `CAN_RXD` to GPIO 35,
+`CAN_STB` to GPIO 14 with its pull-up.
 
 For TXD: place a **0 Ω link footprint, marked DNP (do-not-populate)**, between GPIO 17 (`CAN_TXD`)
 and the transceiver TXD pin, and pull the transceiver TXD pin **to VIO** through a resistor so it
@@ -591,7 +859,8 @@ enters download mode unaided. BOOT and EN tactile buttons. Status LED with serie
 
 - [ ] **Step 7: Place the unpopulated ignition-sense divider**
 
-Resistor divider from a `VBAT_A`-side input to `IGN_SENSE` (GPIO 36), **both resistors DNP**, with
+Resistor divider from a `VBAT`-side input to `IGN_SENSE` (GPIO 36), **both divider resistors DNP but
+the pulldown POPULATED** (C2 — GPIO 36 has no internal pull and EXT1 is armed on it), with
 a clamp diode to 3.3 V. Note: "Fallback if the Experia CAN bus never idles (spec 8.3)."
 
 - [ ] **Step 8: Run ERC and commit**
@@ -613,7 +882,7 @@ Expected: `exit=0`.
 - Modify: `hardware/sheets/outputs.kicad_sch`
 
 **Interfaces:**
-- Consumes: `+24V`, `+3V3_SW`, `+3V3_ALW`, `VBAT_B`, `GND`, all bus and control nets from Task 5
+- Consumes: `+24V`, `+3V3_SW`, `+3V3_ALW`, **`VBAT`**, `GND`, all bus and control nets from Task 5
 - Produces: the seven panel connectors. This is the last schematic sheet; after it, ERC must pass
   with zero errors **and** zero unconnected-pin warnings.
 
@@ -624,9 +893,12 @@ ACCEPTANCE (spec 5, 9.1, 9.2):
 - PCA9685 on +3V3_SW, I2C, LED0-11 -> the 12 RGB switch inputs IN ChannelIndex ORDER:
   LED0,1,2 = FL R,G,B;  LED3,4,5 = FR R,G,B;
   LED6,7,8 = RL R,G,B;  LED9,10,11 = RR R,G,B.   LED12-15 UNUSED.
-- 2x octal low-side switch in PARALLEL-INPUT mode; SPI for diagnostics ONLY
-- Dual PROFET from VBAT_B, inputs PWM_DEN_A/B from ESP32 LEDC (NOT the PCA9685)
-- PROFET current sense -> ISNS_DEN_A/B with scaling resistor to stay under 3.3 V
+- 12x discrete logic-level N-MOSFET, gate direct from PCA9685, 1 ohm shunt in each source leg
+- 12 SENSE_* nodes -> 16:1 analog mux (MUX_S0-S3) -> RGB_ISNS -> GPIO 32 (ADC1_CH4)
+- NO SPI anywhere on this board
+- Dual PROFET from **VBAT**, inputs PWM_DEN_A/B from ESP32 LEDC on **GPIO 18/19** (NOT the PCA9685)
+- PROFET: ONE sense output -> ISNS_DEN (GPIO 34) with scaling resistor; DEN_DSEL (GPIO 33) selects
+  which channel IS reports
 - 4x PTC, one per string, on the +24V feeds
 - All 14 PWM_* nets have a pulldown to GND
 - 4 corner connectors, keyed/colour-coded differently from each other
@@ -642,28 +914,55 @@ default. Label LED0–LED11 outputs with the exact `PWM_*` contract names, **in 
 order** — getting this order wrong produces a board whose colours and corners are scrambled
 relative to firmware that is already written and tested.
 
-- [ ] **Step 3: Place the two octal low-side switches in parallel-input mode**
+- [ ] **Step 3: Place the 12 discrete MOSFETs, shunts, and the analog mux**
 
-Configure each per its datasheet for direct/parallel input operation. Wire the 12 `PWM_*` nets to
-their inputs, and the 12 `RET_*` nets from their outputs to the corner connectors. Daisy-chain SPI
-(`SPI_SCK`, `SPI_MOSI`, `SPI_MISO`, `SPI_CS`) for diagnostics readback; logic supply from
-`+3V3_SW`, load supply per the datasheet.
+For each of the 12 channels: `PWM_*` → gate (with a **pulldown on every `PWM_*` net**); drain → the
+corresponding `RET_*` net to the corner connector; source → a **1 Ω shunt** → `GND`. The node
+between source and shunt is that channel's `SENSE_*` net.
 
-**Add a pulldown on all 12 `PWM_*` nets.**
+Wire all 12 `SENSE_*` nets to the 16:1 analog mux inputs **in `ChannelIndex` order** so mux channel
+0–11 matches PWM channel 0–11 — a scrambled mux order produces diagnostics that blame the wrong
+corner. Mux select from `MUX_S0`–`S3` (GPIO 23/4/16/5), **each with a pulldown**; mux supply from
+`+3V3_SW`; mux output → `RGB_ISNS` → GPIO 32.
+
+Leave mux inputs 12–15 unused — **tie them to GND** per the mux datasheet's guidance. Also wire the
+ADG706's **`EN` pin** (tie it enabled, or to a spare GPIO if you want the mux disableable) and its
+`A0`–`A3` address inputs to `MUX_S0`–`S3`. None of these were in the net contract before 2026-09-12.
+
+**Protect the sense path (I15).** Between each sense node and its mux input place a **10 kΩ series
+resistor**, and clamp each mux input to `+3V3_SW` with a Schottky or diode array. In the "shorted"
+state the design classifies, the boost's 2.5 A limit puts **2.5 V** on a sense node — above both the
+ADC's 0–1.1 V range and the mux's 3.3 V rail — and **6.25 W** in a 1 Ω resistor. Use **2512, ≥ 1 W**
+shunts, and confirm the per-string PTC trips below 2.5 A so the PTC clears the fault rather than the
+shunt failing first.
+
+Add a **~10 nF buffer capacitor at the ADC input** (`RGB_ISNS`, GPIO 32) - 10 nF gives tau = 100 us with the 10 kOhm series resistors, so firmware waits >= 500 us per mux step; 100 nF would make that 1 ms — it supplies the SAR
+sample-and-hold charge locally, which is what makes the 10 kΩ series resistors harmless.
+
+Add a note on the sheet:
+```
+SENSE CHAIN (spec 5.1): 1 ohm x 0.14 A = 140 mV at full channel current.
+ADC1 at 0 dB attenuation (0-1.1 V range). Classification is open (~0 mV) /
+working (~140 mV) / shorted (saturated) -- NOT precision current metering.
+Sampling is on-demand: firmware drives one channel to 100%, steps the mux,
+reads, advances. Same sweep serves as the installation self-test.
+```
 
 - [ ] **Step 4: Place the dual PROFET**
 
-Supply from `VBAT_B`. Inputs from `PWM_DEN_A` / `PWM_DEN_B` (GPIO 32/33), **each with a pulldown**.
-Diagnostic enable from `EN_DIAG`. Current-sense outputs through scaling resistors to `ISNS_DEN_A`
-/ `ISNS_DEN_B`, sized so a 3.3 A load reads comfortably below 3.3 V at the ADC, with a clamp
-diode. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the Denali connector.
+Supply from **`VBAT`**. Inputs from `PWM_DEN_A` / `PWM_DEN_B` (**GPIO 18/19** — moved off 32/33, which
+GPIO 32 now needs for `RGB_ISNS`), **each with a pulldown**.
+Diagnostic enable from `EN_DIAG`. **The BTS7008-2EPA has ONE multiplexed `IS` output, not two (C1):**
+route it through a scaling resistor to `ISNS_DEN` (GPIO 34), sized so a 3.3 A load reads comfortably
+below 3.3 V at the ADC, with a clamp diode. Wire `DSEL` to `DEN_DSEL` (GPIO 33, **with a pulldown**)
+to select which channel `IS` reports. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the Denali connector.
 
 - [ ] **Step 5: Place the four PTCs on the 24 V string feeds**
 
 `+24V` → PTC → `+24V_FL`, and likewise `+24V_FR`, `+24V_RL`, `+24V_RR`. Note on the sheet:
 "Isolates a shorted string so one crushed cable cannot extinguish all four corners (spec 5.2)."
 
-- [ ] **Step 6: Place all seven connectors**
+- [ ] **Step 6: Place all seven populated connectors**
 
 | Connector | Type | Pins |
 |---|---|---|
@@ -673,7 +972,7 @@ diode. Outputs `DEN_A_OUT` / `DEN_B_OUT` to the Denali connector.
 | RR | Superseal 1.0, 4-way | `+24V_RR`, `RET_RR_R`, `RET_RR_G`, `RET_RR_B` |
 | DENALI | Superseal 1.5, 3-way | `DEN_A_OUT`, `DEN_B_OUT`, `GND` |
 | CAN | Superseal 1.0, 2-way | `CANH`, `CANL` |
-| PWR A / PWR B | Superseal 1.5, 2-way ×2 | Feed A +/−, Feed B +/− (on the power_input sheet) |
+| PWR | Superseal 1.5, **3-way** | Feed +/− plus `IGN_IN` (on the power_input sheet). **One connector** — there is no second feed (F5) |
 
 Annotate each corner connector with its intended **distinct colour or keying code** — the
 schematic is where that decision gets recorded, since mis-mating reverses the indicators and the
@@ -725,18 +1024,22 @@ schematic; fill in the sheet and reference designator that satisfies it.
 
 | Spec | Requirement | Sheet / refdes | Verdict |
 |---|---|---|---|
-| 2.2 | Feed A and Feed B are independent; only the Schottky OR links them | | |
-| 4.1 | Two fuse holders, 7.5 A (A) and 10 A (B) | | |
-| 4.2 | P-FET reverse polarity on each feed, Vgs clamped | | |
-| 4.3 | 24 V TVS each feed; all front-end parts >= 40 V | | |
+| 2.2 | Single populated feed, 3-way connector. **No second-feed provision** (F5, 2026-09-18) | | |
+| 4.1 | ~~ONE panel fuse holder, 10 A~~ **— SUPERSEDED: F1 is a board-mounted eFuse (spec §4.1, 2026-09-19).** Sized for the **7.0 A** night case, limit **9–10 A** | | |
+| 4.2 | P-FET reverse polarity, sized for **7.0 A** (0.98 W at the 20 mOhm ceiling; 0.78 W as built, SQJ461EP 16 mOhm), Vgs clamped, **gate network >= 1 MOhm** (sleep budget). **Under review — route C would delete Q1 entirely, see part-selection.md** | | |
+| 4.3 | 24 V TVS; all front-end parts >= 40 V | | |
 | 4.3 | pi filter + CM choke on each feed | | |
-| 4.4 | Schottky OR -> VLOGIC_IN feeds the buck (NOT VBAT_A) | | |
-| 5.1 | 2x octal low-side switch, parallel-input mode, SPI diag only | | |
+| 4.4 | Buck input from `VLOGIC_IN` via **D3, a single Schottky**. No second feed, no OR pair (F5) | | |
+| 5.1 | 12x discrete MOSFET, Vds >= 40 V, **Id >= 0.5 A at Vgs <= 3.3 V from the output curve** (NO Vgs(th) threshold - withdrawn, I9) | | |
+| 5.1 | 1 ohm shunt per channel; 12 SENSE_* into 16:1 mux in ChannelIndex order | | |
+| 5.1 | MUX_S0-S3 on GPIO 23/4/16/5 with pulldowns; RGB_ISNS on GPIO 32 (ADC1) | | |
+| 5.1 | NO SPI nets anywhere on the board | | |
+| 6 | 5 V rail present, **gated by EN_3V3SW** (off in sleep), feeding ONLY TJA1042 VCC | | |
 | 5.2 | 4x PTC on the per-string +24V feeds | | |
-| 5.3 | Dual PROFET from VBAT_B, sense scaled for 3.3 A | | |
-| 5.4 | Denali PWM from ESP32 LEDC (GPIO 32/33), NOT the PCA9685 | | |
+| 5.3 | Dual PROFET from **VBAT**, ONE sense output to ISNS_DEN (GPIO 34) scaled for 3.3 A, DEN_DSEL on GPIO 33 | | |
+| 5.4 | Denali PWM from ESP32 LEDC on **GPIO 18/19**, NOT the PCA9685 | | |
 | 5.5 | PCA9685 LED0-11 in exact ChannelIndex order | | |
-| 6 | Sync boost VBAT_A -> +24V, EN_BOOST with pulldown | | |
+| 6 | Sync boost **VBAT** -> +24V, EN_BOOST with pulldown, **UVLO divider >= 1 MOhm** (sleep budget) | | |
 | 6 | Low-Iq buck VLOGIC_IN -> +3V3_ALW | | |
 | 3 | Load switch +3V3_ALW -> +3V3_SW, EN_3V3SW with pulldown | | |
 | 7.1 | ESP32-WROOM-32E-**N8** (8 MB), onboard antenna variant | | |
@@ -744,12 +1047,12 @@ schematic; fill in the sheet and reference designator that satisfies it.
 | 7.2 | 120 ohm terminator footprint present and UNPOPULATED | | |
 | 7.2 | CAN CM choke + ESD protection | | |
 | 7.3 | Every GPIO matches the pin table exactly | | |
-| 7.3 | ISNS on GPIO 34/39 (ADC1); nothing analog on ADC2 | | |
+| 7.3 | ISNS_DEN on GPIO 34 and RGB_ISNS on GPIO 32 (both ADC1); GPIO 39 spare; nothing analog on ADC2 | | |
 | 7.3 | CAN_STB on GPIO 14, pulled up to VIO | | |
 | 7.3 | All 14 PWM_* nets have pulldowns | | |
 | 7.4 | Prog header + DTR/RTS auto-reset + BOOT/EN buttons | | |
 | 8.3 | Ignition-sense divider present, DNP | | |
-| 9.1 | Seven connectors, correct types and pinouts | | |
+| 9.1 | **Seven** populated connectors (4 corners, Denali, PWR, CAN) + vent + one fuse holder = **nine** penetrations | | |
 | 9.2 | Corner connectors assigned distinct keying/colours | | |
 | 10 | DNP snubber footprints on the 12 outputs | | |
 ```
@@ -779,6 +1082,14 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 
 ## Task 8: PCB layout — stackup, placement and power
 
+> **SUPERSEDED 2026-09-27.** The board this task laid out — 6 layers, 140 × 100 mm, `In3.Cu`
+> as the `VBAT` feed — was re-laid out at 200 × 140 mm on 8 layers by
+> `docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md` and its own plan,
+> `docs/superpowers/plans/2026-09-23-pcb-relayout-8layer.md` (Tasks 1–9 there). This task's
+> steps are left as written below: they record how the 6-layer board got built, and that board
+> was a real, working intermediate stage on the way to the current one. Do not treat anything
+> below as a description of the board on `plan3-pcb-hardware` today.
+
 **Files:**
 - Modify: `hardware/mccan.kicad_pcb`
 
@@ -786,54 +1097,120 @@ git commit -m "hw: schematic review complete, all spec requirements traced to re
 - Consumes: the netlist from Task 7's approved schematic
 - Produces: a placed board with power polygons and thermal provisions; Task 9 routes signals
 
-- [ ] **Step 1: Write the layout constraints into the board as a text layer note**
+- [x] **Step 1: Write the layout constraints into the board as a text layer note**
 
 ```
 LAYOUT CONSTRAINTS (spec 9.3, 9.4, 10):
-- 4 layers: L1 signal, L2 GND (solid, unbroken), L3 power, L4 signal
-- 2 oz outer copper
-- Feed B power polygon >= 4-5 mm effective width (6.6 A, 10 C rise)
-- Feed A power polygon >= 3 mm (3.9 A)
-- Boost switch-node loop area MINIMISED; gate loops short and tight
-- Boost FETs, inductor and both P-FETs grouped on the heat-spreader edge
+- 6 layers: F.Cu signal, In1.Cu GND (solid, unbroken), In2.Cu signal, In3.Cu VBAT,
+  In4.Cu signal, B.Cu signal
+- 1 oz copper on all six (revised 2026-09-22 -- see spec 10)
+- Power polygon: **>= 11.44 mm** effective width on In3.Cu, from a 10 C rise at **1 oz
+  internal**; measured at 71 mm, a 6.1x margin
+  for the single feed's 7.0 A continuous / 7.8 A transient. **This note's original "5-6 mm" was
+  right all along**; the constraints list's "4-5 mm" was the wrong one and is withdrawn
+- Boost switch-node loop area MINIMISED. There are no gate loops: the LM51571 switch is
+  internal, so the loop that matters is U3's SW pin to D4 to C61 and back to PGND
+- Plate-edge thermal group: **L2 (0.78 W), U9 PROFET (0.35 W), L1 (0.28 W), U3, L3** -- ~1.6 W
+  of the 2.31 W night total. **There are no external boost FETs and no P-FET.**
+- eFuse island near J1, NOT on the plate edge: **U10, Q10, Q11, R100, C65**. R100 needs its own
+  copper and a Kelvin tap; C65 must sit at U10 pin 5, not merely on the net
 - ESP32 antenna keep-out: NO copper/plating/parts any layer under the antenna
 - Antenna edge faces AWAY from the aluminium plate
 - Connectors on one edge, matching the panel layout in docs/enclosure.md
-- High-current (Feed B/PROFET) separated from CAN and analog sense traces
+- High-current (feed input / PROFET / Denali outputs) separated from CAN and analog sense traces
 ```
 
-- [ ] **Step 2: Set up the stackup and design rules**
+- [x] **Step 2: Set up the stackup and design rules**
 
-4-layer board, 2 oz outer copper. Set net classes: a `POWER` class with wide clearance and track
-width for `VBAT_A`, `VBAT_B`, `VLOGIC_IN`, `+24V`, `DEN_*_OUT`, `GND`; a `DEFAULT` class for
-signals; a `CAN` class for `CANH`/`CANL` with matched width and spacing for ~120 Ω differential.
+6-layer board, **1 oz copper on all six** (revised 2026-09-22). Net classes are written
+by `scripts/gen_netclasses.py` into `mccan.kicad_pro`, not by hand:
 
-- [ ] **Step 3: Place the thermal group on the heat-spreader edge**
+- **`FEED` 3.5 mm / 0.3 mm** — the 7.0 A input chain (`VBAT`, `VBAT_PROT`, `VBAT_F`, `FEED_P`,
+  `MID`, `SNS`, `GND_IN`). Split out of `POWER` because 1 oz outer copper halves what an outer
+  track carries: a 2.0 mm track is 6.51 A at 2 oz but only 3.94 A at 1 oz.
+- **`POWER` 2.0 mm / 0.3 mm** — `VLOGIC_IN`, `+24V`, `+5V`. Largest load is the boost output at
+  0.5 A, against 3.94 A of capability.
+- **`CAN` 0.3 mm**, matched pair for ~120 Ω differential; **`Default` 0.2 mm** for signals.
 
-Boost high-side and low-side FETs, boost inductor, both P-FETs, and the PROFET all grouped along
-the edge that will face the aluminium plate. These are ~3.6 W of the board's dissipation
-(spec §9.4) and the plate is the only real path out of a plastic box.
+Board minimums drop to **0.20 mm track and clearance** — 1 oz territory, and not reachable at
+2 oz. That takes the whole 0.20 mm QFN/VSON population out of the land-pattern exception list
+in `mccan.kicad_dru`, which fell from 5 rules to 3 (U1, U2 at 0.200; U10 at 0.150).
+
+- [x] **Step 3: Place the thermal group on the heat-spreader edge**
+
+**L2, U9 (PROFET), L1, U3 and L3**, grouped along the edge that will face the aluminium plate —
+see the AMENDMENTS block for why this list no longer contains boost FETs or a P-FET. These are
+**~1.6 W of the ~2.31 W night total** (spec §9.4), and the plate is the only real path out of a
+plastic box. **Night governs, not daytime.**
+
+**Place L2 first.** It is simultaneously the largest heat source, the tallest part at ~24 mm,
+through-hole on an otherwise-SMD board, and 23.0 × 17.0 mm in the board plane — every other
+placement on this edge has more freedom than it does.
 
 Add thermal via arrays under each part's exposed pad — enough vias that the pad-to-L3 resistance
 does not dominate. Note the intended gap-pad contact area on the board.
 
-- [ ] **Step 4: Place the ESP32 module with its antenna keep-out honoured**
+- [x] **Step 4: Place the ESP32 module with its antenna keep-out honoured**
 
 Module at the board edge **furthest from the aluminium plate**, antenna overhanging the board edge
 with a keep-out on all four layers. Plastic enclosure walls are the RF window (spec §9.3) — an
 antenna pointed into the metal plate defeats the onboard-antenna decision entirely.
 
-- [ ] **Step 5: Place connectors to match the panel**
+**The number, read from the datasheet 2026-09-19** (`esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf`
+v1.8, Figure 12 *Recommended PCB Land Pattern*, cross-checked against Figure 9 *Physical Dimensions*):
+
+| | |
+|---|---|
+| Module outline | **25.5 × 18.0 × 3.1 mm** (±0.15) |
+| **Antenna Area** | **18.0 mm wide × 6.19 mm deep**, measured from the module's end face — the full module width, spanning the end beyond pins 1 and 38 |
+| Pad rows | 38 × 0.9 mm pads on **1.27 mm** pitch; 7.49 mm from the module end to the far edge of the pin-1/38 pads |
+
+**Lay the keep-out out as that 18.0 × 6.19 mm rectangle, on all four layers**, and prefer cutting
+the board away under it entirely so the antenna overhangs.
+
+**The Espressif rule, obtained 2026-09-19** from *ESP32 Hardware Design Guidelines → PCB Layout
+Design* (owner-supplied URL, see `hardware/docs/part-selection.md`). Four rules, in priority order:
+
+1. **Overhang is the preferred answer, and it is what we are already doing.** *"It is suggested to
+   place the module's on-board PCB antenna outside the base board, and the feed point of the
+   antenna close to the edge of the base board."*
+2. **If it cannot overhang**, the feed point still goes as close to the edge as possible, and
+   *"cut off the base board on both sides of the antenna and below it."*
+3. **EXPLICITLY FORBIDDEN:** *"the module should not be placed in the center of the board with
+   clearance created by hollowing out on all four sides."* A mid-board island is not an option.
+4. Where the board *is* near the antenna, *"sufficient ground copper and dense ground vias should
+   be placed on the base board near the antenna."*
+
+> ### The binding constraint is the ENCLOSURE, not the PCB
+>
+> **"A clearance of at least 15 mm is recommended in all directions"** within the end-product
+> housing, around the PCB antenna.
+>
+> **This is a much larger number than anything the PCB side of this step deals with, and it lands
+> on `hardware/docs/enclosure.md`, not here.** The module is 18 mm wide; 15 mm of clear space on
+> every side of the antenna is a keep-clear volume roughly **48 mm across**. It has to be checked
+> against §9.1's gland field, §9.3's heat-spreader plate and §2.3's "plate opposite the antenna"
+> constraint **at the same time** — and it is the first figure that makes those three genuinely
+> hard to satisfy at once rather than merely awkward.
+>
+> **Also note it says "in all directions", which includes the aluminium plate.** Spec §9.1 already
+> puts the plate on the opposite wall, so the intent is met — but "opposite wall" now has a
+> **minimum distance** attached to it, which it did not before.
+
+*Espressif also requires the finished product be tested for throughput and range — a bring-up item
+(Task 11), not a layout one.*
+
+- [x] **Step 5: Place connectors to match the panel**
 
 One edge, ordered to match the panel layout. Corner connectors grouped, power and CAN separated
 from each other.
 
-- [ ] **Step 6: Pour the power polygons and the ground plane**
+- [x] **Step 6: Pour the power polygons and the ground plane**
 
 Solid unbroken GND on L2 — do not route signals through it. Power polygons on L3 sized per the
 constraints note. Stitch vias generously between GND regions, especially around the boost.
 
-- [ ] **Step 7: Run DRC with schematic parity**
+- [x] **Step 7: Run DRC with schematic parity**
 
 ```bash
 cd hardware && "/c/Program Files/KiCad/10.0/bin/kicad-cli.exe" pcb drc \
@@ -845,7 +1222,7 @@ Expected: unrouted-net errors are acceptable at this stage (Task 9 routes them),
 parity must be clean** — any parity failure means the board and schematic disagree about a net or
 a footprint, which is a silent fabrication error. Record the parity result in the report.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add hardware/mccan.kicad_pcb hardware/output/drc.rpt
@@ -855,6 +1232,13 @@ git commit -m "hw(pcb): 4-layer stackup, thermal group on plate edge, antenna ke
 ---
 
 ## Task 9: PCB layout — routing and fabrication outputs
+
+> **SUPERSEDED 2026-09-27.** Same reason as Task 8, above: the 6-layer, 140 × 100 mm board this
+> task routed and packaged was superseded by the 8-layer, 200 × 140 mm re-layout in
+> `docs/superpowers/specs/2026-09-23-pcb-relayout-8layer-design.md` and its plan. That plan's
+> Task 11 is what generates the fabrication package for the current board. This task's steps
+> are left as written below as a record of how the 6-layer board was routed and packaged; they
+> do not describe `plan3-pcb-hardware`'s current board.
 
 **Files:**
 - Modify: `hardware/mccan.kicad_pcb`
@@ -866,14 +1250,15 @@ git commit -m "hw(pcb): 4-layer stackup, thermal group on plate edge, antenna ke
 
 - [ ] **Step 1: Route the boost power stage first**
 
-The switch-node loop and both gate loops are the highest-risk routing on the board. Route them
-before anything else claims the space: minimal switch-node area, gate traces short and paired with
-their return, current-sense traces as a differential pair routed away from the switch node.
+The switch-node loop is the highest-risk routing on the board -- the LM51571 integrates its
+switch, so there are no gate loops to route and this is the only fast edge. Route it before
+anything else claims the space: minimal SW-D4-C61-PGND area, and the feedback tap taken
+from the far end of the output cap rather than from the switch node's end of it.
 
 - [ ] **Step 2: Route the remaining power nets**
 
-`VBAT_A`, `VBAT_B`, `+24V`, `DEN_*_OUT` as polygons or wide tracks per the net class. Verify the
-Feed B path width against the 6.6 A requirement.
+`VBAT`, `+24V`, `DEN_*_OUT` as polygons or wide tracks per the net class. Verify the feed path width
+against the **7.0 A continuous / 7.8 A transient** requirement.
 
 - [ ] **Step 3: Route CAN as a differential pair**
 
@@ -882,15 +1267,14 @@ Denali path. Through the CM choke and ESD parts.
 
 - [ ] **Step 4: Route the analog sense traces**
 
-`ISNS_DEN_A` / `ISNS_DEN_B` kept short, away from PWM and the switch node, with their scaling
+`ISNS_DEN` kept short, away from PWM and the switch node, with its scaling
 resistors close to the ADC pins. These carry the diagnostics the design was chosen for; coupled
 noise here shows up as phantom faults.
 
 - [ ] **Step 5: Route the remaining signals, then add test points**
 
-Remaining buses and control nets. Then add test points on `VBAT_A`, `VBAT_B`, `VLOGIC_IN`, `+24V`,
-`+3V3_ALW`, `+3V3_SW`, `I2C_SDA`, `I2C_SCL`, `SPI_SCK`, `SPI_MOSI`, `SPI_MISO`, `SPI_CS`, `CANH`,
-`CANL`, `GND` (several).
+Remaining buses and control nets. Then add test points on `VBAT`, `VLOGIC_IN`, `+24V`, `+5V`,
+`+3V3_ALW`, `+3V3_SW`, `I2C_SDA`, `I2C_SCL`, `RGB_ISNS`, `CANH`, `CANL`, `GND` (several).
 
 - [ ] **Step 6: Run the DRC completion gate**
 
@@ -955,8 +1339,8 @@ Must specify, with actual values rather than descriptions:
   groove, fastener pattern and torque
 - Gap-pad specification: material, thickness, compressed thickness, thermal conductivity, and the
   contact area against the Task 8 thermal group
-- Panel layout drawing with cutout positions and diameters for all nine penetrations: four corner
-  connectors, Denali, PWR A, PWR B, CAN, and the two fuse holders
+- Panel layout drawing with cutout positions and diameters for all **nine** penetrations: four corner
+  connectors, Denali, PWR, CAN, the vent, and one fuse holder
 - Pressure-equalisation vent: part number and mounting position
 - Mounting: bracket design, thermal-compound interface to the plate, and the rubber isolators
   between bracket and frame — the plate must stay thermally coupled while the bracket is
@@ -968,15 +1352,15 @@ Must specify, with actual values rather than descriptions:
 
 Must specify:
 
-- Wire gauge per circuit, derived from the spec currents: Feed A 3.9 A, Feed B 6.6 A, Denali
+- Wire gauge per circuit, derived from the spec currents: single feed **7.0 A night / 1.2 A day**, Denali
   3.3 A per channel, RGB 0.14 A per channel and 0.42 A per string feed
 - Connector part numbers for both halves of all seven connectors, plus terminals and seals
 - **Corner colour/keying assignment table** — which colour or key code is FL, FR, RL, RR — and a
   prominent warning that mis-mating reverses the indicators and is undetectable in firmware
 - Denali connector pinout showing the shared ground
 - CAN tap method: where on the vehicle, and a reminder that no terminator is populated
-- Both power feeds: which Experia peripheral outlets, and confirmation they are independent
-  10 A circuits rather than branches of one (spec §11 verification item)
+- The power feed: which Experia peripheral outlet, and confirmation it can sustain **7.0 A** (70% of
+  its 10 A rating) on a warm night
 - Loom, routing and strain-relief requirements, explicitly covering the **accepted risk** that
   the runs from the outlets to the box are not fused at their source (spec §4.1)
 
@@ -1014,20 +1398,20 @@ to the next stage with an unexplained result.
 ## Stage 1: Rails only, MCU and switch ICs NOT populated
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Feed A current with no load | < 5 mA | | |
+| Feed current with no load | < 5 mA | | |
 | +3V3_ALW | 3.30 V +/- 3% | | |
 | +24V with EN_BOOST high | 24.0 V +/- 5% | | |
-| +24V with EN_BOOST floating | ~VBAT_A (body diode; see rails sheet note) | | |
+| +24V with EN_BOOST floating | ~VBAT (body diode; see rails sheet note) | | |
 | +3V3_SW with EN_3V3SW floating | 0 V (pulldown) | | |
-| Reverse-polarity test: reverse Feed A | No current, no damage | | |
+| Reverse-polarity test: reverse the feed | No current, no damage | | |
 
 ## Stage 2: Boost under full dummy load
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
 | 24 V into 2.5 A dummy load | 24.0 V +/- 5%, stable | | |
-| Efficiency at 40 W out | >= 94% | | |
+| Efficiency at 40 W out | **>= 92%** is the budgeted figure (spec 9.4); >= 94% is the datasheet target and UNVERIFIED | | |
 | Output ripple | < 200 mV pk-pk | | |
-| Boost group temperature rise after 30 min | consistent with ~2.6 W | | |
+| Boost group temperature rise after 30 min | consistent with **~3.5 W** (the 92% figure the budget uses) | | |
 
 ## Stage 3: Quiescent current in simulated sleep
 | Check | Expected | Measured | Pass |
@@ -1045,7 +1429,8 @@ If over budget, isolate per contributor against the part-selection roll-up table
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
 | PCA9685 responds at its I2C address | ACK | | |
-| Both low-side switches respond on SPI | Valid diagnostic frame | | |
+| Mux steps through all 16 channels | RGB_ISNS follows the selected channel | | |
+| Open channel vs working channel at 100% duty | ~0 mV vs ~140 mV, distinguishable | | |
 | PROFET diagnostics readable | Sense voltage tracks load | | |
 
 ## Stage 6: All 14 outputs into dummy resistive loads
@@ -1056,8 +1441,8 @@ If over budget, isolate per contributor against the part-selection roll-up table
 | RGB PWM frequency | 400 Hz +/- 5% | | |
 | Denali PWM frequency | 150 Hz +/- 5% | | |
 | Low-duty linearity, all 12 channels | Monotonic from duty 1; colours matched | | |
-| Open-load detection with one channel disconnected | Fault reported (part-selection row 1.1) | | |
-| Short-to-ground detection | Fault reported, channel protected | | |
+| Open-load detection with one channel disconnected | Fault reported (part-selection **Section 1a** — NOT the superseded appendix row 1.1) | | |
+| Short a return to chassis, channel commanded OFF | **Reads as "open" (~0 mV) while the LED is STUCK ON** — the documented limitation, not a defect; the shunt is bypassed (spec 5.1, C5) | | |
 
 ## Stage 7: CAN
 | Check | Expected | Measured | Pass |
@@ -1081,7 +1466,7 @@ pods' native DataDim input (spec 5.3).
 ## Stage 9: Vehicle install
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Both Experia outlets confirmed independent 10 A circuits | Independent | | |
+| The Experia outlet sustains the night load | **7.0 A continuous (70% of its 10 A rating)**, with a 7.8 A flash-to-pass transient, without sag or a warm connector | | |
 | Internal temperature after a sustained ride | < 65 C at 40 C ambient | | |
 | Parked quiescent drain over 7 days | Consistent with < 200 uA | | |
 | Does the CAN bus actually idle when parked? | Bus goes quiet -> board sleeps | | |
@@ -1110,11 +1495,11 @@ git commit -m "hw(docs): staged bring-up procedure with pass criteria and measur
 |---|---|
 | §2 Loads and power budget | 2 (verification), 3 (feeds), 10 (harness gauges) |
 | §3 Architecture, three domains | 3, 4, 6 |
-| §4.1 Fusing, two holders | 3, 10 |
+| §4.1 Fusing, one holder | 3, 10 |
 | §4.2 P-FET reverse polarity | 3 |
 | §4.3 Transient protection | 3 |
-| §4.4 Dual feed, domain split, Schottky OR | 3, 7 |
-| §5.1 Octal low-side switches | 2 (go/no-go), 6 |
+| §4.4 Single feed; **no second-feed provision** (F5); D3 single Schottky | 3, 7 |
+| §5.1 Discrete FETs + shunt/mux/ADC sense chain | 2 (revised criteria), 6 |
 | §5.2 Per-string PTC | 6 |
 | §5.3 Dual PROFET | 2, 6 |
 | §5.4 PWM split, 400/150 Hz | 6, 11 (Stage 6) |
@@ -1145,7 +1530,7 @@ expected value beside it, which is the opposite of a placeholder.
 
 **Consistency check:** net names are identical across Tasks 3–9 and match the Global Constraints
 contract. GPIO assignments match the spec pin table including the newly added `CAN_STB` on GPIO 14.
-Currents are consistent throughout: Feed A 3.9 A, Feed B 6.6 A, 0.14 A per RGB channel, 3.3 A per
+Currents are consistent throughout **as of the 2026-09-19 sweep**: single feed **7.0 A night / 1.2 A day / 7.8 A flash-to-pass**, 0.14 A per RGB channel, 3.3 A per
 Denali channel. `kicad-cli` is invoked by full path everywhere.
 
 ---

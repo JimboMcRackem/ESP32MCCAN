@@ -3,4 +3,10 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# The external router works here; its boards are regenerable, not source.
+hardware/output/router/
+
+# subagent-driven-development scratch (ledger, briefs, review packages)
+.superpowers/
 src/hal/web_assets.h

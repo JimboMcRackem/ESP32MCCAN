@@ -1,0 +1,20 @@
+*-backups/
+*.kicad_prl
+fp-info-cache
+~*
+*.lck
+
+# Third-party datasheets: copyrighted vendor documents, and this repo is public.
+# Kept locally for traceability; see datasheets/README.md to publish them.
+datasheets/*.pdf
+datasheets/*.png
+# Text/table extractions are the same copyrighted content in another form.
+datasheets/*.txt
+
+# Editor local-history extension (an embedded git repo; never commit it)
+.history/
+
+# Transient generator, DRC and router artefacts: regenerable, not source.
+output/drc_*.json
+output/genpcb.log
+output/route_external.log

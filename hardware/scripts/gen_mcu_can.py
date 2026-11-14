@@ -1,0 +1,666 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Generate hardware/sheets/mcu_can.kicad_sch (KiCad 10.0.2, format 20260306).
+
+ESP32-WROOM-32E-N8 on the plan4 pin map (twelve outputs, shared diagnostics, three sense
+inputs), TJA1042T/3 with hardware-enforced listen-only, programming header with auto-reset.
+GPIO 13 (pad 16) is AUX_PWM, the pods' shared yellow PWM (aux stage, 2026-11-13); it was the
+status LED, D5, which is gone.
+"""
+import os, re, sys, uuid
+import fpmap
+import quadpins
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+HW = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+STOCK = r"C:\Program Files\KiCad\10.0\share\kicad\symbols"
+NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+
+def U(key):
+    return str(uuid.uuid5(NS, "mcu_can:" + key))
+
+# ---------------------------------------------------------------- sheet identity
+ROOT = open(os.path.join(HW, "mccan.kicad_sch"), encoding="utf-8").read()
+m = re.search(r'\(uuid "([0-9a-f-]+)"\)(?:(?!\(sheet).)*?'
+              r'\(property "Sheetfile" "sheets/mcu_can\.kicad_sch"', ROOT, re.S)
+assert m, "could not find the mcu_can sheet instance in the root schematic"
+SHEET_INSTANCE_UUID = m.group(1)
+ROOT_UUID = re.search(r'\(uuid "([0-9a-f-]+)"\)', ROOT).group(1)
+INST_PATH = "/%s/%s" % (ROOT_UUID, SHEET_INSTANCE_UUID)
+SHEET_UUID = str(uuid.uuid5(NS, "mcu_can-sheet"))
+
+# ---------------------------------------------------------------- lib_symbols
+def extract_block(text, header):
+    i = text.index(header)
+    i = text.index("(", i)
+    depth, j = 0, i
+    while True:
+        c = text[j]
+        if c == '"':
+            j += 1
+            while text[j] != '"' or text[j - 1] == "\\":
+                j += 1
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return text[i:j + 1]
+        j += 1
+
+def reindent(blk, first, extra):
+    lines = blk.split("\n")
+    return "\n".join([("\t" * first) + lines[0]] +
+                     [("\t" * extra) + ln if ln else ln for ln in lines[1:]])
+
+def from_schematic(libid):
+    src = open(os.path.join(HW, "sheets", "power_input.kicad_sch"), encoding="utf-8").read()
+    return reindent(extract_block(src, '\t\t(symbol "%s"\n' % libid), 2, 0)
+
+def from_library(path, name, libid):
+    """Resolve `extends` the way KiCad does when it caches a symbol into a sheet:
+    inherit the parent's graphics and pins, keep the child's own properties."""
+    src = open(path, encoding="utf-8").read()
+    blk = extract_block(src, '\t(symbol "%s"\n' % name)
+    ext = re.search(r'\(extends "([^"]+)"\)', blk)
+    if ext:
+        parent = extract_block(src, '\t(symbol "%s"\n' % ext.group(1))
+        # child's Value property wins; everything else comes from the parent
+        val = re.search(r'\(property "Value" "([^"]*)"', blk)
+        parent = re.sub(r'(\(property "Value" ")[^"]*(")',
+                        lambda mm: mm.group(1) + (val.group(1) if val else name) + mm.group(2),
+                        parent, count=1)
+        # carry over the child's own Footprint / Datasheet / Description if present
+        for prop in ("Footprint", "Datasheet", "Description", "ki_keywords", "ki_description"):
+            cm = re.search(r'\(property "%s" "([^"]*)"' % prop, blk)
+            if cm:
+                parent = re.sub(r'(\(property "%s" ")[^"]*(")' % prop,
+                                lambda mm: mm.group(1) + cm.group(1) + mm.group(2),
+                                parent, count=1)
+        blk = parent
+        blk = re.sub(r'\(symbol "[^"]+"\n', '(symbol "%s"\n' % libid, blk, count=1)
+        # sub-symbol names must match the outer name or KiCad drops the graphics
+        short = libid.split(":")[-1]
+        blk = re.sub(r'\(symbol "%s_(\d+_\d+)"' % re.escape(ext.group(1)),
+                     lambda mm: '(symbol "%s_%s"' % (short, mm.group(1)), blk)
+    else:
+        blk = blk.replace('(symbol "%s"\n' % name, '(symbol "%s"\n' % libid, 1)
+        short = libid.split(":")[-1]
+        blk = re.sub(r'\(symbol "%s_(\d+_\d+)"' % re.escape(name),
+                     lambda mm: '(symbol "%s_%s"' % (short, mm.group(1)), blk)
+    return reindent(blk, 2, 1)
+
+LIBS = []
+# Device:D_TVS dropped 2026-09-19 (the placeholder D6/D7 pair became one
+# mccan_parts:PESD2CANFD24U); Device:D_Schottky dropped with the ignition clamp (plan4).
+for lid in ("Device:C", "Device:R", "power:GND"):
+    LIBS.append(from_schematic(lid))
+LIBS.append(from_library(os.path.join(STOCK, "RF_Module.kicad_sym"),
+                         "ESP32-WROOM-32E", "RF_Module:ESP32-WROOM-32E"))
+LIBS.append(from_library(os.path.join(STOCK, "Interface_CAN_LIN.kicad_sym"),
+                         "TJA1042T-3", "Interface_CAN_LIN:TJA1042T-3"))
+LIBS.append(from_library(os.path.join(STOCK, "Transistor_BJT.kicad_sym"),
+                         "Q_NPN_BEC", "Transistor_BJT:Q_NPN_BEC"))
+LIBS.append(from_library(os.path.join(STOCK, "Switch.kicad_sym"), "SW_Push", "Switch:SW_Push"))
+LIBS.append(from_library(os.path.join(STOCK, "Connector_Generic.kicad_sym"),
+                         "Conn_01x06", "Connector_Generic:Conn_01x06"))
+for _nm in ("PESD2CANFD24U", "CM_CHOKE_4T"):
+    LIBS.append(from_library(os.path.join(HW, "symbols", "mccan_parts.kicad_sym"),
+                             _nm, "mccan_parts:" + _nm))
+LIBS.append(from_library(os.path.join(STOCK, "Connector.kicad_sym"), "TestPoint", "Connector:TestPoint"))
+LIBS.sort(key=lambda b: re.search(r'\(symbol "([^"]+)"', b).group(1))
+
+# ---------------------------------------------------------------- geometry
+def pin(x, y, rot, px, py):
+    if rot == 0:    return (round(x + px, 4), round(y - py, 4))
+    if rot == 90:   return (round(x - py, 4), round(y - px, 4))
+    if rot == 180:  return (round(x - px, 4), round(y + py, 4))
+    if rot == 270:  return (round(x + py, 4), round(y + px, 4))
+    raise ValueError(rot)
+
+ESP32 = {"[1,15,38,39]": (0, -35.56), "2": (0, 35.56), "3": (-15.24, 30.48),
+         "4": (-15.24, 25.4), "5": (-15.24, 22.86), "6": (15.24, -25.4),
+         "7": (15.24, -27.94), "8": (15.24, -20.32), "9": (15.24, -22.86),
+         "10": (15.24, -12.7), "11": (15.24, -15.24), "12": (15.24, -17.78),
+         "13": (15.24, 10.16), "14": (15.24, 15.24), "16": (15.24, 12.7),
+         "17": (-12.7, -5.08), "18": (-12.7, -7.62), "19": (-12.7, -12.7),
+         "20": (-12.7, -10.16), "21": (-12.7, 0), "22": (-12.7, -2.54),
+         "23": (15.24, 7.62), "24": (15.24, 25.4), "25": (15.24, 30.48),
+         "26": (15.24, 20.32), "27": (15.24, 5.08), "28": (15.24, 2.54),
+         "29": (15.24, 17.78), "30": (15.24, 0), "31": (15.24, -2.54),
+         "32": (-12.7, -27.94), "33": (15.24, -5.08), "34": (15.24, 22.86),
+         "35": (15.24, 27.94), "36": (15.24, -7.62), "37": (15.24, -10.16)}
+TJA = {"1": (-12.7, 5.08), "2": (0, -10.16), "3": (0, 10.16), "4": (-12.7, 2.54),
+       "5": (-12.7, -2.54), "6": (12.7, -2.54), "7": (12.7, 2.54), "8": (-12.7, -5.08)}
+# Winding A = 1(left)-4(right), winding B = 2(left)-3(right) -- the ACT45B's real
+# numbering.  Device:L_Coupled's 1-2/3-4 transposed CANH and CANL.  See symlib.py.
+COUPLED = {"1": (-5.08, 2.54), "4": (5.08, 2.54), "2": (-5.08, -2.54), "3": (5.08, -2.54)}
+TWOPIN = {"1": (0, 3.81), "2": (0, -3.81)}
+DIODE = {"1": (-3.81, 0), "2": (3.81, 0)}          # 1 = K/A1, 2 = A/A2
+NPN = {"1": (-5.08, 0), "2": (2.54, -5.08), "3": (2.54, 5.08)}
+SWP = {"1": (-5.08, 0), "2": (5.08, 0)}
+CONN6 = {"1": (-5.08, 5.08), "2": (-5.08, 2.54), "3": (-5.08, 0),
+         "4": (-5.08, -2.54), "5": (-5.08, -5.08), "6": (-5.08, -7.62)}
+
+SYMS, WIRES, JUNCS, LABELS, HLABELS, NOTES, NOCONN = [], [], [], [], [], [], []
+PINMAP = {}
+GNDN = [0]
+
+GRID = 1.27
+
+def ongrid(*vals):
+    for v in vals:
+        assert abs(v / GRID - round(v / GRID)) < 1e-6, "%s is off the 1.27 mm grid" % v
+    return vals
+
+def place(ref, libid, val, x, y, rot=0, pins=None, fields=None, desc="", dnp=False):
+    ongrid(x, y)
+    SYMS.append(dict(ref=ref, libid=libid, val=val, x=x, y=y, rot=rot,
+                     fields=fields or [], pinnums=list(pins.keys()) if pins else ["1"],
+                     desc=desc, dnp=dnp))
+    if pins:
+        PINMAP[ref] = {n: pin(x, y, rot, *p) for n, p in pins.items()}
+    return PINMAP.get(ref)
+
+def vpart(ref, libid, val, x, ytop, dnp=False):
+    """Vertical 2-pin part: pin1 at ytop, pin2 at ytop + 7.62."""
+    ongrid(x, ytop)
+    cy = round(ytop + 3.81, 4)
+    fields = [("Reference", ref, x + 1.651, cy - 1.27, 0),
+              ("Value", val, x + 1.651, cy + 1.27, 0)]
+    place(ref, libid, val, x, cy, 0, TWOPIN, fields, dnp=dnp)
+    return (x, ytop), (x, round(ytop + 7.62, 4))
+
+def hpart(ref, libid, val, xleft, y, dnp=False):
+    """Horizontal 2-pin part: pin1 at xleft, pin2 at xleft + 7.62."""
+    ongrid(xleft, y)
+    cx = round(xleft + 3.81, 4)
+    fields = [("Reference", ref, cx, y - 2.921, 0),
+              ("Value", val, cx, y + 2.921, 0)]
+    place(ref, libid, val, cx, y, 90, TWOPIN, fields, dnp=dnp)
+    return (xleft, y), (round(xleft + 7.62, 4), y)
+
+def gnd(x, y):
+    ongrid(x, y)
+    GNDN[0] += 1
+    ref = "#PWR2%02d" % GNDN[0]
+    fields = [("Reference", ref, x, y + 6.35, 0, True),
+              ("Value", "GND", x, y + 3.81, 0, True)]
+    SYMS.append(dict(ref=ref, libid="power:GND", val="GND", x=x, y=y, rot=0,
+                     fields=fields, pinnums=["1"],
+                     desc='Power symbol creates a global label with name "GND" , ground',
+                     power=True, dnp=False))
+    return (x, y)
+
+def w(a, b):
+    assert a != b, a
+    ongrid(*a); ongrid(*b)
+    WIRES.append((a, b))
+
+def j(p):
+    ongrid(*p)
+    JUNCS.append(p)
+
+def nc(p):
+    ongrid(*p)
+    NOCONN.append(p)
+
+def lab(name, x, y, rot=0):
+    ongrid(x, y)
+    LABELS.append((name, x, y, rot))
+
+def hlab(name, shape, x, y, rot=0):
+    ongrid(x, y)
+    HLABELS.append((name, shape, x, y, rot))
+
+# ================================================================ BLOCK A: ESP32
+U5 = place("U5", "RF_Module:ESP32-WROOM-32E", "ESP32-WROOM-32E-N8", 149.86, 120.65, 0, ESP32,
+           [("Reference", "U5", 149.86, 81.28, 0),
+            ("Value", "ESP32-WROOM-32E-N8", 149.86, 158.75, 0)],
+           desc="RF Module, ESP32-D0WD-V3 SoC, 8 MB SPI flash, Wi-Fi 802.11b/g/n, BT 4.2, PCB antenna, SMD")
+VDD_Y, EN_Y = 76.2, U5["3"][1]
+
+# --- VDD rail
+w(U5["2"], (U5["2"][0], VDD_Y)); w((U5["2"][0], VDD_Y), (104.14, VDD_Y))
+hlab("+3V3_ALW", "input", 104.14, VDD_Y, 180)
+a, b = vpart("C35", "Device:C", "10uF", 109.22, VDD_Y); gnd(*b); j(a)
+a, b = vpart("C36", "Device:C", "100nF", 116.84, VDD_Y); gnd(*b); j(a)
+gnd(*U5["[1,15,38,39]"])
+
+# --- EN reset network.  R22 holds EN high; C37 gives a clean power-on reset and
+#     de-glitches the auto-reset transistor.
+w(U5["3"], (124.46, EN_Y))
+a, b = vpart("R22", "Device:R", "10k", 124.46, VDD_Y); j(a)
+w(b, (124.46, EN_Y)); j((124.46, EN_Y))
+a, b = vpart("C37", "Device:C", "1uF", 114.3, EN_Y); gnd(*b)
+w((124.46, EN_Y), a)
+lab("EN_MCU", 128.27, EN_Y)
+
+# --- SNS_B / SNS_C: input-only SENSOR_VP / SENSOR_VN, out to the outputs sheet's clamp/filter
+for pnum, net in (("4", "SNS_B"), ("5", "SNS_C")):
+    w(U5[pnum], (127.0, U5[pnum][1]))
+    hlab(net, "input", 127.0, U5[pnum][1], 180)
+
+# Pads with no function: the module's NC pads 17-22 and 32.
+for pnum in ("17", "18", "19", "20", "21", "22", "32"):
+    nc(U5[pnum])
+
+# --- right-hand fan-out, D2 row by row.  (pad, net, hier shape or None for a local label)
+FANOUT = [
+    ("25", "BOOT_N",     None),
+    ("35", "UART_TX",    None),
+    ("34", "UART_RX",    None),
+    ("26", "EN_5V",      "output"),   # pull-down R19 is on the rails sheet
+    ("14", "IO12_STRAP", None),
+    ("16", "AUX_PWM",    "output"),   # pull-down R81 is on the outputs sheet, at the buffer
+    ("13", "CAN_STB",    None),
+    ("27", "OUT_RL_IND", "output"),
+    ("28", "OUT_RL_BRK", "output"),
+    ("30", "OUT_RR_DRL", "output"),
+    ("31", "OUT_RR_IND", "output"),
+    ("33", "OUT_RR_BRK", "output"),
+    ("36", "OUT_AUX_L",  "output"),
+    ("37", "OUT_AUX_R",  "output"),
+    ("10", "OUT_FL_DRL", "output"),
+    ("11", "OUT_FL_IND", "output"),
+    ("12", "OUT_RL_DRL", "output"),
+    ("8",  "OUT_FR_DRL", "output"),
+    ("9",  "OUT_FR_IND", "output"),
+    ("6",  "SNS_A",      "input"),
+    ("7",  "CAN_RXD",    None),
+]
+for pnum, net, shape in FANOUT:
+    p = U5[pnum]
+    end = (round(p[0] + 7.62, 4), p[1])
+    w(p, end)
+    if shape:
+        hlab(net, shape, end[0], end[1], 0)
+    else:
+        lab(net, end[0], end[1])
+
+# --- shared diagnostic lines (R1): U5 pad -> 4.7k series -> *_Q to the outputs sheet.  One
+#     series resistor per shared line, at the MCU (TI TPS4H160 7.3.7.5).  The 47k pull-down
+#     sits on DIAG_EN_Q, chip side: GPIO2 must be low for download and the chips' DIAG_EN
+#     must be defined.  DIAG_SEL0/1 get no pull (GPIO5/15 strapping, harmless while DIAG_EN low).
+RX = round(U5["24"][0] + 25.4, 4)                   # series resistors start here, clear of labels
+for ref, pnum, net in (("R30", "24", "DIAG_EN"), ("R31", "29", "DIAG_SEL0"),
+                       ("R32", "23", "DIAG_SEL1")):
+    p = U5[pnum]
+    mid = (round(p[0] + 2.54, 4), p[1])
+    w(p, mid); lab(net, mid[0], mid[1])
+    a, b = hpart(ref, "Device:R", quadpins.R_IN_SERIES, RX, p[1])
+    w(mid, a)
+    if net == "DIAG_EN":
+        up = (round(b[0] + 2.54, 4), b[1])
+        top = (up[0], round(b[1] - 5.08, 4))
+        jn = (round(up[0] + 2.54, 4), top[1])
+        end = (round(jn[0] + 2.54, 4), top[1])
+        w(b, up); w(up, top); w(top, jn); w(jn, end); j(jn)
+        c, d = vpart("R33", "Device:R", "47k", jn[0], jn[1]); gnd(*d)
+        hlab(net + "_Q", "output", end[0], end[1], 0)
+    else:
+        end = (round(b[0] + 5.08, 4), b[1])
+        w(b, end)
+        hlab(net + "_Q", "output", end[0], end[1], 0)
+
+# ================================================================ BLOCK B: CAN
+U6 = place("U6", "Interface_CAN_LIN:TJA1042T-3", "TJA1042T/3", 261.62, 95.25, 0, TJA,
+           [("Reference", "U6", 261.62, 82.55, 0), ("Value", "TJA1042T/3", 261.62, 107.95, 0)],
+           desc="High-speed CAN transceiver with standby mode and separate VIO supply, SO-8")
+TXD_Y, RXD_Y, VIO_Y, STB_Y = U6["1"][1], U6["4"][1], U6["5"][1], U6["8"][1]
+CANH_Y, CANL_Y = U6["7"][1], U6["6"][1]
+
+# --- VCC from the SWITCHED 5 V rail: the transmit side powers down in sleep.
+#     Routed right so the area above TXD stays free for the pull-up.
+w(U6["3"], (U6["3"][0], 77.47)); w((U6["3"][0], 77.47), (292.1, 77.47))
+hlab("+5V", "input", 292.1, 77.47, 0)
+a, b = vpart("C38", "Device:C", "100nF", 283.21, 77.47); gnd(*b); j(a)
+gnd(*U6["2"])
+
+# --- VIO from the ALWAYS-ON 3.3 V rail: this is what keeps the receiver alive so
+#     bus activity can wake the board (spec 8.3).
+w(U6["5"], (231.14, VIO_Y)); w((231.14, VIO_Y), (231.14, 67.31))
+hlab("+3V3_ALW", "input", 231.14, 67.31, 90)
+a, b = vpart("C39", "Device:C", "100nF", 240.03, VIO_Y); gnd(*b); j(a)
+
+# --- STB with its mandatory pull-up: floating = standby = receive only.
+w(U6["8"], (U6["8"][0], 111.76)); w((U6["8"][0], 111.76), (236.22, 111.76))
+a, b = vpart("R25", "Device:R", "10k", 236.22, 104.14)
+w(a, (236.22, VIO_Y)); j((236.22, VIO_Y))
+lab("CAN_STB", 241.3, 111.76)
+
+# --- TXD path: pull-up to VIO only.  No GPIO reaches TXD (D4); see the listen-only note.
+w(U6["1"], (246.38, TXD_Y)); w((246.38, TXD_Y), (246.38, 82.55))
+c, d = vpart("R24", "Device:R", "10k", 246.38, 74.93)   # pin2 lands on the wire above
+w(c, (246.38, 69.85)); lab("+3V3_ALW", 246.38, 69.85, 90)
+
+# --- RXD
+w(U6["4"], (224.79, RXD_Y)); lab("CAN_RXD", 224.79, RXD_Y, 180)
+
+# --- common-mode choke, then ESD clamps, then out to the connector on `outputs`
+L6 = place("L6", "mccan_parts:CM_CHOKE_4T", "ACT45B-510-2P-TL003", 284.48, 95.25, 0, COUPLED,
+           [("Reference", "L6", 284.48, 88.9, 0), ("Value", "ACT45B-510-2P-TL003", 284.48, 101.6, 0)],
+           desc="Coupled inductor, common-mode choke")
+# CANH enters winding A at pin 1 and leaves at pin 4; CANL enters winding B at pin 2 and
+# leaves at pin 3.  Geometrically identical to before -- only the pin numbers changed.
+w(U6["7"], L6["1"])
+w(U6["6"], L6["2"])
+# ONE dual-line protector, not two discretes.  The Nexperia PESD2CANFD24U-T is a single
+# SOT23 holding both bidirectional elements: pin 1 (K1) on CANH, pin 2 (K2) on CANL,
+# pin 3 (CC) the common node to GND.  Replaced the placeholder D6/D7 pair on 2026-09-19;
+# `part-selection.md` records why a single dual-line part is preferred over two discretes.
+# VRWM 24 V, VCL 33 V typ at 1 A (8/20 us), Cd 3.5 pF, AEC-Q101.
+# 2026-11-13: fitted part is PESD2CANFD24LT-Q (the U-T had no JLCPCB stock).  Same pinning
+# (datasheet 19 July 2022, Table 2: 1 K1, 2 K2, 3 CC), VRWM 24 V, Cd 10 pF, AEC-Q101; the
+# symbol keeps its PESD2CANFD24U name -- only the value changed.
+#
+# The two protected pins land exactly on the CANH and CANL runs, so each run is drawn as
+# TWO segments meeting AT the pin rather than one segment the pin happens to touch.  A
+# pin sitting mid-wire does connect, but this sheet has already produced one silent
+# connectivity defect of that shape, so the pin is made a wire endpoint and junctioned.
+PESD = {"1": (-7.62, 2.54), "2": (-7.62, -2.54), "3": (0.0, -10.16)}
+D6 = place("D6", "mccan_parts:PESD2CANFD24U", "PESD2CANFD24LT-Q", 302.26, 95.25, 0, PESD,
+           [("Reference", "D6", 306.07, 90.17, 0),
+            ("Value", "PESD2CANFD24LT-Q", 306.07, 92.71, 0)],
+           desc="Dual bidirectional CAN/CAN-FD ESD protection, VRWM 24 V, SOT23")
+w(L6["4"], D6["1"]); w(D6["1"], (299.72, CANH_Y)); j(D6["1"])
+hlab("CANH", "bidirectional", 299.72, CANH_Y, 0)
+w(L6["3"], D6["2"]); w(D6["2"], (299.72, CANL_Y)); j(D6["2"])
+hlab("CANL", "bidirectional", 299.72, CANL_Y, 0)
+w(D6["3"], (302.26, 111.76)); gnd(302.26, 111.76)
+
+# --- 120 ohm terminator, DNP: the vehicle bus is already terminated at both ends.
+w((284.48, 109.22), (284.48, 114.3)); lab("CANH", 284.48, 109.22, 90)
+a, b = vpart("R26", "Device:R", "120R", 284.48, 114.3, dnp=True)
+w(b, (284.48, 127.0)); lab("CANL", 284.48, 127.0, 90)
+
+# ================================================================ BLOCK C: programming
+J2 = place("J2", "Connector_Generic:Conn_01x06", "Prog/UART", 60.96, 175.26, 0, CONN6,
+           [("Reference", "J2", 60.96, 163.83, 0), ("Value", "Prog/UART", 60.96, 187.96, 0)],
+           desc="Generic connector, single row, 01x06")
+w(J2["1"], (36.83, J2["1"][1])); lab("+3V3_ALW", 36.83, J2["1"][1])
+w(J2["2"], (30.48, J2["2"][1])); gnd(30.48, J2["2"][1])
+w(J2["3"], (36.83, J2["3"][1])); lab("UART_TX", 36.83, J2["3"][1])
+w(J2["4"], (36.83, J2["4"][1])); lab("UART_RX", 36.83, J2["4"][1])
+w(J2["5"], (39.37, J2["5"][1])); lab("DTR", 39.37, J2["5"][1])
+w(J2["6"], (43.18, J2["6"][1])); lab("RTS", 43.18, J2["6"][1])
+
+# --- the standard cross-coupled auto-reset pair.  Each transistor's emitter sits on
+#     the OTHER control line, so the pair only acts when DTR and RTS differ.
+Q2 = place("Q2", "Transistor_BJT:Q_NPN_BEC", "MMBT3904", 85.09, 170.18, 0, NPN,
+           [("Reference", "Q2", 90.17, 168.91, 0), ("Value", "MMBT3904", 90.17, 171.45, 0)],
+           desc="0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
+a, b = hpart("R28", "Device:R", "10k", 68.58, Q2["1"][1])
+w(b, Q2["1"]); w(a, (62.23, Q2["1"][1])); lab("RTS", 62.23, Q2["1"][1])
+w(Q2["2"], (93.98, Q2["2"][1])); lab("DTR", 93.98, Q2["2"][1])
+w(Q2["3"], (Q2["3"][0], 158.75)); lab("EN_MCU", Q2["3"][0], 158.75, 90)
+
+Q3 = place("Q3", "Transistor_BJT:Q_NPN_BEC", "MMBT3904", 85.09, 189.23, 0, NPN,
+           [("Reference", "Q3", 90.17, 187.96, 0), ("Value", "MMBT3904", 90.17, 190.5, 0)],
+           desc="0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
+a, b = hpart("R29", "Device:R", "10k", 68.58, Q3["1"][1])
+w(b, Q3["1"]); w(a, (62.23, Q3["1"][1])); lab("DTR", 62.23, Q3["1"][1])
+w(Q3["2"], (93.98, Q3["2"][1])); lab("RTS", 93.98, Q3["2"][1])
+w(Q3["3"], (97.79, Q3["3"][1])); lab("BOOT_N", 97.79, Q3["3"][1])
+
+SW1 = place("SW1", "Switch:SW_Push", "BOOT", 110.49, 204.47, 0, SWP,
+            [("Reference", "SW1", 110.49, 198.12, 0), ("Value", "BOOT", 110.49, 210.82, 0)],
+            desc="Push button switch, generic, two pins")
+w(SW1["1"], (100.33, 204.47)); lab("BOOT_N", 100.33, 204.47)
+w(SW1["2"], (120.65, 204.47)); gnd(120.65, 204.47)
+
+SW2 = place("SW2", "Switch:SW_Push", "EN/RESET", 110.49, 158.75, 0, SWP,
+            [("Reference", "SW2", 110.49, 152.4, 0), ("Value", "EN/RESET", 110.49, 165.1, 0)],
+            desc="Push button switch, generic, two pins")
+w(SW2["1"], (100.33, 158.75)); lab("EN_MCU", 100.33, 158.75)
+w(SW2["2"], (120.65, 158.75)); gnd(120.65, 158.75)
+
+# ================================================================ BLOCK F: passive defaults
+# R36 is a boot requirement: GPIO 12 (MTDI) selects the flash voltage when sampled at reset.
+# It costs nothing in sleep.  (R30-R33, the diagnostic parts, sit in block A beside their pads.)
+w((132.08, 215.9), (132.08, 220.98)); lab("IO12_STRAP", 132.08, 215.9, 90)
+a, b = vpart("R36", "Device:R", "10k", 132.08, 220.98); gnd(*b)
+
+# ================================================================ test points (phase B)
+_p = place("TP29", "Connector:TestPoint", "CAN_RXD", 25.4, 248.92, 0, {"1": (0.0, 0.0)},
+          [("Reference", "TP29", 22.86, 245.11, 0), ("Value", "CAN_RXD", 22.86, 242.57, 0, True)],
+          desc="Test point, bare SMD pad")
+w(_p["1"], (33.02, 248.92)); lab("CAN_RXD", 33.02, 248.92)
+
+# ================================================================ NOTES
+NOTEW = 135
+import textwrap
+def note(*parts):
+    out = []
+    for para in parts:
+        if para.startswith("|"):
+            out.extend(para[1:].split("\n"))
+        else:
+            out.extend(textwrap.wrap(para, NOTEW) or [""])
+    NOTES.append("\n".join(out))
+
+note("""|ACCEPTANCE (spec 7, 8.1)
+- ESP32-WROOM-32E-N8 (8 MB).  NOT the 4 MB variant, NOT the -32UE (U.FL) variant.
+- Module powered from +3V3_ALW so it stays up in sleep.
+- Pin assignment EXACTLY per the plan4 pin map (D2): twelve OUT_* lamp outputs, EN_5V,
+  three shared diagnostic lines, SNS_A/B/C on ADC1 (GPIO 34/36/39, input-only).
+- CAN_RXD on GPIO 35 (RTC-capable, EXT0 wake).  Ignition sense is gone (spec 6.2).
+- CAN_STB on GPIO 14, PULLED UP to VIO (floating = standby).
+- TJA1042T/3 TXD has NO connection to any GPIO; it is only pulled up to VIO.
+- NO 120 ohm terminator populated; unpopulated footprint present.
+- CAN common-mode choke + ESD protection on CANH/CANL.
+- Programming header with DTR/RTS auto-reset pair, BOOT and EN buttons.""")
+
+note("""|HARDWARE-ENFORCED LISTEN-ONLY
+The transceiver TXD is held recessive by R24 and is connected to nothing else, so the board
+is PHYSICALLY INCAPABLE of transmitting on the vehicle bus.  The former DNP 0 ohm link from
+a GPIO (R23) is deleted: GPIO 17 is now a lamp output, and the TWAI peripheral idles its TX
+pin high, which would have lit that lamp.  The firmware points TWAI TX at GPIO 12, which has
+no connection but its strap pull-down.""")
+
+note("""|TWO SUPPLIES, ON PURPOSE - DO NOT TIE THEM TOGETHER
+VIO (pin 5) -> +3V3_ALW, always on.  VCC (pin 3) -> +5V, gated off in sleep.""",
+"""The split is what makes CAN wake work.  In sleep the +5V rail is down, so the transmit
+side and the bus drivers are unpowered, but VIO keeps the receiver and the RXD output
+alive.  Bus traffic therefore still pulls RXD low, which is the EXT0 wake event on
+GPIO 35.  Powering both from one rail loses either the wake path or the sleep budget.""",
+"""TJA1042T/3 VCC is 4.5-5.5 V.  The "/3" suffix refers to VIO only.  Running VCC from 3.3 V
+is out of spec - this was a genuine error in an early draft of the spec.""")
+
+note("""|ANTENNA KEEP-OUT - carries into layout (Task 8)
+No copper, no plating, no components and no ground pour may sit under the module's antenna
+area, on ANY layer.  Overhang the module past the board edge, or cut the board back to it.
+The finned/metal wall of the enclosure must not be the antenna wall either.""")
+
+note("""|WHY THE AUTO-RESET PAIR IS CROSS-COUPLED
+Each transistor's emitter sits on the OTHER control line, so the pair only acts when DTR
+and RTS differ.  Both high or both low = run mode.  That is what stops a plain serial
+monitor - which asserts one line on open - from dropping the board into the bootloader.""",
+"""esptool drives DTR=0/RTS=1 to assert reset, then DTR=1/RTS=0 to hold IO0 low while EN
+releases.  Q2 pulls EN low in the first state; Q3 pulls IO0 low in the second.""")
+
+note("""|DIAGNOSTIC LINES (block A)
+DIAG_EN, DIAG_SEL0 and DIAG_SEL1 are shared by all three quad switches.  Each leaves the
+module through its own 4.7k series resistor (R30-R32, one per shared line, not per chip) and
+continues as DIAG_EN_Q / DIAG_SEL0_Q / DIAG_SEL1_Q to the outputs sheet.""",
+"""R33 pulls DIAG_EN_Q low (10k, chip side).  GPIO 2 is a strapping pin that must be low for
+download, and the pull-down serves both that and the switches' DIAG_EN input.  DIAG_SEL0 and
+DIAG_SEL1 have NO pull: their level is irrelevant while DIAG_EN is low, and a pull-down on
+GPIO 15 would mute the boot ROM log.""")
+
+note("""|R36 ON IO12_STRAP IS A BOOT REQUIREMENT
+GPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it selects 1.8 V, which will
+not run the module's 3.3 V flash.  Most WROOM-32E parts ship with the eFuse already burned so
+the strap is ignored, but that is not guaranteed across date codes.  It draws no current in
+sleep.""")
+
+note("""|EN_5V PULL-DOWN IS ON THE RAILS SHEET, NOT HERE
+EN_5V (GPIO 4) is pulled down by R19 next to the converter it gates, so the enable stays
+defined even if the inter-sheet net is open.  One resistor per net; do not add a second.""")
+
+# ================================================================ emit
+def fs(x):
+    s = ("%.4f" % x).rstrip("0").rstrip(".")
+    return s if s not in ("", "-0") else "0"
+
+out = []
+A = out.append
+A("(kicad_sch")
+A("\t(version 20260306)")
+A('\t(generator "eeschema")')
+A('\t(generator_version "10.0")')
+A('\t(uuid "%s")' % SHEET_UUID)
+A('\t(paper "A3")')
+A("\t(title_block")
+A('\t\t(title "mcu_can")')
+A("\t)")
+A("\t(lib_symbols")
+for b in LIBS:
+    A(b)
+A("\t)")
+
+for i, txt in enumerate(NOTES):
+    for ln in txt.split("\n"):
+        assert len(ln) <= NOTEW, (len(ln), ln)
+    NOTES[i] = (txt, round(len(txt.split("\n")) * 1.48 + 2.0, 2))
+
+ny = 13.0
+for txt, h in NOTES:
+    esc = txt.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    A('\t(text_box "%s"' % esc)
+    A("\t\t(exclude_from_sim no)")
+    A("\t\t(at 310.0 %s 0)" % fs(ny))
+    A("\t\t(size 103.19 %s)" % fs(h))
+    A("\t\t(margins 0.9525 0.9525 0.9525 0.9525)")
+    A("\t\t(stroke")
+    A("\t\t\t(width 0)")
+    A("\t\t\t(type default)")
+    A("\t\t)")
+    A("\t\t(fill")
+    A("\t\t\t(type none)")
+    A("\t\t)")
+    A("\t\t(effects")
+    A("\t\t\t(font")
+    A("\t\t\t\t(size 0.8 0.8)")
+    A("\t\t\t)")
+    A("\t\t\t(justify left top)")
+    A("\t\t)")
+    A('\t\t(uuid "%s")' % U("note%.2f" % ny))
+    A("\t)")
+    ny = round(ny + h + 1.5, 2)
+assert ny < 280.0, "notes overflow: %s" % ny
+
+for p in sorted(set(NOCONN)):
+    A("\t(no_connect")
+    A("\t\t(at %s %s)" % (fs(p[0]), fs(p[1])))
+    A('\t\t(uuid "%s")' % U("nc%s,%s" % p))
+    A("\t)")
+
+for p in sorted(set(JUNCS)):
+    A("\t(junction")
+    A("\t\t(at %s %s)" % (fs(p[0]), fs(p[1])))
+    A("\t\t(diameter 0)")
+    A("\t\t(color 0 0 0 0)")
+    A('\t\t(uuid "%s")' % U("j%s,%s" % p))
+    A("\t)")
+
+for a, b in WIRES:
+    A("\t(wire")
+    A("\t\t(pts")
+    A("\t\t\t(xy %s %s) (xy %s %s)" % (fs(a[0]), fs(a[1]), fs(b[0]), fs(b[1])))
+    A("\t\t)")
+    A("\t\t(stroke")
+    A("\t\t\t(width 0)")
+    A("\t\t\t(type default)")
+    A("\t\t)")
+    A('\t\t(uuid "%s")' % U("w%s,%s-%s,%s" % (a[0], a[1], b[0], b[1])))
+    A("\t)")
+
+for name, x, y, rot in LABELS:
+    A('\t(label "%s"' % name)
+    A("\t\t(at %s %s %d)" % (fs(x), fs(y), rot))
+    A("\t\t(effects")
+    A("\t\t\t(font")
+    A("\t\t\t\t(size 1.27 1.27)")
+    A("\t\t\t)")
+    A("\t\t\t(justify left bottom)")
+    A("\t\t)")
+    A('\t\t(uuid "%s")' % U("l%s%s%s" % (name, x, y)))
+    A("\t)")
+
+for name, shape, x, y, rot in HLABELS:
+    A('\t(hierarchical_label "%s"' % name)
+    A("\t\t(shape %s)" % shape)
+    A("\t\t(at %s %s %d)" % (fs(x), fs(y), rot))
+    A("\t\t(effects")
+    A("\t\t\t(font")
+    A("\t\t\t\t(size 1.27 1.27)")
+    A("\t\t\t)")
+    A("\t\t\t(justify %s)" % ("right" if rot == 180 else "left"))
+    A("\t\t)")
+    A('\t\t(uuid "%s")' % U("h%s%s%s" % (name, x, y)))
+    A("\t)")
+
+for s in SYMS:
+    A("\t(symbol")
+    A('\t\t(lib_id "%s")' % s["libid"])
+    A("\t\t(at %s %s %d)" % (fs(s["x"]), fs(s["y"]), s["rot"]))
+    A("\t\t(unit 1)")
+    A("\t\t(body_style 1)")
+    A("\t\t(exclude_from_sim no)")
+    A("		(in_bom %s)" % ("yes" if fpmap.in_bom(s["ref"]) else "no"))
+    A("\t\t(on_board yes)")
+    A("\t\t(in_pos_files yes)")
+    A("\t\t(dnp %s)" % ("yes" if s["dnp"] else "no"))
+    A('\t\t(uuid "%s")' % U("s" + s["ref"]))
+    props = list(s["fields"])
+    have = {p[0] for p in props}
+    if "Reference" not in have:
+        props.insert(0, ("Reference", s["ref"], s["x"], s["y"] - 2.54, 0))
+    if "Value" not in have:
+        props.insert(1, ("Value", s["val"], s["x"], s["y"] + 2.54, 0))
+    for extra in ("Footprint", "Datasheet", "Description"):
+        _v = fpmap.fp(s["ref"]) if extra == "Footprint" else (
+            "" if extra != "Description" else s["desc"])
+        props.append((extra, _v, s["x"], s["y"], 0, True))
+    for p in props:
+        nm, val, px, py, pa = p[:5]
+        hide = len(p) > 5 and p[5]
+        if nm in ("Footprint", "Datasheet", "Description"):
+            hide = True
+        A('\t\t(property "%s" "%s"' % (nm, val.replace("\\", "\\\\").replace('"', '\\"')))
+        A("\t\t\t(at %s %s %d)" % (fs(px), fs(py), pa))
+        if hide:
+            A("\t\t\t(hide yes)")
+        A("\t\t\t(show_name no)")
+        A("\t\t\t(do_not_autoplace no)")
+        A("\t\t\t(effects")
+        A("\t\t\t\t(font")
+        A("\t\t\t\t\t(size 1.27 1.27)")
+        A("\t\t\t\t)")
+        if nm in ("Reference", "Value"):
+            A("\t\t\t\t(justify left)")
+        A("\t\t\t)")
+        A("\t\t)")
+    for n in s["pinnums"]:
+        A('\t\t(pin "%s"' % n)
+        A('\t\t\t(uuid "%s")' % U("p%s.%s" % (s["ref"], n)))
+        A("\t\t)")
+    A("\t\t(instances")
+    A('\t\t\t(project "mccan"')
+    A('\t\t\t\t(path "%s"' % INST_PATH)
+    A('\t\t\t\t\t(reference "%s")' % s["ref"])
+    A("\t\t\t\t\t(unit 1)")
+    A("\t\t\t\t)")
+    A("\t\t\t)")
+    A("\t\t)")
+    A("\t)")
+
+A(")")
+import kicanon
+_text = kicanon.canonicalise("\n".join(out) + "\n")
+open(os.path.join(HW, "sheets", "mcu_can.kicad_sch"), "w",
+     encoding="utf-8", newline="\n").write(_text)
+print("symbols:", len(SYMS), " wires:", len(WIRES), " junctions:", len(set(JUNCS)),
+      " no-connects:", len(set(NOCONN)), " labels:", len(LABELS),
+      " hlabels:", len(HLABELS), " notes end y:", ny)

@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "mccan")(type "KiCad")(uri "${KIPRJMOD}/footprints/mccan.pretty")(options "")(descr "Project-local footprints not in the KiCad stock libraries"))
+)
