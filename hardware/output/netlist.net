@@ -1,8 +1,8 @@
 (export
 	(version "E")
 	(design
-		(source "D:\\Projects\\ESP32MCCAN-pcb\\hardware\\mccan.kicad_sch")
-		(date "2026-11-14T09:02:14")
+		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
+		(date "2026-11-15T12:42:10")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -1112,7 +1112,7 @@
 		)
 		(comp
 			(ref "D25")
-			(value "SMBJ24A")
+			(value "SMBJ18A")
 			(footprint "Diode_SMD:D_SMB")
 			(fields
 				(field
@@ -8069,7 +8069,7 @@
 		)
 		(comp
 			(ref "R62")
-			(value "43.2k")
+			(value "56.2k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8123,7 +8123,7 @@
 		)
 		(comp
 			(ref "R63")
-			(value "43.2k")
+			(value "56.2k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -8177,7 +8177,7 @@
 		)
 		(comp
 			(ref "R64")
-			(value "43.2k")
+			(value "56.2k")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(fields
 				(field
@@ -15323,6 +15323,12 @@
 				(pinfunction "VCC_2")
 				(pintype "passive")
 			)
+			(node
+				(ref "U10")
+				(pin "9")
+				(pinfunction "ON_9")
+				(pintype "passive")
+			)
 		)
 		(net
 			(code "87")
@@ -16455,17 +16461,6 @@
 		)
 		(net
 			(code "128")
-			(name "unconnected-(U10-ON-Pad9)")
-			(class "Default")
-			(node
-				(ref "U10")
-				(pin "9")
-				(pinfunction "ON_9")
-				(pintype "passive+no_connect")
-			)
-		)
-		(net
-			(code "129")
 			(name "unconnected-(U11-FAULT-Pad9)")
 			(class "Default")
 			(node
@@ -16476,7 +16471,7 @@
 			)
 		)
 		(net
-			(code "130")
+			(code "129")
 			(name "unconnected-(U11-LPM-Pad10)")
 			(class "Default")
 			(node
@@ -16487,7 +16482,7 @@
 			)
 		)
 		(net
-			(code "131")
+			(code "130")
 			(name "unconnected-(U11-NC-Pad1)")
 			(class "Default")
 			(node
@@ -16498,7 +16493,7 @@
 			)
 		)
 		(net
-			(code "132")
+			(code "131")
 			(name "unconnected-(U11-NC-Pad14)")
 			(class "Default")
 			(node
@@ -16509,7 +16504,7 @@
 			)
 		)
 		(net
-			(code "133")
+			(code "132")
 			(name "unconnected-(U11-NC-Pad19)")
 			(class "Default")
 			(node
@@ -16520,7 +16515,7 @@
 			)
 		)
 		(net
-			(code "134")
+			(code "133")
 			(name "unconnected-(U11-NC-Pad24)")
 			(class "Default")
 			(node
@@ -16531,7 +16526,7 @@
 			)
 		)
 		(net
-			(code "135")
+			(code "134")
 			(name "unconnected-(U12-FAULT-Pad9)")
 			(class "Default")
 			(node
@@ -16542,7 +16537,7 @@
 			)
 		)
 		(net
-			(code "136")
+			(code "135")
 			(name "unconnected-(U12-LPM-Pad10)")
 			(class "Default")
 			(node
@@ -16553,7 +16548,7 @@
 			)
 		)
 		(net
-			(code "137")
+			(code "136")
 			(name "unconnected-(U12-NC-Pad1)")
 			(class "Default")
 			(node
@@ -16564,7 +16559,7 @@
 			)
 		)
 		(net
-			(code "138")
+			(code "137")
 			(name "unconnected-(U12-NC-Pad14)")
 			(class "Default")
 			(node
@@ -16575,7 +16570,7 @@
 			)
 		)
 		(net
-			(code "139")
+			(code "138")
 			(name "unconnected-(U12-NC-Pad19)")
 			(class "Default")
 			(node
@@ -16586,7 +16581,7 @@
 			)
 		)
 		(net
-			(code "140")
+			(code "139")
 			(name "unconnected-(U12-NC-Pad24)")
 			(class "Default")
 			(node
@@ -16597,7 +16592,7 @@
 			)
 		)
 		(net
-			(code "141")
+			(code "140")
 			(name "unconnected-(U13-FAULT-Pad9)")
 			(class "Default")
 			(node
@@ -16608,7 +16603,7 @@
 			)
 		)
 		(net
-			(code "142")
+			(code "141")
 			(name "unconnected-(U13-LPM-Pad10)")
 			(class "Default")
 			(node
@@ -16619,7 +16614,7 @@
 			)
 		)
 		(net
-			(code "143")
+			(code "142")
 			(name "unconnected-(U13-NC-Pad1)")
 			(class "Default")
 			(node
@@ -16630,7 +16625,7 @@
 			)
 		)
 		(net
-			(code "144")
+			(code "143")
 			(name "unconnected-(U13-NC-Pad14)")
 			(class "Default")
 			(node
@@ -16641,7 +16636,7 @@
 			)
 		)
 		(net
-			(code "145")
+			(code "144")
 			(name "unconnected-(U13-NC-Pad19)")
 			(class "Default")
 			(node
@@ -16652,7 +16647,7 @@
 			)
 		)
 		(net
-			(code "146")
+			(code "145")
 			(name "unconnected-(U13-NC-Pad24)")
 			(class "Default")
 			(node
@@ -16663,7 +16658,7 @@
 			)
 		)
 		(net
-			(code "147")
+			(code "146")
 			(name "unconnected-(U13-OUT3-Pad17)")
 			(class "Default")
 			(node
@@ -16674,7 +16669,7 @@
 			)
 		)
 		(net
-			(code "148")
+			(code "147")
 			(name "unconnected-(U13-OUT3-Pad18)")
 			(class "Default")
 			(node
@@ -16685,7 +16680,7 @@
 			)
 		)
 		(net
-			(code "149")
+			(code "148")
 			(name "unconnected-(U13-OUT4-Pad15)")
 			(class "Default")
 			(node
@@ -16696,7 +16691,7 @@
 			)
 		)
 		(net
-			(code "150")
+			(code "149")
 			(name "unconnected-(U13-OUT4-Pad16)")
 			(class "Default")
 			(node
@@ -16707,7 +16702,7 @@
 			)
 		)
 		(net
-			(code "151")
+			(code "150")
 			(name "unconnected-(U14-n.c.-Pad7)")
 			(class "Default")
 			(node
@@ -16718,7 +16713,7 @@
 			)
 		)
 		(net
-			(code "152")
+			(code "151")
 			(name "unconnected-(U14-n.c.-Pad11)")
 			(class "Default")
 			(node

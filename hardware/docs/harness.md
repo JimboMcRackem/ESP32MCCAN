@@ -180,7 +180,7 @@ reach the controller.
 
 (Aux spec 2026-11-13: both pods moved to feed B; R100 became 33 mΩ.) Each fuse sits above its
 feed's worst case and below the circuit's rating, so it can act before the bike's fuse does. The fuses are **harness-side**, in the cable, not on the
-board; feed A's board-side protection (LTC4380 U10 with Q10/Q11) and feed B's paralleled P-FETs Q13/Q14 and 24 V
+board; feed A's board-side protection (LTC4380 U10 with Q10/Q11) and feed B's paralleled P-FETs Q13/Q14 and SMBJ18A
 TVS D25 handle reverse polarity and surge, not the cable. Reverse-polarity protection is per feed: it holds when that feed is reversed with the other feed disconnected, and when the whole harness is reversed. One feed reversed while the other is connected drives fault current through the shared return, via NT1 (a 2.0 mm net tie, sized to outlast the fuse), until the reversed feed's harness fuse clears. `GND_B` joins `GND_IN`, the connector side of choke L2, at NT1, so neither feed's return current bypasses L2's return winding. Fuse position along each run is
 **[TO CONFIRM]**; nearest the supply end protects the most cable (§6).
 

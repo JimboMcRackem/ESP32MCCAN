@@ -332,7 +332,7 @@ def chk_gate_network(nl):
 
 
 def chk_tvs(nl):
-    return _diode(nl, "D25", "SMBJ24A", "VBAT_B", "GND_B")
+    return _diode(nl, "D25", "SMBJ18A", "VBAT_B", "GND_B")
 
 
 def chk_c66(nl):

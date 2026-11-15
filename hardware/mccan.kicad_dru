@@ -24,7 +24,7 @@
 # U10 needs 0.150 mm pad-to-pad
 (rule "land pattern U10"
 	(constraint clearance (min 0.12mm))
-	(condition "A.memberOfFootprint('U10') && (B.memberOfFootprint('U10') || B.NetName == '/power_input/GND_IN' || B.NetName == '/power_input/SNS' || B.NetName == '/power_input/U10_DRN' || B.NetName == '/power_input/U10_GATE' || B.NetName == '/power_input/VBAT_PROT' || B.NetName == '/power_input/VCC10' || B.NetName == 'Net-(U10-TMR)' || B.NetName == 'unconnected-(U10-FLT-Pad7)' || B.NetName == 'unconnected-(U10-ON-Pad9)')"))
+	(condition "A.memberOfFootprint('U10') && (B.memberOfFootprint('U10') || B.NetName == '/power_input/GND_IN' || B.NetName == '/power_input/SNS' || B.NetName == '/power_input/U10_DRN' || B.NetName == '/power_input/U10_GATE' || B.NetName == '/power_input/VBAT_PROT' || B.NetName == '/power_input/VCC10' || B.NetName == 'Net-(U10-TMR)' || B.NetName == 'unconnected-(U10-FLT-Pad7)')"))
 
 # U11 needs 0.200 mm pad-to-pad
 (rule "land pattern U11"

@@ -47,12 +47,17 @@ PINS = {
 R_IN_SERIES = "4.7k"
 R_IN_PULLDOWN = "47k"
 
-# Current limit, one per chip (shared by its four channels).  Table 7-1: 41.2-45.3 k -> 500 mA.
-# 43.2 k 1 % spans 42.8-43.6 k, inside the band.  0.5 A is 6x the 80 mA steady load.
-R_ILIM = "43.2k"
+# Current limit, one per chip (shared by its four channels).  Table 7-1: 54.9-60.4 k -> 250 mA
+# (0.19-0.32 A, s.6.5).  56.2 k 1 % spans 55.6-56.8 k, inside the band.  0.25 A is 3x the 80 mA
+# steady load.  Was 43.2 k / 0.5 A until 2026-11-15: feed A's eFuse limit (R100, 1.36 A min)
+# sits only ~0.5 A above the board's 0.87 A worst case, so one shorted channel at 0.5 A (peaking
+# 1.4x in linear mode) could trip it and take the MCU (VLOGIC_IN is behind it) into a reset loop.
+# At 0.25 A a single short stays under the limit (~1.24 A) and the channel latches off.
+R_ILIM = "56.2k"
 
-# Current sense.  K(SNS) = 1040 at 1 A (s.6.5).  Full scale 2.46 V at the 0.5 A limit:
-#   5.11 k x 0.5 A / 1040 = 2.46 V;  80 mA -> 0.39 V;  20 mA (rear *_DRL) -> 0.10 V.
+# Current sense.  K(SNS) = 1040 at 1 A (s.6.5).  Full scale 1.23 V at the 0.25 A limit
+# (2.46 V at the 0.5 A limit this was sized for; kept so the fault level below still reads):
+#   5.11 k x 0.25 A / 1040 = 1.23 V;  80 mA -> 0.39 V;  20 mA (rear *_DRL) -> 0.10 V.
 # Fault level VSNSFH = 3.2-3.9 V with DIAG_EN at ~3 V (s.6.5), so a reading above ~2.8 V means
 # fault.  Eq.1: R(SNS) <= (VSNSFH - VHR) x K / Imax = (3.2 - VHR) x 1040 / 0.5 = 6.6 k - margin.
 R_SNS = "5.11k"

@@ -188,7 +188,7 @@ EXPLICIT = {
     "Q13": "Package_SO:PowerPAK_SO-8L_Single",     # SQJ461EP, same package plan3's Q1 used
     "Q14": "Package_SO:PowerPAK_SO-8L_Single",     # SQJ461EP, parallel with Q13 (Task 6 tally)
     "D24": "Diode_SMD:D_SOD-123",              # MMSZ5245B 15 V zener, Q13 gate clamp
-    "D25": "Diode_SMD:D_SMB",                  # SMBJ24A on VBAT_B -- DO-214AA, as D2
+    "D25": "Diode_SMD:D_SMB",                  # SMBJ18A on VBAT_B -- DO-214AA, as D2
     "NT1": "NetTie:NetTie-2_SMD_Pad2.0mm",     # GND_B <-> GND_IN star point; wide so it outlasts the harness fuse
 }
 # ---- aux stage, 2026-11-13 (docs/superpowers/specs/2026-11-13-aux-stage-design.md)
