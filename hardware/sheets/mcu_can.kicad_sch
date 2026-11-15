@@ -2674,7 +2674,7 @@
 	)
 	(text_box "DIAGNOSTIC LINES (block A)\nDIAG_EN, DIAG_SEL0 and DIAG_SEL1 are shared by all three quad switches.  Each leaves the\nmodule through its own 4.7k series resistor (R30-R32, one per shared line, not per chip) and\ncontinues as DIAG_EN_Q / DIAG_SEL0_Q / DIAG_SEL1_Q to the outputs sheet.\nR33 pulls DIAG_EN_Q low (10k, chip side).  GPIO 2 is a strapping pin that must be low for download, and the pull-down serves both that\nand the switches' DIAG_EN input.  DIAG_SEL0 and DIAG_SEL1 have NO pull: their level is irrelevant while DIAG_EN is low, and a pull-down\non GPIO 15 would mute the boot ROM log."
 		(exclude_from_sim no)
-		(at 310.0 80.82 0)
+		(at 310.0 83.78 0)
 		(size 103.19 12.36)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
@@ -2690,12 +2690,12 @@
 			)
 			(justify left top)
 		)
-		(uuid "272b022c-a58d-52ea-9bbe-1e029cdf33cf")
+		(uuid "303304ac-046d-52f3-951d-6701db10f5b8")
 	)
-	(text_box "WHY THE AUTO-RESET PAIR IS CROSS-COUPLED\nEach transistor's emitter sits on the OTHER control line, so the pair only acts when DTR\nand RTS differ.  Both high or both low = run mode.  That is what stops a plain serial\nmonitor - which asserts one line on open - from dropping the board into the bootloader.\nesptool drives DTR=0/RTS=1 to assert reset, then DTR=1/RTS=0 to hold IO0 low while EN releases.  Q2 pulls EN low in the first state; Q3\npulls IO0 low in the second."
+	(text_box "WHY THE AUTO-RESET PAIR IS CROSS-COUPLED\nEach transistor's emitter sits on the OTHER control line, so the pair only acts when DTR\nand RTS differ.  Both high or both low = run mode.  That is what stops a plain serial\nmonitor - which asserts one line on open - from dropping the board into the bootloader.\nJ2's DTR/RTS are named for this circuit, NOT for a USB-UART adapter: Q2 (EN) has its emitter on DTR, the reverse of Espressif's dev\nboards.  esptool's reset step drives the adapter's DTR pin high and RTS pin low (modem lines are active low), which here would pull\nIO0, not EN.  So wire adapter DTR -> J2.6 \"RTS\" and adapter RTS -> J2.5 \"DTR\".  The MCCAN programmer board crosses them on its own\ncopper; any other adapter needs the swap."
 		(exclude_from_sim no)
 		(at 310.0 68.44 0)
-		(size 103.19 10.88)
+		(size 103.19 13.84)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
 			(width 0)
@@ -2714,7 +2714,7 @@
 	)
 	(text_box "EN_5V PULL-DOWN IS ON THE RAILS SHEET, NOT HERE\nEN_5V (GPIO 4) is pulled down by R19 next to the converter it gates, so the enable stays\ndefined even if the inter-sheet net is open.  One resistor per net; do not add a second."
 		(exclude_from_sim no)
-		(at 310.0 105.58 0)
+		(at 310.0 108.54 0)
 		(size 103.19 6.44)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
@@ -2730,27 +2730,7 @@
 			)
 			(justify left top)
 		)
-		(uuid "8213fa03-7c56-5210-a354-1dc296f4bba5")
-	)
-	(text_box "R36 ON IO12_STRAP IS A BOOT REQUIREMENT\nGPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it selects 1.8 V, which will\nnot run the module's 3.3 V flash.  Most WROOM-32E parts ship with the eFuse already burned so\nthe strap is ignored, but that is not guaranteed across date codes.  It draws no current in\nsleep."
-		(exclude_from_sim no)
-		(at 310.0 94.68 0)
-		(size 103.19 9.4)
-		(margins 0.9525 0.9525 0.9525 0.9525)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(fill
-			(type none)
-		)
-		(effects
-			(font
-				(size 0.8 0.8)
-			)
-			(justify left top)
-		)
-		(uuid "b5ee13b8-6388-5b42-a1ea-d281122d70a5")
+		(uuid "bbc7c682-f540-56af-9391-5888c0508979")
 	)
 	(text_box "TWO SUPPLIES, ON PURPOSE - DO NOT TIE THEM TOGETHER\nVIO (pin 5) -> +3V3_ALW, always on.  VCC (pin 3) -> +5V, gated off in sleep.\nThe split is what makes CAN wake work.  In sleep the +5V rail is down, so the transmit side and the bus drivers are unpowered, but VIO\nkeeps the receiver and the RXD output alive.  Bus traffic therefore still pulls RXD low, which is the EXT0 wake event on GPIO 35.\nPowering both from one rail loses either the wake path or the sleep budget.\nTJA1042T/3 VCC is 4.5-5.5 V.  The \"/3\" suffix refers to VIO only.  Running VCC from 3.3 V is out of spec - this was a genuine error in\nan early draft of the spec."
 		(exclude_from_sim no)
@@ -2791,6 +2771,26 @@
 			(justify left top)
 		)
 		(uuid "cf484bcc-d29d-5615-91b3-1703dee8a249")
+	)
+	(text_box "R36 ON IO12_STRAP IS A BOOT REQUIREMENT\nGPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it selects 1.8 V, which will\nnot run the module's 3.3 V flash.  Most WROOM-32E parts ship with the eFuse already burned so\nthe strap is ignored, but that is not guaranteed across date codes.  It draws no current in\nsleep."
+		(exclude_from_sim no)
+		(at 310.0 97.64 0)
+		(size 103.19 9.4)
+		(margins 0.9525 0.9525 0.9525 0.9525)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill
+			(type none)
+		)
+		(effects
+			(font
+				(size 0.8 0.8)
+			)
+			(justify left top)
+		)
+		(uuid "d9c78630-f1cf-5961-a176-4af3b08ae9d5")
 	)
 	(text_box "ACCEPTANCE (spec 7, 8.1)\n- ESP32-WROOM-32E-N8 (8 MB).  NOT the 4 MB variant, NOT the -32UE (U.FL) variant.\n- Module powered from +3V3_ALW so it stays up in sleep.\n- Pin assignment EXACTLY per the plan4 pin map (D2): twelve OUT_* lamp outputs, EN_5V,\n  three shared diagnostic lines, SNS_A/B/C on ADC1 (GPIO 34/36/39, input-only).\n- CAN_RXD on GPIO 35 (RTC-capable, EXT0 wake).  Ignition sense is gone (spec 6.2).\n- CAN_STB on GPIO 14, PULLED UP to VIO (floating = standby).\n- TJA1042T/3 TXD has NO connection to any GPIO; it is only pulled up to VIO.\n- NO 120 ohm terminator populated; unpopulated footprint present.\n- CAN common-mode choke + ESD protection on CANH/CANL.\n- Programming header with DTR/RTS auto-reset pair, BOOT and EN buttons."
 		(exclude_from_sim no)

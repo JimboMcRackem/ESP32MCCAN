@@ -422,7 +422,9 @@ elsewhere. Both are drawn on the board's `Cmts.User` layer so the coating house 
 > USB-UART's DTR and RTS straight to `EN` and `IO0` is the naive arrangement the transistor pair
 > exists to replace, and it resets the board on every serial connect. Feed the header raw DTR and
 > RTS and let Q2/Q3 do the sequencing — that is what makes flashing work with **no manual BOOT
-> hold** (`bring-up.md` §106).
+> hold** (`bring-up.md` §106). **But cross them** (corrected 2026-11-14): adapter DTR → J2.6
+> `RTS`, adapter RTS → J2.5 `DTR`, because Q2's emitter is on `DTR`, the reverse of Espressif's
+> circuit. The programmer board (`hardware/programmer/`) does this on its own copper.
 
 ---
 

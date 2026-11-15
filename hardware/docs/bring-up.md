@@ -103,13 +103,20 @@ hard fail requiring the parking/sleep strategy itself to be reconsidered.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Flash over the programming header with a plain USB-UART adapter | Succeeds with **no manual BOOT hold** (DTR/RTS auto-reset pair) | | |
+| Flash over the programming header with the MCCAN programmer board (or a plain USB-UART adapter with its DTR and RTS **swapped**: adapter DTR → J2.6, adapter RTS → J2.5) | Succeeds with **no manual BOOT hold** (DTR/RTS auto-reset pair) | | |
 | Module identifies as 8 MB flash | 8 MB | | |
 
 The DTR/RTS auto-reset pair exists specifically because the dev board's
 auto-reset was unreliable and required holding BOOT through esptool's
 handshake. If this stage needs a manual BOOT hold, the auto-reset circuit is
 the first thing to re-check — that is a regression, not a quirk to work around.
+
+**J2's `DTR`/`RTS` are named for the transistor pair, not for an adapter.** Q2 (EN) has its
+emitter on `DTR`, the reverse of Espressif's dev-board circuit. esptool's reset step drives an
+adapter's DTR *pin* high and RTS *pin* low (the modem lines are active low), so a straight
+adapter pulses IO0 when esptool means to reset, and flashing fails without the buttons. The
+programmer board (`hardware/programmer/`) crosses the pair on its own copper; any other adapter
+needs adapter DTR → J2.6 and adapter RTS → J2.5.
 
 ## Stage 4b: Real deep-sleep current, MCU populated and running
 

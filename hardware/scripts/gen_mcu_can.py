@@ -476,8 +476,11 @@ note("""|WHY THE AUTO-RESET PAIR IS CROSS-COUPLED
 Each transistor's emitter sits on the OTHER control line, so the pair only acts when DTR
 and RTS differ.  Both high or both low = run mode.  That is what stops a plain serial
 monitor - which asserts one line on open - from dropping the board into the bootloader.""",
-"""esptool drives DTR=0/RTS=1 to assert reset, then DTR=1/RTS=0 to hold IO0 low while EN
-releases.  Q2 pulls EN low in the first state; Q3 pulls IO0 low in the second.""")
+"""J2's DTR/RTS are named for this circuit, NOT for a USB-UART adapter: Q2 (EN) has its
+emitter on DTR, the reverse of Espressif's dev boards.  esptool's reset step drives the
+adapter's DTR pin high and RTS pin low (modem lines are active low), which here would pull
+IO0, not EN.  So wire adapter DTR -> J2.6 "RTS" and adapter RTS -> J2.5 "DTR".  The MCCAN
+programmer board crosses them on its own copper; any other adapter needs the swap.""")
 
 note("""|DIAGNOSTIC LINES (block A)
 DIAG_EN, DIAG_SEL0 and DIAG_SEL1 are shared by all three quad switches.  Each leaves the
