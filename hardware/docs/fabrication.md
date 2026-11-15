@@ -23,7 +23,7 @@ on 2026-11-14.
 |---|---|
 | Base material | FR-4, TG155 or better (motorcycle; the spec's thermal tally uses an 85 °C ambient) |
 | Layers | **8** |
-| Dimensions | **140 × 100 mm**, 3 mm corner radius (Edge.Cuts) |
+| Dimensions | **140 × 100 mm**, 1 mm corner radius (Edge.Cuts) |
 | Quantity | 5 |
 | Thickness | **1.6 mm** |
 | Outer copper | **1 oz** |
@@ -169,7 +169,7 @@ of the order.
 
 ## 7. Mechanical
 
-- The outline is 140 × 100 mm with 3 mm corners. The four M3 mounting holes (3.2 mm, non-plated)
+- The outline is 140 × 100 mm with 1 mm corner radius. The four M3 mounting holes (3.2 mm, non-plated)
   are 5 mm in from each corner.
 - **The tallest part is L2, the Würth 7448031002 common-mode choke: 24.0 mm max** above the board
   (datasheet; THT, on a 3 mm standoff). C3 and C68, the 10 × 10.5 mm electrolytics, come next at

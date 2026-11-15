@@ -1,117 +1,112 @@
 # Bring-Up Procedure
 
-Work the stages **in order**. A failed stage stops the process — do not proceed
-to the next stage with an unexplained result.
+**Board:** the plan4 board, 140 × 100 mm, 8 layers, fully assembled by JLCPCB (README "Board
+status"). **Rewritten 2026-11-15** against `output/netlist.net`, the redesign spec
+(`docs/superpowers/specs/2026-10-17-emarked-module-redesign-design.md`), the aux-stage spec
+(`2026-11-13-aux-stage-design.md`) and `harness.md`. The earlier version described the retired
+plan3 board (RGB MOSFETs, analog mux, 24 V boost, Denali pods) and is in git history.
 
-Every check below has an expected value written before any board exists. The
-"Measured" and "Pass" columns are intentionally blank — they get filled in at
-the bench, not now. A wrong reading is easy to rationalise as "close enough"
-after the fact; writing the number down first is what stops that.
+Work the stages **in order**. A failed stage stops the process: do not move on with an
+unexplained result. Every expected value is written down before the board exists. Fill in
+"Measured" at the bench; a number written first is what stops "close enough" afterwards.
 
-Current design baseline this procedure checks against (spec
-`2026-09-11-esp32-mccan-pcb-hardware-design.md` and `hardware/docs/part-selection.md`):
+## What this board is
 
-- RGB output is **12 discrete SOT-23 MOSFETs** (PMV60ENEA class), each with a
-  **1 Ω shunt** in its source leg. **There is no SPI on this board** and no
-  smart low-side switches for RGB — any earlier reference to either is void.
-- Diagnostics are **shunt → 16:1 analog mux (ADG706) → ADC1 GPIO 32**, mux
-  select `MUX_S0`–`S3` on GPIO 23/4/16/5. A channel at full current reads
-  **~267 mV**; the ADC runs at **0 dB attenuation** (0–1.1 V range).
-  Classification is open (~0 mV) / working (~267 mV) / shorted (saturated) —
-  not precision metering.
-- Denali (D4 2.0 pair) uses a separate **dual PROFET high-side** stage with
-  its own current-sense readback, independent of the RGB shunt/mux chain.
-- Four rails: `+3V3_ALW`, `+3V3_SW`, **`+5V` (switched, gated with `+3V3_SW` — the
-  TJA1042 transceiver's VCC needs 4.5–5.5 V)**, and `+24V` (boost, enable-gated).
-- **ONE 12 V feed** behind a single **10 A** fuse (spec 4.4). The loads never coincide
-  (spec 2.4): daytime **1.0 A (10%)**, **night 7.0 A (70% — the governing case)**, with a
-  seconds-long 7.8 A flash-to-pass transient. **Revised 2026-09-13** when the RGB load fell ~4x. The second
-  feed exists only as unpopulated board footprints.
-  If it is ever populated they are never paralleled — only a Schottky OR joins them, and only onto
-  the logic rail.
-- Passive defaults are all **fail-safe when floating**: `EN_BOOST` and
-  `EN_3V3SW` pull down, `CAN_STB` pulls up (forces standby), all 14 `PWM_*`
-  pull down, `MUX_S0`–`S3` pull down. Floating = safe/off.
-- **Hardware-enforced listen-only:** the transceiver's TXD is pulled recessive
-  by R24 and connected to nothing else; no GPIO reaches it. The firmware cannot
-  put a frame on the bus even if it tries.
+- **Two feeds, never joined.** Feed A (J1) runs the logic and the ten signal lamps through U10, an
+  LTC4380 surge stopper with back-to-back FETs Q10/Q11. Its current limit is **1.36–1.67 A**
+  (R100, 33 mΩ). Feed B (J9) runs the two Oxford pods only, through the parallel reverse-polarity
+  P-FETs Q13/Q14 and the SMBJ18A clamp D25. The returns meet only at the net tie NT1.
+- **Two rails.** `+3V3_ALW` (U1, always on, from `VLOGIC_IN` = `VBAT` through Schottky D3) and
+  `+5V` (U2, enabled by `EN_5V` on GPIO4, 100 k pull-down R19). `+5V` feeds the CAN
+  transceiver and the yellow-wire buffers.
+- **Ten signal outputs** on three TPS4HC120A quad switches (U11–U13; U13 has two spare channels).
+  Each channel limits at **0.25 A (0.19–0.32 A)** and latches off after a thermal fault until its
+  input toggles. Each chip's current-sense line reaches the ADC (`SNS_A/B/C` on GPIO 34/36/39),
+  but the firmware holds `DIAG_EN` low and does not read them yet.
+- **Two pod outputs** on U14, a BTS7008-2EPA dual switch on `VBAT_B`. Each pod's yellow brightness
+  wire is a 5 V, 150 Hz PWM from GPIO13 through U15/U16 (74AHCT1G126), enabled only while that
+  pod's output is on.
+- **CAN is listen-only in hardware.** The TJA1042's TXD is pulled up by R24 and no GPIO reaches it.
+  The 120 Ω terminator R26 is not fitted.
+- **Fail-safe defaults.** Every switch input has a 47 k pull-down, `DIAG_EN` and `EN_5V` pull down,
+  and `CAN_STB` pulls up (transceiver in standby). A blank or resetting MCU lights nothing.
+- **No sleep current to measure.** All feeds are ignition-switched and the bus is dead when the bike
+  is off (spec §6, item 2), so the board is unpowered when parked. Ignition sense was deleted.
+
+**Test pads:** TP1 `VBAT`, TP2 `VBAT_B`, TP3 `GND_B`, TP4 `+3V3_ALW`, TP5 `+5V`, TP6 `GND`,
+TP7 `AUX_PWM`, TP8/TP9 `YEL_L`/`YEL_R`, TP10/TP11 `POD_L_P`/`POD_R_P`, TP12–TP14 `SNS_A`–`SNS_C`,
+TP15/TP16 `CANH`/`CANL`, TP17–TP26 the ten lamp outputs (`FL_DRL` … `RR_BRK`), TP27 `VLOGIC_IN`,
+TP28 `EN_5V`, TP29 `CAN_RXD`, TP30 `GND_IN`. Each label is on the silkscreen.
+
+Measure every rail against TP6 (`GND`) unless the row says otherwise.
 
 ---
 
-## Stage 1: Rails only — MCU and output-stage parts NOT populated
-
-Purpose: prove the power path and its passive safe-state defaults before any
-active logic exists to get it wrong. If ICs downstream of a given net are not
-yet populated, probe the net directly at the pull-up/pulldown resistor.
-
-Current-limit the bench supply (e.g. ≤ 100 mA) for the reverse-polarity rows
-so a protection failure doesn't cascade into real damage.
+## Stage 0: Before ordering, and on arrival
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Feed current with no load | < 5 mA | | |
-| `+3V3_ALW` | 3.30 V ± 3% | | |
-| `+5V` rail **with `EN_3V3SW` asserted** | within 4.5–5.5 V, nominal 5.0 V | | |
-| `+5V` with `EN_3V3SW` floating | **0 V** — the rail is gated, like `+3V3_SW` | | |
-| `+24V` with `EN_BOOST` high | 24.0 V ± 5% | | |
-| `+24V` with `EN_BOOST` floating | ~VBAT (boost FET body diode; see rails sheet note) | | |
-| `+3V3_SW` with `EN_3V3SW` floating | 0 V (pulldown) | | |
-| `CAN_STB` net with nothing driving it | pulled high, ≥ 3.0 V (forces transceiver standby) | | |
-| All 14 `PWM_*` nets with nothing driving them | 0 V (pulldown) | | |
-| `MUX_S0`–`S3` nets with nothing driving them | 0 V (pulldown — channel 0 selected) | | |
-| Reverse-polarity test: reverse the feed | No current, no damage | | |
-| Confirm the DNP second-feed stage is unpopulated and isolated | No populated path; no voltage present | | |
+| **Before ordering:** current of each EL360 function (running light, indicator, brake) at 14.4 V on the bench, steady and peak | **Steady ≤ ~0.13 A per function.** The channels now limit at 0.19 A minimum (R62–R64, 56.2 k). The spec still budgets 0.167 A per function (2 W, unmeasured), and a lamp that steady near the limit runs the switch in current limit and latches it off. If any function exceeds ~0.13 A, return R62–R64 to 43.2 k (0.5 A) before ordering | | |
+| JLCPCB placement preview: every row of `output/jlcpcb/rotation-review.txt` (39 parts) | Pin 1 and polarity match the assembly drawing (`fabrication.md` §8) | | |
+| On arrival, under a loupe: D2, D25 (SMB clamps), D3, D21, D23, D24, D26/D27 | Cathode bands as on `assembly.pdf` | | |
+| J2 and L2 fitted (THT); R26 not fitted | As stated | | |
+| Resistance `VBAT` (TP1) to `GND`, unpowered | Not a short (> 1 kΩ once the capacitors charge from the meter) | | |
+| Resistance `VBAT_B` (TP2) to `GND_B` (TP3), and `+3V3_ALW` / `+5V` to `GND` | Not a short | | |
 
-## Stage 2: Boost under full dummy load
+## Stage 1: Feed A only, blank module
+
+The WROOM module arrives unflashed, so this stage proves the passive safe state with no firmware.
+Feed B is not connected. Set the bench supply to 12.0 V, **current limit 200 mA**.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| 24 V into a **0.5 A** dummy load (the 12 W design point; 0.32 A is the real load) | 24.0 V ± 5%, stable | | |
-| Efficiency at **7.7 W** out | **>= 92%** is the budgeted figure (spec 9.4). Record the measured value | | |
-| Output ripple | < 200 mV pk-pk | | |
-| Boost temperature rise after 30 min | consistent with **~0.7 W** of loss at 7.7 W out | | |
+| Feed A current, steady | Record. Tens of mA: the module's ROM boot loop plus U1 | | |
+| `VBAT` (TP1) | Supply minus the drop across L2, Q10/Q11 and R100 (well under 0.1 V) | | |
+| `VLOGIC_IN` (TP27) | `VBAT` minus one Schottky drop (~0.2–0.4 V) | | |
+| `+3V3_ALW` (TP4) | 3.30 V ± 3 % | | |
+| `EN_5V` (TP28) | 0 V (R19 pull-down) | | |
+| `+5V` (TP5) | 0 V: U2 is disabled until firmware enables it | | |
+| `GND_IN` (TP30) to `GND` (TP6) | ~0 mV (joined through L2's return winding) | | |
+| All ten lamp outputs (TP17–TP26) | 0 V | | |
+| `SNS_A`–`SNS_C` (TP12–TP14) | ~0 V | | |
+| `AUX_PWM`, `YEL_L`, `YEL_R` (TP7–TP9) | 0 V | | |
+| GPIO12 at R36 | 0 V (strap pull-down: 3.3 V flash) | | |
+| Supply at 10.5 V, then 14.4 V | `+3V3_ALW` stays 3.30 V ± 3 % | | |
+| **Reverse feed A** (limit 100 mA) | No current beyond leakage, no heat, board works again when corrected | | |
 
-## Stage 3: Quiescent current in simulated sleep
+## Stage 2: Feed B
 
-| Check | Expected | Measured | Pass |
-|---|---|---|---|
-| Total, with `EN_BOOST`/`EN_3V3SW` floating and transceiver held in standby | Predicted (part-selection roll-up, **revised 2026-09-12**): **85–100 µA**<br>Pass (design requirement): **< 200 µA**<br>Hard fail (ceiling): **> 500 µA** | | |
-
-These are three different numbers doing three different jobs, and the row
-keeps all three on purpose:
-
-- **85–100 µA** is the *prediction* — what the datasheet roll-up in
-  `hardware/docs/part-selection.md` says this board should draw. **It supersedes an
-  earlier 87–117 µA figure that omitted the boost controller entirely** (C3), and it
-  holds only if the boost UVLO divider and the P-FET gate network are both ≥ 1 MΩ.
-- **< 200 µA** is the *pass criterion* — the design requirement the product
-  must meet for the parking/sleep strategy to make sense.
-- **> 500 µA** is the *hard fail* — the ceiling past which the sleep
-  strategy does not work at all.
-
-A reading **between 100 µA and 200 µA passes** — it is inside the design
-requirement — but should still be investigated per contributor against the
-roll-up (ESP32 deep sleep + EXT0 RTC domain ~10 µA, CAN transceiver standby
-≤19 µA, buck quiescent 10.5 µA typ/25 µA max for the ONE instance that stays powered — the 5 V regulator is gated off, PROFET
-standby ≤0.6 µA, RGB FET leakage ≤12 µA, P-FET gate divider ≤24 µA by
-design). It means some part is drawing more than its own datasheet figure,
-which is worth understanding even though the board isn't failing. Only a
-reading above 200 µA is an actual fail; only a reading above 500 µA is a
-hard fail requiring the parking/sleep strategy itself to be reconsidered.
-
-## Stage 4: MCU populated
+Keep feed A connected at 12 V. Connect a second supply to J9, **current limit 500 mA**, no pods.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Flash over the programming header with the MCCAN programmer board (or a plain USB-UART adapter with its DTR and RTS **swapped**: adapter DTR → J2.6, adapter RTS → J2.5) | Succeeds with **no manual BOOT hold** (DTR/RTS auto-reset pair) | | |
+| `VBAT_B` (TP2) to `GND_B` (TP3) | Feed B minus a few mV (Q13/Q14 on) | | |
+| `GND_B` (TP3) to `GND_IN` (TP30) | ~0 mV (NT1) | | |
+| `POD_L_P`, `POD_R_P` (TP10/TP11) | 0 V: U14 inputs pulled down | | |
+| Feed B current, no pods | Under 5 mA (U14 standby plus capacitor leakage) | | |
+| **Reverse feed B with feed A disconnected** (limit 100 mA) | No current, no damage | | |
+
+**Never reverse one feed while the other is connected.** That drives fault current through NT1
+until the reversed feed's fuse clears (`harness.md` §4). It is a harness hazard, not a test.
+
+## Stage 3: Flash and first boot
+
+| Check | Expected | Measured | Pass |
+|---|---|---|---|
+| Flash over J2 with the MCCAN programmer board (or a plain USB-UART adapter with its DTR and RTS **swapped**: adapter DTR → J2.6, adapter RTS → J2.5) | Succeeds with **no manual BOOT hold** (DTR/RTS auto-reset pair Q2/Q3) | | |
+| J2 cable | MCCAN programmer only. J2 is 3V3 GND TX RX DTR RTS, **not** the FTDI order (a generic FTDI cable puts GND on 3V3 and 5 V on TXD0) | | |
 | Module identifies as 8 MB flash | 8 MB | | |
-| GPIO12 (R36) with the firmware running and CAN started | ~0 V (released to input + pull-down by `CanBus::begin`), and CAN frames still received | | |
-| J2 cable | MCCAN programmer only: J2 is 3V3 GND TX RX DTR RTS, **not** the FTDI order (a generic FTDI cable puts GND on 3V3 and 5 V on TXD0) | | |
+| After boot: `EN_5V` (TP28) | 3.3 V (firmware drives GPIO4 high) | | |
+| After boot: `+5V` (TP5) | 5.0 V ± 3 % | | |
+| GPIO12 at R36, firmware running and CAN started | ~0 V (released to input with pull-down by `CanBus::begin`) | | |
+| `SNS_A`–`SNS_C` | ~0 V (firmware holds `DIAG_EN` low) | | |
+| All lamp outputs and pod outputs, no CAN connected | 0 V: a dead bus is "everything off" (spec §6, item 2) | | |
+| Press SW2 (EN) and watch TP17–TP26 on a scope | No output pulses high during reset or boot | | |
+| WiFi access point and web app | Reachable; the Status screen loads | | |
+| Feed A current with firmware running, WiFi up | Record (logic budget ≈ 0.1 A) | | |
 
-The DTR/RTS auto-reset pair exists specifically because the dev board's
-auto-reset was unreliable and required holding BOOT through esptool's
-handshake. If this stage needs a manual BOOT hold, the auto-reset circuit is
-the first thing to re-check — that is a regression, not a quirk to work around.
+The DTR/RTS pair exists because the dev board's auto-reset was unreliable. If this stage needs a
+manual BOOT hold, re-check the auto-reset circuit: that is a regression, not a quirk.
 
 **J2's `DTR`/`RTS` are named for the transistor pair, not for an adapter.** Q2 (EN) has its
 emitter on `DTR`, the reverse of Espressif's dev-board circuit. esptool's reset step drives an
@@ -120,125 +115,89 @@ adapter pulses IO0 when esptool means to reset, and flashing fails without the b
 programmer board (`hardware/programmer/`) crosses the pair on its own copper; any other adapter
 needs adapter DTR → J2.6 and adapter RTS → J2.5.
 
-## Stage 4b: Real deep-sleep current, MCU populated and running
+## Stage 4: Signal outputs into dummy loads
 
-**ADDED 2026-09-12 (project review I14).** Stage 3 measures *simulated* sleep with the
-MCU unpopulated and the rails held off by their pulldowns. That cannot see two of the
-defects this design actually risks: a floating `IGN_SENSE` waking the board (C2), or the
-boost's UVLO divider drawing current it should not (C3). Without this stage, both would
-first surface as a bad 7-day vehicle result in Stage 9 - a week per iteration.
+Load each of the ten lamp tails with a **150 Ω, 2 W** resistor to its return (≈ 80 mA at 12 V).
+Use the web app's **test mode** to walk the outputs one at a time.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Firmware enters `esp_deep_sleep_start()`, measure feed current | Predicted **85-100 uA**<br>Pass **< 200 uA**<br>Hard fail **> 500 uA** | | |
-| `IGN_SENSE` (GPIO 36) DC level in sleep | **0 V**, held by its populated pulldown - not floating | | |
-| Board stays asleep for 10 min undisturbed, bus quiet | No spurious wake | | |
-| ~~Boost UVLO divider current~~ **N/A** — `EN_UVLO_SYNC` is driven directly from the GPIO; there is no divider (spec 6) | | |
-| `+5V` rail in sleep | **0 V** - gated off with `+3V3_SW` (I10) | | |
-| Wake on bus activity, then re-enter sleep | Returns to the same current | | |
+| Each output, one at a time | Only that tail goes to `VBAT`; every other stays at 0 V | | |
+| Output-to-tail mapping | J3: 1 `FL_DRL`, 2 `FL_IND`, 3 `FR_DRL`, 4 `FR_IND`, 5 return. J4: 1 `RL_DRL`, 2 `RL_IND`, 3 `RL_BRK`, 4 return. J5: 1 `RR_DRL`, 2 `RR_IND`, 3 `RR_BRK` | | |
+| All ten on: feed A current | Record. Under 1.0 A, well below U10's 1.36 A minimum limit | | |
+| Feed A current at switch-on (scope, all ten commanded on together) | Peak below 1.36 A, so U10 never limits at start-up (aux spec A10) | | |
+| `SNS_x` with `DIAG_EN` low | ~0 V; diagnostics are off by design | | |
+| **Short one lamp output to its return, all others on** | The board keeps running (WiFi stays up, no reboot), only the shorted channel goes dark, and feed A stays under the U10 limit (≈ 1.24 A) | | |
+| Remove the short and toggle that output | It recovers: version A latches off until its input toggles | | |
 
-A reading near 250-350 uA with everything else nominal points at the UVLO divider;
-random wakes point at `IGN_SENSE`.
+Two outputs shorted at once can still trip U10 and reset the board. Reading `SNS_x` in firmware
+would close that gap; it is not built yet.
 
-## Stage 5: Buses
+## Stage 5: Pods
 
-| Check | Expected | Measured | Pass |
-|---|---|---|---|
-| PCA9685 responds at its I²C address | ACK | | |
-| Mux steps through all 16 channels | `RGB_ISNS` follows the selected channel | | |
-| **Mux address maps to the RIGHT channel** — for each k in 0..11: drive channel k to 100%, confirm **address k reads ~267 mV (133 mV at 6 cm) and every other address reads ~0 mV** | All 12 correct | | |
-| Open channel vs. working channel at 100% duty | ~0 mV vs. ~267 mV, clearly distinguishable | | |
-| PROFET diagnostic (Denali) readable | Sense output tracks load | | |
-
-## Stage 6: All 14 outputs into dummy resistive loads
+First with dummy loads, then with the real pods. Raise the feed B supply limit to 8 A.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Each of 12 RGB channels switches independently | Correct channel, no crosstalk | | |
-| Channel-to-corner mapping matches `ChannelIndex` | FL, FR, RL, RR, in that order | | |
-| RGB PWM frequency | 400 Hz ± 5% | | |
-| Denali PWM frequency | 150 Hz ± 5% | | |
-| Low-duty linearity, all 12 channels | Monotonic from duty 1; colours matched across channels | | |
-| Open-load detection, one channel disconnected | Fault reported (part-selection **Section 1a**, the discrete-FET rows — *not* the superseded appendix row 1.1, which documents the octal-switch design that failed) | | |
-| Short a return to chassis with the channel commanded OFF | **Reads as "open" (~0 mV) while the LED is STUCK ON at full brightness.** This is the documented limitation, not a defect - the shunt is bypassed (spec 5.1, C5). Confirm the behaviour matches the documentation so nobody later reports it as a detection bug | | |
-| Short a return to +24 V upstream of the strip | Saturated reading, reported as a fault | | |
-| Internally shorted strip (simulate with a low-value load) | Saturated reading, reported as a fault | | |
+| `POD_L_P` / `POD_R_P` with a 4.7 Ω, 50 W load (≈ 2.6 A) | Output follows its command; `VBAT_B` minus under 0.1 V | | |
+| `YEL_L` / `YEL_R` (TP8/TP9) while that pod is **off** | 0 V: the buffer is disabled and R86/R87 hold it low | | |
+| `YEL_x` while that pod is **on** | 5 V PWM at **150 Hz ± 5 %**, duty as commanded (night Low default 15 %) | | |
+| `AUX_PWM` (TP7) | 3.3 V PWM at 150 Hz, the same duty | | |
+| Real pod inrush (`docs/bench/2026-11-13-pod-inrush-procedure.md`, with U14 switching) | U14 does not trip (overload trip 77–99 A); record the peak | | |
+| Yellow input current, 5 V drive | Record. It confirms or resizes R82–R85 (provisional) | | |
+| Both pods at full beam: feed B current | ≈ 6.4 A (3.2 A per pod, measured 2026-11-12) | | |
+| Blue wire (J10.4/J11.4) | Not connected on the board. Record its role if measured | | |
 
-## Stage 7: CAN
+## Stage 6: CAN on the bench
 
-| Check | Expected | Measured | Pass |
-|---|---|---|---|
-| Receive frames from a bench bus | Frames decoded correctly | | |
-| TXD link DNP: attempt to transmit | **Nothing appears on the bus** (hardware-enforced listen-only) | | |
-| Standby mode entered (`CAN_STB` high) | Transceiver current drops | | |
-| Bus activity drives RXD low in standby | Wake signal observed on GPIO 35 | | |
-| Deep sleep → EXT0 wake (GPIO 35, level 0) on bus activity | Board wakes and resumes | | |
-| Deep sleep → EXT1 wake (GPIO 36, `ANY_HIGH`) on ignition sense | Board wakes and resumes | | |
-
-The DNP-link test is the load-bearing check in this stage: it is the proof
-that a firmware bug cannot put a frame on the bus, not just a functional
-nicety. Do not skip it even if RX-only testing looks sufficient.
-
-## Stage 8: Real loads, soak test
+Use a bench CAN tool at **500 kbps** on J8, with the tool's own 120 Ω termination fitted (R26 is
+not).
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| Four real RGB strings, full white, 30 min | No flicker; thermal rise acceptable | | |
-| Same run with the enclosure at its hot internal temperature (56–64 °C) | **No PTC trips.** Margin is now comfortable — 0.08 A per string against 0.31 A hold at 65 °C (3.9x). This check was critical while the load was believed to be 0.42 A; it is retained as cheap confirmation | | |
-| Denali D4 pair, swept across the full duty range (0–100%) | No flicker, no audible buzz, monotonic brightness | | |
-| Measured RGB string power vs. the **7.7 W** design basis | Record actual. Basis is 16 W/m x 12 cm x 4 corners; if the 6 cm length is used the figure halves (spec 2.2) | | |
-| Measured Denali draw vs. 6.6 A assumption | Record actual (3.3 A/channel assumed) | | |
+| `CAN_STB` with firmware running | 0 V (normal mode; R25 pulls it up only when undriven) | | |
+| Frames from the tool | Decoded; the web app's CAN discovery shows them | | |
+| **Two-node bus: the tool and the board only** | The tool reports **ACK errors**: the board never drives the bus, not even an ACK bit. This is the proof that firmware cannot transmit | | |
+| `CANH`/`CANL` (TP15/TP16), bus idle | ~2.5 V each | | |
+| Stop the tool | Every output goes dark within ~0.5 s (CAN stale, `kStaleMs`) | | |
+| Mapped indicator bit toggling | The matching `*_IND` outputs flash in phase with the bit (`flashSource` = auto) | | |
 
-The D4 2.0 contains its own DataDim electronics, which may interact with
-supply-side PWM at 150 Hz — that interaction is exactly what this soak test
-is for, across the full duty range, not just at one setpoint. If the pair
-buzzes or flickers under supply PWM, the documented fallback is full supply
-voltage plus the pods' native DataDim input (spec §5.3) — record which mode
-is used going forward.
+## Stage 7: Soak
 
-## Stage 9: Vehicle install
+All ten lamp channels on dummy loads and both pods at full beam, 30 min, the board in its box with
+the lid on.
 
 | Check | Expected | Measured | Pass |
 |---|---|---|---|
-| The Experia peripheral outlet sustains the night load | **7.8 A continuous (78% of its 10 A rating)** without voltage sag or a warm connector, on a warm night | | |
-| Fuse temperature after a sustained night ride | Warm but not hot; no nuisance opening. **78% is the top of good practice** — if it opens, drop the Denali maximum level in the web app (90% gives 7.2 A / 72%) | | |
-| Internal enclosure temperature after a sustained ride | < 65 °C at 40 °C ambient | | |
-| Parked quiescent drain over 7 days — **TOPOLOGY B ONLY.** Under topology A (the Experia, ignition-switched feed) the board is unpowered when parked and this row is N/A; confirm instead that the feed really does go dead, by measuring it at the connector with the bike off | Predicted: **14–17 mAh** over 7 days (85–100 µA × 168 h)<br>Pass: **< 34 mAh** (the <200 µA requirement × 168 h)<br>Hard fail: **> 84 mAh** (the 500 µA ceiling) | | |
-| Does the CAN bus actually go quiet when parked? **Topology B only** | Bus idles → board enters deep sleep. Under topology A this no longer gates anything | | |
-| **Cold boot to lights-on, measured from ignition-on** | **Topology A pays a full boot on every ride and the rider sees it.** Record the figure; if it is slow, bring the lighting outputs up before the network stack | | |
-| **Inrush on repeated ignition cycles** | Switch the bike on and off 20 times. No fuse nuisance trip, no P-FET stress. Topology A power-cycles the input stage every ride, not a handful of times in its life | | |
-| Corner mapping verified by the installation self-test | All four corners correct (FL, FR, RL, RR) | | |
+| Q13 and Q14 temperature rise above ambient | Record. Predicted ≈ 17 K each (0.26 W × 65 °C/W, `enclosure.md` §9); at 85 °C ambient that is ≈ 102 °C | | |
+| U14 temperature rise | Record. Predicted ≈ 10 K | | |
+| U1 temperature rise | Record. Predicted under 18 K | | |
+| No output drops out, no reset | None | | |
 
-Express the 7-day drain as charge rather than current, because that is what a meter on a parked
-bike actually integrates. Same three-tier reading as Stage 3: the **predicted** figure is what
-this board should draw, **< 34 mAh** is the pass criterion (the design requirement sustained over
-a week), and **> 84 mAh** means the parking strategy does not work. A result between 20 and
-34 mAh passes but indicates a contributor above its datasheet figure — worth chasing even though
-the board is inside requirement.
+## Stage 8: On the bike
 
-For scale: 34 mAh over a week is negligible against a motorcycle's 12 V battery (typically
-8–20 Ah), which is the whole reason the CAN-wake strategy is viable.
-
-The CAN-idle check is the one the entire sleep strategy depends on and is
-currently unconfirmed — if the bus never goes quiet, the board never sleeps
-and the 85–100 µA figure from Stage 3 is academic. If this fails, the
-mitigation already designed in is the unpopulated ignition-sense input
-(GPIO 36, EXT1) plus a configurable idle timeout, tuned once real bus
-behaviour is observed — not a hardware change.
+| Check | Expected | Measured | Pass |
+|---|---|---|---|
+| Both feeds with the bike off | **0 V**: each feed is ignition-switched, so the board is unpowered when parked. If either stays live, stop: the board would drain the battery (it has no sleep mode in use) | | |
+| Bus bit rate | 500 kbps; frames decode | | |
+| Cold boot to lights-on, from ignition-on | Record. Topology A pays a full boot every ride | | |
+| Ignition on and off 20 times | No fuse trip, no U10 limit event, board boots every time | | |
+| Installation self-test (test mode) | Every corner and function lights where expected (`harness.md` §3) | | |
+| Feed A current on a night ride | Record, against the ≈ 0.87 A budget and the ≈ 2 A harness fuse | | |
+| Feed B current, both pods at full beam | Record, against 6.4 A and the 10 A harness fuse | | |
+| Box temperature after a long ride on a warm day | Record, against the 85 °C design ambient | | |
+| Fuse and circuit ratings | Confirm aux 3 is 15 A and feed A's circuit is 5 A (`harness.md` §4) | | |
 
 ---
 
-## Open questions to close during bring-up (spec §14)
+## Open questions to close during bring-up
 
-Bring-up is the first point live bus access exists, so resolve these against
-the real vehicle rather than leaving them as firmware-spec assumptions:
+Bring-up is the first point live bus access exists, so resolve these against the real vehicle:
 
-1. The Run bit at `0x102` — not yet identified.
-2. The day/night bit — exists but is unidentified.
-3. "Back" at `0x400` bit 16 — confirm what it actually drives.
-4. Brake OR-logic — confirm front OR rear.
-5. The canonical bit-numbering convention (endianness / bit order within a frame).
-6. The duplicate "Run" entries (bit 14 vs. bit 11).
-7. The spot-latch decision — whether a held high beam should auto-latch spot
-   (see the `spot-latch-deferred` note); this has been deferred pending
-   exactly the kind of confirmable CAN bus state this hardware now provides.
+1. The Run bit at `0x102`: not yet identified.
+2. The day/night bit: exists but is unidentified.
+3. "Back" at `0x400` bit 16: confirm what it actually drives.
+4. Brake OR-logic: confirm front OR rear.
+5. The canonical bit-numbering convention (byte order and bit order within a frame).
+6. The duplicate "Run" entries (bit 14 vs bit 11).
+7. Whether the Experia has a key-on-but-not-ready state, and what Run reads in it (spec §6).
