@@ -63,8 +63,9 @@ TWO DELIBERATE DEPARTURES FROM FIGURE 7, both checked:
     datasheet's own stated MINIMUM in PIN FUNCTIONS, and it is chosen because a larger C64 lengthens the
     output ramp: 0.1 uF pushes the fault timeout past 10 ms, off the end of the SOA curve that was
     checked.  Do not fit a larger C64 without re-checking the FETs' safe operating area.
-  * ON is left open on its internal 1 MOhm pull-up and FLT is not routed to the MCU.  Both carry
-    no-connect flags so ERC stays clean; both are available if a later revision wants them.
+  * ON is tied to VCC10 (2026-11-15).  Left open on its internal 1 MOhm pull-up it needed < 1 uA
+    leakage to GND; ~400 kOhm of moisture would have held the board off.  ON is rated to 80 V.
+    FLT is not routed to the MCU; it carries a no-connect flag so ERC stays clean.
 
 C65 IS NOT OPTIONAL.  PIN FUNCTIONS requires a minimum of 22 uF bypassing OUT "as close to the pin as
 possible".  Nothing else on this sheet satisfies it -- C1 is 100 nF and sits behind the choke, C3 sits
@@ -164,12 +165,15 @@ as an open question for spec 4.3, and it invalidates the SOA numbers if it is do
 _box("right", """FEED B (J9 -> Q13) -- BOTH PODS.  NEVER DIODE-OR IT WITH VBAT.
 Feed B is a second, independent 12 V pigtail for the pod switch U14 (both pods, outputs sheet;
 revised 2026-11-13).  GND_B leaves this sheet as the pods' return.  It has no eFuse, no buck and no
-filter (spec 4.1.1): reverse polarity and a 24 V load-dump clamp, nothing else.
+filter (spec 4.1.1): reverse polarity and an 18 V-standoff TVS clamp, nothing else.
   * Q13 (SQJ461EP, P-channel) is the reverse-polarity block: DRAIN to FEED_B_P (J9), SOURCE to VBAT_B.
     R108 (100k) pulls GATE_B to GND_B; D24 (15 V Zener, cathode VBAT_B, anode GATE_B) holds VGS inside the
     +/-20 V rating at the 50.6 V clamp.
-  * D25 (SMBJ24A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with
-    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ24A is unidirectional and D_TVS is the bidirectional symbol.
+  * D25 (SMBJ18A) sits on the PROTECTED side, VBAT_B to GND_B.  C66 = 100 nF 100 V.  D25 is drawn with
+    Device:D_Zener (K / A), not Device:D_TVS: the SMBJ18A is unidirectional and D_TVS is the bidirectional symbol.
+    SMBJ18A, not 24A (2026-11-15): U14 is rated 28 V / 35 V load dump.  The 24A clamped at 38.9 V
+    (10/1000 us) and 50.6 V (8/20 us); the 18A clamps at 29.2 V at 20.6 A (10/1000 us), ~38 V at 103 A
+    (8/20 us).  Standoff 18 V, breakdown >= 20 V: clear of the DC-DC-fed 12 V rail.
   * NT1 joins GND_B to GND_IN (the connector side of choke L2) at one deliberate point, the star point for
     the layout phase.  It is NOT tied to GND: that would let feed B's return wire carry part of feed A's load
     current and bypass L2's return winding (DC common-mode imbalance), and the reverse for feed B's own

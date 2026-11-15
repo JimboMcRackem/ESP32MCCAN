@@ -100,7 +100,7 @@ COMPS = [
     ("D3", "Device:D_Schottky",          140.97 + SH,  76.20, 180, "Schottky 40V", ""),
     ("C5", "Device:C",                   151.13 + SH,  80.01,   0, "100nF 100V", ""),
 
-    # ---- feed B (D6): reverse-polarity P-FET + 24 V TVS for the AUX_R pod switch
+    # ---- feed B (D6): reverse-polarity P-FET + 18 V-standoff TVS for the pod switch U14
     ("J9",  "Connector:Conn_01x02_Pin",  147.32, 124.46,   0, "SS1.5 2w feed B", ""),
     ("Q13", "Transistor_FET:Si7141DP",   172.72, 127.00,  90, "SQJ461EP", ""),
     # Q14 in parallel with Q13: 3.2 A each (enclosure.md s.9 -- one FET alone runs > 125 C)
@@ -108,7 +108,7 @@ COMPS = [
     ("R108", "Device:R",                 172.72, 139.70,   0, "100k", ""),
     ("D24", "Device:D_Zener",            185.42, 128.27, 270, "MMSZ5245B", ""),
     ("C66", "Device:C",                  203.20, 128.27,   0, "100nF 100V", ""),
-    ("D25", "Device:D_Zener",             210.82, 128.27, 270, "SMBJ24A", ""),
+    ("D25", "Device:D_Zener",             210.82, 128.27, 270, "SMBJ18A", ""),
     ("NT1", "Device:NetTie_2",           218.44, 147.32,   0, "NetTie_2", ""),
     ("TP30", "Connector:TestPoint",       231.14, 147.32,   0, "GND_IN", ""),   # phase B test pad
 ]
@@ -134,11 +134,13 @@ GNDS = [
     ("#PWR06", 151.13 + SH,  86.36),   # C5
 ]
 
-# ON is left open on its internal 1 MOhm pull-up, exactly as the datasheet's Figure 7 does;
-# FLT is an open-drain fault flag we do not route to the MCU (spec 4.2).  Both need a
-# no-connect flag or ERC reports them.
+# ON is tied to VCC10 (2026-11-15 robustness review).  Left open, it relied on the internal
+# 1 MOhm pull-up, and the datasheet requires < 1 uA leakage from ON to GND: about 400 kOhm of
+# moisture or flux residue would have held the whole board off.  ON tolerates 80 V and VCC10 is
+# clamped at 22 V by D21; the -2 part auto-retries, so ON never needs to toggle.
+# FLT is an open-drain fault flag we do not route to the MCU (spec 4.2); it needs a no-connect
+# flag or ERC reports it.
 NOCONN = [
-    (86.36, 135.89),    # U10 pin 9, ON
     (116.84, 125.73),   # U10 pin 7, FLT
 ]
 
@@ -180,6 +182,8 @@ WIRES = [
     ((104.14, 118.11), (104.14, 114.30)),    # pin 4  SNS
     ((109.22, 118.11), (109.22, 114.30)),    # pin 5  OUT
     ((86.36, 125.73), (80.01, 125.73)),      # pin 2  VCC
+    ((86.36, 135.89), (83.82, 135.89)),      # pin 9  ON -> tied to VCC10
+    ((83.82, 135.89), (83.82, 140.97)),      #        down to its VCC10 label
     ((93.98, 143.51), (93.98, 147.32)),      # pin 8  GND
     ((93.98, 147.32), (87.63, 147.32)),
     ((101.60, 143.51), (101.60, 144.78)),    # pin 10 TMR -> C62
@@ -291,6 +295,7 @@ LABELS = [
     # VCC10 and the connector-side return in the eFuse block
     ("VCC10",     60.96,  86.36, 0),
     ("VCC10",     80.01, 125.73, 0),
+    ("VCC10",     83.82, 140.97, 270),    # U10 pin 9, ON
     ("GND_IN",    31.75,  88.90, 0),
     ("GND_IN",    60.96,  93.98, 0),
     ("GND_IN",    127.00, 88.90, 0),

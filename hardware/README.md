@@ -116,21 +116,19 @@ along rows and columns, which can pass a diagonally necked pour; keep it as the 
 
 `check_density.py` reports how full each region is. It is informational, not a gate.
 
-### Last full run (2026-11-14, on 69ce5bb plus the docs)
+### Last full run (2026-11-15, robustness changes: U10 ON tie, D25 SMBJ18A, ILIM 56.2 k, J2 silk)
 
 | Step | Result |
 |---|---|
-| Schematic generators | sheets byte-identical |
+| Schematic generators | `power_input` and `outputs` changed as intended; the other sheets byte-identical |
+| Netlist diff vs 2026-11-14 | U10.9 joins `VCC10`; D25 SMBJ18A; R62-R64 56.2k; nothing else |
 | ERC | 0 violations |
-| `check_netlist.py` | every group PASS |
-| `gen_pcb.py` | board byte-identical; 2137 frozen segments, 504 router vias |
+| `check_netlist.py`, `verify_fpmap.py` | every group PASS; 0 failures |
+| `gen_pcb.py` | exit 0 (hand routes clear); 2137 frozen segments, 504 router vias, plus the ON track |
 | DRC, all severities, parity | **0 violations, 0 unconnected, 0 parity issues** |
-| `check_frame`, `placement`, `antenna`, `grounds`, `power_paths`, `plane_width` | PASS |
-| `check_plane_mincut` (2026-11-14, after the review fixes) | PASS; tightest is feed B's rail (VBAT_B) at 7.00 mm against 6.10 mm, on In3 |
-| `check_courtyards` | 195 footprints, no overlaps |
-| `check_zone_islands`, `check_vias`, `check_geometry` | OK |
-| `gen_fab.py --check` | PASS: 64 BOM lines, 153 placed parts, 39 orientation-checked parts (13 recalled, 26 unverified; none confirmed) |
-| `check_stock.py --boards 5` | exit 0. U10 (LTC4380) is GLOBAL: JLCPCB stocks 3 against 7 needed; global sourcing is owner-approved |
+| `check_frame`, `placement`, `antenna`, `courtyards`, `grounds`, `zone_islands`, `power_paths`, `plane_width`, `plane_mincut`, `vias`, `geometry`, `test_check_plane_mincut` | PASS |
+| `gen_fab.py --check` | PASS: 39 orientation-checked parts (13 recalled, 26 unverified; none confirmed) |
+| `check_stock.py --boards 5` | exit 0. U10 (LTC4380) GLOBAL as before (owner-approved); L2 11 for 10 |
 
 ## Board setup decisions
 
@@ -151,7 +149,7 @@ scoped rule in `mccan.kicad_dru` (`scripts/gen_netclasses.py`, `PLANE_NECK_RULE`
 
 | Sheet | Contents |
 |---|---|
-| power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, 24 V TVS D25 -> `VBAT_B`, no filter, no LTC4380. `GND_B` (also the pods' return, out to the outputs sheet) meets `GND_IN` (the connector side of choke L2) only at net-tie NT1, so neither feed's return current bypasses L2's return winding |
+| power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, SMBJ18A TVS D25 (29.2 V clamp, inside U14's 35 V) -> `VBAT_B`, no filter, no LTC4380. `GND_B` (also the pods' return, out to the outputs sheet) meets `GND_IN` (the connector side of choke L2) only at net-tie NT1, so neither feed's return current bypasses L2's return winding |
 | rails | Low-Iq buck -> `+3V3_ALW`, gated `+5V` (`EN_5V`). No boost and no `+3V3_SW` |
 | mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, 4.7 k series resistors on the diagnostic lines. GPIO 13 is `AUX_PWM` (the status LED is gone, 2026-11-13) |
 | outputs | Three TPS4HC120A-Q1 quads U11-U13 (TPS4H160B until 2026-11-13, no stock) (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. Aux stage (2026-11-13): BTS7008-2EPA U14 switches both pods from `VBAT_B`, 74AHCT1G126GV U15 (left) and U16 (right) buffer `AUX_PWM` to each yellow (enabled only while that pod is powered), pod tails J10/J11. See `docs/superpowers/specs/2026-11-13-aux-stage-design.md` |
@@ -175,22 +173,26 @@ sense, PWM nets) described a board that no longer exists and have been removed.
     irrelevant while `DIAG_EN` is low). The three SEH internal pull-downs (100 k min each) load
     GPIO 15 against its internal pull-up, so the ROM boot log will probably be muted; that is
     harmless. Optional fix: a 10 k pull-up on the MCU side of R32 (not fitted).
-  - GPIO 12 is `IO12_STRAP`: R36 10 k to GND (flash voltage select; also the firmware's TWAI TX pin).
+  - GPIO 12 is `IO12_STRAP`: R36 10 k to GND (flash voltage select; also the firmware's TWAI TX pin,
+    which `CanBus::begin` hands back to input + pull-down once TWAI starts).
 - No lamp output sits on a strapping pin or on GPIO 14.
 
 ### Layout notes (honoured by the plan4 layout)
 
-- **U10 (LTC4380) `ON` is deliberately left open** on its internal 1 Mohm pull-up. The layout must
-  keep that pin's leakage to ground under 1 uA (LTC4380 Rev. C, Pin Functions): no flux-prone
-  gap, guard or close ground copper beside the pad.
+- **U10 (LTC4380) `ON` is tied to `VCC10`** (2026-11-15). It used to be left open on its internal
+  1 Mohm pull-up, which needs < 1 uA leakage to ground: about 400 kOhm of moisture or flux would
+  have held the whole board off. A 0.15 mm F.Cu track runs from pad 9 under the body to `VCC10`'s
+  via. The old In1 keep-out and `check_power_paths` guard stay as belt-and-braces.
 - `NT1` is the deliberate `GND_B` / `GND_IN` star point (connector side of L2, so no return current bypasses L2's return winding); place it deliberately (spec §4.1.1). It is a 2.0 mm tie so it outlasts the harness fuse when one feed is reversed while the other is connected.
 
 ### Bring-up checklist
 
 - **ROM boot log may be absent.** The three SEH internal pull-downs load GPIO 15 (MTDO), so the boot ROM log is probably muted. Harmless. Optional fix: a 10 k pull-up on the MCU side of R32 (not fitted).
-- **GPIO12 / flash voltage.** TWAI holds GPIO12 (the MTDI strap) high while running. R36 makes every reset safe. The optional permanent remedy is `espefuse.py set_flash_voltage 3.3V`, which is **IRREVERSIBLE** and is the owner's decision; it has not been run.
+- **GPIO12 / flash voltage.** The TWAI driver needs a TX pin and drives it high; on this board that is GPIO12, the MTDI strap. Since 2026-11-15 `CanBus::begin` returns GPIO12 to input + pull-down right after `twai_start()` (listen-only never transmits), and R36 holds it low at every reset. Check on the bench: GPIO12 reads ~0 V while running, and CAN frames still arrive. The optional permanent remedy is `espefuse.py set_flash_voltage 3.3V`, which is **IRREVERSIBLE** and is the owner's decision; it has not been run.
 - **Diagnostics settling.** After any `DIAG_SEL` or `DIAG_EN` change wait >= 400 us before reading `SNS_x`.
 - **Reverse polarity.** Test one feed reversed with the other disconnected, and the whole harness reversed. Test one feed reversed with the other connected only on a current-limited bench supply: that drives fault current through NT1 and the shared return until the harness fuse clears.
 - `R100` (33 mOhm) sets feed A's limit at 1.36-1.67 A, between its ~0.87 A load and its ~2 A fuse (aux spec A10). Re-check it against the measured start-up current.
+- **Shorted lamp vs feed A's limit.** The quads' ILIM is 0.25 A (R62-R64 56.2 k, since 2026-11-15; was 0.5 A). The MCU's rail is behind U10, so one short at 0.5 A (peaking 1.4x) on top of the 0.87 A worst case could reach U10's limit and reset the MCU in a loop. At 0.25 A a single short stays under it (~1.24 A) and that channel latches off. Check on a current-limited bench supply: with all lamps on, short one output to GND; the board must stay up and only that channel go dark. Two simultaneous shorts can still trip U10.
+- **J2 is not an FTDI header.** Pin order 3V3 GND TX RX DTR RTS (labelled on the silk). A generic FTDI cable (GND CTS VCC TX RX RTS) puts GND on +3V3_ALW and 5 V on TXD0. Use the MCCAN programmer.
 
 Plan3 history (the 200 × 140 mm PCBWay board, the RGB output stage, Task 1 status) is in git history and `archive/`.

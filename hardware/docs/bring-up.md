@@ -32,9 +32,9 @@ Current design baseline this procedure checks against (spec
 - Passive defaults are all **fail-safe when floating**: `EN_BOOST` and
   `EN_3V3SW` pull down, `CAN_STB` pulls up (forces standby), all 14 `PWM_*`
   pull down, `MUX_S0`–`S3` pull down. Floating = safe/off.
-- **Hardware-enforced listen-only:** the transceiver's TXD runs through a DNP
-  0 Ω link, pulled recessive. The firmware cannot put a frame on the bus even
-  if it tries.
+- **Hardware-enforced listen-only:** the transceiver's TXD is pulled recessive
+  by R24 and connected to nothing else; no GPIO reaches it. The firmware cannot
+  put a frame on the bus even if it tries.
 
 ---
 
@@ -105,6 +105,8 @@ hard fail requiring the parking/sleep strategy itself to be reconsidered.
 |---|---|---|---|
 | Flash over the programming header with the MCCAN programmer board (or a plain USB-UART adapter with its DTR and RTS **swapped**: adapter DTR → J2.6, adapter RTS → J2.5) | Succeeds with **no manual BOOT hold** (DTR/RTS auto-reset pair) | | |
 | Module identifies as 8 MB flash | 8 MB | | |
+| GPIO12 (R36) with the firmware running and CAN started | ~0 V (released to input + pull-down by `CanBus::begin`), and CAN frames still received | | |
+| J2 cable | MCCAN programmer only: J2 is 3V3 GND TX RX DTR RTS, **not** the FTDI order (a generic FTDI cable puts GND on 3V3 and 5 V on TXD0) | | |
 
 The DTR/RTS auto-reset pair exists specifically because the dev board's
 auto-reset was unreliable and required holding BOOT through esptool's

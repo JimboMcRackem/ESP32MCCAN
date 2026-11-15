@@ -2233,3 +2233,14 @@ attrition. The mapping is `hardware/scripts/lcsc.py`; the owner re-runs
   measured yet (inrush procedure, 2026-11-13).
 - **Electrolytic life.** The parts are rated 2000 h at 105 °C, about 8000 h at the 85 °C design
   ambient. That is fine for prototypes. Revisit for a production run.
+
+### Robustness changes, 2026-11-15
+
+From a review aimed at faults that brick the board or stop it working. Values only, plus one
+track; no part was added.
+
+| Ref | Was | Now | Why |
+|---|---|---|---|
+| R62–R64 | 43.2 k (C23053), ILIM 0.5 A | **56.2 k 1 %** (C23080, 0603WAF5622T5E), ILIM **0.25 A** (SLVSH18C Table 7-1 band 54.9–60.4 k; 0.19–0.32 A) | The MCU's rail sits behind U10, whose limit (R100, 1.36 A min) is only ~0.5 A above feed A's 0.87 A worst case. One shorted channel at 0.5 A (1.4× in linear mode) could trip U10 and reset the MCU in a loop. At 0.25 A a single short totals ~1.24 A and its channel latches off. 0.25 A is still 3× the 80 mA lamp. SNS full scale falls to 1.23 V; 80 mA still reads 0.39 V and the fault level is unchanged. |
+| D25 | SMBJ24A (C123819) | **SMBJ18A** (C168805, MDD; fallback C151256 Littelfuse) | U14 (BTS7008) is rated 28 V continuous, 35 V suppressed load dump, and feed B has no surge stopper. SMBJ24A clamps at 38.9 V (10/1000 µs) and 50.6 V (8/20 µs); SMBJ18A clamps at 29.2 V at 20.6 A (10/1000 µs), about 38 V only at 103 A 8/20 µs. Standoff 18 V and breakdown ≥ 20 V stay clear of the DC-DC-fed 12 V rail. The 47 Ω R<sub>GND</sub> in Infineon's application circuit was not added: with the clamp under 35 V the internal clamp does not conduct, and adding it meant re-routing around U14. |
+| U10 pin 9 (ON) | open, on its internal 1 MΩ pull-up | **tied to `VCC10`** | Open, it needed < 1 µA leakage to GND (Pin Functions); ~400 kΩ of moisture would hold the whole board off. ON is rated to 80 V; `VCC10` is clamped at 22 V by D21. The -2 auto-retries, so ON never needs to toggle. |

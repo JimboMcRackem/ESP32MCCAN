@@ -266,10 +266,9 @@ OFFBOARD_OK = {"U5"}  # antenna clearance courtyard overhangs the top edge by de
 # in (datasheet Fig. 12 antenna area 6.19 mm + 0.25), on every copper layer.
 KEEPOUTS = [
     ("ANTENNA", (U5_X - 24.25, Y0, U5_X + 24.25, U5_Y - 6.31), ["*.Cu"]),
-    # U10 ON (pin 9, open on its 1 Mohm pull-up; README layout note, LTC4380 Rev. C Pin
-    # Functions: leakage < 1 uA).  No pour, track or via on In1 (the GND_IN plane directly
-    # beneath) within 0.6 mm of the pad; F.Cu has no pour, and check_power_paths.py guards
-    # the tracks there.
+    # U10 ON (pin 9).  Written when ON was open on its 1 Mohm pull-up (leakage < 1 uA).  ON is
+    # now tied to VCC10 (2026-11-15), so this keep-out is belt-and-braces, not load-bearing:
+    # no pour, track or via on In1 (the GND_IN plane directly beneath) within 0.6 mm of the pad.
     ("U10_ON", (59.25, 75.73, 61.95, 77.27), ["In1.Cu"]),
 ]
 
@@ -463,6 +462,11 @@ _t("SNS", "F.Cu", 0.8, [(50.75, 82.2), (51.3, 79.6)], "sns")
 # nowhere else.  SNS leaves U10.4 west and lands on R100.1's U10-side corner; VBAT_PROT leaves
 # U10.5 and crosses under it on In2 to R100.2 -- the two cannot both stay on F.Cu.
 _t("SNS", "F.Cu", 0.2, [(56.4, 77.5), (55.2, 77.5), (53.9, 78.95)], "kelvin_sns")
+# U10 ON (pin 9) tied to VCC10 (2026-11-15 robustness review): west from pad 9 between the pad
+# rows, dropping to y 76.8 before x 58.7 to pass the TMR via at (57.8, 76.0) by 0.425 mm, and
+# landing on VCC10's existing via under the body at (57.675, 76.8).  Clears the TMR track
+# (y 76.0) and the GND_IN track to pad 8 (y 77.0) by 0.325 mm, pads 8 and 10 by 0.25 mm.
+_t("VCC10", "F.Cu", 0.15, [(60.6, 76.5), (59.0, 76.5), (58.7, 76.8), (57.675, 76.8)], "u10_on")
 _t("VBAT_PROT", "F.Cu", 0.2, [(56.4, 78.0), (55.5, 78.0), (55.0, 78.5), (55.0, 78.9)], "kelvin_vp1")
 _v("VBAT_PROT", 55.0, 78.9, "kelvin_vp1", 0.6, 0.3)
 _t("VBAT_PROT", "In2.Cu", 0.2, [(55.0, 78.9), (54.9, 74.4)], "kelvin_vp2")
@@ -620,3 +624,12 @@ NOTES = [
      "Cable edge: bottom.  Antenna edge: top.  Single-sided assembly (F.Cu).",
      X0, Y1 + 6.0, "Cmts.User", 1.5),
 ]
+# J2 pin names and a mis-plug warning on F.SilkS (2026-11-15 robustness review).  J2 is a plain
+# 2.54 mm header in the pin order 3V3 GND TX RX DTR RTS; a generic FTDI cable (GND CTS VCC TX RX
+# RTS) would put GND on +3V3_ALW and 5 V on TXD0.  J2 is auto-flowed, so these coordinates
+# follow its current pads (x 141.87, pin 1 at y 31.37, 2.54 mm pitch); DRC's silk checks catch
+# any overlap if it moves.
+_J2X, _J2Y = 141.87, 31.37
+for _i, _name in enumerate(("3V3", "GND", "TX", "RX", "DTR", "RTS")):
+    NOTES.append((_name, _J2X - 5.27, _J2Y + 2.54 * _i, "F.SilkS", 1.0))
+NOTES.append(("PROG ONLY\nNOT FTDI", _J2X - 15.37, _J2Y + 5.08, "F.SilkS", 1.0))

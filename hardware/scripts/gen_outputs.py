@@ -557,18 +557,18 @@ resistors and the 47 kOhm DIAG_EN_Q pull-down live on mcu_can; SEL0/SEL1 have no
 (their level is irrelevant while DIAG_EN is low).""")
 
 note("""|CURRENT LIMIT, THERMAL MODE, FAULT, GROUND
-ILIM: R62-R64 = 43.2 kOhm 1 % -> 0.50 A per channel (Table 7-1 band 41.2-45.3 k).
+ILIM: R62-R64 = 56.2 kOhm 1 % -> 0.25 A per channel (Table 7-1 band 54.9-60.4 k).
 THERMAL: Version A latches a channel off after thermal shutdown until its EN toggles, so the
 firmware owns retry with backoff (spec 6.3) -- the same behaviour the old THER pull-up gave.
 FAULT, LPM: not connected -- no GPIO left; the per-chip sense line reports faults (3.2-3.9 V).
 LOW-POWER MODE: with DIAG_EN low and every ON channel under 83 mA the chip idles in LPM; above
-130-200 mA it wakes and the 0.5 A limit and thermal shutdown apply; a hard short trips at 3.5 A.
+130-200 mA it wakes and the 0.25 A limit and thermal shutdown apply; a hard short trips at 3.5 A.
 VBB is rated 28 V continuous / 35 V load dump; VBAT exceeds 28 V only in a timer-limited surge.
 The GND pad and the exposed pad go straight to GND: feed A's LTC4380 already blocks reverse
 polarity, so TI's GND resistor/diode network is not fitted.""")
 
 note("""|SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)
-R68-R70 = 5.11 kOhm set the scale: 2.46 V at the 0.5 A limit (K = 1040), 0.39 V at 80 mA.
+R68-R70 = 5.11 kOhm set the scale: 1.23 V at the 0.25 A limit (K = 1040), 0.39 V at 80 mA.
 On a fault the SNS pin goes to its 3.2-3.9 V fault level.  R71-R73 (4.7 kOhm)
 then carry at most (3.9 - 3.3 - 0.3) / 4.7 k = 0.06 mA into the BAT54 (D8-D10, anode SNS_x, cathode
 +3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS

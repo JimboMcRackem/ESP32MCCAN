@@ -23,8 +23,9 @@
    and >= CAN_COUPLED of each path runs within CAN_GAP mm (centre to centre) of the partner's.
    Test-point stubs hang off the pair and are not part of the path.  CAN_GAP is 3 mm because
    the pair has to fan out to L6's pins (2.5 mm apart) and J8's (4.6 mm).
-4. U10 ON (pin 9, left open on its internal 1 Mohm pull-up -- README layout note, LTC4380 Rev. C
-   Pin Functions: leakage to ground < 1 uA).  No copper of another net within ON_CLEAR mm of the
+4. U10 ON (pin 9).  Written when ON was left open on its internal 1 Mohm pull-up (LTC4380 Rev. C
+   Pin Functions: leakage to ground < 1 uA); ON is now tied to VCC10 (2026-11-15), so this check
+   is belt-and-braces and its own net's copper (the tie) is allowed.  No copper of another net within ON_CLEAR mm of the
    pad on F.Cu or In1.Cu.  Excluded, because they cannot be moved: U10's own pads (0.5 mm pitch,
    0.16 mm gaps), and the first ON_CLEAR mm of a neighbouring U10 pin's fan-out track.  A zone on
    one of those layers passes only if a copperpour-not-allowed rule area covers the pad grown by

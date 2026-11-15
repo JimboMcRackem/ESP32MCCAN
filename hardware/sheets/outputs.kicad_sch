@@ -3160,7 +3160,7 @@
 		)
 		(uuid "210396ac-f9ed-5b39-baf3-db3189a79378")
 	)
-	(text_box "SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)\nR68-R70 = 5.11 kOhm set the scale: 2.46 V at the 0.5 A limit (K = 1040), 0.39 V at 80 mA.\nOn a fault the SNS pin goes to its 3.2-3.9 V fault level.  R71-R73 (4.7 kOhm)\nthen carry at most (3.9 - 3.3 - 0.3) / 4.7 k = 0.06 mA into the BAT54 (D8-D10, anode SNS_x, cathode\n+3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS\nnode it would have no series resistor to limit its current.\nC44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is tau = (4.7 k + 5.11 k) x 10 nF = 98 us,\nso firmware waits >= 600 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above ~2.8 V means fault, not current."
+	(text_box "SENSE PATH -- CS -> R_SNS -> 4.7 k -> SNS_x, CLAMPED ON THE ADC SIDE ONLY (Review Focus 4)\nR68-R70 = 5.11 kOhm set the scale: 1.23 V at the 0.25 A limit (K = 1040), 0.39 V at 80 mA.\nOn a fault the SNS pin goes to its 3.2-3.9 V fault level.  R71-R73 (4.7 kOhm)\nthen carry at most (3.9 - 3.3 - 0.3) / 4.7 k = 0.06 mA into the BAT54 (D8-D10, anode SNS_x, cathode\n+3V3_ALW), which holds the ADC pin at ~3.6 V.  The clamp sits on SNS_x deliberately: on the CS\nnode it would have no series resistor to limit its current.\nC44-C46 (10 nF) at the ADC end supply the SAR sample-and-hold charge locally; tau with 4.7 k is tau = (4.7 k + 5.11 k) x 10 nF = 98 us,\nso firmware waits >= 600 us after any DIAG_SEL or DIAG_EN change before reading.  A reading above ~2.8 V means fault, not current."
 		(exclude_from_sim no)
 		(at 460.0 68.44 0)
 		(size 103.19 13.84)
@@ -3180,7 +3180,7 @@
 		)
 		(uuid "2f9282c4-ae08-599e-b084-0777024841d5")
 	)
-	(text_box "CURRENT LIMIT, THERMAL MODE, FAULT, GROUND\nILIM: R62-R64 = 43.2 kOhm 1 % -> 0.50 A per channel (Table 7-1 band 41.2-45.3 k).\nTHERMAL: Version A latches a channel off after thermal shutdown until its EN toggles, so the\nfirmware owns retry with backoff (spec 6.3) -- the same behaviour the old THER pull-up gave.\nFAULT, LPM: not connected -- no GPIO left; the per-chip sense line reports faults (3.2-3.9 V).\nLOW-POWER MODE: with DIAG_EN low and every ON channel under 83 mA the chip idles in LPM; above\n130-200 mA it wakes and the 0.5 A limit and thermal shutdown apply; a hard short trips at 3.5 A.\nVBB is rated 28 V continuous / 35 V load dump; VBAT exceeds 28 V only in a timer-limited surge.\nThe GND pad and the exposed pad go straight to GND: feed A's LTC4380 already blocks reverse\npolarity, so TI's GND resistor/diode network is not fitted."
+	(text_box "CURRENT LIMIT, THERMAL MODE, FAULT, GROUND\nILIM: R62-R64 = 56.2 kOhm 1 % -> 0.25 A per channel (Table 7-1 band 54.9-60.4 k).\nTHERMAL: Version A latches a channel off after thermal shutdown until its EN toggles, so the\nfirmware owns retry with backoff (spec 6.3) -- the same behaviour the old THER pull-up gave.\nFAULT, LPM: not connected -- no GPIO left; the per-chip sense line reports faults (3.2-3.9 V).\nLOW-POWER MODE: with DIAG_EN low and every ON channel under 83 mA the chip idles in LPM; above\n130-200 mA it wakes and the 0.25 A limit and thermal shutdown apply; a hard short trips at 3.5 A.\nVBB is rated 28 V continuous / 35 V load dump; VBAT exceeds 28 V only in a timer-limited surge.\nThe GND pad and the exposed pad go straight to GND: feed A's LTC4380 already blocks reverse\npolarity, so TI's GND resistor/diode network is not fitted."
 		(exclude_from_sim no)
 		(at 460.0 50.14 0)
 		(size 103.19 16.8)
@@ -11204,7 +11204,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "43.2k"
+		(property "Value" "56.2k"
 			(at 230.251 60.96 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12700,7 +12700,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "43.2k"
+		(property "Value" "56.2k"
 			(at 230.251 264.16 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14636,7 +14636,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "43.2k"
+		(property "Value" "56.2k"
 			(at 230.251 162.56 0)
 			(show_name no)
 			(do_not_autoplace no)

@@ -25,6 +25,8 @@ static const int kCanRxPin = 35;            // RTC-capable, so CAN traffic can w
 // TWAI TX idles HIGH, so it must never share a lamp pin. GPIO12 carries only its
 // strap pull-down (R36): the transceiver's TXD is pulled up and not wired to the
 // MCU at all (hardware listen-only), so this pin drives nothing on the board.
+// CanBus::begin hands it back to input + pull-down once TWAI starts, so the MTDI
+// strap is never held HIGH while the firmware runs.
 static const int kCanTxPin = 12;
 static const uint32_t kCanBitrate = 500000;
 
