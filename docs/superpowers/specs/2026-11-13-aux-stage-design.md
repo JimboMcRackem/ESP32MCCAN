@@ -15,7 +15,7 @@ The bench measurements from 2026-11-12 are in redesign §2.2.1. The pod plug has
 |---|---|
 | Red | Supply. It also lights the DRL LEDs. |
 | Black | Return |
-| Yellow | A 5 V PWM signal at about 100 Hz. It sets main-LED brightness. |
+| Yellow | A 5 V PWM signal at about 150 Hz (measured 2026-11-15). It sets main-LED brightness. |
 | Blue | Role unknown |
 
 - At worst case, each pod draws **3.2 A**: 12 V at full beam. The supply current comes in
@@ -32,7 +32,7 @@ The bench measurements from 2026-11-12 are in redesign §2.2.1. The pod plug has
 | A3 | DEN and DSEL are pulled down (R78/R79). IS has only RSENSE R80 (1.2 k). | No GPIO is free for pod diagnosis. **Changed from what was proposed:** the proposal had a DNP link from IS to `SNS_C`. It was dropped because DEN has no control line, and borrowing `DIAG_EN_Q` would put IS and U13's CS on `SNS_C` at the same time. Pod lamp-out needs a pin first. |
 | A4 | **U15 Nexperia 74AHCT2G126DC** (VSSOP-8, SOT765-1), powered from `+5V`. `AUX_PWM` (GPIO 13) drives both A inputs and has a 47 k pull-down (R81). Each **active-high enable** is that pod's `OUT_AUX_x`. | The PWM goes through one shared LEDC channel, as the firmware already does. The pod's own power-on signal gates its yellow line, so yellow is never driven into an unpowered pod. This closes the earlier back-feed concern with no extra GPIO. The TTL inputs (VIH 2.0 V) accept 3.3 V. Pinout verified against Nexperia Rev. 9. Only the AHCT part works here: the TSSOP-8 "DP" is AHC, with CMOS input levels. |
 | A5 | Yellow chain: Y → 330 Ω (R82/R83) → clamp node → 220 Ω 1206 (R84/R85) → wire. The clamp node has a BZT52C5V6 to GND (D26/D27) and a 100 k pull-down (R86/R87). | If yellow shorts to 12 V, the Zener takes 29 mA and the 1206 takes 0.19 W. The 330 Ω keeps the buffer's output clamp current within its 20 mA `IOK` limit, even with `+5V` off: (6 − 0.6) V / 330 Ω = 16 mA. (It was 100 Ω, changed on 2026-11-13 after the datasheet was read.) Yellow idles low. **The series values are provisional** until the yellow input current is measured. |
-| A6 | Supply parts on `VBAT_B`: C67 is 100 nF 100 V; C68 is 220 µF 63 V aluminium (10×10.5). Each output has a 10 nF 100 V capacitor (C69/C70). All of them return to `GND_B`. | These carry the 100 Hz pulse current. They are 63 V or more because the SMBJ24A clamps at 50.6 V. |
+| A6 | Supply parts on `VBAT_B`: C67 is 100 nF 100 V; C68 is 220 µF 63 V aluminium (10×10.5). Each output has a 10 nF 100 V capacitor (C69/C70). All of them return to `GND_B`. | These carry the 150 Hz pulse current. They are 63 V or more because the SMBJ24A clamps at 50.6 V. |
 | A7 | Pod tails **J10/J11**: soldered 4-core tails (`SolderWire-1sqmm_1x04_P5.4mm`, relief). Pin 1 is red (`POD_x_P`), 2 is black (`GND_B`), 3 is yellow (`YEL_x`), 4 is blue (**not connected**). | This follows the D5 tail convention. 1.0 mm² copes with 3.2 A. Blue waits until its role is measured. |
 | A8 | `GND_B` leaves the power_input sheet as the pods' return. U14's own GND pin goes to `GND`. | Pod current stays on feed B's return, while the logic levels are referenced to the MCU's ground. |
 | A9 | GPIO 13 (module pad 16) changes from `LED_STAT` to `AUX_PWM`. D5 and R27 are deleted. | The user approved this on 2026-11-12. There is no status LED any more. |

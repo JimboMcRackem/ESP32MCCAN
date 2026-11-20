@@ -123,7 +123,7 @@ solder-tail pads.
   pin 1, returning on `GND_B` (J10/J11 pin 2 → J9 pin 2). **Size the copper for 6.4 A
   continuous** on `VBAT_B` and `GND_B`, and **3.2 A continuous** on each `POD_x_P`. Those are
   the measured pair and per-pod currents at full beam (stage 5, 100% duty, 12 V). At lower duty
-  the draw is 100 Hz pulses at about that same peak, so 6.4 A is both the peak and the worst-case
+  the draw is 150 Hz pulses at about that same peak, so 6.4 A is both the peak and the worst-case
   RMS. Size C68 for that ripple. The inrush is still being measured. It sets no copper width
   (U14 trips at 77 A or more) and only confirms C68. Keep it short, wide and away from the logic area. Size
   copper by IPC-2152 for ≤ 20 K rise and use several layers if needed. C68 and C67 go close to
