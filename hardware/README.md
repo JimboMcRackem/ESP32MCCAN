@@ -30,7 +30,7 @@ On Windows, set `PYTHONIOENCODING=utf-8`, because several scripts print non-ASCI
 
 See "Last full run" below for the evidence.
 
-- **Outline: 140 × 100 mm, 3 mm corners, M3 holes 5 mm in from each corner.**
+- **Outline: 140 × 100 mm, 1 mm corner radius, M3 holes 5 mm in from each corner.**
   - The board fits because the eight wire tails go in one row on the bottom (cable) edge. Their
     courtyards total 122.2 mm, against 123.1 mm between the courtyards of the bottom mounting
     holes.

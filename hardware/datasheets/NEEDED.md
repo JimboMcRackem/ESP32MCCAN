@@ -85,9 +85,8 @@ Layout Design*. Both halves of the keep-out question are now answered:
 
 > **The 15 mm figure is an ENCLOSURE constraint and is the significant one** — a keep-clear volume
 > ~48 mm across that must contain no PCB, metal, cable, gland or heat-spreader plate. It is
-> recorded in `../docs/enclosure.md` §5a, where it now has to be reconciled with the gland field,
-> the plate wall and the no-penetrations-in-the-antenna-wall rule **simultaneously**. *"Opposite
-> wall"* used to settle the plate/antenna relationship; it now carries a minimum distance.
+> recorded in `../docs/enclosure.md` §2. (The plan4 board has no plate and puts the antenna on
+> the edge opposite the glands, so the old reconciliation with the plate wall no longer arises.)
 
 ## Medium / low — for the BOM, not blocking
 
