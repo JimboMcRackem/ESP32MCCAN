@@ -108,7 +108,7 @@ board.
 
 | Ref | Part | Pad-to-pad gap |
 |---|---|---|
-| U1, U2 | LM5164DDA (SOIC-8 EP) | 0.200 mm |
+| U1, U2 | LM5164QDDARQ1 (SOIC-8 EP) | 0.200 mm |
 | U10 | LTC4380 (MSOP-10, 0.5 mm pitch) | **0.150 mm** |
 | U11, U12, U13 | TPS4HC120A (HVSSOP-28 EP) | 0.200 mm |
 | U14 | BTS7008-2EPA (TSDSO-14 EP) | 0.200 mm |

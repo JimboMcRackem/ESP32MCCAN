@@ -71,7 +71,7 @@ LCSC = {
     'BTS7008-2EPA|Package_SO:Infineon_PG-TSDSO-14-22': {"lcsc": 'C534830', "mpn": 'BTS7008-2EPA', "fallback": None, "note": 'pod switch'},
     'ESP32-WROOM-32E-N8|RF_Module:ESP32-WROOM-32E': {"lcsc": 'C701342', "mpn": 'ESP32-WROOM-32E-N8', "fallback": None, "note": ''},
     'IPT007N06N|Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1': {"lcsc": 'C122552', "mpn": 'IPT007N06N', "fallback": 'C531199', "note": 'replaces IPT008N06NM5LF (no stock); fallback IPT012N08N5 -- re-check SOA'},
-    'LM5164DDA|Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm': {"lcsc": 'C477928', "mpn": 'LM5164DDAR', "fallback": 'GLOBAL', "note": 'stock 323 at selection'},
+    'LM5164QDDARQ1|Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm': {"lcsc": 'C2072225', "mpn": 'LM5164QDDARQ1', "fallback": 'GLOBAL', "note": 'owner pick 2026-11-21 (not a global-sourcing approval): AEC-Q100 version of the same die (SNVSB51C: same DDA pinout, VIN, VREF, FSW equation, IQ, ILIM), chosen when LM5164DDAR C477928 hit 0 stock; stock 597 at selection; fallback = global sourcing of this part'},
     'LTC4380HMS-2|Package_SO:MSOP-10_3x3mm_P0.5mm': {"lcsc": 'C688451', "mpn": 'LTC4380HMS-2#PBF', "fallback": 'GLOBAL', "note": 'OWNER 2026-11-13: global-source the H grade (JLCPCB stock 3). I grade C688471 rated only to 85 C'},
     'MMBT3904|Package_TO_SOT_SMD:SOT-23': {"lcsc": 'C20526', "mpn": 'MMBT3904', "fallback": None, "note": 'basic'},
     'SQJ461EP|Package_SO:PowerPAK_SO-8L_Single': {"lcsc": 'C3279500', "mpn": 'SQJ461EP-T1_GE3', "fallback": None, "note": 'feed B FET'},
