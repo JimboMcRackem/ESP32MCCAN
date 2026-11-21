@@ -23,9 +23,13 @@ public:
 
 class FakePwm : public IAuxPwm {
 public:
-  int last = -1;
+  int lastL = -1, lastR = -1;
   int writes = 0;
-  void setDuty(uint8_t percent) override { last = percent; ++writes; g_log += 'd'; }
+  void setDuty(uint8_t left, uint8_t right) override {
+    lastL = left; lastR = right; ++writes; g_log += 'd';
+  }
+  int parks = 0;
+  void park() override { ++parks; g_log += 'p'; }
 };
 
 void test_out_count_is_twelve() {
@@ -68,9 +72,12 @@ void test_apply_drives_only_the_set_bits() {
 }
 
 void test_intents_differing_only_in_duty_are_unequal() {
-  OutputIntent a, b;
-  b.auxDuty = 15;
+  OutputIntent a, b, c;
+  b.auxDutyL = 15;
+  c.auxDutyR = 15;
   TEST_ASSERT_TRUE(a != b);
+  TEST_ASSERT_TRUE(a != c);
+  TEST_ASSERT_TRUE(b != c);
 }
 
 // The pod must never light at a higher duty than its level asks for, even
@@ -79,9 +86,11 @@ void test_apply_writes_duty_before_any_output() {
   FakeOutputs fake; FakePwm pwm;
   OutputIntent o;
   o.on = outMask(OUT_AUX_L, OUT_AUX_R);
-  o.auxDuty = 15;
+  o.auxDutyL = 15;
+  o.auxDutyR = 40;
   applyIntent(fake, pwm, o);
-  TEST_ASSERT_EQUAL_INT(15, pwm.last);
+  TEST_ASSERT_EQUAL_INT(15, pwm.lastL);
+  TEST_ASSERT_EQUAL_INT(40, pwm.lastR);
   TEST_ASSERT_EQUAL_STRING("doooooooooooo", g_log.c_str());
 }
 
@@ -100,6 +109,18 @@ void test_ledc_duty_mapping() {
   TEST_ASSERT_EQUAL_UINT32(1024, ledcDutyFor(250, 10));
 }
 
+// Review fix: before a planned restart, every lamp goes dark and the PWM pins
+// are parked last, so GPIO 12 (the MTDI strap) is low when the chip resets.
+void test_quiet_for_restart_darkens_then_parks() {
+  FakeOutputs fake; FakePwm pwm;
+  quietForRestart(fake, pwm);
+  TEST_ASSERT_EQUAL_INT(0, pwm.lastL);
+  TEST_ASSERT_EQUAL_INT(0, pwm.lastR);
+  for (uint8_t i = 0; i < OUT_COUNT; ++i) TEST_ASSERT_FALSE(fake.state[i]);
+  TEST_ASSERT_EQUAL_INT(1, pwm.parks);
+  TEST_ASSERT_EQUAL_STRING("doooooooooooop", g_log.c_str());
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_out_count_is_twelve);
@@ -111,5 +132,6 @@ int main(int, char**) {
   RUN_TEST(test_apply_writes_duty_before_any_output);
   RUN_TEST(test_apply_writes_duty_every_call);
   RUN_TEST(test_ledc_duty_mapping);
+  RUN_TEST(test_quiet_for_restart_darkens_then_parks);
   return UNITY_END();
 }

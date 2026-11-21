@@ -17,6 +17,11 @@ public:
   // lost depending on arrival order.
   static constexpr int MAX_FRAMES = 64;
 
+  // Plausibility limits for the numeric signals. A value outside them is
+  // treated as missing (a "not available" pattern such as 0xFFFF lands here).
+  static constexpr float kSpeedMaxKmh = 400.0f;
+  static constexpr float kLeanMaxDeg  = 80.0f;
+
   void update(uint32_t id, const uint8_t data[8], uint32_t nowMs);
   bool getBit(uint32_t id, uint8_t bit) const;
   LogicalState evaluate(const Config& cfg, uint32_t nowMs) const;
@@ -24,7 +29,7 @@ public:
   int snapshot(CanFrameSnapshot* out, int maxOut) const;
 
 private:
-  struct Frame { uint32_t id = 0; uint8_t data[8] = {0}; bool seen = false; };
+  struct Frame { uint32_t id = 0; uint8_t data[8] = {0}; bool seen = false; uint32_t lastMs = 0; };
   Frame frames_[MAX_FRAMES];
 
   bool     anyRx_    = false;   // false until the first frame ever arrives
@@ -32,4 +37,9 @@ private:
 
   const Frame* find(uint32_t id) const;
   bool evalFunction(const FunctionMap& fm) const;
+  // A signal is read only when mapped, its own frame arrived within kStaleMs
+  // (so one silent ID cannot freeze its last value while the bus stays busy),
+  // and the value lies in [lo, hi].
+  bool readSignal(const NumSignal& sig, uint32_t nowMs, float lo, float hi,
+                  float& out) const;
 };

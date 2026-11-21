@@ -105,7 +105,7 @@ hard fail requiring the parking/sleep strategy itself to be reconsidered.
 |---|---|---|---|
 | Flash over the programming header with the MCCAN programmer board (or a plain USB-UART adapter with its DTR and RTS **swapped**: adapter DTR → J2.6, adapter RTS → J2.5) | Succeeds with **no manual BOOT hold** (DTR/RTS auto-reset pair) | | |
 | Module identifies as 8 MB flash | 8 MB | | |
-| GPIO12 (R36) with the firmware running and CAN started | ~0 V (released to input + pull-down by `CanBus::begin`), and CAN frames still received | | |
+| GPIO12 (`AUX_PWM_R`, R36) with the firmware running and CAN started | ~0 V with the right pod off; the pod's 150 Hz PWM at U16.2 with it on; CAN frames still received; a reset while the pod is on still boots (GPIO12 low at reset) | | |
 | J2 cable | MCCAN programmer only: J2 is 3V3 GND TX RX DTR RTS, **not** the FTDI order (a generic FTDI cable puts GND on 3V3 and 5 V on TXD0) | | |
 
 The DTR/RTS auto-reset pair exists specifically because the dev board's

@@ -18,6 +18,17 @@ constexpr LogicalState mk(bool run, bool night, bool left, bool right,
   return s;
 }
 
+// A night, low-beam state leaning `deg` (positive = right), for the cornering
+// presets. It obeys the current settings like any scenario.
+constexpr LogicalState leanNight(float deg) {
+  LogicalState s = mk(true, true, false, false, false, true, false);
+  s.leanDeg = deg;
+  s.leanValid = true;
+  s.speedKmh = 60.0f;      // above the default 40 km/h cornering gate
+  s.speedValid = true;
+  return s;
+}
+
 //                        run    night  left   right  brake  low    high
 constexpr LogicalState kScenarios[] = {
   /* allOff     */ mk(false, false, false, false, false, false, false),
@@ -29,6 +40,8 @@ constexpr LogicalState kScenarios[] = {
   // lowBeam is the night preset: front white off, pods at low.
   /* lowBeam    */ mk(true,  true,  false, false, false, true,  false),
   /* highBeam   */ mk(true,  true,  false, false, false, false, true ),
+  /* leanLeftNight  */ leanNight(-30.0f),
+  /* leanRightNight */ leanNight(30.0f),
 };
 
 }  // namespace
@@ -38,6 +51,7 @@ constexpr LogicalState kScenarios[] = {
 const char* const kScenarioNames[] = {
   "allOff", "drlDay", "leftInd", "rightInd",
   "hazards", "brake", "lowBeam", "highBeam",
+  "leanLeftNight", "leanRightNight",
 };
 const int kScenarioCount =
     (int)(sizeof(kScenarioNames) / sizeof(kScenarioNames[0]));
@@ -68,8 +82,8 @@ OutputIntent resolveOutputs(const LogicalState& real, const TestMode& t,
     case TestKind::Zones: {
       // The output walk lights a pod at the Low duty, never at Full.
       OutputIntent o = t.zones;
-      const bool aux = o.isOn(OUT_AUX_L) || o.isOn(OUT_AUX_R);
-      o.auxDuty = aux ? auxDutyFor(AuxLevel::Low, cfg) : 0;
+      o.auxDutyL = o.isOn(OUT_AUX_L) ? auxDutyFor(AuxLevel::Low, cfg) : 0;
+      o.auxDutyR = o.isOn(OUT_AUX_R) ? auxDutyFor(AuxLevel::Low, cfg) : 0;
       return o;
     }
     case TestKind::Off:

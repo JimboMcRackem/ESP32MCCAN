@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-11-15T12:42:10")
+		(date "2026-11-21T08:05:11")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -13067,12 +13067,6 @@
 				(pintype "input")
 			)
 			(node
-				(ref "U16")
-				(pin "2")
-				(pinfunction "A_2")
-				(pintype "input")
-			)
-			(node
 				(ref "U5")
 				(pin "16")
 				(pinfunction "IO13_16")
@@ -13081,6 +13075,28 @@
 		)
 		(net
 			(code "4")
+			(name "/AUX_PWM_R")
+			(class "Default")
+			(node
+				(ref "R36")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U16")
+				(pin "2")
+				(pinfunction "A_2")
+				(pintype "input")
+			)
+			(node
+				(ref "U5")
+				(pin "14")
+				(pinfunction "IO12_14")
+				(pintype "bidirectional")
+			)
+		)
+		(net
+			(code "5")
 			(name "/CANH")
 			(class "CAN")
 			(node
@@ -13114,7 +13130,7 @@
 			)
 		)
 		(net
-			(code "5")
+			(code "6")
 			(name "/CANL")
 			(class "CAN")
 			(node
@@ -13148,7 +13164,7 @@
 			)
 		)
 		(net
-			(code "6")
+			(code "7")
 			(name "/DIAG_EN_Q")
 			(class "Default")
 			(node
@@ -13181,7 +13197,7 @@
 			)
 		)
 		(net
-			(code "7")
+			(code "8")
 			(name "/DIAG_SEL0_Q")
 			(class "Default")
 			(node
@@ -13209,7 +13225,7 @@
 			)
 		)
 		(net
-			(code "8")
+			(code "9")
 			(name "/DIAG_SEL1_Q")
 			(class "Default")
 			(node
@@ -13237,7 +13253,7 @@
 			)
 		)
 		(net
-			(code "9")
+			(code "10")
 			(name "/EN_5V")
 			(class "Default")
 			(node
@@ -13265,7 +13281,7 @@
 			)
 		)
 		(net
-			(code "10")
+			(code "11")
 			(name "/GND_B")
 			(class "FEED_B")
 			(node
@@ -13336,7 +13352,7 @@
 			)
 		)
 		(net
-			(code "11")
+			(code "12")
 			(name "/OUT_AUX_L")
 			(class "Default")
 			(node
@@ -13358,7 +13374,7 @@
 			)
 		)
 		(net
-			(code "12")
+			(code "13")
 			(name "/OUT_AUX_R")
 			(class "Default")
 			(node
@@ -13380,7 +13396,7 @@
 			)
 		)
 		(net
-			(code "13")
+			(code "14")
 			(name "/OUT_FL_DRL")
 			(class "Default")
 			(node
@@ -13396,7 +13412,7 @@
 			)
 		)
 		(net
-			(code "14")
+			(code "15")
 			(name "/OUT_FL_IND")
 			(class "Default")
 			(node
@@ -13412,7 +13428,7 @@
 			)
 		)
 		(net
-			(code "15")
+			(code "16")
 			(name "/OUT_FR_DRL")
 			(class "Default")
 			(node
@@ -13428,7 +13444,7 @@
 			)
 		)
 		(net
-			(code "16")
+			(code "17")
 			(name "/OUT_FR_IND")
 			(class "Default")
 			(node
@@ -13444,7 +13460,7 @@
 			)
 		)
 		(net
-			(code "17")
+			(code "18")
 			(name "/OUT_RL_BRK")
 			(class "Default")
 			(node
@@ -13460,7 +13476,7 @@
 			)
 		)
 		(net
-			(code "18")
+			(code "19")
 			(name "/OUT_RL_DRL")
 			(class "Default")
 			(node
@@ -13476,7 +13492,7 @@
 			)
 		)
 		(net
-			(code "19")
+			(code "20")
 			(name "/OUT_RL_IND")
 			(class "Default")
 			(node
@@ -13492,7 +13508,7 @@
 			)
 		)
 		(net
-			(code "20")
+			(code "21")
 			(name "/OUT_RR_BRK")
 			(class "Default")
 			(node
@@ -13508,7 +13524,7 @@
 			)
 		)
 		(net
-			(code "21")
+			(code "22")
 			(name "/OUT_RR_DRL")
 			(class "Default")
 			(node
@@ -13524,7 +13540,7 @@
 			)
 		)
 		(net
-			(code "22")
+			(code "23")
 			(name "/OUT_RR_IND")
 			(class "Default")
 			(node
@@ -13540,7 +13556,7 @@
 			)
 		)
 		(net
-			(code "23")
+			(code "24")
 			(name "/SNS_A")
 			(class "Default")
 			(node
@@ -13573,7 +13589,7 @@
 			)
 		)
 		(net
-			(code "24")
+			(code "25")
 			(name "/SNS_B")
 			(class "Default")
 			(node
@@ -13606,7 +13622,7 @@
 			)
 		)
 		(net
-			(code "25")
+			(code "26")
 			(name "/SNS_C")
 			(class "Default")
 			(node
@@ -13639,7 +13655,7 @@
 			)
 		)
 		(net
-			(code "26")
+			(code "27")
 			(name "/VBAT")
 			(class "FEED")
 			(node
@@ -13780,7 +13796,7 @@
 			)
 		)
 		(net
-			(code "27")
+			(code "28")
 			(name "/VBAT_B")
 			(class "FEED_B")
 			(node
@@ -13860,7 +13876,7 @@
 			)
 		)
 		(net
-			(code "28")
+			(code "29")
 			(name "/VLOGIC_IN")
 			(class "POWER")
 			(node
@@ -13904,7 +13920,7 @@
 			)
 		)
 		(net
-			(code "29")
+			(code "30")
 			(name "/mcu_can/BOOT_N")
 			(class "Default")
 			(node
@@ -13927,7 +13943,7 @@
 			)
 		)
 		(net
-			(code "30")
+			(code "31")
 			(name "/mcu_can/CAN_RXD")
 			(class "Default")
 			(node
@@ -13950,7 +13966,7 @@
 			)
 		)
 		(net
-			(code "31")
+			(code "32")
 			(name "/mcu_can/CAN_STB")
 			(class "Default")
 			(node
@@ -13972,7 +13988,7 @@
 			)
 		)
 		(net
-			(code "32")
+			(code "33")
 			(name "/mcu_can/DIAG_EN")
 			(class "Default")
 			(node
@@ -13988,7 +14004,7 @@
 			)
 		)
 		(net
-			(code "33")
+			(code "34")
 			(name "/mcu_can/DIAG_SEL0")
 			(class "Default")
 			(node
@@ -14004,7 +14020,7 @@
 			)
 		)
 		(net
-			(code "34")
+			(code "35")
 			(name "/mcu_can/DIAG_SEL1")
 			(class "Default")
 			(node
@@ -14020,7 +14036,7 @@
 			)
 		)
 		(net
-			(code "35")
+			(code "36")
 			(name "/mcu_can/DTR")
 			(class "Default")
 			(node
@@ -14042,7 +14058,7 @@
 			)
 		)
 		(net
-			(code "36")
+			(code "37")
 			(name "/mcu_can/EN_MCU")
 			(class "Default")
 			(node
@@ -14072,22 +14088,6 @@
 				(pin "3")
 				(pinfunction "EN_3")
 				(pintype "input")
-			)
-		)
-		(net
-			(code "37")
-			(name "/mcu_can/IO12_STRAP")
-			(class "Default")
-			(node
-				(ref "R36")
-				(pin "1")
-				(pintype "passive")
-			)
-			(node
-				(ref "U5")
-				(pin "14")
-				(pinfunction "IO12_14")
-				(pintype "bidirectional")
 			)
 		)
 		(net

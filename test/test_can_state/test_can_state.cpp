@@ -128,6 +128,105 @@ void test_staleness_is_rollover_safe() {
   TEST_ASSERT_TRUE(cs.stale(0x100u));
 }
 
+// --- Numeric signals (speed, lean) ---------------------------------------
+
+static Config withSignals() {
+  Config c = defaultConfig();
+  c.speedSignal.id = 0x200; c.speedSignal.startBit = 0; c.speedSignal.length = 16;
+  c.speedSignal.scale = 0.01f;
+  c.leanSignal.id = 0x201; c.leanSignal.startBit = 0; c.leanSignal.length = 16;
+  c.leanSignal.isSigned = true; c.leanSignal.scale = 0.1f;
+  return c;
+}
+
+static void put16(CanState& cs, uint32_t id, int16_t v, uint32_t now) {
+  uint8_t d[8] = {0};
+  d[0] = (uint8_t)(v & 0xFF);
+  d[1] = (uint8_t)((uint16_t)v >> 8);
+  cs.update(id, d, now);
+}
+
+void test_speed_decoded_and_valid() {
+  CanState cs;
+  put16(cs, 0x200, 0x2710, 0);                 // 10000 * 0.01
+  LogicalState s = cs.evaluate(withSignals(), 0);
+  TEST_ASSERT_TRUE(s.speedValid);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 100.0f, s.speedKmh);
+}
+
+void test_lean_negative_valid() {
+  CanState cs;
+  put16(cs, 0x201, -235, 0);
+  LogicalState s = cs.evaluate(withSignals(), 0);
+  TEST_ASSERT_TRUE(s.leanValid);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, -23.5f, s.leanDeg);
+}
+
+void test_unmapped_signals_invalid() {
+  CanState cs;
+  put16(cs, 0x200, 0x2710, 0);
+  put16(cs, 0x201, 100, 0);
+  LogicalState s = cs.evaluate(defaultConfig(), 0);
+  TEST_ASSERT_FALSE(s.speedValid);
+  TEST_ASSERT_FALSE(s.leanValid);
+}
+
+void test_signal_frame_never_seen() {
+  CanState cs;
+  put16(cs, 0x200, 0x2710, 0);
+  Config c = withSignals();
+  c.leanSignal.id = 0x2FF;
+  LogicalState s = cs.evaluate(c, 0);
+  TEST_ASSERT_FALSE(s.leanValid);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, s.leanDeg);
+}
+
+// Review focus 1: the lean frame stops while the rest of the bus keeps going.
+void test_lean_frame_stale_bus_alive() {
+  CanState cs;
+  put16(cs, 0x201, 300, 0);
+  uint8_t d[8] = {0};
+  setBit(d, 18);                               // left indicator, on 0x102
+  for (uint32_t t = 100; t <= 600; t += 100) cs.update(0x102, d, t);
+  LogicalState s = cs.evaluate(withSignals(), 600);
+  TEST_ASSERT_FALSE(s.leanValid);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, s.leanDeg);
+  TEST_ASSERT_TRUE(s.leftInd);                 // the bus itself is not stale
+}
+
+void test_lean_frame_fresh_at_499() {
+  CanState cs;
+  put16(cs, 0x201, 300, 0);
+  uint8_t d[8] = {0};
+  cs.update(0x102, d, 400);
+  LogicalState s = cs.evaluate(withSignals(), 499);
+  TEST_ASSERT_TRUE(s.leanValid);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 30.0f, s.leanDeg);
+}
+
+void test_speed_implausible() {
+  CanState cs;
+  uint8_t d[8] = {0xFF, 0xFF};                 // 65535 * 0.01 = 655.35
+  cs.update(0x200, d, 0);
+  LogicalState s = cs.evaluate(withSignals(), 0);
+  TEST_ASSERT_FALSE(s.speedValid);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, s.speedKmh);
+}
+
+void test_lean_out_of_range() {
+  CanState cs;
+  put16(cs, 0x201, 810, 0);
+  TEST_ASSERT_FALSE(cs.evaluate(withSignals(), 0).leanValid);
+}
+
+void test_lean_at_limit_valid() {
+  CanState cs;
+  put16(cs, 0x201, -800, 0);
+  LogicalState s = cs.evaluate(withSignals(), 0);
+  TEST_ASSERT_TRUE(s.leanValid);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, -80.0f, s.leanDeg);
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -145,5 +244,14 @@ int main(int, char**) {
   RUN_TEST(test_evaluate_returns_all_false_when_stale);
   RUN_TEST(test_stale_also_clears_the_unassigned_run_default);
   RUN_TEST(test_staleness_is_rollover_safe);
+  RUN_TEST(test_speed_decoded_and_valid);
+  RUN_TEST(test_lean_negative_valid);
+  RUN_TEST(test_unmapped_signals_invalid);
+  RUN_TEST(test_signal_frame_never_seen);
+  RUN_TEST(test_lean_frame_stale_bus_alive);
+  RUN_TEST(test_lean_frame_fresh_at_499);
+  RUN_TEST(test_speed_implausible);
+  RUN_TEST(test_lean_out_of_range);
+  RUN_TEST(test_lean_at_limit_valid);
   return UNITY_END();
 }
