@@ -82,9 +82,17 @@ void test_zones_aux_bit_lights_at_low_duty(void) {
   TestMode t;
   t.kind = TestKind::Zones;
   t.zones.on = outMask(OUT_AUX_L);
-  TEST_ASSERT_EQUAL_UINT8(15, resolveOutputs(real, t, cfg, 0, est, testEst).auxDuty);
+  OutputIntent o = resolveOutputs(real, t, cfg, 0, est, testEst);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDutyL);
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDutyR);
+  t.zones.on = outMask(OUT_AUX_R);
+  o = resolveOutputs(real, t, cfg, 0, est, testEst);
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDutyL);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDutyR);
   t.zones.on = outMask(OUT_FL_DRL);
-  TEST_ASSERT_EQUAL_UINT8(0, resolveOutputs(real, t, cfg, 0, est, testEst).auxDuty);
+  o = resolveOutputs(real, t, cfg, 0, est, testEst);
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDutyL);
+  TEST_ASSERT_EQUAL_UINT8(0, o.auxDutyR);
 }
 
 void test_scenario_cannot_corrupt_the_real_engine_state(void) {
@@ -109,7 +117,8 @@ void test_night_scenario_shows_night_with_daynight_unassigned(void) {
   OutputIntent o = resolveOutputs(real, t, cfg, 0, est, testEst);
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT((int)AuxLevel::Low, (int)o.auxL);
-  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDutyL);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDutyR);
 }
 
 void test_expiry_is_false_when_off(void) {
@@ -142,12 +151,41 @@ void test_scenario_lookup_rejects_unknown_names(void) {
 void test_every_advertised_scenario_name_resolves(void) {
   // kScenarioNames is what the UI mirrors; a name in the list that does not
   // resolve would be a dead button.
-  TEST_ASSERT_EQUAL_INT(8, kScenarioCount);
+  TEST_ASSERT_EQUAL_INT(10, kScenarioCount);
   LogicalState s;
   for (int i = 0; i < kScenarioCount; ++i) {
     TEST_ASSERT_TRUE_MESSAGE(scenarioByName(kScenarioNames[i], s),
                              "an advertised scenario name did not resolve");
   }
+}
+
+void test_lean_scenarios_resolve(void) {
+  LogicalState s;
+  TEST_ASSERT_TRUE(scenarioByName("leanRightNight", s));
+  TEST_ASSERT_TRUE(s.run);
+  TEST_ASSERT_TRUE(s.night);
+  TEST_ASSERT_TRUE(s.lowBeam);
+  TEST_ASSERT_TRUE(s.leanValid);
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, 30.0f, s.leanDeg);
+  TEST_ASSERT_TRUE(s.speedValid);                       // above the cornering gate
+  TEST_ASSERT_TRUE(s.speedKmh >= 40.0f);
+  TEST_ASSERT_TRUE(scenarioByName("leanLeftNight", s));
+  TEST_ASSERT_FLOAT_WITHIN(1e-6f, -30.0f, s.leanDeg);
+}
+
+void test_lean_scenario_obeys_setting(void) {
+  LogicalState real;
+  TestMode t;
+  TEST_ASSERT_TRUE(scenarioByName("leanRightNight", t.scenario));
+  t.kind = TestKind::Scenario;
+  OutputIntent o = resolveOutputs(real, t, cfg, 0, est, testEst);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDutyL);
+  TEST_ASSERT_EQUAL_UINT8(15, o.auxDutyR);
+  cfg.leanEnable = true;
+  testEst = EngineState{};
+  o = resolveOutputs(real, t, cfg, 0, est, testEst);
+  TEST_ASSERT_EQUAL_UINT8(5, o.auxDutyL);
+  TEST_ASSERT_EQUAL_UINT8(60, o.auxDutyR);
 }
 
 int main(int, char**) {
@@ -165,5 +203,7 @@ int main(int, char**) {
   RUN_TEST(test_expiry_survives_millis_rollover);
   RUN_TEST(test_scenario_lookup_rejects_unknown_names);
   RUN_TEST(test_every_advertised_scenario_name_resolves);
+  RUN_TEST(test_lean_scenarios_resolve);
+  RUN_TEST(test_lean_scenario_obeys_setting);
   return UNITY_END();
 }

@@ -5,11 +5,19 @@ const FUNCS = ["run","leftInd","rightInd","frontBrake","rearBrake",
                "lowBeam","highBeam","highBeamFlash","dayNight","kickStand"];
 const COMBINE = { 0: "Single", 1: "And", 2: "Or" };
 const MAX_BITS = 4;    // must match FunctionMap::MAX_BITS in config.h
-const PROTOCOL_VERSION = 7;   // must match kProtocolVersion in web_protocol.h
+const PROTOCOL_VERSION = 8;   // must match kProtocolVersion in web_protocol.h
 // Must match kScenarioNames in test_mode.cpp — the firmware table is
 // authoritative and rejects anything it does not know.
 const SCENARIOS = ["allOff","drlDay","leftInd","rightInd",
-                   "hazards","brake","lowBeam","highBeam"];
+                   "hazards","brake","lowBeam","highBeam",
+                   "leanLeftNight","leanRightNight"];
+// Number signals: config key under cfg.maps, title, unit.
+const SIGNALS = [["speed", "Speed", "km/h"], ["lean", "Lean (+ = right)", "\u00b0"]];
+// Integer tunables: id, min, max, default (ranges match config_json.cpp).
+const INT_TUNABLES = [["hbSlowKmh", 0, 300, 20], ["hbFullKmh", 0, 300, 80],
+                      ["hbSlowDuty", 0, 100, 50], ["leanStartDeg", 0, 60, 10],
+                      ["leanFullDeg", 1, 70, 30], ["leanBoostDuty", 0, 100, 60],
+                      ["leanDimDuty", 0, 100, 5], ["leanMinKmh", 0, 300, 40]];
 // Must match OutputIndex in src/domain/outputs.h, in order. The firmware's
 // enum is authoritative; this mirrors it only for labels.
 const OUTPUT_NAMES = [
@@ -26,6 +34,7 @@ let testState = { active: false, kind: "off", remainingMs: 0 };
 let activeScenario = null;
 let testMask = 0;
 let ssid = "";
+let onMappingTab = false;   // the Mapping tab is showing (it streams frames)
 
 function setStatus(connected) {
   const el = document.getElementById("status");
@@ -35,7 +44,13 @@ function setStatus(connected) {
 
 function connect() {
   ws = new WebSocket("ws://" + location.hostname + ":81/");
-  ws.onopen = () => { setStatus(true); send({ type: "get_config" }); };
+  ws.onopen = () => {
+    setStatus(true);
+    send({ type: "get_config" });
+    // The device stops streaming when a phone drops; resume after a reconnect.
+    if (onMappingTab || document.getElementById("discToggle").checked)
+      send({ type: "discovery", enable: true });
+  };
   ws.onclose = () => { setStatus(false); setTimeout(connect, 1500); };
   ws.onmessage = (ev) => onMessage(JSON.parse(ev.data));
 }
@@ -47,7 +62,7 @@ function send(obj) {
 function onMessage(msg) {
   if (msg.type === "config") { checkVersion(msg.protocolVersion); cfg = msg.config; render(); }
   else if (msg.type === "device_info") { onDeviceInfo(msg); }
-  else if (msg.type === "frames") { renderFrames(msg.frames); }
+  else if (msg.type === "frames") { renderFrames(msg.frames); renderLive(msg.signals); }
   else if (msg.type === "test_state") {
     testState = msg;
     testMask = msg.zones | 0;
@@ -173,10 +188,79 @@ function render() {
   document.getElementById("auxFullDuty").value = cfg.auxFullDuty ?? 100;
   document.getElementById("testMaxMs").value = cfg.testMaxMs;
   document.getElementById("flashSource").value = cfg.flashSource || "generate";
+  document.getElementById("speedScaleEnable").checked = !!cfg.speedScaleEnable;
+  document.getElementById("leanEnable").checked = !!cfg.leanEnable;
+  INT_TUNABLES.forEach(([id, , , def]) => {
+    document.getElementById(id).value = cfg[id] ?? def;
+  });
   renderScenarios();
   renderTestOutputs();
   renderMaps();
+  renderSignals();
   renderDiscFuncOptions();
+}
+
+// One editable block per number signal; collect() reads the inputs back.
+function renderSignals() {
+  const host = document.getElementById("signals");
+  host.innerHTML = "";
+  SIGNALS.forEach(([key, title]) => {
+    const s = cfg.maps[key] || {};
+    const box = document.createElement("div");
+    box.className = "mapfn";
+    const h = document.createElement("h3");
+    h.textContent = title + ": ";
+    const live = document.createElement("span");
+    live.id = "live_" + key;
+    live.textContent = "\u2014";
+    h.appendChild(live);
+    box.appendChild(h);
+    const field = (name, label, type, value) => {
+      const lab = document.createElement("label");
+      const inp = document.createElement("input");
+      inp.type = type;
+      inp.id = "sig_" + key + "_" + name;
+      if (type === "checkbox") {
+        inp.checked = !!value;
+        lab.appendChild(inp);
+        lab.appendChild(document.createTextNode(" " + label));
+      } else {
+        inp.value = value;
+        if (type === "number") inp.step = "any";
+        lab.appendChild(document.createTextNode(label + " "));
+        lab.appendChild(inp);
+      }
+      box.appendChild(lab);
+    };
+    field("id", "Message ID (hex)", "text", s.id !== undefined ? s.id.toString(16) : "");
+    field("start", "Start bit (0-63)", "number", s.start ?? 0);
+    field("len", "Length in bits (0-32, 0 = unmapped)", "number", s.len ?? 0);
+    const lab = document.createElement("label");
+    lab.appendChild(document.createTextNode("Byte order "));
+    const sel = document.createElement("select");
+    sel.id = "sig_" + key + "_be";
+    [["0", "Intel (little-endian, start = LSB)"], ["1", "Motorola (big-endian, start = MSB)"]]
+      .forEach(([v, t]) => {
+        const o = document.createElement("option"); o.value = v; o.textContent = t;
+        sel.appendChild(o);
+      });
+    sel.value = s.be ? "1" : "0";
+    lab.appendChild(sel);
+    box.appendChild(lab);
+    field("signed", "Signed", "checkbox", s.signed);
+    field("scale", "Scale", "number", s.scale ?? 1);
+    field("offset", "Offset", "number", s.offset ?? 0);
+    host.appendChild(box);
+  });
+}
+
+function renderLive(sig) {
+  if (!sig) return;
+  SIGNALS.forEach(([key, , unit]) => {
+    const el = document.getElementById("live_" + key);
+    if (el) el.textContent = sig[key + "Valid"]
+      ? Number(sig[key]).toFixed(1) + " " + unit : "\u2014";
+  });
 }
 
 function renderTestBanner() {
@@ -338,6 +422,25 @@ function collect() {
   cfg.auxFullDuty = full === "" ? 100 : clamp(full, 0, 100);
   cfg.testMaxMs = clamp(document.getElementById("testMaxMs").value, 10000, 3600000);
   cfg.flashSource = document.getElementById("flashSource").value;
+  cfg.speedScaleEnable = document.getElementById("speedScaleEnable").checked;
+  cfg.leanEnable = document.getElementById("leanEnable").checked;
+  INT_TUNABLES.forEach(([id, lo, hi, def]) => {
+    const v = document.getElementById(id).value;
+    cfg[id] = v === "" ? def : clamp(v, lo, hi);
+  });
+  SIGNALS.forEach(([key]) => {
+    const el = (n) => document.getElementById("sig_" + key + "_" + n);
+    if (!el("len")) return;                      // not rendered yet
+    const len = clamp(el("len").value, 0, 32);
+    const id = parseInt(el("id").value.trim().replace(/^0x/i, ""), 16);
+    if (!len || isNaN(id)) { delete cfg.maps[key]; return; }
+    const num = (n, def) => { const x = parseFloat(el(n).value); return isNaN(x) ? def : x; };
+    cfg.maps[key] = {
+      id, start: clamp(el("start").value, 0, 63), len,
+      be: el("be").value === "1", signed: el("signed").checked,
+      scale: num("scale", 1), offset: num("offset", 0),
+    };
+  });
   return cfg;
 }
 
@@ -369,6 +472,15 @@ document.querySelectorAll("nav button").forEach((b) => {
     document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
     b.classList.add("active");
     document.getElementById("tab-" + b.dataset.tab).classList.add("active");
+    // The Mapping tab's live speed and lean ride on the frames stream, so
+    // stream while it is open; on leaving it, go back to what the Discovery
+    // checkbox says. Other tab changes send nothing.
+    const toMapping = b.dataset.tab === "mapping";
+    if (toMapping !== onMappingTab) {
+      onMappingTab = toMapping;
+      send({ type: "discovery",
+             enable: toMapping || document.getElementById("discToggle").checked });
+    }
   };
 });
 document.getElementById("saveBtn").onclick = save;

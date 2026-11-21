@@ -82,7 +82,7 @@ void test_frames_message_serializes_ids_and_bytes(void) {
   fr[0].id = 0x102; for (int i = 0; i < 8; ++i) fr[0].data[i] = 0; fr[0].data[0] = 0xAB;
   fr[1].id = 0x400; for (int i = 0; i < 8; ++i) fr[1].data[i] = 0; fr[1].data[7] = 0x0F;
 
-  std::string msg = framesMessage(fr, 2);
+  std::string msg = framesMessage(fr, 2, LogicalState{});
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_STRING("frames", doc["type"].as<const char*>());
@@ -91,6 +91,22 @@ void test_frames_message_serializes_ids_and_bytes(void) {
   TEST_ASSERT_EQUAL_UINT32(0x102, arr[0]["id"].as<uint32_t>());
   TEST_ASSERT_EQUAL_UINT8(0xAB, arr[0]["data"][0].as<uint8_t>());
   TEST_ASSERT_EQUAL_UINT8(0x0F, arr[1]["data"][7].as<uint8_t>());
+}
+
+void test_frames_carry_signals(void) {
+  CanFrameSnapshot fr[1];
+  fr[0].id = 0x102; for (int i = 0; i < 8; ++i) fr[0].data[i] = 0;
+  LogicalState live;
+  live.leanDeg = -23.5f; live.leanValid = true;
+  std::string msg = framesMessage(fr, 1, live);
+  JsonDocument doc;
+  TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
+  JsonObject sig = doc["signals"];
+  TEST_ASSERT_FALSE(sig.isNull());
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, -23.5f, sig["lean"].as<float>());
+  TEST_ASSERT_TRUE(sig["leanValid"].as<bool>());
+  TEST_ASSERT_FALSE(sig["speedValid"].as<bool>());
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, sig["speed"].as<float>());
 }
 
 void test_error_message_shape(void) {
@@ -176,7 +192,7 @@ void test_config_message_carries_the_night_settings() {
 }
 
 void test_protocol_version_is_seven() {
-  TEST_ASSERT_EQUAL_INT(7, kProtocolVersion);
+  TEST_ASSERT_EQUAL_INT(8, kProtocolVersion);
 }
 
 void test_set_wifi_password_valid() {
@@ -206,7 +222,7 @@ void test_device_info_message() {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, deviceInfoMessage(d)) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_STRING("device_info", doc["type"].as<const char*>());
-  TEST_ASSERT_EQUAL_INT(7, doc["protocolVersion"].as<int>());
+  TEST_ASSERT_EQUAL_INT(8, doc["protocolVersion"].as<int>());
   TEST_ASSERT_EQUAL_STRING("1.0.0", doc["version"].as<const char*>());
   TEST_ASSERT_EQUAL_UINT32(1u, doc["build"].as<uint32_t>());
   TEST_ASSERT_EQUAL_STRING("MCCAN-3F2A", doc["ssid"].as<const char*>());
@@ -233,7 +249,7 @@ void test_config_message_carries_the_protocol_version(void) {
   JsonDocument doc;
   TEST_ASSERT_TRUE(deserializeJson(doc, msg) == DeserializationError::Ok);
   TEST_ASSERT_EQUAL_INT(kProtocolVersion, doc["protocolVersion"].as<int>());
-  TEST_ASSERT_EQUAL_INT(7, kProtocolVersion);
+  TEST_ASSERT_EQUAL_INT(8, kProtocolVersion);
 }
 
 void test_test_state_message_shape(void) {
@@ -303,5 +319,6 @@ int main(int, char**) {
   RUN_TEST(test_test_state_message_shape);
   RUN_TEST(test_test_state_message_when_off);
   RUN_TEST(test_test_state_remaining_clamps_at_zero);
+  RUN_TEST(test_frames_carry_signals);
   return UNITY_END();
 }

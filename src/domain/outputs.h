@@ -20,13 +20,14 @@ enum class AuxLevel : uint8_t { Off, Low, Full };
 // `on` is the whole switched state the HAL drives, one word on purpose, so a
 // test asserts it in a single comparison and fails when an output nobody
 // considered is also energised. An aux bit is set whenever that pod is not
-// Off. `auxDuty` is the one shared yellow duty, in percent: every pod that is
-// not Off carries the same level, so one duty serves both.
+// Off. `auxDutyL` / `auxDutyR` are each pod's yellow duty, in percent (each
+// pod has its own PWM pin), 0 for a pod that is Off.
 struct OutputIntent {
   uint16_t on = 0;
   AuxLevel auxL = AuxLevel::Off;
   AuxLevel auxR = AuxLevel::Off;
-  uint8_t  auxDuty = 0;
+  uint8_t  auxDutyL = 0;
+  uint8_t  auxDutyR = 0;
 
   bool isOn(OutputIndex i) const { return ((on >> (uint8_t)i) & 1u) != 0u; }
   void set(OutputIndex i, bool v) {
@@ -37,7 +38,7 @@ struct OutputIntent {
 
 inline bool operator==(const OutputIntent& a, const OutputIntent& b) {
   return a.on == b.on && a.auxL == b.auxL && a.auxR == b.auxR &&
-         a.auxDuty == b.auxDuty;
+         a.auxDutyL == b.auxDutyL && a.auxDutyR == b.auxDutyR;
 }
 inline bool operator!=(const OutputIntent& a, const OutputIntent& b) { return !(a == b); }
 

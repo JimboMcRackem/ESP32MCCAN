@@ -15,7 +15,9 @@
 // renamed spotHoldMs to nightHoldMs and added auxDarkenOnIndicate. Version 6
 // added auxLowDuty and auxFullDuty. Version 7 replaced auxDarkenOnIndicate
 // with auxOffOnIndicateHighBeam (the indicating pod is always off at Low).
-constexpr int kProtocolVersion = 7;
+// Version 8 added the speed and lean number signals (maps.speed, maps.lean),
+// the high-beam-by-speed and cornering settings, and `signals` on `frames`.
+constexpr int kProtocolVersion = 8;
 
 // Wire-name asymmetry, deliberate and load-bearing: an INBOUND test request
 // names its mode in "mode" (read at web_protocol.cpp:47), while the OUTBOUND
@@ -50,7 +52,9 @@ ProtocolAction handleRequest(const std::string& json);
 
 // Outbound message builders.
 std::string configMessage(const Config& c);
-std::string framesMessage(const CanFrameSnapshot* frames, int count);
+// `live` supplies the decoded speed and lean for the Mapping tab's readout.
+std::string framesMessage(const CanFrameSnapshot* frames, int count,
+                          const LogicalState& live);
 std::string deviceInfoMessage(const DeviceInfo& d);
 std::string errorMessage(const std::string& msg);
 std::string testStateMessage(const TestMode& t, const Config& cfg, uint32_t nowMs);

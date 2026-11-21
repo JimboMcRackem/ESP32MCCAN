@@ -1,4 +1,5 @@
 #include "domain/behavior_engine.h"
+#include <cmath>
 
 static bool flashIsOn(const Config& cfg, uint32_t nowMs) {
   const uint32_t period = cfg.blinkPeriodMs ? cfg.blinkPeriodMs : 340;
@@ -103,13 +104,78 @@ OutputIntent computeOutputs(const LogicalState& s, const Config& cfg,
                       (base == AuxLevel::Full && cfg.auxOffOnIndicateHighBeam);
   o.auxL = (darken && li) ? AuxLevel::Off : base;
   o.auxR = (darken && ri) ? AuxLevel::Off : base;
-  // A pod that is not Off is powered; its brightness is the yellow duty.
-  // Darkening only makes a pod Off, so both lit pods share `base`'s duty.
+  // A pod that is not Off is powered; its brightness is its yellow duty.
   o.set(OUT_AUX_L, o.auxL != AuxLevel::Off);
   o.set(OUT_AUX_R, o.auxR != AuxLevel::Off);
-  const bool anyLit = o.auxL != AuxLevel::Off || o.auxR != AuxLevel::Off;
-  o.auxDuty = anyLit ? auxDutyFor(base, cfg) : 0;
+
+  // Brightness per pod. Leaning right (+) puts the right pod on the inside.
+  const float k = leanFactor(s, cfg);
+  const bool rightIn = k > 0.0f && s.leanDeg > 0.0f;
+  const bool leftIn  = k > 0.0f && s.leanDeg < 0.0f;
+  const float tL = auxTargetDuty(o.auxL, leftIn, rightIn, k, s, cfg);
+  const float tR = auxTargetDuty(o.auxR, rightIn, leftIn, k, s, cfg);
+
+  // Smoothing. Elapsed time by unsigned subtraction, so a millis() wrap
+  // between two ticks still gives the real gap.
+  const float maxStep = est.dutyInit
+      ? kAuxSlewPctPerS * (float)(uint32_t)(nowMs - est.dutyMs) / 1000.0f : 0.0f;
+  // Only speed and lean move a pod within its level, so only they glide.
+  auto glide = [&](AuxLevel lvl, float target, float& cur, AuxLevel& prev) {
+    if (lvl == AuxLevel::Off)                cur = 0.0f;     // off is immediate
+    else if (!est.dutyInit || lvl != prev)   cur = target;   // level change: instant
+    else if (target > cur)                   cur = (target - cur > maxStep) ? cur + maxStep : target;
+    else                                     cur = (cur - target > maxStep) ? cur - maxStep : target;
+    prev = lvl;
+    return (uint8_t)lroundf(cur);
+  };
+  o.auxDutyL = glide(o.auxL, tL, est.dutyL, est.prevL);
+  o.auxDutyR = glide(o.auxR, tR, est.dutyR, est.prevR);
+  est.dutyMs = nowMs;
+  est.dutyInit = true;
   return o;
+}
+
+float leanFactor(const LogicalState& s, const Config& cfg) {
+  if (!cfg.leanEnable || !s.leanValid) return 0.0f;
+  if (cfg.leanMinKmh > 0 && (!s.speedValid || s.speedKmh < cfg.leanMinKmh)) return 0.0f;
+  const float a = std::fabs(s.leanDeg);
+  const float lo = cfg.leanStartDeg, hi = cfg.leanFullDeg;
+  if (hi <= lo) return a > lo ? 1.0f : 0.0f;
+  if (a <= lo) return 0.0f;
+  if (a >= hi) return 1.0f;
+  return (a - lo) / (hi - lo);
+}
+
+// High beam's duty: the speed curve when it is on and speed is valid,
+// otherwise auxFullDuty (today's behaviour).
+static float fullBase(const LogicalState& s, const Config& cfg) {
+  const float full = cfg.auxFullDuty;
+  if (!cfg.speedScaleEnable || !s.speedValid) return full;
+  const float slow = cfg.hbSlowDuty < cfg.auxFullDuty ? cfg.hbSlowDuty : full;
+  const float lo = cfg.hbSlowKmh, hi = cfg.hbFullKmh;
+  const float v = s.speedKmh;
+  if (hi <= lo) return v > lo ? full : slow;
+  if (v <= lo) return slow;
+  if (v >= hi) return full;
+  return slow + (full - slow) * (v - lo) / (hi - lo);
+}
+
+float auxTargetDuty(AuxLevel level, bool insideOfLean, bool outsideOfLean,
+                    float k, const LogicalState& s, const Config& cfg) {
+  if (level == AuxLevel::Off) return 0.0f;
+  const float base = level == AuxLevel::Low ? (float)auxDutyFor(AuxLevel::Low, cfg)
+                                            : fullBase(s, cfg);
+  float t = base;
+  if (insideOfLean) {
+    const float boost = level == AuxLevel::Low ? cfg.leanBoostDuty : cfg.auxFullDuty;
+    t = base + k * (boost - base);
+    if (t < base) t = base;
+  } else if (outsideOfLean) {
+    t = base + k * ((float)cfg.leanDimDuty - base);
+    if (t > base) t = base;
+  }
+  const float cap = cfg.auxFullDuty;
+  return t > cap ? cap : t;
 }
 
 uint8_t auxDutyFor(AuxLevel level, const Config& cfg) {
