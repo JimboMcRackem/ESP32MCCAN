@@ -1909,14 +1909,15 @@ def frozen_routes(netidx):
     drop = set(getattr(L, "FROZEN_DROP", ()))
     out, nseg, nvia, missing, dropped = [], 0, 0, [], []
     for name in sorted(nets):
+        if name in drop:
+            # layout_pcb.FROZEN_DROP: this net is hand-authored in ROUTES, so the router's
+            # copper for it -- usually an abandoned fanout via -- is not wanted.  Checked
+            # before the netlist lookup: a dropped net may since have been renamed away.
+            dropped.append(name)
+            continue
         net = netidx.get(name)
         if net is None:
             missing.append(name)
-            continue
-        if name in drop:
-            # layout_pcb.FROZEN_DROP: this net is hand-authored in ROUTES, so the router's
-            # copper for it -- usually an abandoned fanout via -- is not wanted.
-            dropped.append(name)
             continue
         d = nets[name]
         for i, r in enumerate(d.get("segments", ())):
@@ -1924,6 +1925,20 @@ def frozen_routes(netidx):
             nseg += 1
         for i, v in enumerate(d.get("vias", ())):
             out.append(via(v[0], v[1], net, v[2], v[3], "fz%d.v%d" % (net, i)))
+            nvia += 1
+    # layout_pcb.FROZEN_EXTRA: router copper re-authored by hand after a schematic change.  It
+    # is emitted here rather than through ROUTES so that, like the frozen copper it replaces,
+    # it does not steer the auto-flow (place() stamps ROUTES onto its grid).
+    for name, d in sorted(getattr(L, "FROZEN_EXTRA", {}).items()):
+        net = netidx.get(name)
+        if net is None:
+            missing.append(name)
+            continue
+        for i, r in enumerate(d.get("segments", ())):
+            out.append(seg(r[0], r[1], r[2], r[3], r[4], r[5], net, "fx%d.s%d" % (net, i)))
+            nseg += 1
+        for i, v in enumerate(d.get("vias", ())):
+            out.append(via(v[0], v[1], net, v[2], v[3], "fx%d.v%d" % (net, i)))
             nvia += 1
     print("frozen routes: %d segment(s), %d via(s) over %d net(s) from %s"
           % (nseg, nvia, len(nets) - len(missing) - len(dropped), os.path.basename(FROZEN)))

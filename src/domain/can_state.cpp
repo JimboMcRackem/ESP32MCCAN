@@ -1,4 +1,5 @@
 #include "domain/can_state.h"
+#include "domain/can_signal.h"
 #include <cstring>
 
 const CanState::Frame* CanState::find(uint32_t id) const {
@@ -26,6 +27,7 @@ void CanState::update(uint32_t id, const uint8_t data[8], uint32_t nowMs) {
   // One place that records traffic, so a future third path cannot skip it and
   // silently break stale().
   std::memcpy(slot->data, data, 8);
+  slot->lastMs = nowMs;
   anyRx_    = true;
   lastRxMs_ = nowMs;
 }
@@ -55,6 +57,18 @@ bool CanState::evalFunction(const FunctionMap& fm) const {
   return false;
 }
 
+bool CanState::readSignal(const NumSignal& sig, uint32_t nowMs, float lo,
+                          float hi, float& out) const {
+  out = 0.0f;
+  if (!sig.mapped()) return false;
+  const Frame* f = find(sig.id);
+  if (!f || (uint32_t)(nowMs - f->lastMs) >= kStaleMs) return false;
+  float v = 0.0f;
+  if (!decodeSignal(f->data, sig, v) || !(v >= lo && v <= hi)) return false;
+  out = v;
+  return true;
+}
+
 bool CanState::stale(uint32_t nowMs) const {
   // Unsigned subtraction, so this is correct across millis() rollover.
   if (!anyRx_) return true;
@@ -77,6 +91,9 @@ LogicalState CanState::evaluate(const Config& cfg, uint32_t nowMs) const {
   // Run: unassigned means always-running (fail-safe, spec Open Question #1).
   const FunctionMap& runMap = mapFor(cfg, Function::Run);
   s.run = (runMap.count == 0) ? true : evalFunction(runMap);
+
+  s.speedValid = readSignal(cfg.speedSignal, nowMs, 0.0f, kSpeedMaxKmh, s.speedKmh);
+  s.leanValid  = readSignal(cfg.leanSignal, nowMs, -kLeanMaxDeg, kLeanMaxDeg, s.leanDeg);
   return s;
 }
 

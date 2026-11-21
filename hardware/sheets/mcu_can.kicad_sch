@@ -2714,7 +2714,7 @@
 	)
 	(text_box "EN_5V PULL-DOWN IS ON THE RAILS SHEET, NOT HERE\nEN_5V (GPIO 4) is pulled down by R19 next to the converter it gates, so the enable stays\ndefined even if the inter-sheet net is open.  One resistor per net; do not add a second."
 		(exclude_from_sim no)
-		(at 310.0 108.54 0)
+		(at 310.0 112.98 0)
 		(size 103.19 6.44)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
@@ -2730,7 +2730,7 @@
 			)
 			(justify left top)
 		)
-		(uuid "bbc7c682-f540-56af-9391-5888c0508979")
+		(uuid "b9dd946f-a8bf-5507-80b6-46d7da061881")
 	)
 	(text_box "TWO SUPPLIES, ON PURPOSE - DO NOT TIE THEM TOGETHER\nVIO (pin 5) -> +3V3_ALW, always on.  VCC (pin 3) -> +5V, gated off in sleep.\nThe split is what makes CAN wake work.  In sleep the +5V rail is down, so the transmit side and the bus drivers are unpowered, but VIO\nkeeps the receiver and the RXD output alive.  Bus traffic therefore still pulls RXD low, which is the EXT0 wake event on GPIO 35.\nPowering both from one rail loses either the wake path or the sleep budget.\nTJA1042T/3 VCC is 4.5-5.5 V.  The \"/3\" suffix refers to VIO only.  Running VCC from 3.3 V is out of spec - this was a genuine error in\nan early draft of the spec."
 		(exclude_from_sim no)
@@ -2772,10 +2772,10 @@
 		)
 		(uuid "cf484bcc-d29d-5615-91b3-1703dee8a249")
 	)
-	(text_box "R36 ON IO12_STRAP IS A BOOT REQUIREMENT\nGPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it selects 1.8 V, which will\nnot run the module's 3.3 V flash.  Most WROOM-32E parts ship with the eFuse already burned so\nthe strap is ignored, but that is not guaranteed across date codes.  It draws no current in\nsleep."
+	(text_box "R36 ON AUX_PWM_R (GPIO 12) IS A BOOT REQUIREMENT\nGPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it selects 1.8 V, which will\nnot run the module's 3.3 V flash.  Most WROOM-32E parts ship with the eFuse already burned so\nthe strap is ignored, but that is not guaranteed across date codes.  It draws no current in\nsleep.\nGPIO 12 also carries AUX_PWM_R, the right pod's yellow PWM, to U16 on the outputs sheet. Firmware must leave it LOW through reset and\nattach its LEDC channel only after the CAN driver has started (TWAI names GPIO 12 as its unused TX pin).  R36 is the buffer input's\npull-down."
 		(exclude_from_sim no)
 		(at 310.0 97.64 0)
-		(size 103.19 9.4)
+		(size 103.19 13.84)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
 			(width 0)
@@ -3880,16 +3880,6 @@
 		)
 		(uuid "51009f7f-11ec-5493-8ae1-5cf74a587bf2")
 	)
-	(label "IO12_STRAP"
-		(at 172.72 105.41 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "5cf1e007-53b4-55f4-93ca-8a726056ee09")
-	)
 	(label "+3V3_ALW"
 		(at 246.38 69.85 90)
 		(effects
@@ -3940,6 +3930,16 @@
 		)
 		(uuid "9a719a4c-5511-5d05-a845-9728ed4969bf")
 	)
+	(label "AUX_PWM_R"
+		(at 132.08 215.9 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "aa1fcf53-d6e0-5094-8597-6fe024c04bd0")
+	)
 	(label "CAN_STB"
 		(at 241.3 111.76 0)
 		(effects
@@ -3969,16 +3969,6 @@
 			(justify left bottom)
 		)
 		(uuid "c5c585cc-6a06-5b1a-9a1d-0ef82516abef")
-	)
-	(label "IO12_STRAP"
-		(at 132.08 215.9 90)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "db21dbb9-006b-53f8-9833-35dd7b14f10b")
 	)
 	(label "CAN_RXD"
 		(at 224.79 92.71 180)
@@ -4063,6 +4053,17 @@
 			(justify left)
 		)
 		(uuid "527a36c9-7099-5cb9-9fbc-fe0036a604dd")
+	)
+	(hierarchical_label "AUX_PWM_R"
+		(shape output)
+		(at 172.72 105.41 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "56d7addc-7a95-59da-a1d0-f9e66a91a85e")
 	)
 	(hierarchical_label "+3V3_ALW"
 		(shape input)

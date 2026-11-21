@@ -98,7 +98,7 @@ until the reversed feed's fuse clears (`harness.md` §4). It is a harness hazard
 | Module identifies as 8 MB flash | 8 MB | | |
 | After boot: `EN_5V` (TP28) | 3.3 V (firmware drives GPIO4 high) | | |
 | After boot: `+5V` (TP5) | 5.0 V ± 3 % | | |
-| GPIO12 at R36, firmware running and CAN started | ~0 V (released to input with pull-down by `CanBus::begin`) | | |
+| GPIO12 (`AUX_PWM_R`, R36) with the firmware running and CAN started | ~0 V with the right pod off; the pod's 150 Hz PWM at U16.2 with it on; CAN frames still received; a reset while the pod is on still boots (GPIO12 low at reset) | | |
 | `SNS_A`–`SNS_C` | ~0 V (firmware holds `DIAG_EN` low) | | |
 | All lamp outputs and pod outputs, no CAN connected | 0 V: a dead bus is "everything off" (spec §6, item 2) | | |
 | Press SW2 (EN) and watch TP17–TP26 on a scope | No output pulses high during reset or boot | | |
@@ -142,7 +142,7 @@ First with dummy loads, then with the real pods. Raise the feed B supply limit t
 | `POD_L_P` / `POD_R_P` with a 4.7 Ω, 50 W load (≈ 2.6 A) | Output follows its command; `VBAT_B` minus under 0.1 V | | |
 | `YEL_L` / `YEL_R` (TP8/TP9) while that pod is **off** | 0 V: the buffer is disabled and R86/R87 hold it low | | |
 | `YEL_x` while that pod is **on** | 5 V PWM at **150 Hz ± 5 %**, duty as commanded (night Low default 15 %) | | |
-| `AUX_PWM` (TP7) | 3.3 V PWM at 150 Hz, the same duty | | |
+| `AUX_PWM` (TP7, left pod) and `AUX_PWM_R` (GPIO12, right pod; no test pad, probe U16.2) | 3.3 V PWM at 150 Hz, each at its own pod's duty | | |
 | Real pod inrush (`docs/bench/2026-11-13-pod-inrush-procedure.md`, with U14 switching) | U14 does not trip (overload trip 77–99 A); record the peak | | |
 | Yellow input current, 5 V drive | Record. It confirms or resizes R82–R85 (provisional) | | |
 | Both pods at full beam: feed B current | ≈ 6.4 A (3.2 A per pod, measured 2026-11-12) | | |

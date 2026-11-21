@@ -33,9 +33,13 @@ static const uint32_t kCanBitrate = 500000;
 static const int kEn5vPin   = 4;    // +5V enable: the CAN transceiver's VCC and the quads' THER
 static const int kCanStbPin = 14;   // TJA1042 STB, pulled up on the board (floating = standby)
 static const int kDiagEnPin = 2;    // quad switches' DIAG_EN, pulled down on the chip side
-// Shared pod brightness PWM to both yellow wires (night-mode spec 6.1). It was
-// status LED D5; the factory-reset feedback now shows on the indicators.
-static const int kAuxPwmPin = 13;
+// Pod brightness PWM, one pin per yellow wire (night-mode spec 6.1). GPIO 13
+// (left) was status LED D5; the factory-reset feedback now shows on the
+// indicators. GPIO 12 (right) is the MTDI strap (HIGH at reset = 1.8 V flash,
+// which does not boot; R36 holds it low) and TWAI's nominal TX pin, so it is
+// attached only after g_bus.begin() hands it back, and never driven earlier.
+static const int kAuxPwmPinL = 13;
+static const int kAuxPwmPinR = 12;   // the same pin as kCanTxPin, on purpose
 static const int kResetBtnPin = 0;  // BOOT button: hold 10 s, release within 5 s = factory reset (LOW = pressed)
 
 // GPIO assignment in OutputIndex order. These avoid the strapping pins
@@ -58,7 +62,7 @@ static const uint8_t kOutputPins[] = {
 static_assert(sizeof(kOutputPins) / sizeof(kOutputPins[0]) == (size_t)OUT_COUNT,
               "kOutputPins must have one pin per OutputIndex");
 static GpioOutputs g_out(kOutputPins, OUT_COUNT);
-static LedcAuxPwm  g_auxPwm(kAuxPwmPin, kAuxPwmHz);
+static LedcAuxPwm  g_auxPwm(kAuxPwmPinL, kAuxPwmPinR, kAuxPwmHz);
 
 static Config      g_cfg;
 static CanState    g_can;
@@ -174,11 +178,12 @@ static void releaseTest(uint32_t now) {
 void setup() {
   Serial.begin(115200);
 
-  // Pod duty 0 before any output can switch a pod on. A failed attach fails
-  // dark (the yellow buffer holds low), but the pods would light only their
-  // DRL LEDs, so say why.
+  // Left pod duty 0 before any output can switch a pod on (the right side
+  // starts after the CAN bus; nothing lights a pod before loop() runs). A
+  // failed attach fails dark (the yellow buffer holds low), but the pod would
+  // light only its DRL LEDs, so say why.
   if (!g_auxPwm.begin())
-    Serial.println("aux PWM attach failed: pods' main LEDs stay dark");
+    Serial.println("left aux PWM attach failed: left pod's main LEDs stay dark");
   g_out.begin();      // all twelve outputs LOW before anything else
 
   pinMode(kDiagEnPin, OUTPUT);
@@ -199,6 +204,10 @@ void setup() {
 
   if (!g_bus.begin(kCanRxPin, kCanTxPin, kCanBitrate))
     Serial.println("CAN init failed");
+  // Only now: TWAI has claimed GPIO 12 as TX and CanBus::begin has handed it
+  // back (see kAuxPwmPinR). Until this succeeds the right duty is dropped.
+  if (!g_auxPwm.beginRight())
+    Serial.println("right aux PWM attach failed: right pod's main LEDs stay dark");
 
   g_web.onMessage([](uint8_t client, const std::string& msg) {
     ProtocolAction act = handleRequest(msg);
@@ -316,6 +325,8 @@ void loop() {
     if (parkedNow() && digitalRead(kResetBtnPin) == HIGH) {
       Serial.printf("%s: restarting\n", g_restartWhy);
       Serial.flush();
+      // GPIO 12 (right pod PWM) is the MTDI strap: never restart mid-pulse.
+      quietForRestart(g_out, g_auxPwm);
       ESP.restart();
     } else if (!g_restartHeldLogged) {
       g_restartHeldLogged = true;
@@ -330,7 +341,7 @@ void loop() {
     lastDisc = now;
     CanFrameSnapshot fr[CanState::MAX_FRAMES];
     int n = g_can.snapshot(fr, CanState::MAX_FRAMES);
-    g_web.broadcast(framesMessage(fr, n));
+    g_web.broadcast(framesMessage(fr, n, g_can.evaluate(g_cfg, now)));
   }
 
   // Keep the app's countdown honest, and re-announce the override to any

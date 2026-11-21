@@ -11,6 +11,36 @@ static uint8_t clampPercent(int v) {
   return (uint8_t)(v < 0 ? 0 : v > 100 ? 100 : v);
 }
 
+static int clampInt(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+// A mapped signal is written under maps.<name>; an unmapped one is left out,
+// and an absent one reads back unmapped.
+static void signalToJson(JsonObject maps, const char* name, const NumSignal& s) {
+  if (!s.mapped()) return;
+  JsonObject o = maps[name].to<JsonObject>();
+  o["id"] = s.id;
+  o["start"] = s.startBit;
+  o["len"] = s.length;
+  o["be"] = s.bigEndian;
+  o["signed"] = s.isSigned;
+  o["scale"] = s.scale;
+  o["offset"] = s.offset;
+}
+
+static NumSignal signalFromJson(JsonObjectConst o) {
+  NumSignal s;
+  if (o.isNull()) return s;
+  s.id = o["id"] | 0u;
+  s.startBit = (uint8_t)clampInt(o["start"] | 0, 0, 63);
+  const int len = o["len"] | 0;
+  s.length = (uint8_t)(len >= 1 && len <= 32 ? len : 0);   // out of range = unmapped
+  s.bigEndian = o["be"] | false;
+  s.isSigned = o["signed"] | false;
+  s.scale = o["scale"] | 1.0f;
+  s.offset = o["offset"] | 0.0f;
+  return s;
+}
+
 std::string configToJson(const Config& c) {
   JsonDocument doc;
 
@@ -27,11 +57,24 @@ std::string configToJson(const Config& c) {
     }
   }
 
+  signalToJson(maps, "speed", c.speedSignal);
+  signalToJson(maps, "lean", c.leanSignal);
+
   doc["blinkPeriodMs"] = c.blinkPeriodMs;
   doc["nightHoldMs"] = c.nightHoldMs;
   doc["auxOffOnIndicateHighBeam"] = c.auxOffOnIndicateHighBeam;
   doc["auxLowDuty"] = c.auxLowDuty;
   doc["auxFullDuty"] = c.auxFullDuty;
+  doc["speedScaleEnable"] = c.speedScaleEnable;
+  doc["hbSlowKmh"] = c.hbSlowKmh;
+  doc["hbFullKmh"] = c.hbFullKmh;
+  doc["hbSlowDuty"] = c.hbSlowDuty;
+  doc["leanEnable"] = c.leanEnable;
+  doc["leanStartDeg"] = c.leanStartDeg;
+  doc["leanFullDeg"] = c.leanFullDeg;
+  doc["leanBoostDuty"] = c.leanBoostDuty;
+  doc["leanDimDuty"] = c.leanDimDuty;
+  doc["leanMinKmh"] = c.leanMinKmh;
   static const char* kFlashSourceNames[] = { "auto", "follow", "generate" };
   doc["flashSource"] = kFlashSourceNames[(uint8_t)c.flashSource];
   doc["testMaxMs"] = c.testMaxMs;
@@ -68,6 +111,10 @@ Config configFromJson(const std::string& json, bool& ok) {
       fm.count = n;
       c.map[i] = fm;
     }
+    // Number signals sit beside the bit maps; the loop above reads only the
+    // ten function names, so it never sees these keys.
+    c.speedSignal = signalFromJson(maps["speed"]);
+    c.leanSignal  = signalFromJson(maps["lean"]);
   }
 
   c.blinkPeriodMs = doc["blinkPeriodMs"] | c.blinkPeriodMs;
@@ -80,6 +127,16 @@ Config configFromJson(const std::string& json, bool& ok) {
   // Read wide and clamp before narrowing, so 250 or -5 cannot wrap a uint8_t.
   c.auxLowDuty  = clampPercent(doc["auxLowDuty"]  | (int)c.auxLowDuty);
   c.auxFullDuty = clampPercent(doc["auxFullDuty"] | (int)c.auxFullDuty);
+  c.speedScaleEnable = doc["speedScaleEnable"] | c.speedScaleEnable;
+  c.hbSlowKmh  = (uint16_t)clampInt(doc["hbSlowKmh"] | (int)c.hbSlowKmh, 0, 300);
+  c.hbFullKmh  = (uint16_t)clampInt(doc["hbFullKmh"] | (int)c.hbFullKmh, 0, 300);
+  c.hbSlowDuty = clampPercent(doc["hbSlowDuty"] | (int)c.hbSlowDuty);
+  c.leanEnable = doc["leanEnable"] | c.leanEnable;
+  c.leanStartDeg  = (uint8_t)clampInt(doc["leanStartDeg"] | (int)c.leanStartDeg, 0, 60);
+  c.leanFullDeg   = (uint8_t)clampInt(doc["leanFullDeg"] | (int)c.leanFullDeg, 1, 70);
+  c.leanBoostDuty = clampPercent(doc["leanBoostDuty"] | (int)c.leanBoostDuty);
+  c.leanDimDuty   = clampPercent(doc["leanDimDuty"] | (int)c.leanDimDuty);
+  c.leanMinKmh    = (uint16_t)clampInt(doc["leanMinKmh"] | (int)c.leanMinKmh, 0, 300);
   // Unknown or non-string values resolve to the default, Generate, rather
   // than to an undefined enum value.
   const char* fs = doc["flashSource"].as<const char*>();

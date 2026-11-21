@@ -286,6 +286,11 @@ static const int OFF = (int)AuxLevel::Off;
 static const int LOW = (int)AuxLevel::Low;
 static const int FULL = (int)AuxLevel::Full;
 
+static void assertDuties(int left, int right, const OutputIntent& o) {
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(left, o.auxDutyL, "left duty");
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(right, o.auxDutyR, "right duty");
+}
+
 void test_night_drops_front_white_and_puts_pods_at_low() {
   Config c = mappedNight(); EngineState e;
   LogicalState s; s.run = true; s.night = true;
@@ -293,7 +298,7 @@ void test_night_drops_front_white_and_puts_pods_at_low() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
-  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
+  assertDuties(15, 15, o);
 }
 
 void test_day_has_pods_off() {
@@ -303,7 +308,7 @@ void test_day_has_pods_off() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL), o.on);
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
-  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
+  assertDuties(0, 0, o);
 }
 
 void test_high_beam_day_is_full_with_front_white() {
@@ -314,7 +319,7 @@ void test_high_beam_day_is_full_with_front_white() {
                                    OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
-  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
+  assertDuties(100, 100, o);
 }
 
 void test_high_beam_night_is_full_without_front_white() {
@@ -324,7 +329,7 @@ void test_high_beam_night_is_full_without_front_white() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RL_DRL, OUT_RR_DRL, OUT_AUX_L, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
-  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
+  assertDuties(100, 100, o);
 }
 
 // Low powers the pods; the brightness comes from the duty on yellow.
@@ -334,19 +339,19 @@ void test_night_low_powers_both_pods_at_low_duty() {
   OutputIntent o = computeOutputs(s, c, 0, e);
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_AUX_L, OUT_AUX_R),
                            o.on & outMask(OUT_AUX_L, OUT_AUX_R));
-  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
+  assertDuties(15, 15, o);
 }
 
 void test_high_beam_full_duty() {
   Config c = defaultConfig(); c.auxFullDuty = 70; EngineState e;
   LogicalState s; s.run = true; s.highBeam = true;
-  TEST_ASSERT_EQUAL_UINT8(70, computeOutputs(s, c, 0, e).auxDuty);
+  assertDuties(70, 70, computeOutputs(s, c, 0, e));
 }
 
 void test_low_never_brighter_than_full() {
   Config c = mappedNight(); c.auxLowDuty = 90; c.auxFullDuty = 60; EngineState e;
   LogicalState s; s.run = true; s.night = true;
-  TEST_ASSERT_EQUAL_UINT8(60, computeOutputs(s, c, 0, e).auxDuty);
+  assertDuties(60, 60, computeOutputs(s, c, 0, e));
 }
 
 void test_not_run_pods_off_duty_zero() {
@@ -354,7 +359,7 @@ void test_not_run_pods_off_duty_zero() {
   LogicalState s; s.night = true; s.highBeam = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
   TEST_ASSERT_EQUAL_UINT16(0, o.on & outMask(OUT_AUX_L, OUT_AUX_R));
-  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
+  assertDuties(0, 0, o);
 }
 
 
@@ -374,7 +379,7 @@ void test_short_flash_leaves_pods_alone() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_DRL, OUT_FR_DRL, OUT_RL_DRL, OUT_RR_DRL), o.on);
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
-  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
+  assertDuties(0, 0, o);
 }
 
 
@@ -391,7 +396,7 @@ void test_night_indicating_side_pod_off() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(LOW, lvl(o.auxR));
-  TEST_ASSERT_EQUAL_UINT8(15, o.auxDuty);
+  assertDuties(0, 15, o);
 }
 
 void test_night_hazards_turn_both_pods_off() {
@@ -399,7 +404,7 @@ void test_night_hazards_turn_both_pods_off() {
   LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.rightInd = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_FL_IND, OUT_FR_IND, OUT_RL_IND, OUT_RR_IND), o.on);
-  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
+  assertDuties(0, 0, o);
 }
 
 void test_pod_off_follows_the_request_not_the_phase() {
@@ -417,7 +422,7 @@ void test_high_beam_indicating_keeps_both_pods_by_default() {
   LogicalState s; s.run = true; s.night = true; s.leftInd = true; s.highBeam = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_L, OUT_AUX_R), o.on);
-  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
+  assertDuties(100, 100, o);
 }
 
 void test_high_beam_indicating_side_pod_off_when_set() {
@@ -427,7 +432,7 @@ void test_high_beam_indicating_side_pod_off_when_set() {
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_RR_DRL, OUT_FL_IND, OUT_RL_IND, OUT_AUX_R), o.on);
   TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
   TEST_ASSERT_EQUAL_INT(FULL, lvl(o.auxR));
-  TEST_ASSERT_EQUAL_UINT8(100, o.auxDuty);
+  assertDuties(0, 100, o);
 }
 
 void test_high_beam_hazards_both_pods_off_when_set() {
@@ -435,7 +440,7 @@ void test_high_beam_hazards_both_pods_off_when_set() {
   LogicalState s; s.run = true; s.leftInd = true; s.rightInd = true; s.highBeam = true;
   OutputIntent o = computeOutputs(s, c, 0, e);
   TEST_ASSERT_EQUAL_UINT16(0, o.on & outMask(OUT_AUX_L, OUT_AUX_R));
-  TEST_ASSERT_EQUAL_UINT8(0, o.auxDuty);
+  assertDuties(0, 0, o);
 }
 
 void test_long_flash_toggles_night_once_per_press() {
@@ -533,6 +538,230 @@ void test_hold_below_400ms_falls_back_to_800ms() {
   TEST_ASSERT_TRUE(e.nightToggled);
 }
 
+// --- High beam by speed, cornering boost/dim, smoothing -------------------
+
+static Config speedCfg() {
+  Config c = defaultConfig();
+  c.speedScaleEnable = true;
+  return c;
+}
+static Config leanCfg() {
+  Config c = mappedNight();
+  c.leanEnable = true;
+  return c;
+}
+static LogicalState highBeamAt(float kmh, bool valid = true) {
+  LogicalState s; s.run = true; s.highBeam = true;
+  s.speedKmh = kmh; s.speedValid = valid;
+  return s;
+}
+// Riding at 60 km/h unless told otherwise, above the 40 km/h cornering gate.
+static LogicalState nightLean(float deg, bool valid = true, float kmh = 60,
+                              bool speedValid = true) {
+  LogicalState s; s.run = true; s.night = true;
+  s.leanDeg = deg; s.leanValid = valid;
+  s.speedKmh = kmh; s.speedValid = speedValid;
+  return s;
+}
+
+void test_speed_off_is_today() {
+  Config c = defaultConfig(); EngineState e;
+  assertDuties(100, 100, computeOutputs(highBeamAt(10), c, 0, e));
+}
+
+void test_speed_invalid_is_full() {
+  Config c = speedCfg(); EngineState e;
+  assertDuties(100, 100, computeOutputs(highBeamAt(10, false), c, 0, e));
+}
+
+void test_speed_slow_end() {
+  Config c = speedCfg(); EngineState e;
+  assertDuties(50, 50, computeOutputs(highBeamAt(15), c, 0, e));
+}
+
+void test_speed_full_end() {
+  Config c = speedCfg(); EngineState e;
+  assertDuties(100, 100, computeOutputs(highBeamAt(90), c, 0, e));
+}
+
+void test_speed_middle() {
+  Config c = speedCfg(); EngineState e;
+  assertDuties(75, 75, computeOutputs(highBeamAt(50), c, 0, e));
+}
+
+void test_speed_slow_capped_by_full() {
+  Config c = speedCfg(); c.auxFullDuty = 40; EngineState e;
+  assertDuties(40, 40, computeOutputs(highBeamAt(10), c, 0, e));
+}
+
+void test_speed_inverted_range_is_a_step() {
+  Config c = speedCfg(); c.hbSlowKmh = 60; c.hbFullKmh = 30;
+  EngineState e1, e2;
+  assertDuties(50, 50, computeOutputs(highBeamAt(59), c, 0, e1));
+  assertDuties(100, 100, computeOutputs(highBeamAt(61), c, 0, e2));
+}
+
+void test_lean_off_is_today() {
+  Config c = mappedNight(); EngineState e;
+  assertDuties(15, 15, computeOutputs(nightLean(30), c, 0, e));
+}
+
+// Review focus 2: leaning right (+) boosts the RIGHT pod.
+void test_lean_right_night() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(5, 60, computeOutputs(nightLean(30), c, 0, e));
+}
+
+void test_lean_left_night() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(60, 5, computeOutputs(nightLean(-30), c, 0, e));
+}
+
+void test_lean_middle_night() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(10, 38, computeOutputs(nightLean(20), c, 0, e));   // 37.5 rounds up
+}
+
+void test_lean_below_start() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(15, 15, computeOutputs(nightLean(9), c, 0, e));
+}
+
+void test_lean_high_beam_inside_full() {
+  Config c = speedCfg(); c.leanEnable = true; c.leanMinKmh = 0; EngineState e;
+  LogicalState s = highBeamAt(15);
+  s.leanDeg = 30; s.leanValid = true;
+  assertDuties(5, 100, computeOutputs(s, c, 0, e));
+}
+
+void test_boost_never_below_base() {
+  Config c = leanCfg(); c.leanBoostDuty = 10; EngineState e;
+  assertDuties(5, 15, computeOutputs(nightLean(30), c, 0, e));
+}
+
+void test_dim_never_above_base() {
+  Config c = leanCfg(); c.leanDimDuty = 40; EngineState e;
+  assertDuties(15, 60, computeOutputs(nightLean(30), c, 0, e));
+}
+
+void test_lean_capped_by_full() {
+  Config c = leanCfg(); c.auxFullDuty = 50; EngineState e;
+  assertDuties(5, 50, computeOutputs(nightLean(30), c, 0, e));
+}
+
+// Review focus 4.
+void test_hazards_lean_night_both_off() {
+  Config c = leanCfg(); EngineState e;
+  LogicalState s = nightLean(30); s.leftInd = true; s.rightInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxL));
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
+  assertDuties(0, 0, o);
+}
+
+void test_indicate_inside_off() {
+  Config c = leanCfg(); EngineState e;
+  LogicalState s = nightLean(30); s.rightInd = true;
+  OutputIntent o = computeOutputs(s, c, 0, e);
+  TEST_ASSERT_EQUAL_INT(OFF, lvl(o.auxR));
+  assertDuties(5, 0, o);
+}
+
+void test_lean_invalid_is_today() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(15, 15, computeOutputs(nightLean(30, false), c, 0, e));
+}
+
+// Walking the bike or parked on the side stand: no cornering effect.
+void test_lean_below_min_speed_is_today() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(15, 15, computeOutputs(nightLean(30, true, 39), c, 0, e));
+}
+
+void test_lean_at_min_speed_applies() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(5, 60, computeOutputs(nightLean(30, true, 40), c, 0, e));
+}
+
+void test_lean_speed_unknown_is_today() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(15, 15, computeOutputs(nightLean(30, true, 60, false), c, 0, e));
+}
+
+void test_lean_min_speed_zero_needs_no_speed() {
+  Config c = leanCfg(); c.leanMinKmh = 0; EngineState e;
+  assertDuties(5, 60, computeOutputs(nightLean(30, true, 0, false), c, 0, e));
+}
+
+void test_lean_inverted_range_is_a_step() {
+  Config c = leanCfg(); c.leanStartDeg = 25; c.leanFullDeg = 20;
+  EngineState e1, e2;
+  assertDuties(15, 15, computeOutputs(nightLean(24), c, 0, e1));
+  assertDuties(5, 60, computeOutputs(nightLean(26), c, 0, e2));
+}
+
+void test_slew_limits_step() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(15, 15, computeOutputs(nightLean(0), c, 1000, e));
+  assertDuties(5, 40, computeOutputs(nightLean(30), c, 1100, e));   // max step 25
+}
+
+void test_slew_reaches_target() {
+  Config c = leanCfg(); EngineState e;
+  computeOutputs(nightLean(0), c, 1000, e);
+  computeOutputs(nightLean(30), c, 1100, e);
+  assertDuties(5, 60, computeOutputs(nightLean(30), c, 1300, e));
+}
+
+void test_slew_small_ticks_accumulate() {
+  Config c = leanCfg(); EngineState e;
+  computeOutputs(nightLean(0), c, 1000, e);
+  for (uint32_t t = 1010; t <= 1100; t += 10) computeOutputs(nightLean(30), c, t, e);
+  assertDuties(5, 40, computeOutputs(nightLean(30), c, 1100, e));   // ten 2.5 % steps
+}
+
+void test_pod_on_jumps_to_target() {
+  Config c = speedCfg(); EngineState e;
+  LogicalState day; day.run = true;
+  assertDuties(0, 0, computeOutputs(day, c, 1000, e));
+  assertDuties(100, 100, computeOutputs(highBeamAt(90), c, 1010, e));
+}
+
+void test_pod_off_immediate() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(5, 60, computeOutputs(nightLean(30), c, 1000, e));
+  LogicalState s = nightLean(30); s.rightInd = true;
+  assertDuties(5, 0, computeOutputs(s, c, 1010, e));
+}
+
+// Review focus 5. dt across the wrap is 100 ms, so the right pod moves one
+// 25 % step to 40. Arithmetic that mishandles the wrap gives a huge or
+// negative dt and lands on 60 or stays at 15 -- either fails this.
+void test_slew_across_millis_wrap() {
+  Config c = leanCfg(); EngineState e;
+  assertDuties(15, 15, computeOutputs(nightLean(0), c, 0xFFFFFFF6u, e));
+  assertDuties(5, 40, computeOutputs(nightLean(30), c, 90, e));
+}
+
+
+// Review fix: smoothing is for speed and lean only. A beam change (a level
+// change) is as instant as it was before these features.
+void test_low_to_high_beam_is_instant() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.night = true;
+  assertDuties(15, 15, computeOutputs(s, c, 1000, e));
+  s.highBeam = true;
+  assertDuties(100, 100, computeOutputs(s, c, 1010, e));
+}
+
+void test_high_to_low_beam_is_instant() {
+  Config c = mappedNight(); EngineState e;
+  LogicalState s; s.run = true; s.night = true; s.highBeam = true;
+  assertDuties(100, 100, computeOutputs(s, c, 1000, e));
+  s.highBeam = false;
+  assertDuties(15, 15, computeOutputs(s, c, 1010, e));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_night_drops_front_white_and_puts_pods_at_low);
@@ -587,5 +816,37 @@ int main(int, char**) {
   RUN_TEST(test_auto_restarts_its_window_on_each_rising_edge);
   RUN_TEST(test_auto_watchdog_survives_millis_rollover);
   RUN_TEST(test_auto_watchdog_does_not_fire_early_just_before_rollover);
+  RUN_TEST(test_speed_off_is_today);
+  RUN_TEST(test_speed_invalid_is_full);
+  RUN_TEST(test_speed_slow_end);
+  RUN_TEST(test_speed_full_end);
+  RUN_TEST(test_speed_middle);
+  RUN_TEST(test_speed_slow_capped_by_full);
+  RUN_TEST(test_speed_inverted_range_is_a_step);
+  RUN_TEST(test_lean_off_is_today);
+  RUN_TEST(test_lean_right_night);
+  RUN_TEST(test_lean_left_night);
+  RUN_TEST(test_lean_middle_night);
+  RUN_TEST(test_lean_below_start);
+  RUN_TEST(test_lean_high_beam_inside_full);
+  RUN_TEST(test_boost_never_below_base);
+  RUN_TEST(test_dim_never_above_base);
+  RUN_TEST(test_lean_capped_by_full);
+  RUN_TEST(test_hazards_lean_night_both_off);
+  RUN_TEST(test_indicate_inside_off);
+  RUN_TEST(test_lean_invalid_is_today);
+  RUN_TEST(test_lean_below_min_speed_is_today);
+  RUN_TEST(test_lean_at_min_speed_applies);
+  RUN_TEST(test_lean_speed_unknown_is_today);
+  RUN_TEST(test_lean_min_speed_zero_needs_no_speed);
+  RUN_TEST(test_lean_inverted_range_is_a_step);
+  RUN_TEST(test_slew_limits_step);
+  RUN_TEST(test_slew_reaches_target);
+  RUN_TEST(test_slew_small_ticks_accumulate);
+  RUN_TEST(test_pod_on_jumps_to_target);
+  RUN_TEST(test_pod_off_immediate);
+  RUN_TEST(test_slew_across_millis_wrap);
+  RUN_TEST(test_low_to_high_beam_is_instant);
+  RUN_TEST(test_high_to_low_beam_is_instant);
   return UNITY_END();
 }

@@ -177,7 +177,7 @@ MCU_PADS = {  # D2: bare net -> U5 pad
     "OUT_RR_IND": "31", "OUT_RR_BRK": "33", "OUT_AUX_L": "36", "OUT_AUX_R": "37",
     "EN_5V": "26", "AUX_PWM": "16", "CAN_STB": "13", "CAN_RXD": "7",
     "DIAG_EN": "24", "DIAG_SEL0": "29", "DIAG_SEL1": "23",
-    "SNS_A": "6", "SNS_B": "4", "SNS_C": "5", "IO12_STRAP": "14",
+    "SNS_A": "6", "SNS_B": "4", "SNS_C": "5", "AUX_PWM_R": "14",
     "BOOT_N": "25", "EN_MCU": "3", "UART_RX": "34", "UART_TX": "35",
 }
 
@@ -421,9 +421,15 @@ def chk_mcu_rows(nl):
 
 
 def chk_io12_strap(nl):
-    if not resistors_between(nl, "IO12_STRAP", "GND"):
-        return ["IO12_STRAP has no resistor to GND"]
-    return []
+    # GPIO 12 (MTDI) must read low at reset or the module selects 1.8 V flash.  It is also
+    # AUX_PWM_R, so nothing on the net may pull it up.
+    f = []
+    if not resistors_between(nl, "AUX_PWM_R", "GND"):
+        f.append("AUX_PWM_R (GPIO 12 strap) has no resistor to GND")
+    for r, o in resistors_on(nl, "AUX_PWM_R"):
+        if o in SUPPLIES:
+            f.append("AUX_PWM_R (GPIO 12 strap) has pull-up %s to %s" % (r, o))
+    return f
 
 
 def chk_txd_listen_only(nl):
@@ -538,7 +544,8 @@ def chk_aux_outputs(nl):
         p = nl.parts[ref]
         if p.value != BUF_PART or p.footprint != BUF_FP:
             f.append("%s is %s on %s, want %s on %s" % (ref, p.value, p.footprint, BUF_PART, BUF_FP))
-        for pin, net in (("2", "AUX_PWM"), ("5", "+5V"), ("3", "GND")):
+        a_net = "AUX_PWM" if ref == "U15" else "AUX_PWM_R"
+        for pin, net in (("2", a_net), ("5", "+5V"), ("3", "GND")):
             f += expect_pin(nl, ref, pin, net)
     for side, (gpio, in_net, in_pin, out_pins, pod, buf, yel) in AUX.items():
         oe, y = "1", "4"

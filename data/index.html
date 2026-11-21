@@ -47,6 +47,44 @@
       <label>Aux full brightness (%)
         <input type="number" id="auxFullDuty" min="0" max="100" step="1">
       </label>
+      <fieldset class="mapfn">
+        <legend>High beam by speed</legend>
+        <p><small>Needs the Speed signal on the Mapping tab. Without a valid
+        speed, high beam stays at full.</small></p>
+        <label><input type="checkbox" id="speedScaleEnable"> Dim high beam at low speed</label>
+        <label>Slow speed (km/h)
+          <input type="number" id="hbSlowKmh" min="0" max="300" step="1">
+        </label>
+        <label>Brightness at or below slow speed (%)
+          <input type="number" id="hbSlowDuty" min="0" max="100" step="1">
+        </label>
+        <label>Full brightness from (km/h)
+          <input type="number" id="hbFullKmh" min="0" max="300" step="1">
+        </label>
+      </fieldset>
+      <fieldset class="mapfn">
+        <legend>Cornering</legend>
+        <p><small>Needs the Lean signal on the Mapping tab. The pod on the
+        inside of the lean brightens, the outside pod dims. Below the minimum
+        speed, or with no valid speed, nothing changes, so walking the bike or
+        the side stand's tilt has no effect.</small></p>
+        <label><input type="checkbox" id="leanEnable"> Cornering boost and dim</label>
+        <label>Only above speed (km/h, 0 = always)
+          <input type="number" id="leanMinKmh" min="0" max="300" step="1">
+        </label>
+        <label>Starts at lean (degrees)
+          <input type="number" id="leanStartDeg" min="0" max="60" step="1">
+        </label>
+        <label>Full effect at lean (degrees)
+          <input type="number" id="leanFullDeg" min="1" max="70" step="1">
+        </label>
+        <label>Inside pod at night, low beam (%)
+          <input type="number" id="leanBoostDuty" min="0" max="100" step="1">
+        </label>
+        <label>Outside pod (%)
+          <input type="number" id="leanDimDuty" min="0" max="100" step="1">
+        </label>
+      </fieldset>
       <label>Test mode auto-exit (ms)
         <input type="number" id="testMaxMs" min="10000" max="3600000" step="10000">
       </label>
@@ -72,6 +110,13 @@
 
     <section id="tab-mapping" class="tab">
       <div id="maps"></div>
+      <h3>Number signals</h3>
+      <p><small>Where speed and lean sit in a CAN message. Value = raw &times;
+      scale + offset. Length 0 leaves a signal unmapped. Lean must read
+      positive when leaning right; use a negative scale to flip it. Speed
+      must read km/h: if the bike sends mph, multiply the scale by 1.609. The live
+      value updates while this tab is open.</small></p>
+      <div id="signals"></div>
     </section>
 
     <section id="tab-discovery" class="tab">
