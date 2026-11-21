@@ -30040,7 +30040,7 @@
 				)
 			)
 		)
-		(property "Value" "LM5164DDA"
+		(property "Value" "LM5164QDDARQ1"
 			(at 0 3.4)
 			(layer "F.Fab")
 			(effects
@@ -30394,7 +30394,7 @@
 				)
 			)
 		)
-		(property "Value" "LM5164DDA"
+		(property "Value" "LM5164QDDARQ1"
 			(at 0 3.4)
 			(layer "F.Fab")
 			(effects

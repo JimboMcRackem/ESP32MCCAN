@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "D:\\Projects\\ESP32MCCAN\\hardware\\mccan.kicad_sch")
-		(date "2026-11-21T08:05:11")
+		(date "2026-11-21T10:12:27")
 		(tool "Eeschema 10.0.2")
 		(sheet
 			(number "1")
@@ -5441,7 +5441,7 @@
 		)
 		(comp
 			(ref "U1")
-			(value "LM5164DDA")
+			(value "LM5164QDDARQ1")
 			(footprint "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm")
 			(description "1A synchronous buck converter with ultra-low IQ, 6V - 100V input, adjustable output voltage, HSOP-8")
 			(fields
@@ -5516,7 +5516,7 @@
 		)
 		(comp
 			(ref "U2")
-			(value "LM5164DDA")
+			(value "LM5164QDDARQ1")
 			(footprint "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm")
 			(description "1A synchronous buck converter with ultra-low IQ, 6V - 100V input, adjustable output voltage, HSOP-8")
 			(fields

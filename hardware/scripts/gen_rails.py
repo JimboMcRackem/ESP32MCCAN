@@ -138,8 +138,8 @@ def hlab(name, shape, x, y, rot=0):
 
 # ================================================================ BLOCK 1
 # U1 : 3.3 V always-on buck, VIN = VLOGIC_IN, EN tied to VIN
-U1 = place("U1", "Regulator_Switching:LM5164DDA", "LM5164DDA", 76.2, 33.02, 0, LM5164,
-           [("Reference", "U1", 66.04, 21.59, 0), ("Value", "LM5164DDA", 72.39, 21.59, 0)],
+U1 = place("U1", "Regulator_Switching:LM5164DDA", "LM5164QDDARQ1", 76.2, 33.02, 0, LM5164,
+           [("Reference", "U1", 66.04, 21.59, 0), ("Value", "LM5164QDDARQ1", 72.39, 21.59, 0)],
            npins=9, desc="1A synchronous buck converter with ultra-low IQ, 6V - 100V input, adjustable output voltage, HSOP-8")
 hlab("VLOGIC_IN", "input", 35.56, 25.4, 180)
 w((35.56, 25.4), (63.5, 25.4))                      # VIN rail
@@ -169,8 +169,8 @@ lab("FB_3V3", 105.41, 38.1)
 
 # ================================================================ BLOCK 2
 # U2 : 5 V buck gated by EN_5V, VIN = VBAT
-U2 = place("U2", "Regulator_Switching:LM5164DDA", "LM5164DDA", 76.2, 78.74, 0, LM5164,
-           [("Reference", "U2", 66.04, 67.31, 0), ("Value", "LM5164DDA", 72.39, 67.31, 0)],
+U2 = place("U2", "Regulator_Switching:LM5164DDA", "LM5164QDDARQ1", 76.2, 78.74, 0, LM5164,
+           [("Reference", "U2", 66.04, 67.31, 0), ("Value", "LM5164QDDARQ1", 72.39, 67.31, 0)],
            npins=9, desc="1A synchronous buck converter with ultra-low IQ, 6V - 100V input, adjustable output voltage, HSOP-8")
 hlab("VBAT", "input", 63.5, 60.96, 90)
 w((63.5, 60.96), (63.5, 71.12)); j((63.5, 63.5)); w((63.5, 63.5), (40.64, 63.5))

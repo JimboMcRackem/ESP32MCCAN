@@ -51,7 +51,7 @@ is the trade being made deliberately.""")
          "decades below FSW, so the full output ripple reaches FB.")
 
     note("|WHERE EVERY VALUE CAME FROM",
-         "U1 / U2 LM5164DDA, VREF = 1.200 V, RFB2 = 1.2 / (VOUT - 1.2) x RFB1 (eq 10): 348k/200k -> 3.288 V, 634k/200k -> 5.004 V, "
+         "U1 / U2 LM5164QDDARQ1 (LM5164-Q1, the AEC-Q100 version of the LM5164; same pinout and equations), VREF = 1.200 V, RFB2 = 1.2 / (VOUT - 1.2) x RFB1 (eq 10): 348k/200k -> 3.288 V, 634k/200k -> 5.004 V, "
          "6.0 uA each. TI recommends RFB1 in 100k..1M, so both sit inside the datasheet's own range. RRON: R4 20.5k -> 402 kHz, "
          "R7 31.6k -> 396 kHz; minimum on-time at the worst case (VIN clamped to ~39 V by the input TVS) is 205 ns, well above the "
          "50 ns floor. NOTE the LM5164 minimum VIN is 6 V, so a deep crank dip drops both bucks out -- correct, but know it. "
