@@ -34,7 +34,7 @@ UUIDS = {
 BOX = {
     "power_input": (40.64,  40.64,  60.96, 45.72),
     "rails":       (165.1, 40.64,  60.96, 45.72),
-    "mcu_can":     (40.64, 132.08, 60.96, 78.74),
+    "mcu_can":     (40.64, 132.08, 60.96, 82.55),
     "outputs":     (165.1, 132.08, 60.96, 99.06),
 }
 
@@ -68,6 +68,7 @@ PINS = {
         ("SNS_C",     "input",         "L"),
         ("EN_5V",     "output",        "R"),
         ("AUX_PWM",   "output",        "R"),
+        ("AUX_PWM_R", "output",        "R"),
     ] + [(n, "output", "R") for n in OUT12 + DIAGQ] + [
         ("CANH",      "bidirectional", "R"),
         ("CANL",      "bidirectional", "R"),
@@ -79,6 +80,7 @@ PINS = {
         ("VBAT_B",    "input",         "L"),
         ("GND_B",     "input",         "L"),
         ("AUX_PWM",   "input",         "L"),
+        ("AUX_PWM_R", "input",         "L"),
         ("SNS_A",     "output",        "R"),
         ("SNS_B",     "output",        "R"),
         ("SNS_C",     "output",        "R"),

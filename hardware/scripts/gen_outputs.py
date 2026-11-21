@@ -197,7 +197,7 @@ def hlab(name, shape, x, y, rot=0):
 # which KiCad joins to it.  Shapes follow the other generators: supplies and nets driven from
 # mcu_can are inputs here, the sense lines this sheet drives are outputs.
 SHAPE = {"VBAT": "input", "+3V3_ALW": "input", "+5V": "input",
-         "VBAT_B": "input", "GND_B": "input", "AUX_PWM": "input",
+         "VBAT_B": "input", "GND_B": "input", "AUX_PWM": "input", "AUX_PWM_R": "input",
          "DIAG_EN_Q": "input", "DIAG_SEL0_Q": "input", "DIAG_SEL1_Q": "input",
          "SNS_A": "output", "SNS_B": "output", "SNS_C": "output"}
 _SEEN = set()
@@ -429,8 +429,9 @@ for pads, net, cref in ((("14", "13", "12"), "POD_L_P", "C69"), (("10", "9", "8"
     lab(net, xend, top[1])
     _, cb = vpart(cref, "Device:C", "10nF 100V", xcap, top[1]); glab_b(cb)
 
-# --- U15 (left) / U16 (right), 74AHCT1G126GV: AUX_PWM -> each pod's yellow, enabled only
-# while that pod is powered.  One single gate per pod (the dual 74AHCT2G126DC had no stock).
+# --- U15 (left) / U16 (right), 74AHCT1G126GV: AUX_PWM (GPIO 13) -> left yellow, AUX_PWM_R
+# (GPIO 12, pulled down by R36 on mcu_can) -> right yellow, each enabled only while that pod
+# is powered.  One single gate per pod (the dual 74AHCT2G126DC had no stock).
 X2 = 266.7
 _first = True
 for (bref, cref, ypos, oe_net, ser1, pd, dz, ser2, net) in (
@@ -457,7 +458,8 @@ for (bref, cref, ypos, oe_net, ser1, pd, dz, ser2, net) in (
         xlab("AUX_PWM", xh, pa[1], 180)
         _first = False
     else:
-        w(pa, (xin, pa[1])); lab("AUX_PWM", xin, pa[1], 180)
+        # right pod: its own GPIO 12 channel; pull-down is the strap resistor R36 on mcu_can
+        w(pa, (xin, pa[1])); xlab("AUX_PWM_R", xin, pa[1], 180)
     # Y -> 330 R -> clamp node (5.6 V Zener, 100 k) -> 220 R 1206 -> YEL_x
     p = Qb["4"]; yrow = p[1]
     x0 = round(p[0] + 2.54, 4)
@@ -587,8 +589,8 @@ take OUT_AUX_L/R through R76/R77 (4.7 k) with R74/R75 (47 k) pull-downs: 3.0 V h
 2.0 V max, low at reset.  DEN and DSEL are pulled down (R78, R79): no GPIO is left for pod diagnosis,
 so IS only carries RSENSE R80 (1.2 k, Infineon typical, > 820 Ohm required).  C67 100 nF 100 V and C68
 220 uF 63 V hold VBAT_B against the pulses; C69/C70 10 nF 100 V at the outputs.  Pod returns: GND_B.""",
-"""U15/U16 (Nexperia 74AHCT1G126GV, SOT-23-5, +5V, TTL inputs; one per pod -- the dual 2G126DC had no stock) buffer AUX_PWM (GPIO 13, one LEDC channel, R81 pull-down) to
-both yellows.  Each buffer's ACTIVE-HIGH enable is that pod's OUT_AUX_x, so yellow is driven only
+"""U15/U16 (Nexperia 74AHCT1G126GV, SOT-23-5, +5V, TTL inputs; one per pod -- the dual 2G126DC had no stock) buffer AUX_PWM (GPIO 13, R81 pull-down) to the
+left yellow and AUX_PWM_R (GPIO 12, R36 strap pull-down on mcu_can) to the right: one LEDC channel per pod.  Each buffer's ACTIVE-HIGH enable is that pod's OUT_AUX_x, so yellow is driven only
 while its pod is powered -- never into an unpowered pod -- and idles low on R86/R87 (100 k).""",
 """YELLOW PROTECTION: Y -> R82/R83 330 R -> clamp node (D26/D27 BZT52C5V6 to GND) -> R84/R85 220 R
 1206 -> wire.  A yellow shorted to 12 V puts 29 mA into the Zener and 0.19 W into the 1206.  The 330 R

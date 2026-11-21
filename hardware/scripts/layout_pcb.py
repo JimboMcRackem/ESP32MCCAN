@@ -616,6 +616,82 @@ _drop("GND", (95.7, 99.66), (95.7, 98.4), "d6_gnd", w=0.4, size=0.6, drill=0.3)
 _t("CANH", "F.Cu", 0.3, [(95.5, 67.0), (100.8, 67.0), (100.8, 75.3)], "canh_tp15")
 _t("CANL", "F.Cu", 0.3, [(95.5, 64.0), (102.6, 64.0), (102.6, 77.8), (101.08, 77.8)], "canl_tp16")
 
+# ---- AUX_PWM / AUX_PWM_R (2026-11-21).  GPIO 12 became AUX_PWM_R, the right pod's own yellow
+# PWM, so U16.2 left AUX_PWM.  Both nets were router copper in routes_signal.json; their router
+# copper is named in FROZEN_DROP and re-authored here as FROZEN_EXTRA.
+#   AUX_PWM: the router's copper less its F.Cu stubs into U16.2 and the two vias beside that pad
+#     (the one at 112.1 would now sit 0.05 mm from a foreign pad).  The R81 branch, which used to
+#     leave from between U15 and U16, is re-fed on In2.Cu south of them to its via at (120.2, 73.0).
+#   AUX_PWM_R: the router's old IO12_STRAP copper (U5.14 -> R36.1, with a via at (109.9, 49.4)),
+#     then In5.Cu from that via to the freed via at (111.2, 68.3) and its F.Cu stub into U16.2.
+FROZEN_DROP = ["/AUX_PWM", "/mcu_can/IO12_STRAP"]
+AUX_PWM_SEGS = [  # [x0, y0, x1, y1, width, layer]
+    [74.5, 61.0, 76.4, 62.9, 0.2, 'F.Cu'],
+    [76.5, 62.9, 78.0, 64.4, 0.2, 'In2.Cu'],
+    [78.1, 64.4, 79.5, 65.8, 0.2, 'In5.Cu'],
+    [79.5, 65.8, 81.1, 67.4, 0.2, 'F.Cu'],
+    [81.1, 67.4, 82.0, 68.3, 0.2, 'In2.Cu'],
+    [82.0, 68.3, 82.5, 68.3, 0.2, 'In2.Cu'],
+    [82.5, 68.3, 87.1, 68.3, 0.2, 'F.Cu'],
+    [87.1, 68.3, 87.6, 67.8, 0.2, 'In2.Cu'],
+    [87.6, 67.8, 97.4, 67.8, 0.2, 'In2.Cu'],
+    [97.4, 67.8, 98.1, 68.5, 0.2, 'In2.Cu'],
+    [98.1, 68.5, 99.9, 68.5, 0.2, 'In2.Cu'],
+    [99.9, 68.5, 102.4, 66.0, 0.2, 'In2.Cu'],
+    [102.4, 66.0, 105.0, 66.0, 0.2, 'In2.Cu'],
+    [105.0, 66.0, 105.0, 67.0, 0.2, 'In2.Cu'],
+    [105.0, 66.0, 110.6, 60.4, 0.2, 'F.Cu'],
+    [105.0, 67.0, 106.3, 68.3, 0.2, 'In2.Cu'],
+    [106.3, 68.3, 107.0, 68.3, 0.2, 'In2.Cu'],
+    [107.0, 68.3, 107.9, 68.3, 0.2, 'F.Cu'],
+    [110.6, 45.2, 110.555, 45.25, 0.2, 'F.Cu'],
+    [110.6, 46.5, 110.6, 45.2, 0.2, 'F.Cu'],
+    [110.6, 52.5, 110.7, 52.4, 0.2, 'In2.Cu'],
+    [110.6, 54.4, 110.6, 52.5, 0.2, 'F.Cu'],
+    [110.6, 57.7, 110.6, 54.4, 0.2, 'In2.Cu'],
+    [110.6, 60.4, 110.6, 57.7, 0.2, 'F.Cu'],
+    [110.7, 52.4, 110.7, 46.6, 0.2, 'In2.Cu'],
+    [120.2, 73.0, 121.0, 73.8, 0.2, 'F.Cu'],
+    [121.0, 73.8, 122.7, 73.8, 0.2, 'F.Cu'],
+    [122.7, 73.8, 125.4, 73.8, 0.2, 'In2.Cu'],
+    [125.9, 74.3, 125.4, 73.8, 0.2, 'F.Cu'],
+    [135.8, 74.3, 125.9, 74.3, 0.2, 'F.Cu'],
+    [135.8, 74.3, 136.3, 73.8, 0.2, 'F.Cu'],
+    [136.3, 73.8, 136.255, 73.83, 0.2, 'F.Cu'],
+    [107.9, 68.3, 109.8, 70.2, 0.2, 'In2.Cu'],   # R81 branch, re-fed south of U15/U16
+    [109.8, 70.2, 109.8, 73.0, 0.2, 'In2.Cu'],
+    [109.8, 73.0, 120.2, 73.0, 0.2, 'In2.Cu'],
+]
+AUX_PWM_VIAS = [(76.5, 62.9, 0.6, 0.3), (78.1, 64.4, 0.6, 0.3), (79.5, 65.8, 0.6, 0.3), (81.1, 67.4, 0.6, 0.3), (82.5, 68.3, 0.6, 0.3), (87.1, 68.3, 0.6, 0.3), (105.0, 66.0, 0.6, 0.3), (107.0, 68.3, 0.6, 0.3), (107.9, 68.3, 0.6, 0.3), (110.6, 52.5, 0.6, 0.3), (110.6, 54.4, 0.6, 0.3), (110.6, 57.7, 0.6, 0.3), (110.7, 46.6, 0.6, 0.3), (120.2, 73.0, 0.6, 0.3), (122.7, 73.8, 0.6, 0.3), (125.4, 73.8, 0.6, 0.3)]  # [x, y, size, drill]
+AUX_PWM_R_SEGS = [  # [x0, y0, x1, y1, width, layer]
+    [106.2, 44.0, 106.25, 44.0, 0.2, 'F.Cu'],
+    [106.2, 45.2, 106.2, 44.0, 0.2, 'F.Cu'],
+    [108.2, 47.2, 106.2, 45.2, 0.2, 'F.Cu'],
+    [108.2, 47.7, 108.2, 47.2, 0.2, 'F.Cu'],
+    [108.5, 48.0, 108.2, 47.7, 0.2, 'F.Cu'],
+    [109.9, 49.4, 108.5, 48.0, 0.2, 'In2.Cu'],
+    [111.255, 50.83, 111.3, 50.8, 0.2, 'F.Cu'],
+    [111.3, 50.8, 109.9, 49.4, 0.2, 'F.Cu'],
+]
+AUX_PWM_R_VIAS = [(108.5, 48.0, 0.6, 0.3), (109.9, 49.4, 0.6, 0.3)]  # [x, y, size, drill]
+AUX_PWM_R_LEG = [         # [x0, y0, x1, y1, width, layer] -- the via beside R36 -> U16.2
+    [109.9, 49.4, 109.3, 50.0, 0.2, 'In5.Cu'],
+    [109.3, 50.0, 109.3, 53.45, 0.2, 'In5.Cu'],
+    [109.3, 53.45, 111.3, 53.45, 0.2, 'In5.Cu'],  # between AUX_PWM's vias at y 52.5 and 54.4
+    [111.3, 53.45, 111.3, 68.2, 0.2, 'In5.Cu'],
+    [111.3, 68.2, 111.2, 68.3, 0.2, 'In5.Cu'],
+    [111.2, 68.3, 113.013, 68.3, 0.2, 'F.Cu'],
+]
+AUX_PWM_R_LEG_VIAS = [(111.2, 68.3, 0.6, 0.3)]   # (x, y, size, drill)
+# Emitted by gen_pcb.frozen_routes() beside the router's copper, NOT through ROUTES: place()
+# stamps every ROUTES track and via onto its occupancy grid before the auto-flow, so the same
+# copper laid as ROUTES moved 29 auto-placed parts and stranded the frozen routes on them.
+FROZEN_EXTRA = {
+    "/AUX_PWM": {"segments": AUX_PWM_SEGS, "vias": AUX_PWM_VIAS},
+    "/AUX_PWM_R": {"segments": AUX_PWM_R_SEGS + AUX_PWM_R_LEG,
+                   "vias": AUX_PWM_R_VIAS + AUX_PWM_R_LEG_VIAS},
+}
+
 # ---------------------------------------------------------------- drawing notes
 NOTES = [
     # (text, x, y, layer, size)

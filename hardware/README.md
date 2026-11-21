@@ -151,8 +151,8 @@ scoped rule in `mccan.kicad_dru` (`scripts/gen_netclasses.py`, `PLANE_NECK_RULE`
 |---|---|
 | power_input | Feed A (J1): LTC4380 U10 surge stopper with Q10/Q11 (no board fuse; the fuse is in the harness), 24 V TVS, pi + CM filter -> `VBAT`. Feed B (J9): SQJ461EP P-FET Q13 for reverse polarity, 15 V gate zener D24, SMBJ18A TVS D25 (29.2 V clamp, inside U14's 35 V) -> `VBAT_B`, no filter, no LTC4380. `GND_B` (also the pods' return, out to the outputs sheet) meets `GND_IN` (the connector side of choke L2) only at net-tie NT1, so neither feed's return current bypasses L2's return winding |
 | rails | Low-Iq buck -> `+3V3_ALW`, gated `+5V` (`EN_5V`). No boost and no `+3V3_SW` |
-| mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, 4.7 k series resistors on the diagnostic lines. GPIO 13 is `AUX_PWM` (the status LED is gone, 2026-11-13) |
-| outputs | Three TPS4HC120A-Q1 quads U11-U13 (TPS4H160B until 2026-11-13, no stock) (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. Aux stage (2026-11-13): BTS7008-2EPA U14 switches both pods from `VBAT_B`, 74AHCT1G126GV U15 (left) and U16 (right) buffer `AUX_PWM` to each yellow (enabled only while that pod is powered), pod tails J10/J11. See `docs/superpowers/specs/2026-11-13-aux-stage-design.md` |
+| mcu_can | ESP32-WROOM-32E, TJA1042T/3 (listen-only, TXD pulled up, no MCU link), programming header, 4.7 k series resistors on the diagnostic lines. GPIO 13 is `AUX_PWM` (left pod yellow; the status LED is gone, 2026-11-13) and GPIO 12 is `AUX_PWM_R` (right pod yellow, 2026-11-21) |
+| outputs | Three TPS4HC120A-Q1 quads U11-U13 (TPS4H160B until 2026-11-13, no stock) (D1: 12 channels, 10 used, 2 spare), harness tails J3 (front, 5), J4 + J5 (rear, 4 + 3), CAN tail J8. Aux stage (2026-11-13): BTS7008-2EPA U14 switches both pods from `VBAT_B`, 74AHCT1G126GV U15 (left) buffers `AUX_PWM` and U16 (right) buffers `AUX_PWM_R` to its yellow (enabled only while that pod is powered), pod tails J10/J11. See `docs/superpowers/specs/2026-11-13-aux-stage-design.md` |
 
 The pin map and net names are the generators' (`scripts/gen_*.py`, `scripts/quadpins.py`) and the
 netlist `output/netlist.net`. The plan3 pin tables that used to be here (PCA9685, mux, ignition
@@ -173,8 +173,10 @@ sense, PWM nets) described a board that no longer exists and have been removed.
     irrelevant while `DIAG_EN` is low). The three SEH internal pull-downs (100 k min each) load
     GPIO 15 against its internal pull-up, so the ROM boot log will probably be muted; that is
     harmless. Optional fix: a 10 k pull-up on the MCU side of R32 (not fitted).
-  - GPIO 12 is `IO12_STRAP`: R36 10 k to GND (flash voltage select; also the firmware's TWAI TX pin,
-    which `CanBus::begin` hands back to input + pull-down once TWAI starts).
+  - GPIO 12 is `AUX_PWM_R`, the right pod's yellow PWM to U16 (2026-11-21), with R36 10 k to GND
+    (flash voltage select, and the buffer input's pull-down). It is also the firmware's nominal TWAI
+    TX pin: `CanBus::begin` hands it back to input + pull-down once TWAI starts, and only then does
+    the firmware attach the right pod's LEDC channel. It must never be driven high through a reset.
 - No lamp output sits on a strapping pin or on GPIO 14.
 
 ### Layout notes (honoured by the plan4 layout)
@@ -188,7 +190,7 @@ sense, PWM nets) described a board that no longer exists and have been removed.
 ### Bring-up checklist
 
 - **ROM boot log may be absent.** The three SEH internal pull-downs load GPIO 15 (MTDO), so the boot ROM log is probably muted. Harmless. Optional fix: a 10 k pull-up on the MCU side of R32 (not fitted).
-- **GPIO12 / flash voltage.** The TWAI driver needs a TX pin and drives it high; on this board that is GPIO12, the MTDI strap. Since 2026-11-15 `CanBus::begin` returns GPIO12 to input + pull-down right after `twai_start()` (listen-only never transmits), and R36 holds it low at every reset. Check on the bench: GPIO12 reads ~0 V while running, and CAN frames still arrive. The optional permanent remedy is `espefuse.py set_flash_voltage 3.3V`, which is **IRREVERSIBLE** and is the owner's decision; it has not been run.
+- **GPIO12 / flash voltage.** The TWAI driver needs a TX pin and drives it high; on this board that is GPIO12, the MTDI strap. Since 2026-11-15 `CanBus::begin` returns GPIO12 to input + pull-down right after `twai_start()` (listen-only never transmits), and R36 holds it low at every reset. Since 2026-11-21 GPIO12 is also `AUX_PWM_R`, the right pod's yellow PWM, attached only after `CanBus::begin`. Check on the bench: GPIO12 reads ~0 V while running with the right pod off, carries the pod PWM when it is on, and CAN frames still arrive. The optional permanent remedy is `espefuse.py set_flash_voltage 3.3V`, which is **IRREVERSIBLE** and is the owner's decision; it has not been run.
 - **Diagnostics settling.** After any `DIAG_SEL` or `DIAG_EN` change wait >= 400 us before reading `SNS_x`.
 - **Reverse polarity.** Test one feed reversed with the other disconnected, and the whole harness reversed. Test one feed reversed with the other connected only on a current-limited bench supply: that drives fault current through NT1 and the shared return until the harness fuse clears.
 - `R100` (33 mOhm) sets feed A's limit at 1.36-1.67 A, between its ~0.87 A load and its ~2 A fuse (aux spec A10). Re-check it against the measured start-up current.
