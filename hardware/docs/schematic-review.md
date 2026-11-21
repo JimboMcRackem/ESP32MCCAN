@@ -1,5 +1,12 @@
 # Schematic Review vs Spec
 
+> **SUPERSEDED (noted 2026-11-15).** This is the 2026-09-15 review of the retired **plan3** board:
+> RGB MOSFETs with shunts and an analog mux, a PCA9685, a 24 V boost, Denali pods on J7. None of
+> those parts are on the plan4 board. It is kept as a record of that review, not as a check of
+> the current design. The current schematic is verified by `scripts/check_netlist.py` and the
+> gates in `hardware/README.md`; the current parts are in `part-selection.md` (the 2026-11-13
+> and later sections) and the specs listed in `hardware/README.md`.
+
 **Task 7, 2026-09-15.** Every spec requirement traced to the sheet and reference designator that
 satisfies it, read back from the **exported netlist** rather than from the drawing.
 

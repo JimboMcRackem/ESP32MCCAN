@@ -146,7 +146,14 @@ on-resistance (whatever it turns out to be) matters far less. Fallback if
 140 mV proves noisy at bring-up: a 2.2 Ohm shunt (308 mV) or an op-amp gain
 stage (both already noted in the ruling at the top of this section).
 
-## 2. Dual smart high-side switch (1 required) — Denali
+## 2. Dual smart high-side switch (1 required) — now the Oxford pods (U14)
+
+> **Updated 2026-11-15.** This section was written for the Denali D4 pair, which is no longer
+> used. The part choice stands: the aux-stage spec (`2026-11-13-aux-stage-design.md`, A1) kept the
+> BTS7008-2EPA as U14 for the two Oxford pods, at **3.2 A per pod** (measured 2026-11-12) rather
+> than Denali's 3.3 A, so the verification below still covers it. The **sense chain** below
+> (R81 = 2.2 kΩ to an ADC) is historical: on the plan4 board IS has only R80 (1.2 k) and reaches
+> no GPIO (aux spec A3), and R81 is now the `AUX_PWM` pull-down.
 Candidate: Infineon BTS7008-2EPA (PROFET+2 12V family, "8 mOhm" variant).
 Verified against **Infineon BTS7008-2EPA Data Sheet Rev. 1.21, 2024-07-29**
 (fetched 2026-09-12; extracted with PyMuPDF after the harness's own PDF-to-text
@@ -2241,6 +2248,6 @@ track; no part was added.
 
 | Ref | Was | Now | Why |
 |---|---|---|---|
-| R62–R64 | 43.2 k (C23053), ILIM 0.5 A | **56.2 k 1 %** (C23080, 0603WAF5622T5E), ILIM **0.25 A** (SLVSH18C Table 7-1 band 54.9–60.4 k; 0.19–0.32 A) | The MCU's rail sits behind U10, whose limit (R100, 1.36 A min) is only ~0.5 A above feed A's 0.87 A worst case. One shorted channel at 0.5 A (1.4× in linear mode) could trip U10 and reset the MCU in a loop. At 0.25 A a single short totals ~1.24 A and its channel latches off. 0.25 A is still 3× the 80 mA lamp. SNS full scale falls to 1.23 V; 80 mA still reads 0.39 V and the fault level is unchanged. |
+| R62–R64 | 43.2 k (C23053), ILIM 0.5 A | **56.2 k 1 %** (C23080, 0603WAF5622T5E), ILIM **0.25 A** (SLVSH18C Table 7-1 band 54.9–60.4 k; 0.19–0.32 A) | The MCU's rail sits behind U10, whose limit (R100, 1.36 A min) is only ~0.5 A above feed A's 0.87 A worst case. One shorted channel at 0.5 A (1.4× in linear mode) could trip U10 and reset the MCU in a loop. At 0.25 A a single short totals ~1.24 A and its channel latches off. 0.25 A is 3× the 80 mA figure of the superseded modules, but **only about 1.1× the 0.167 A per-function budget the spec still carries for the EL360/EL359** (unmeasured). **Before ordering, measure each EL360 function at 14.4 V** (`bring-up.md` Stage 0): if any draws more than ~0.13 A steady, a working lamp could run the channel in current limit and latch it off, and R62–R64 should go back to 43.2 k. Table 7-1 has no band between 0.25 A and 0.5 A. SNS full scale falls to 1.23 V; 80 mA still reads 0.39 V and the fault level is unchanged. |
 | D25 | SMBJ24A (C123819) | **SMBJ18A** (C168805, MDD; fallback C151256 Littelfuse) | U14 (BTS7008) is rated 28 V continuous, 35 V suppressed load dump, and feed B has no surge stopper. SMBJ24A clamps at 38.9 V (10/1000 µs) and 50.6 V (8/20 µs); SMBJ18A clamps at 29.2 V at 20.6 A (10/1000 µs), about 38 V only at 103 A 8/20 µs. Standoff 18 V and breakdown ≥ 20 V stay clear of the DC-DC-fed 12 V rail. The 47 Ω R<sub>GND</sub> in Infineon's application circuit was not added: with the clamp under 35 V the internal clamp does not conduct, and adding it meant re-routing around U14. |
 | U10 pin 9 (ON) | open, on its internal 1 MΩ pull-up | **tied to `VCC10`** | Open, it needed < 1 µA leakage to GND (Pin Functions); ~400 kΩ of moisture would hold the whole board off. ON is rated to 80 V; `VCC10` is clamped at 22 V by D21. The -2 auto-retries, so ON never needs to toggle. |
