@@ -4,8 +4,9 @@
 
 ESP32-WROOM-32E-N8 on the plan4 pin map (twelve outputs, shared diagnostics, three sense
 inputs), TJA1042T/3 with hardware-enforced listen-only, programming header with auto-reset.
-GPIO 13 (pad 16) is AUX_PWM, the pods' shared yellow PWM (aux stage, 2026-11-13); it was the
-status LED, D5, which is gone.
+GPIO 13 (pad 16) is AUX_PWM, the left pod's yellow PWM (aux stage, 2026-11-13); it was the
+status LED, D5, which is gone.  GPIO 12 (pad 14) is AUX_PWM_R, the right pod's yellow PWM
+(2026-11-21, so the pods can be dimmed separately); R36 still holds it low at reset.
 """
 import os, re, sys, uuid
 import fpmap
@@ -251,7 +252,7 @@ FANOUT = [
     ("35", "UART_TX",    None),
     ("34", "UART_RX",    None),
     ("26", "EN_5V",      "output"),   # pull-down R19 is on the rails sheet
-    ("14", "IO12_STRAP", None),
+    ("14", "AUX_PWM_R",  "output"),   # strap pull-down R36 (block F) doubles as its pull-down
     ("16", "AUX_PWM",    "output"),   # pull-down R81 is on the outputs sheet, at the buffer
     ("13", "CAN_STB",    None),
     ("27", "OUT_RL_IND", "output"),
@@ -417,8 +418,8 @@ w(SW2["2"], (120.65, 158.75)); gnd(120.65, 158.75)
 
 # ================================================================ BLOCK F: passive defaults
 # R36 is a boot requirement: GPIO 12 (MTDI) selects the flash voltage when sampled at reset.
-# It costs nothing in sleep.  (R30-R33, the diagnostic parts, sit in block A beside their pads.)
-w((132.08, 215.9), (132.08, 220.98)); lab("IO12_STRAP", 132.08, 215.9, 90)
+# GPIO 12 is also AUX_PWM_R (right pod yellow), so R36 is that buffer input's pull-down too.  (R30-R33, the diagnostic parts, sit in block A beside their pads.)
+w((132.08, 215.9), (132.08, 220.98)); lab("AUX_PWM_R", 132.08, 215.9, 90)
 a, b = vpart("R36", "Device:R", "10k", 132.08, 220.98); gnd(*b)
 
 # ================================================================ test points (phase B)
@@ -491,11 +492,14 @@ download, and the pull-down serves both that and the switches' DIAG_EN input.  D
 DIAG_SEL1 have NO pull: their level is irrelevant while DIAG_EN is low, and a pull-down on
 GPIO 15 would mute the boot ROM log.""")
 
-note("""|R36 ON IO12_STRAP IS A BOOT REQUIREMENT
+note("""|R36 ON AUX_PWM_R (GPIO 12) IS A BOOT REQUIREMENT
 GPIO 12 (MTDI) selects the flash voltage at boot.  Sampled high it selects 1.8 V, which will
 not run the module's 3.3 V flash.  Most WROOM-32E parts ship with the eFuse already burned so
 the strap is ignored, but that is not guaranteed across date codes.  It draws no current in
-sleep.""")
+sleep.""",
+"""GPIO 12 also carries AUX_PWM_R, the right pod's yellow PWM, to U16 on the outputs sheet.
+Firmware must leave it LOW through reset and attach its LEDC channel only after the CAN driver
+has started (TWAI names GPIO 12 as its unused TX pin).  R36 is the buffer input's pull-down.""")
 
 note("""|EN_5V PULL-DOWN IS ON THE RAILS SHEET, NOT HERE
 EN_5V (GPIO 4) is pulled down by R19 next to the converter it gates, so the enable stays
