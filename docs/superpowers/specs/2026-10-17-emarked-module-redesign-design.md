@@ -74,9 +74,10 @@ wrong, so confirm its wires on the bench.
   stays on the board so an EL359 needs no board or firmware change. The firmware does not read
   output diagnostics, and §4.4's lamp-out check would have to ignore the unloaded channels if it
   is ever implemented.
-- **The front keeps flashing from the bike, so the rear must follow it.** `flashSource` stays on
-  `auto` or `follow`. `generate` would run the rear out of phase with the front (§5.4), and the
-  sweep must fit inside the bike's on-time (§2.1.1).
+- ~~**The front keeps flashing from the bike, so the rear must follow it.**~~ **Superseded
+  2026-11-15:** the owner has both EL359 and EL360, and once they are fitted the bike's own
+  indicators are not used. The board drives every indicator, so `generate` (the firmware
+  default) is the only flash rate and there is no front/rear phase to keep (§9.2 item 3a).
 - **This board provides no front DRL until an EL359 is fitted.** `FL_DRL` and `FR_DRL` are
   energised with nothing attached. See §9.2 item 3c.
 
@@ -215,13 +216,16 @@ supply.** These figures replace the 26 W listing figure everywhere in this spec.
 | Wire | What it carries |
 |---|---|
 | Red, black | Pod supply. Powering them lights the pod's **DRL LEDs**, a separate set beside the aux light that does not dim |
-| Yellow | **Main-LED brightness: a 5 V PWM signal at about 100 Hz.** 0 V with main beam off |
+| Yellow | **Main-LED brightness: a 5 V PWM signal at about 150 Hz.** 0 V with main beam off |
 | Blue | About 0 V in every state measured, **open circuit to black** (2026-11-12). Role unknown (§9.1 item 1) |
 
 Yellow's duty, read off the scope trace widths at Oxford's five dial stages with main beam on:
 about **15 / 35 / 55 / 80 / 100%**. The pulse spacing is the same at every stage and at two
-timebases, so about 100 Hz is taken as real, not aliased. An exact frequency and duty from a
-triggered capture are still to be recorded.
+timebases, so the spacing is taken as real, not aliased. It was first read as about 100 Hz.
+**MEASURED 2026-11-15** (`hardware/Oscilliscope/4.bmp`, 10 ms/div, stage 3): 17 periods span
+111.6 ms, so the period is about 6.6 ms, **about 150 Hz (±2%)**, at about 60% duty. The
+scope's own frequency readout (6.79 kHz) counts noise spikes and is wrong. The firmware's
+`kAuxPwmHz` is 150 to match.
 
 **Supply current, both pods together:**
 
@@ -411,10 +415,10 @@ its fuse box or owner's manual (§9.3 item 4a). Everything in this box depends o
   and feed A and the Zumo take whichever of aux 1 and aux 2 the Zumo is not already on.
 - **Each pod keeps its own switch on feed B**, so a fault on one pod is contained by its switch
   and the other pod keeps working. The old requirement that `AUX_L`'s switch latch off below feed
-  A's 4 A fuse (below) is withdrawn. The pod switches are sized for 3.2 A steady, the 100 Hz pulsed
+  A's 4 A fuse (below) is withdrawn. The pod switches are sized for 3.2 A steady, the 150 Hz pulsed
   draw and the pod inrush (§9.1 item 2).
 - **The board keeps two feeds,** J1 (feed A) and J9 (feed B). Feed B's path is re-rated from one
-  pod to two: 6.4 A steady with 100 Hz pulses, under a 10 A fuse. Its connector, reverse-polarity
+  pod to two: 6.4 A steady with 150 Hz pulses, under a 10 A fuse. Its connector, reverse-polarity
   FET, TVS and copper are sized for that. `AUX_L` moves from feed A's domain to feed B's.
   Feeds A and B are never diode-OR'd.
 - **Feed A's LTC4380 limit can drop a long way** (§9.1 item 2a), because no pod rides on it.
@@ -780,7 +784,7 @@ These are verification items, not assumptions. Each names who or what can settle
    whether it is a steady level, a switched line or a pulsed signal. Oxford's instruction sheet
    is unchanged and gives no pod pinout.
    **Mostly ANSWERED 2026-11-12 (§2.2.1):** red and black are the supply and light the DRL LEDs;
-   yellow is a 5 V, about 100 Hz PWM that sets main-LED brightness. This is night-mode §6
+   yellow is a 5 V, about 150 Hz PWM that sets main-LED brightness. This is night-mode §6
    Branch A. **Still open:**
    - **Blue's role.** Open circuit to black at the pod (2026-11-12), and about 0 V under Oxford's
      harness, so it is either an input Oxford holds low or an undriven wire. To check: on the
@@ -797,7 +801,7 @@ These are verification items, not assumptions. Each names who or what can settle
      call (night-mode spec §9).
 2. **Pod inrush** — measured, against the candidate pod switch's current limit and
    capacitive-load rating (§4.4). **Needs a shunt and the scope (kit in hand).** The switch must
-   also carry the pod's 100 Hz pulsed draw: about 3.2 A peaks at any duty (§2.2.1).
+   also carry the pod's 150 Hz pulsed draw: about 3.2 A peaks at any duty (§2.2.1).
 
 2a. **Re-size the feed-A current limit.** The LTC4380's sense resistor `R100` (5.6 mΩ) sets
    50 mV / 5.6 mΩ ≈ 9 A (LTC4380 VSNS 45–55 mV), behind feed A's 4 A fuse, so the limit can
@@ -810,31 +814,44 @@ These are verification items, not assumptions. Each names who or what can settle
 
 ### 9.2 Blocking the signal modules
 
-3. ~~**Module part selection**~~ **Rear DONE: Oxford EL360 (§2.1).** Front is the bike's standard
-   LED indicators for now, with EL359 possible later. Items needing the physical parts:
+3. ~~**Module part selection**~~ **DONE: Oxford EL360 rear, Oxford EL359 front (§2.1). Both in
+   hand (owner, 2026-11-15).** Once they are fitted the bike's own indicators are not used: the
+   board drives all four corners, so there is one flash rate, set by `blinkPeriodMs` in
+   `generate` mode (the firmware default). Items needing the physical parts, recorded on the
+   bench-record page:
 
-   3a. **Measure the EL360's sweep duration, and check it against the bike's flasher.** The
-   amber function is a sequential animation (§2.1.1), and in `auto` or `follow` each sweep must
-   fit inside the bike's on-time. Also check whether the sweep restarts cleanly on each
-   re-energise or needs a minimum off-time between flashes. If the bike's on-time is too short,
-   `generate` is not a clean escape while the front stays on the bike's flasher, because it would
-   put front and rear out of phase.
+   3a. **Measure the sweep duration of the EL360 and the EL359.** The amber function is a
+   sequential animation (§2.1.1), so `blinkPeriodMs`'s on-time (default 340 ms) must be at
+   least one full sweep, or the indicator shows a partial chase. The bike's flasher no longer
+   constrains it, but the legal flash rate does: 60–120 flashes a minute puts the on-time at
+   about 0.5 s at most, and UN R6 is understood to require a sequential sweep to complete
+   within about 200 ms (to be confirmed against the regulation text). The owner's first
+   estimate by eye (2026-11-15) is "roughly one second", which is more likely the whole on/off
+   cycle than the sweep. **Method, no extra equipment:** film the unit in phone slow motion
+   (240 fps) while powering the amber wire from the bench supply, and count frames from the
+   first LED lit to the last (frames ÷ 240 = seconds). In the same clip, flick the supply off
+   and on quickly to see whether the sweep restarts cleanly or needs a minimum off-time.
+   Alternative: the inrush procedure's 0.1 Ω shunt in the amber return shows a current
+   staircase on the scope (100 ms/div, single shot), one step per LED.
 
-   3b. **Confirm the E-mark on the parts.** Read the moulded or printed mark and keep the
-   packaging. Oxford states that the EL360 is E-marked, but the requirement behind this redesign
-   (§1) still rests on the mark on the part.
+   3b. **Confirm the E-mark on the parts.** Read the moulded or printed mark on both and keep the
+   packaging. Oxford states both are E-marked, but the requirement behind this redesign (§1)
+   still rests on the mark on the part. Check that the EL359's mark is a front category and the
+   EL360's a rear one.
 
-   3c. **Decide what provides a front daytime light before EL359.** This board provides none
-   until then. Which lights fill that role is an open question. §5.5 lights the aux pods only for
-   high beam or the spot latch, so using them would need a firmware change, and it would not make
-   them approved DRLs.
+   3c. ~~**Decide what provides a front daytime light before EL359.**~~ **Closed 2026-11-15:**
+   the EL359 is in hand and fitted from the start, so `FL_DRL`/`FR_DRL` are loaded and J3 is
+   wired in the first harness.
 
-   3d. **Bench-check each EL360 before making the harness.** Wire functions are now known (§2.1).
-   The user confirms every function can be powered at once, on the EL360 and on the EL359
-   (2026-11-08), and §5.3's amber-only rule is now their choice. Still to do: measure each
-   function's current, and check that brake with running light on is genuinely brighter than
-   running light alone. This settles §4.1.1's budget and §4.4's assumption that the red channels
-   are resistive.
+   3d. **Bench-check each EL360 and EL359 before making the harness.** The EL360's wire functions
+   are known (§2.1); **the EL359's colours must be confirmed on the bench** (a buyer reports its
+   supplied diagram is wrong). The user confirms every function can be powered at once on both
+   (2026-11-08), and §5.3's amber-only rule is their choice. Still to do on both: measure each
+   function's current, alone and with all functions on together. Feed A's limit (R100, 1.36 A
+   minimum) assumes ≈0.87 A worst case with the EL359s, built on the 2 W listing figure, so the
+   measured total checks that margin. On the EL360, also check that brake with running light on
+   is genuinely brighter than running light alone. This settles §4.1.1's budget and §4.4's
+   assumption that the red channels are resistive.
 
 4. **Is the EL360's brake brighter than its running light?** The answer recorded here for the
    eBay part does not transfer. Both functions share 7 red LEDs, and the check is whether

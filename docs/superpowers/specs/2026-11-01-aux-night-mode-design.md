@@ -153,7 +153,7 @@ word so tests still assert the whole output state. There is one level per pod, b
 
 The kit was measured on the bench (earlier spec §2.2.1):
 
-- **Yellow** takes a **5 V PWM at about 100 Hz** that sets the main LEDs' brightness. Oxford's dial
+- **Yellow** takes a **5 V PWM at about 150 Hz** that sets the main LEDs' brightness. Oxford's dial
   gives about 15 / 35 / 55 / 80 / 100% for stages 1–5, and 0 V with main beam off.
 - **Red and black** are the supply. Power alone lights the **DRL LEDs** beside the aux light, which do not dim.
 - **Blue** sits at about 0 V in every state and is open circuit to black. Its role is still open
@@ -176,7 +176,7 @@ So the board can make every level itself:
 - **Both pods share the Experia's 15 A aux 3 circuit as board feed B**, each with its own switch
   (earlier spec §4.1.1; rating to be confirmed on the bike). The Experia has no 12 V battery, so
   Oxford's battery-direct feed is not possible.
-- **Board hardware:** **one shared ESP32 LEDC channel** at about 100 Hz, through a 5 V buffer
+- **Board hardware:** **one shared ESP32 LEDC channel** at about 150 Hz (measured 2026-11-15; first read as 100 Hz), through a 5 V buffer
   powered from the gated `+5V` rail, with one buffered output per pod's yellow wire. One channel
   is enough because every pod that is not Off carries the same level: §3.1's darkening makes a
   pod Off, which is its switch, never a different duty. The buffer must hold yellow low at reset

@@ -2236,7 +2236,7 @@ attrition. The mapping is `hardware/scripts/lcsc.py`; the owner re-runs
 ### Still to check (Task 6, dissipation tally)
 
 - **C68's ripple rating.** The Lelon RVT 220 µF 63 V is a general-purpose V-chip. The pods pull
-  6.4 A pulses at 100 Hz. Its share of that current depends on the harness impedance, which is not
+  6.4 A pulses at about 150 Hz. Its share of that current depends on the harness impedance, which is not
   measured yet (inrush procedure, 2026-11-13).
 - **Electrolytic life.** The parts are rated 2000 h at 105 °C, about 8000 h at the 85 °C design
   ambient. That is fine for prototypes. Revisit for a production run.
