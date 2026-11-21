@@ -115,7 +115,8 @@ std::string configMessage(const Config& c) {
   return out;
 }
 
-std::string framesMessage(const CanFrameSnapshot* frames, int count) {
+std::string framesMessage(const CanFrameSnapshot* frames, int count,
+                          const LogicalState& live) {
   JsonDocument doc;
   doc["type"] = "frames";
   JsonArray arr = doc["frames"].to<JsonArray>();
@@ -125,6 +126,11 @@ std::string framesMessage(const CanFrameSnapshot* frames, int count) {
     JsonArray d = f["data"].to<JsonArray>();
     for (int b = 0; b < 8; ++b) d.add(frames[i].data[b]);
   }
+  JsonObject sig = doc["signals"].to<JsonObject>();
+  sig["speed"] = live.speedKmh;
+  sig["speedValid"] = live.speedValid;
+  sig["lean"] = live.leanDeg;
+  sig["leanValid"] = live.leanValid;
   std::string out;
   serializeJson(doc, out);
   return out;

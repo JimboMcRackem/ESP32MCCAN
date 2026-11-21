@@ -78,6 +78,22 @@ void test_default_flash_source_is_generate() {
   TEST_ASSERT_EQUAL_INT((int)FlashSource::Generate, (int)defaultConfig().flashSource);
 }
 
+void test_new_defaults() {
+  Config c = defaultConfig();
+  TEST_ASSERT_FALSE(c.speedScaleEnable);
+  TEST_ASSERT_EQUAL_UINT16(20, c.hbSlowKmh);
+  TEST_ASSERT_EQUAL_UINT16(80, c.hbFullKmh);
+  TEST_ASSERT_EQUAL_UINT8(50, c.hbSlowDuty);
+  TEST_ASSERT_FALSE(c.leanEnable);
+  TEST_ASSERT_EQUAL_UINT8(10, c.leanStartDeg);
+  TEST_ASSERT_EQUAL_UINT8(30, c.leanFullDeg);
+  TEST_ASSERT_EQUAL_UINT8(60, c.leanBoostDuty);
+  TEST_ASSERT_EQUAL_UINT8(5, c.leanDimDuty);
+  TEST_ASSERT_EQUAL_UINT16(40, c.leanMinKmh);
+  TEST_ASSERT_FALSE(c.speedSignal.mapped());
+  TEST_ASSERT_FALSE(c.leanSignal.mapped());
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -89,5 +105,6 @@ int main(int, char**) {
   RUN_TEST(test_run_and_daynight_unassigned);
   RUN_TEST(test_experia_all_single_bit_mappings);
   RUN_TEST(test_default_flash_source_is_generate);
+  RUN_TEST(test_new_defaults);
   return UNITY_END();
 }

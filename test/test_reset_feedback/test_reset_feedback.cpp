@@ -7,7 +7,7 @@ void tearDown(void) {}
 static const uint16_t kAllInd = outMask(OUT_FL_IND, OUT_FR_IND, OUT_RL_IND, OUT_RR_IND);
 
 void test_idle_leaves_intent_unchanged() {
-  OutputIntent o; o.on = outMask(OUT_FL_DRL, OUT_RL_BRK); o.auxDuty = 15;
+  OutputIntent o; o.on = outMask(OUT_FL_DRL, OUT_RL_BRK); o.auxDutyL = 15; o.auxDutyR = 15;
   TEST_ASSERT_TRUE(withResetFeedback(o, true, ResetPhase::Idle, 0) == o);
   TEST_ASSERT_TRUE(withResetFeedback(o, true, ResetPhase::Cancelled, 0) == o);
 }
@@ -33,10 +33,11 @@ void test_confirmed_holds_all_indicators_on() {
 
 void test_feedback_never_touches_aux() {
   OutputIntent o; o.on = outMask(OUT_AUX_L, OUT_AUX_R);
-  o.auxL = o.auxR = AuxLevel::Low; o.auxDuty = 15;
+  o.auxL = o.auxR = AuxLevel::Low; o.auxDutyL = 15; o.auxDutyR = 15;
   OutputIntent got = withResetFeedback(o, true, ResetPhase::Armed, 0);
   TEST_ASSERT_EQUAL_UINT16(outMask(OUT_AUX_L, OUT_AUX_R) | kAllInd, got.on);
-  TEST_ASSERT_EQUAL_UINT8(15, got.auxDuty);
+  TEST_ASSERT_EQUAL_UINT8(15, got.auxDutyL);
+  TEST_ASSERT_EQUAL_UINT8(15, got.auxDutyR);
   TEST_ASSERT_EQUAL_INT((int)AuxLevel::Low, (int)got.auxL);
 }
 
