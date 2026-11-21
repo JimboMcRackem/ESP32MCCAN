@@ -3,7 +3,7 @@
 **Why:** this sizes the pod high-side switches on the aux stage (feed B, aux 3).
 Steady draw is already known: 3.2 A per pod at stage 5 and 12 V. What we don't
 know is how high the current spikes when the switch closes, and how high the
-100 Hz pulses peak. Both of these set the switch rating and its current limit.
+150 Hz pulses peak. Both of these set the switch rating and its current limit.
 
 **Kit:** FNIRSI 2C53T, bench supply, one pod with its Oxford dial, and:
 
@@ -89,8 +89,8 @@ For capture D, trigger on **CH1** instead: rising edge, level 0.5 V. Use
 ## 5. Pulse current (no switching)
 
 With the pod powered and running steadily, set the trigger to **CH1 rising,
-auto mode**. Use a timebase of **2 ms/div**, so one 10 ms PWM period spans
-5 divisions.
+auto mode**. Use a timebase of **2 ms/div**, so one PWM period (about 6.6 ms at the
+measured 150 Hz) spans just over 3 divisions.
 
 - **Stage 5:** record the peak and minimum current.
 - **Stage 1:** record the peak current. At 15 % duty the pulses may still
