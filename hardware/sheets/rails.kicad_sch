@@ -1113,7 +1113,7 @@
 		)
 		(uuid "3e55743f-fe53-5503-a4b5-e6c70763c85b")
 	)
-	(text_box "WHERE EVERY VALUE CAME FROM\nU1 / U2 LM5164DDA, VREF = 1.200 V, RFB2 = 1.2 / (VOUT - 1.2) x RFB1 (eq 10): 348k/200k -> 3.288 V, 634k/200k -> 5.004 V, 6.0 uA each.\nTI recommends RFB1 in 100k..1M, so both sit inside the datasheet's own range. RRON: R4 20.5k -> 402 kHz, R7 31.6k -> 396 kHz; minimum\non-time at the worst case (VIN clamped to ~39 V by the input TVS) is 205 ns, well above the 50 ns floor. NOTE the LM5164 minimum VIN is\n6 V, so a deep crank dip drops both bucks out -- correct, but know it. C8 / C14 = 2.2 nF is MANDATORY and exact: the datasheet says a\nlarger bootstrap cap stresses the internal VCC regulator and damages the device. L4 / L5 = 22 uH gives 0.30 A (3.3 V) and 0.37 A (5 V)\nripple at 13.8 V in, 30-37% of the 1 A rating; pick a shielded part whose saturation current clears the LM5164's 1.5 A peak current\nlimit, not merely 1 A."
+	(text_box "WHERE EVERY VALUE CAME FROM\nU1 / U2 LM5164QDDARQ1 (LM5164-Q1, the AEC-Q100 version of the LM5164; same pinout and equations), VREF = 1.200 V, RFB2 = 1.2 / (VOUT -\n1.2) x RFB1 (eq 10): 348k/200k -> 3.288 V, 634k/200k -> 5.004 V, 6.0 uA each. TI recommends RFB1 in 100k..1M, so both sit inside the\ndatasheet's own range. RRON: R4 20.5k -> 402 kHz, R7 31.6k -> 396 kHz; minimum on-time at the worst case (VIN clamped to ~39 V by the\ninput TVS) is 205 ns, well above the 50 ns floor. NOTE the LM5164 minimum VIN is 6 V, so a deep crank dip drops both bucks out --\ncorrect, but know it. C8 / C14 = 2.2 nF is MANDATORY and exact: the datasheet says a larger bootstrap cap stresses the internal VCC\nregulator and damages the device. L4 / L5 = 22 uH gives 0.30 A (3.3 V) and 0.37 A (5 V) ripple at 13.8 V in, 30-37% of the 1 A rating;\npick a shielded part whose saturation current clears the LM5164's 1.5 A peak current limit, not merely 1 A."
 		(exclude_from_sim no)
 		(at 300.0 68.44 0)
 		(size 103.19 13.84)
@@ -4273,7 +4273,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "LM5164DDA"
+		(property "Value" "LM5164QDDARQ1"
 			(at 72.39 67.31 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5663,7 +5663,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "LM5164DDA"
+		(property "Value" "LM5164QDDARQ1"
 			(at 72.39 21.59 0)
 			(show_name no)
 			(do_not_autoplace no)
