@@ -1,0 +1,515 @@
+{
+ "params": {
+  "wall": 2.5,
+  "draft": 1.0,
+  "floor": 2.5,
+  "side_gap": 3.0,
+  "cable_gap": 22.0,
+  "standoff": 8.0,
+  "lid_gap": 4.0,
+  "min_part_clear": 3.0,
+  "min_wall_gap": 2.0,
+  "max_extra_h": 15.0,
+  "boss_top_d": 6.0,
+  "boss_neck_h": 2.0,
+  "boss_base_d": 10.0,
+  "nylon_holes": [
+   "H2"
+  ],
+  "nylon_nut_af": 5.5,
+  "nylon_nut_t": 2.4,
+  "board_screw_len": 6.0,
+  "nylon_board_screw_len": 8.0,
+  "nylon_nut_z": 3.5,
+  "nylon_hole_floor_z": 0.5,
+  "nylon_lid_screw_len": 12.0,
+  "lid_t": 3.0,
+  "flange_t": 4.0,
+  "groove_inset": 3.0,
+  "groove_w": 2.7,
+  "groove_d": 1.5,
+  "cord": 2.0,
+  "screw_inset": 8.0,
+  "flange_inset": 12.5,
+  "screw_d": 3.0,
+  "screw_clear_d": 3.4,
+  "insert_od": 4.6,
+  "insert_hole": 4.0,
+  "insert_len": 5.7,
+  "insert_boss_d": 8.0,
+  "insert_boss_depth": 8.5,
+  "max_pitch": 60.0,
+  "skirt_t": 1.5,
+  "skirt_h": 3.0,
+  "skirt_clear": 0.3,
+  "rib_t": 2.0,
+  "rib_h": 6.0,
+  "metal_r": {
+   "screws": 2.75,
+   "ears": 5.0
+  },
+  "glands": [
+   {
+    "name": "feedA",
+    "refs": [
+     "J1"
+    ],
+    "size": 12,
+    "hole": 12.5,
+    "hex_af": 15.0,
+    "nut_af": 15.0,
+    "nut_t": 6.0
+   },
+   {
+    "name": "front",
+    "refs": [
+     "J3"
+    ],
+    "size": 12,
+    "hole": 12.5,
+    "hex_af": 15.0,
+    "nut_af": 15.0,
+    "nut_t": 6.0
+   },
+   {
+    "name": "rear",
+    "refs": [
+     "J4",
+     "J5"
+    ],
+    "size": 12,
+    "hole": 12.5,
+    "hex_af": 15.0,
+    "nut_af": 15.0,
+    "nut_t": 6.0
+   },
+   {
+    "name": "CAN",
+    "refs": [
+     "J8"
+    ],
+    "size": 12,
+    "hole": 12.5,
+    "hex_af": 15.0,
+    "nut_af": 15.0,
+    "nut_t": 6.0
+   },
+   {
+    "name": "podL",
+    "refs": [
+     "J10"
+    ],
+    "size": 16,
+    "hole": 16.5,
+    "hex_af": 19.0,
+    "nut_af": 19.0,
+    "nut_t": 6.0
+   },
+   {
+    "name": "feedB",
+    "refs": [
+     "J9"
+    ],
+    "size": 16,
+    "hole": 16.5,
+    "hex_af": 19.0,
+    "nut_af": 19.0,
+    "nut_t": 6.0
+   },
+   {
+    "name": "podR",
+    "refs": [
+     "J11"
+    ],
+    "size": 16,
+    "hole": 16.5,
+    "hex_af": 19.0,
+    "nut_af": 19.0,
+    "nut_t": 6.0
+   }
+  ],
+  "gland_edge": 1.5,
+  "tool_gap": 5.0,
+  "vent_hole": 12.5,
+  "vent_body_d": 18.0,
+  "vent_from_cable_wall": 52.0,
+  "ear_t": 3.0,
+  "ear_from_flange": 9.0,
+  "ear_pad": 9.0,
+  "grommet_hole": 9.5,
+  "ear_y_in": 20.0,
+  "gusset_h": 15.0,
+  "gusset_t": 3.0
+ },
+ "board_origin": [
+  0.0,
+  0.0,
+  8.0
+ ],
+ "interior": {
+  "x0": -3.0,
+  "y0": -3.0,
+  "x1": 143.0,
+  "y1": 122.0,
+  "h": 44.6
+ },
+ "floor": 2.5,
+ "wall": 2.5,
+ "flange": {
+  "x0": -15.5,
+  "y0": -15.5,
+  "x1": 155.5,
+  "y1": 134.5,
+  "t": 4.0
+ },
+ "groove": {
+  "x0": -6.0,
+  "y0": -6.0,
+  "x1": 146.0,
+  "y1": 125.0,
+  "w": 2.7,
+  "d": 1.5,
+  "r": 4.0
+ },
+ "screw_rect": [
+  -11.0,
+  -11.0,
+  151.0,
+  130.0
+ ],
+ "screw_loop": [
+  {
+   "x": -11.0,
+   "y": -11.0,
+   "material": "steel"
+  },
+  {
+   "x": 43.0,
+   "y": -11.0,
+   "material": "steel"
+  },
+  {
+   "x": 97.0,
+   "y": -11.0,
+   "material": "nylon"
+  },
+  {
+   "x": 151.0,
+   "y": -11.0,
+   "material": "steel"
+  },
+  {
+   "x": 151.0,
+   "y": 36.0,
+   "material": "steel"
+  },
+  {
+   "x": 151.0,
+   "y": 83.0,
+   "material": "steel"
+  },
+  {
+   "x": 151.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": 120.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": 89.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": 43.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": -11.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": -11.0,
+   "y": 83.0,
+   "material": "steel"
+  },
+  {
+   "x": -11.0,
+   "y": 36.0,
+   "material": "steel"
+  }
+ ],
+ "screws": [
+  {
+   "x": -11.0,
+   "y": -11.0,
+   "material": "steel"
+  },
+  {
+   "x": 43.0,
+   "y": -11.0,
+   "material": "steel"
+  },
+  {
+   "x": 97.0,
+   "y": -11.0,
+   "material": "nylon"
+  },
+  {
+   "x": 151.0,
+   "y": -11.0,
+   "material": "steel"
+  },
+  {
+   "x": 151.0,
+   "y": 36.0,
+   "material": "steel"
+  },
+  {
+   "x": 151.0,
+   "y": 83.0,
+   "material": "steel"
+  },
+  {
+   "x": 151.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": 120.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": 89.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": 43.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": -11.0,
+   "y": 130.0,
+   "material": "steel"
+  },
+  {
+   "x": -11.0,
+   "y": 83.0,
+   "material": "steel"
+  },
+  {
+   "x": -11.0,
+   "y": 36.0,
+   "material": "steel"
+  }
+ ],
+ "bosses": [
+  {
+   "ref": "H1",
+   "x": 5.0,
+   "y": 5.0,
+   "top_d": 6.0,
+   "base_d": 10.0,
+   "h": 8.0,
+   "neck_h": 2.0,
+   "fixing": "insert",
+   "screw_len": 6.0
+  },
+  {
+   "ref": "H2",
+   "x": 135.0,
+   "y": 5.0,
+   "top_d": 6.0,
+   "base_d": 10.0,
+   "h": 8.0,
+   "neck_h": 2.0,
+   "fixing": "nylon_nut",
+   "screw_len": 8.0,
+   "nut_z": 3.5,
+   "hole_floor_z": 0.5
+  },
+  {
+   "ref": "H3",
+   "x": 5.0,
+   "y": 95.0,
+   "top_d": 6.0,
+   "base_d": 10.0,
+   "h": 8.0,
+   "neck_h": 2.0,
+   "fixing": "insert",
+   "screw_len": 6.0
+  },
+  {
+   "ref": "H4",
+   "x": 135.0,
+   "y": 95.0,
+   "top_d": 6.0,
+   "base_d": 10.0,
+   "h": 8.0,
+   "neck_h": 2.0,
+   "fixing": "insert",
+   "screw_len": 6.0
+  }
+ ],
+ "glands": [
+  {
+   "name": "feedA",
+   "refs": [
+    "J1"
+   ],
+   "size": 12,
+   "hole": 12.5,
+   "hex_af": 15.0,
+   "nut_af": 15.0,
+   "nut_t": 6.0,
+   "x": 11.379,
+   "z": 13.67,
+   "row": "low"
+  },
+  {
+   "name": "front",
+   "refs": [
+    "J3"
+   ],
+   "size": 12,
+   "hole": 12.5,
+   "hex_af": 15.0,
+   "nut_af": 15.0,
+   "nut_t": 6.0,
+   "x": 26.125,
+   "z": 30.44,
+   "row": "high"
+  },
+  {
+   "name": "rear",
+   "refs": [
+    "J4",
+    "J5"
+   ],
+   "size": 12,
+   "hole": 12.5,
+   "hex_af": 15.0,
+   "nut_af": 15.0,
+   "nut_t": 6.0,
+   "x": 40.87,
+   "z": 13.67,
+   "row": "low"
+  },
+  {
+   "name": "CAN",
+   "refs": [
+    "J8"
+   ],
+   "size": 12,
+   "hole": 12.5,
+   "hex_af": 15.0,
+   "nut_af": 15.0,
+   "nut_t": 6.0,
+   "x": 58.252,
+   "z": 30.44,
+   "row": "high"
+  },
+  {
+   "name": "podL",
+   "refs": [
+    "J10"
+   ],
+   "size": 16,
+   "hole": 16.5,
+   "hex_af": 19.0,
+   "nut_af": 19.0,
+   "nut_t": 6.0,
+   "x": 78.202,
+   "z": 15.98,
+   "row": "low"
+  },
+  {
+   "name": "feedB",
+   "refs": [
+    "J9"
+   ],
+   "size": 16,
+   "hole": 16.5,
+   "hex_af": 19.0,
+   "nut_af": 19.0,
+   "nut_t": 6.0,
+   "x": 102.257,
+   "z": 28.13,
+   "row": "high"
+  },
+  {
+   "name": "podR",
+   "refs": [
+    "J11"
+   ],
+   "size": 16,
+   "hole": 16.5,
+   "hex_af": 19.0,
+   "nut_af": 19.0,
+   "nut_t": 6.0,
+   "x": 126.312,
+   "z": 15.98,
+   "row": "low"
+  }
+ ],
+ "vent": {
+  "wall": "+x",
+  "y": 70.0,
+  "z": 20.1,
+  "hole": 12.5,
+  "body_d": 18.0
+ },
+ "ears": [
+  {
+   "x": -24.5,
+   "y": 17.0
+  },
+  {
+   "x": -24.5,
+   "y": 102.0
+  },
+  {
+   "x": 164.5,
+   "y": 17.0
+  },
+  {
+   "x": 164.5,
+   "y": 102.0
+  }
+ ],
+ "lid": {
+  "z_underside": 44.6,
+  "t": 3.0,
+  "ribs": [
+   {
+    "x0": -3.0,
+    "y0": 3.0,
+    "x1": 143.0,
+    "y1": 5.0,
+    "h": 6.0
+   },
+   {
+    "x0": 94.0,
+    "y0": -3.0,
+    "x1": 96.0,
+    "y1": 122.0,
+    "h": 6.0
+   }
+  ]
+ },
+ "antenna_zone": [
+  55.75,
+  -15.0,
+  134.25,
+  21.44
+ ],
+ "board_w": 140.0
+}
