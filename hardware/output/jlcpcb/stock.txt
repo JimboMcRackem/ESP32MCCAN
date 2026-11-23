@@ -1,67 +1,67 @@
-OK 1.2k|Resistor_SMD:R_0603_1608Metric C22765 stock=1571815 need=10 fallback=-
+OK 1.2k|Resistor_SMD:R_0603_1608Metric C22765 stock=1568339 need=10 fallback=-
 OK 1.5uH|Inductor_SMD:L_Vishay_IHLP-4040 C845071 stock=299 need=10 fallback=GLOBAL
-OK 100k|Resistor_SMD:R_0603_1608Metric C25803 stock=13047484 need=25 fallback=-
-OK 100nF 100V|Capacitor_SMD:C_0603_1608Metric C15725 stock=1923503 need=10 fallback=C77058
-OK 100nF 100V|Capacitor_SMD:C_0805_2012Metric C28233 stock=2586761 need=50 fallback=C85866
-OK 100nF|Capacitor_SMD:C_0603_1608Metric C14663 stock=53158127 need=35 fallback=-
-OK 10R|Resistor_SMD:R_0603_1608Metric C22859 stock=5381822 need=10 fallback=-
-OK 10k|Resistor_SMD:R_0603_1608Metric C25804 stock=42605615 need=45 fallback=-
-OK 10nF 100V|Capacitor_SMD:C_0805_2012Metric C18741 stock=115843 need=15 fallback=-
-OK 10nF|Capacitor_SMD:C_0603_1608Metric C57112 stock=4611423 need=20 fallback=-
-OK 10uF|Capacitor_SMD:C_0603_1608Metric C19702 stock=9927491 need=10 fallback=-
-OK 133k|Resistor_SMD:R_0603_1608Metric C22870 stock=16746 need=10 fallback=-
-OK 174k|Resistor_SMD:R_0603_1608Metric C22890 stock=12724 need=10 fallback=-
-OK 1N4148|Diode_SMD:D_SOD-323 C2128 stock=3290785 need=15 fallback=-
-OK 1uF|Capacitor_SMD:C_0603_1608Metric C15849 stock=12248630 need=10 fallback=-
-OK 1uF|Capacitor_SMD:C_1206_3216Metric C13832 stock=210206 need=10 fallback=-
-OK 2.2nF|Capacitor_SMD:C_0603_1608Metric C1604 stock=890264 need=25 fallback=-
-OK 2.2uF|Capacitor_SMD:C_1206_3216Metric C170101 stock=167142 need=15 fallback=-
-OK 20.5k|Resistor_SMD:R_0603_1608Metric C22910 stock=14022 need=10 fallback=-
-OK 200k|Resistor_SMD:R_0603_1608Metric C25811 stock=1657158 need=15 fallback=-
-OK 220nF|Capacitor_SMD:C_0603_1608Metric C107083 stock=230055 need=10 fallback=-
+OK 100k|Resistor_SMD:R_0603_1608Metric C25803 stock=12963337 need=25 fallback=-
+OK 100nF 100V|Capacitor_SMD:C_0603_1608Metric C15725 stock=1912141 need=10 fallback=C77058
+OK 100nF 100V|Capacitor_SMD:C_0805_2012Metric C28233 stock=2580601 need=50 fallback=C85866
+OK 100nF|Capacitor_SMD:C_0603_1608Metric C14663 stock=53118485 need=35 fallback=-
+OK 10R|Resistor_SMD:R_0603_1608Metric C22859 stock=5338653 need=10 fallback=-
+OK 10k|Resistor_SMD:R_0603_1608Metric C25804 stock=42813692 need=45 fallback=-
+OK 10nF 100V|Capacitor_SMD:C_0805_2012Metric C18741 stock=115387 need=15 fallback=-
+OK 10nF|Capacitor_SMD:C_0603_1608Metric C57112 stock=4603098 need=20 fallback=-
+OK 10uF|Capacitor_SMD:C_0603_1608Metric C19702 stock=9883906 need=10 fallback=-
+OK 133k|Resistor_SMD:R_0603_1608Metric C22870 stock=16216 need=10 fallback=-
+OK 174k|Resistor_SMD:R_0603_1608Metric C22890 stock=12704 need=10 fallback=-
+OK 1N4148|Diode_SMD:D_SOD-323 C2128 stock=3303578 need=15 fallback=-
+OK 1uF|Capacitor_SMD:C_0603_1608Metric C15849 stock=12201421 need=10 fallback=-
+OK 1uF|Capacitor_SMD:C_1206_3216Metric C13832 stock=209388 need=10 fallback=-
+OK 2.2nF|Capacitor_SMD:C_0603_1608Metric C1604 stock=888481 need=25 fallback=-
+OK 2.2uF|Capacitor_SMD:C_1206_3216Metric C170101 stock=166720 need=15 fallback=-
+OK 20.5k|Resistor_SMD:R_0603_1608Metric C22910 stock=11982 need=10 fallback=-
+OK 200k|Resistor_SMD:R_0603_1608Metric C25811 stock=1647379 need=15 fallback=-
+OK 220nF|Capacitor_SMD:C_0603_1608Metric C107083 stock=229890 need=10 fallback=-
 OK 220uF 63V|Capacitor_SMD:CP_Elec_10x10.5 C56151978 stock=3325 need=15 fallback=C42393541
-OK 220|Resistor_SMD:R_1206_3216Metric C17957 stock=128557 need=15 fallback=-
-OK 22V|Diode_SMD:D_SOD-123 C2108 stock=6310 need=10 fallback=C131843
-OK 22uF 63V|Capacitor_SMD:CP_Elec_6.3x7.7 C72501 stock=5696 need=10 fallback=C57549
-OK 22uF|Capacitor_SMD:C_0603_1608Metric C86295 stock=1049011 need=20 fallback=-
-OK 240k|Resistor_SMD:R_1206_3216Metric C18001 stock=47543 need=15 fallback=-
-OK 30k|Resistor_SMD:R_1206_3216Metric C17999 stock=55566 need=10 fallback=-
-OK 31.6k|Resistor_SMD:R_0603_1608Metric C25967 stock=80709 need=10 fallback=-
-OK 330|Resistor_SMD:R_0603_1608Metric C23138 stock=2617427 need=15 fallback=-
-OK 33R|Resistor_SMD:R_0603_1608Metric C23140 stock=3739714 need=10 fallback=-
+OK 220|Resistor_SMD:R_1206_3216Metric C17957 stock=127487 need=15 fallback=-
+OK 22V|Diode_SMD:D_SOD-123 C2108 stock=6160 need=10 fallback=C131843
+OK 22uF 63V|Capacitor_SMD:CP_Elec_6.3x7.7 C72501 stock=5686 need=10 fallback=C57549
+OK 22uF|Capacitor_SMD:C_0603_1608Metric C86295 stock=1038802 need=20 fallback=-
+OK 240k|Resistor_SMD:R_1206_3216Metric C18001 stock=42443 need=15 fallback=-
+OK 30k|Resistor_SMD:R_1206_3216Metric C17999 stock=55356 need=10 fallback=-
+OK 31.6k|Resistor_SMD:R_0603_1608Metric C25967 stock=80209 need=10 fallback=-
+OK 330|Resistor_SMD:R_0603_1608Metric C23138 stock=2607144 need=15 fallback=-
+OK 33R|Resistor_SMD:R_0603_1608Metric C23140 stock=3742574 need=10 fallback=-
 OK 33m 1% 1W|Resistor_SMD:R_2512_6332Metric C2985721 stock=23018 need=10 fallback=C2903495
-OK 348k|Resistor_SMD:R_0603_1608Metric C23006 stock=4859 need=10 fallback=-
-OK 39pF|Capacitor_SMD:C_0603_1608Metric C1666 stock=118248 need=10 fallback=C107049
-OK 4.7k|Resistor_SMD:R_0603_1608Metric C23162 stock=19316041 need=99 fallback=-
-OK 47k|Resistor_SMD:R_0603_1608Metric C25819 stock=2643121 need=99 fallback=-
-OK 47nF|Capacitor_SMD:C_0805_2012Metric C17074 stock=8897 need=10 fallback=C107126
+OK 348k|Resistor_SMD:R_0603_1608Metric C23006 stock=4839 need=10 fallback=-
+OK 39pF|Capacitor_SMD:C_0603_1608Metric C1666 stock=120260 need=10 fallback=C107049
+OK 4.7k|Resistor_SMD:R_0603_1608Metric C23162 stock=19267706 need=99 fallback=-
+OK 47k|Resistor_SMD:R_0603_1608Metric C25819 stock=3000466 need=99 fallback=-
+OK 47nF|Capacitor_SMD:C_0805_2012Metric C17074 stock=8757 need=10 fallback=C107126
 OK 5.11k|Resistor_SMD:R_0603_1608Metric C23067 stock=47391 need=20 fallback=-
-OK 56.2k|Resistor_SMD:R_0603_1608Metric C23080 stock=45924 need=20 fallback=-
+OK 56.2k|Resistor_SMD:R_0603_1608Metric C23080 stock=45724 need=20 fallback=-
 OK 634k|Resistor_SMD:R_0603_1608Metric C65831 stock=980 need=10 fallback=-
-OK 680nF|Capacitor_SMD:C_0603_1608Metric C107067 stock=38272 need=10 fallback=-
-OK 68pF|Capacitor_SMD:C_0603_1608Metric C28262 stock=101535 need=10 fallback=-
+OK 680nF|Capacitor_SMD:C_0603_1608Metric C107067 stock=38232 need=10 fallback=-
+OK 68pF|Capacitor_SMD:C_0603_1608Metric C28262 stock=101285 need=10 fallback=-
 OK 7448031002|mccan:Wurth_WE-CMBNC_7448031002 C1519839 stock=11 need=10 fallback=GLOBAL
-OK 74AHCT1G126GV|Package_TO_SOT_SMD:SOT-23-5 C52140416 stock=11247 need=12 fallback=C842288
-SHORT ACT45B-510-2P-TL003|mccan:TDK_ACT45B C76584 stock=1 need=10 fallback=-
+OK 74AHCT1G126GV|Package_TO_SOT_SMD:SOT-23-5 C52140416 stock=11240 need=12 fallback=C842288
+OK ACT45B-510-2P-TL003|mccan:TDK_ACT45B C76584 stock=26688 need=10 fallback=-
 OK BAT54|Diode_SMD:D_SOD-123 C699107 stock=18951 need=20 fallback=C131469
-OK BOOT|Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A C318884 stock=715283 need=14 fallback=-
-OK BTS7008-2EPA|Package_SO:Infineon_PG-TSDSO-14-22 C534830 stock=1725 need=7 fallback=-
-OK BZT52C5V6|Diode_SMD:D_SOD-123 C2119 stock=31162 need=15 fallback=C12770
-OK EN/RESET|Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A C318884 stock=715283 need=14 fallback=-
-OK ESP32-WROOM-32E-N8|RF_Module:ESP32-WROOM-32E C701342 stock=26774 need=7 fallback=-
+OK BOOT|Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A C318884 stock=710334 need=14 fallback=-
+OK BTS7008-2EPA|Package_SO:Infineon_PG-TSDSO-14-22 C534830 stock=705 need=7 fallback=-
+OK BZT52C5V6|Diode_SMD:D_SOD-123 C2119 stock=31089 need=15 fallback=C12770
+OK EN/RESET|Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A C318884 stock=710334 need=14 fallback=-
+OK ESP32-WROOM-32E-N8|RF_Module:ESP32-WROOM-32E C701342 stock=26316 need=7 fallback=-
 OK IPT007N06N|Package_TO_SOT_SMD:Infineon_PG-HSOF-8-1 C122552 stock=4341 need=12 fallback=C531199
-OK LM5164QDDARQ1|Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm C2072225 stock=597 need=12 fallback=GLOBAL
+OK LM5164QDDARQ1|Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm C2072225 stock=579 need=12 fallback=GLOBAL
 GLOBAL LTC4380HMS-2|Package_SO:MSOP-10_3x3mm_P0.5mm C688451 stock=3 need=7 fallback=GLOBAL
 OK MDA7030-220M|Inductor_SMD:L_KOHERelec_MDA7030 C2847487 stock=2684 need=15 fallback=C2847545
-OK MMBT3904|Package_TO_SOT_SMD:SOT-23 C20526 stock=4179549 need=17 fallback=-
-OK MMSZ5245B|Diode_SMD:D_SOD-123 C2126 stock=39936 need=10 fallback=C129730
+OK MMBT3904|Package_TO_SOT_SMD:SOT-23 C20526 stock=4168259 need=17 fallback=-
+OK MMSZ5245B|Diode_SMD:D_SOD-123 C2126 stock=39768 need=10 fallback=C129730
 OK PESD2CANFD24LT-Q|Package_TO_SOT_SMD:SOT-23 C6952426 stock=7631 need=10 fallback=C14486
-OK Prog/UART|Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical C492405 stock=68240 need=7 fallback=-
-OK SMBJ18A|Diode_SMD:D_SMB C168805 stock=26875 need=10 fallback=C151256
-OK SMBJ24A|Diode_SMD:D_SMB C123819 stock=47833 need=10 fallback=C87268
+OK Prog/UART|Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical C492405 stock=67975 need=7 fallback=-
+OK SMBJ18A|Diode_SMD:D_SMB C168805 stock=26842 need=10 fallback=C151256
+OK SMBJ24A|Diode_SMD:D_SMB C123819 stock=47783 need=10 fallback=C87268
 OK SQJ461EP|Package_SO:PowerPAK_SO-8L_Single C3279500 stock=165 need=12 fallback=-
-OK Schottky 40V|Diode_SMD:D_SMA C2480 stock=1218272 need=10 fallback=-
-OK TJA1042T/3|Package_SO:SOIC-8_3.9x4.9mm_P1.27mm C132227 stock=54614 need=7 fallback=C2874888
+OK Schottky 40V|Diode_SMD:D_SMA C2480 stock=1207655 need=10 fallback=-
+OK TJA1042T/3|Package_SO:SOIC-8_3.9x4.9mm_P1.27mm C132227 stock=52034 need=7 fallback=C2874888
 OK TPS4HC120AQDGQRQ1|mccan:TI_DGQ0028C C44545560 stock=5289 need=17 fallback=-
 
-(check_stock.py exit 1)
+(check_stock.py exit 0)

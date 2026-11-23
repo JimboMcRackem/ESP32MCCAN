@@ -272,6 +272,65 @@ def box(spec, cx, cy, rot):
 SKIP_CHILD = ("version", "generator", "generator_version", "layer", "at", "path",
               "sheetname", "sheetfile", "uuid", "tstamp", "embedded_fonts")
 
+# --------------------------------------------------------------------------- 3D models
+# KiCad 10's stock footprints name 3D models that KiCad 10's own 3dmodels package does not
+# ship, so a STEP export silently dropped 15 parts (and the enclosure was sized from it).
+# Each is swapped for the nearest shipped model with the same body footprint; the
+# substitute is a stand-in for height and outline, not the exact part.  None drops the
+# model: KiCad ships no Connector_Wire models at all, and those footprints are bare wire
+# pads with nothing on top to model.  check_models() fails the build on any path that
+# still does not resolve, so a new stock part cannot reintroduce the gap unnoticed.
+STOCK3D = r"C:\Program Files\KiCad\10.0\share\kicad\3dmodels"
+_M = "${KICAD10_3DMODEL_DIR}/"
+MODEL_SUBST = {
+    # SW1/SW2: XKB TS-1187A, 5.1 x 5.1 x 1.5 mm  ->  C&K TL3342, 5.2 x 5.2 x 1.5 mm
+    _M + "Button_Switch_SMD.3dshapes/SW_Push_1P1T_XKB_TS-1187A.step":
+        _M + "Button_Switch_SMD.3dshapes/SW_SPST_TL3342.step",
+    # Q13/Q14: PowerPAK SO-8L (5 x 6 mm, ~1.1 mm)  ->  LFPAK56, the same 5 x 6 mm power-SO8
+    _M + "Package_SO.3dshapes/PowerPAK_SO-8L_Single.step":
+        _M + "Package_TO_SOT_SMD.3dshapes/LFPAK56.step",
+    # U14: Infineon PG-TSDSO-14 (0.65 mm, exposed pad)  ->  TSSOP-14-1EP 4.4 x 5 mm
+    _M + "Package_SO.3dshapes/Infineon_PG-TSDSO-14-22.step":
+        _M + "Package_SO.3dshapes/TSSOP-14-1EP_4.4x5mm_P0.65mm.step",
+    # U1/U2: same SOIC-8 body; only the exposed pad's size differs
+    _M + "Package_SO.3dshapes/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm.step":
+        _M + "Package_SO.3dshapes/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.81mm.step",
+}
+MODEL_DROP_PREFIX = (_M + "Connector_Wire.3dshapes/",)
+
+
+def model_file(path):
+    """A model path as KiCad resolves it for this project, or None if it uses another variable."""
+    for var, root in (("${KICAD10_3DMODEL_DIR}", STOCK3D), ("${KIPRJMOD}", HW)):
+        if path.startswith(var):
+            return os.path.normpath(root + path[len(var):])
+    if "${" in path:
+        return None
+    return path if os.path.isabs(path) else os.path.join(HW, path)
+
+
+def fix_models(keep):
+    for ch in list(keep):
+        if ch[0] != "model":
+            continue
+        path = unq(ch[1])
+        if path.startswith(MODEL_DROP_PREFIX):
+            keep.remove(ch)
+        elif path in MODEL_SUBST:
+            ch[1] = q(MODEL_SUBST[path])
+
+
+def check_models(built):
+    bad = []
+    for ref, _x, _y, _r, fp in built:
+        for m in find_all(fp, "model"):
+            f = model_file(unq(m[1]))
+            if f is None or not os.path.isfile(f):
+                bad.append("%s: %s" % (ref, unq(m[1])))
+    if bad:
+        sys.exit("3D model(s) that will not resolve in a STEP export:\n  " + "\n  ".join(bad)
+                 + "\nAdd a substitute to MODEL_SUBST in scripts/gen_pcb.py.")
+
 
 def reuuid(node, ref, ctr):
     if not isinstance(node, list):
@@ -517,6 +576,7 @@ def build_footprint(c, x, y, rot, padnet):
             props.append(ch)
         else:
             keep.append(ch)
+    fix_models(keep)
 
     # Reference and Value carry the real designator, not REF** / the library name.
     ref = c["ref"]
@@ -2157,7 +2217,8 @@ def main():
         fp = build_footprint(c, x, y, rot, padnet)
         if fp:
             built.append((c["ref"], x, y, rot, fp))
-    labels = tp_label_list(pos, padnet, nets)
+    check_models(built)
+    labels =tp_label_list(pos, padnet, nets)
     if built:
         silk_refs(built, comps, pos, padnet, [("tplabel",) + lb[4] for lb in labels])
     body = ["\t" + dump(fp, 2) for _r, _x, _y, _rt, fp in built]
