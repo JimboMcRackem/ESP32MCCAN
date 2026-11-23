@@ -171,8 +171,9 @@ of the order.
 
 - The outline is 140 × 100 mm with 1 mm corner radius. The four M3 mounting holes (3.2 mm, non-plated)
   are 5 mm in from each corner.
-- **The tallest part is L2, the Würth 7448031002 common-mode choke: 24.0 mm max** above the board
-  (datasheet; THT, on a 3 mm standoff). C3 and C68, the 10 × 10.5 mm electrolytics, come next at
+- **The tallest part is L2, the Würth 7448031002 common-mode choke: 25.0 mm max** above the board
+  (datasheet side view; THT, seated on its own base. The 24.0 mm on the drawing is the body's width).
+  The KiCad 3D model stands 21.3 mm, under the maximum. C3 and C68, the 10 × 10.5 mm electrolytics, come next at
   about 10.5 mm. Size the enclosure to L2.
 - U5's antenna overhangs the top edge at the centre. Its keep-out (no copper on any layer, no
   parts) is in the Gerbers. Keep metal 15 mm clear of it in the enclosure.

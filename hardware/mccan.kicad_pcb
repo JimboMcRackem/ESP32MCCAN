@@ -9962,17 +9962,6 @@
 			(net 78 "/power_input/GND_IN")
 			(remove_unused_layers no)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-1.5sqmm_1x02_P6mm_D1.7mm_OD3mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
 	)
 	(footprint "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
 		(layer "F.Cu")
@@ -10722,17 +10711,6 @@
 			(net 91 "GND")
 			(remove_unused_layers no)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-0.5sqmm_1x05_P4.6mm_D0.9mm_OD2.1mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
 	)
 	(footprint "Connector_Wire:SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief"
 		(layer "F.Cu")
@@ -11159,17 +11137,6 @@
 			(net 91 "GND")
 			(remove_unused_layers no)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-0.5sqmm_1x04_P4.6mm_D0.9mm_OD2.1mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
 	)
 	(footprint "Connector_Wire:SolderWire-0.5sqmm_1x03_P4.6mm_D0.9mm_OD2.1mm_Relief"
 		(layer "F.Cu")
@@ -11506,17 +11473,6 @@
 			(net 70 "/outputs/RR_BRK")
 			(remove_unused_layers no)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-0.5sqmm_1x03_P4.6mm_D0.9mm_OD2.1mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
 	)
 	(footprint "Connector_Wire:SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief"
 		(layer "F.Cu")
@@ -11763,17 +11719,6 @@
 			(net 6 "/CANL")
 			(remove_unused_layers no)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-0.5sqmm_1x02_P4.6mm_D0.9mm_OD2.1mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
 	)
 	(footprint "Connector_Wire:SolderWire-1.5sqmm_1x02_P6mm_D1.7mm_OD3mm_Relief"
 		(layer "F.Cu")
@@ -12007,17 +11952,6 @@
 			(layers "*.Cu" "*.Mask")
 			(net 11 "/GND_B")
 			(remove_unused_layers no)
-		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-1.5sqmm_1x02_P6mm_D1.7mm_OD3mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
 		)
 	)
 	(footprint "Connector_Wire:SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief"
@@ -12445,17 +12379,6 @@
 			(net 116 "unconnected-(J10-Pin_4-Pad4)")
 			(remove_unused_layers no)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
 	)
 	(footprint "Connector_Wire:SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief"
 		(layer "F.Cu")
@@ -12881,17 +12804,6 @@
 			(layers "*.Cu" "*.Mask")
 			(net 117 "unconnected-(J11-Pin_4-Pad4)")
 			(remove_unused_layers no)
-		)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_Wire.3dshapes/SolderWire-1sqmm_1x04_P5.4mm_D1.4mm_OD2.7mm_Relief.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
 		)
 	)
 	(footprint "Inductor_SMD:L_Vishay_IHLP-4040"
@@ -13430,7 +13342,7 @@
 			(remove_unused_layers no)
 			(uuid "217594a0-3cc0-5ad3-b04c-1f745b7a3fb6")
 		)
-		(model "7448031002.stp"
+		(model "${KIPRJMOD}/3dmodels/Wurth_WE-CMBNC_7448031002.stp"
 			(offset
 				(xyz 3.749999944 5.439999976 0.7999999999)
 			)
@@ -16828,7 +16740,7 @@
 			(net 75 "/power_input/FEED_B_P")
 			(uuid "eeaa1bc0-517f-5d04-9485-91b1f4b839fe")
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/PowerPAK_SO-8L_Single.step"
+		(model "${KICAD10_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/LFPAK56.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -17166,7 +17078,7 @@
 			(net 75 "/power_input/FEED_B_P")
 			(uuid "8e45d3fd-f053-5648-891a-3daf567ff763")
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/PowerPAK_SO-8L_Single.step"
+		(model "${KICAD10_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/LFPAK56.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -26497,7 +26409,7 @@
 			(net 91 "GND")
 			(uuid "eb98e2a2-4d38-5fe1-ab7e-b419d4e142a9")
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_Push_1P1T_XKB_TS-1187A.step"
+		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_SPST_TL3342.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -27012,7 +26924,7 @@
 			(net 91 "GND")
 			(uuid "59474910-5c1b-52a4-929b-2b4fb235270e")
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_Push_1P1T_XKB_TS-1187A.step"
+		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_SPST_TL3342.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -30366,7 +30278,7 @@
 			(net 91 "GND")
 			(zone_connect 2)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm.step"
+		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.81mm.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -30720,7 +30632,7 @@
 			(net 91 "GND")
 			(zone_connect 2)
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.62x3.51mm.step"
+		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.81mm.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -33511,7 +33423,7 @@
 			(net 28 "/VBAT_B")
 			(uuid "03c60e96-7e34-52e8-81c0-30c681f32dde")
 		)
-		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/Infineon_PG-TSDSO-14-22.step"
+		(model "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/TSSOP-14-1EP_4.4x5mm_P0.65mm.step"
 			(offset
 				(xyz 0 0 0)
 			)

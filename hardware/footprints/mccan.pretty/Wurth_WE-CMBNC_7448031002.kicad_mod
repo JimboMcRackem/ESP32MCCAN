@@ -279,7 +279,7 @@
 		(uuid "c034a4f2-0f5c-4757-af9e-1c7f4977849f")
 	)
 	(embedded_fonts no)
-	(model "7448031002.stp"
+	(model "${KIPRJMOD}/3dmodels/Wurth_WE-CMBNC_7448031002.stp"
 		(offset
 			(xyz 3.749999944 5.439999976 0.7999999999)
 		)

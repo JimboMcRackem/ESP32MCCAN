@@ -2152,6 +2152,11 @@ rating.
 > | STEP, pins below body | 6.0 mm |
 > | Datasheet | "24,0 max." — consistent with 20.3 mm body on a 3.0 mm min standoff |
 >
+> **Correction, 2026-11-23:** misread. On the drawing, 24,0 max is the body's **width** and 3,0 min
+> is the centre clip's width; there is no standoff. The height is the side view's **25,0 max**, from
+> the seating plane (the part's own base, on the board) to the top. The 5,0 ±0,5 mm is the lead
+> length below it. Size anything above the board to 25.0 mm.
+>
 > **So the part stands roughly 23–24 mm above the PCB**, against **11.5 mm** for the Bourns and
 > **12.7 mm** for the Coilcraft — about **double**, not the marginal difference first reported. Its
 > board-plane area (23.0 × 17.0 = 391 mm²) is, by contrast, almost identical to the Bourns' 384 mm²

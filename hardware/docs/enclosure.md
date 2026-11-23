@@ -24,11 +24,11 @@ thermal record is §9 (kept at §9 because the generator scripts cite it there).
 | Board outline | **140 × 100 mm**, 1.6 mm thick, 1 mm corner radius |
 | Mounting | **4 × M3**, 3.2 mm non-plated holes, **5 mm in from each corner**; keep 6 mm diameter clear for a washer or standoff |
 | Hole centres, from the top-left corner (antenna edge at the top) | (5, 5), (135, 5), (5, 95), (135, 95) mm |
-| Tallest part, top side | **L2, 24.0 mm max** (Würth 7448031002 choke, THT on a 3 mm standoff). Next are C3 and C68, about 10.5 mm |
+| Tallest part, top side | **L2, 25.0 mm max** above the board (Würth 7448031002 choke, THT, seated on its own moulded base; no separate standoff). Its body is 24.0 × 17.0 mm max. The KiCad 3D model stands only 21.3 mm, so size the enclosure from the datasheet, not the STEP. Next are C3 and C68, about 10.5 mm |
 | Bottom side | No parts. The THT leads of J2 and L2 and the soldered wire tails protrude: use standoffs of **at least 5 mm** |
 | Cable edge | The **bottom** 140 mm edge. All eight wire tails in one row (J1, J3, J4, J5, J8, J10, J9, J11), spanning about 122 mm |
 | Antenna edge | The **top** edge, opposite the cables (§2) |
-| Internal depth | Standoff + 1.6 mm + 24 mm + clearance: **at least ~35 mm**. The layout spec assumed about 50 mm, which fits |
+| Internal depth | Standoff + 1.6 mm + 25 mm + clearance: **at least ~36 mm**. The layout spec assumed about 50 mm, which fits |
 | Service loop | Enough slack on every tail to lift the board out with the glands slackened. Nothing unplugs |
 | Lid-off access | J2 (programming), SW1 (BOOT) and SW2 (EN) beside it, and the 30 test pads. Normal updates are over WiFi, so the lid stays on in service |
 
