@@ -27,7 +27,7 @@ ANTENNA_CLEAR = 15.0                       # Espressif: no metal within 15 mm
 
 # Height above the board top (mm) for parts whose 3D model does not resolve here, or has none.
 FALLBACK_HEIGHT = {
-    "L2": 24.0,   # Würth 7448031002 on its 3 mm standoff, enclosure.md §1 (model path does not resolve)
+    "L2": 25.0,   # Würth 7448031002: 25,0 max in the datasheet side view, from its base on the board
     "U1": 1.75, "U2": 1.75,   # SOIC-8-EP, JEDEC MS-012 max
     "U14": 1.2,               # Infineon PG-TSDSO-14, datasheet max
     "Q13": 1.1, "Q14": 1.1,   # PowerPAK SO-8L
@@ -39,9 +39,10 @@ FALLBACK_HEIGHT = {
     # routed by hand and checked as a lid clearance, not modelled.
     "J1": 3.0, "J3": 3.0, "J4": 3.0, "J5": 3.0, "J8": 3.0, "J9": 3.0, "J10": 3.0, "J11": 3.0,
 }
-# Datasheet floors: a resolved 3D model may not include everything above the board (L2's STEP reads
-# 11.6 mm: it lacks the 3 mm standoff and its local frames). The datasheet figure wins when higher.
-DATASHEET_MIN = {"L2": 24.0}  # enclosure.md §1: 24.0 mm max above the board
+# Datasheet floors: a 3D model can be nominal, not maximum. L2's placed STEP tops out about 21.3 mm
+# above the board; the Würth drawing gives 25,0 max (body 24 x 17 x 25 max; the "24,0 max" there is the
+# width). The datasheet figure wins when higher.
+DATASHEET_MIN = {"L2": 25.0}
 TEST_PAD_HEIGHT = 0.1
 
 

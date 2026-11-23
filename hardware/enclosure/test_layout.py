@@ -48,12 +48,12 @@ def test_interior():
 def test_lid_clearance_tracks_standoff():
     _, lay = fresh()
     z8 = lay["lid"]["z_underside"]
-    check("lid clear of L2", z8 - (8 + 1.6 + 24.0) >= 3, z8)
+    check("lid clear of L2", z8 - (8 + 1.6 + 25.0) >= 3, z8)
     # The lid always clears L2 by lid_gap; the gland rows may set the height instead, so use a
     # standoff tall enough that L2 governs.
     _, lay20 = fresh(standoff=20)
     z20 = lay20["lid"]["z_underside"]
-    check("lid clears L2 at standoff 20", z20 >= 20 + 1.6 + 24.0 + L.P["lid_gap"] - 1e-9, z20)
+    check("lid clears L2 at standoff 20", z20 >= 20 + 1.6 + 25.0 + L.P["lid_gap"] - 1e-9, z20)
     check("lid moves with standoff", z20 > z8, (z8, z20))
 
 

@@ -40,14 +40,14 @@ The zone is x 55.75–134.25, from 15 mm beyond the antenna edge to y 21.44, at 
 
 `build_housing.py` imports the board STEP (`ref/mccan-board.step`, 163 bodies) and places it on the
 standoffs. It adds envelope blocks (courtyard × height) for the 20 parts whose height does not come
-from a resolved 3D model, L2 among them at its datasheet 24.0 mm. Then it runs Fusion's interference
+from a resolved 3D model, L2 among them at its datasheet 25.0 mm max. Then it runs Fusion's interference
 analysis.
 
 | Check | Result |
 |---|---|
 | Interference, housing / hardware / glands × board / envelopes | **0** |
 | Same check with `lid_gap = −2`, to prove it can fail | 1 hit: lid × L2 |
-| Lid underside to the tallest part (L2) | **10.9 mm** (≥ 3 required; the gland rows set the height) |
+| Lid underside to the tallest part (L2) | **10.0 mm** (≥ 3 required; the gland rows set the height) |
 | Glands and vent to the nearest board body | **1.6 mm** (the vent's inside nut over the PCB) |
 | Metal bodies in the antenna zone | **0** |
 | Rule checks in `layout.py`: screw pitch, seal, gland tool room against the drafted wall, bosses, H2 screw length, wall gap, vent against the board, parts, ears and flange | all pass |
@@ -144,8 +144,11 @@ from scratch on every run.
 - The H2 nut slot needs a side action if moulded. The alternative is a moulded-in nylon nut.
 - 16 parts' KiCad 3D models do not resolve on this PC. One of them is L2, whose model path is
   `7448031002.stp` while the file is `hardware/3dmodels/Wurth_WE-CMBNC_7448031002.stp`. This only
-  affects 3D exports, and it was reported to the Main Board session. **Even resolved, L2's STEP
-  reads 11.6 mm** (no standoff), so the extractor keeps the datasheet 24.0 mm as a floor.
+  affects 3D exports. The Main Board session has fixed all 16 on branch `fix-3d-model-paths` (not
+  yet on main); the check above was also run against that board STEP (all models resolved): 0
+  interference, lid to L2 10.0 mm, no metal in the antenna zone. **L2's placed STEP is nominal,
+  about 21.3 mm** above the board, while the Würth drawing gives 25.0 mm max (body 24 × 17 × 25
+  max; the "24,0 max" there is the width; no standoff). The extractor keeps 25.0 mm as a floor.
 - Deferred review minors:
   - the vent is not rule-checked against the +x insert boss (1 mm today);
   - the H2 nut slot leaves thin boss walls on its +x side;

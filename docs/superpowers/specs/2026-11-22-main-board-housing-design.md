@@ -64,7 +64,7 @@ file is in KiCad coordinates, with the board's top-left corner at (20, 20). The 
 - Holes H1–H4: Ø3.2 mm at (5, 5), (135, 5), (5, 95), (135, 95). Keep a Ø6 mm circle clear for the
   standoff face.
 - Underside: THT leads and soldered wire tails protrude, so the standoffs must be **at least 5 mm**.
-- The tallest part is **L2**, 24.0 mm above the board (a Würth 7448031002, body 23 × 17 mm at x
+- The tallest part is **L2**, 25.0 mm max above the board (a Würth 7448031002, body 24 × 17 × 25 mm max at x
   7.25–30.25, y 32.15–49.15). Next come C3 and C68 (10.5 mm), then the IHLP inductor L1.
 - Cable tails, along the bottom (cable) edge, pin 1 on the left: J1, J3, J4, J5, J8, J10, J9 and J11.
   The pads lie roughly at y 79–86, and their strain-relief holes sit toward the edge.
@@ -101,7 +101,7 @@ file is in KiCad coordinates, with the board's top-left corner at (20, 20). The 
   and writes `hardware/enclosure/board.json`. That file holds the outline, the holes, every
   footprint's courtyard rectangle and height, the cable-tail pads, J2/SW1/SW2 and the antenna zone.
   Heights come from the KiCad 3D models where they resolve; otherwise they come from an explicit
-  table in the script, citing the datasheet (L2 24.0 mm from `enclosure.md`).
+  table in the script, citing the datasheet (L2 25.0 mm max from the Würth drawing).
 - `hardware/enclosure/build_housing.py` is a **Fusion API script**, run through the MCP. It reads
   `board.json` and a parameter table at its top, then builds the housing in a new Fusion document as
   **user parameters** plus features, so the owner can edit the parameters by hand in Fusion.
@@ -183,7 +183,7 @@ file is in KiCad coordinates, with the board's top-left corner at (20, 20). The 
 1. **Interference:** the board STEP, exported by `kicad-cli` (read-only) and placed on the
    standoffs, shows zero interference with the base and lid in Fusion. Parts whose KiCad 3D model
    is missing are stood in by envelope blocks (courtyard × height from `board.json`), with L2 as the
-   Würth STEP or a 23 × 17 × 24 mm block.
+   Würth STEP or a courtyard × 25 mm block.
 2. **Clearance rules** (scripted, from `board.json`):
    - lid to the tallest part ≥ 3 mm;
    - standoff top faces within Ø6 mm, and the boss clear of every courtyard by ≥ 0.5 mm;
@@ -217,8 +217,10 @@ file is in KiCad coordinates, with the board's top-left corner at (20, 20). The 
 - §6.7: the vent sits at y 70, z 20.1. Its inside nut must clear the board edge and parts, and it
   sits between the ear gussets.
 - §6.8: each ear has two triangular gussets, and its root is 2 mm into the wall.
-- §4.1: L2 keeps its datasheet height of 24.0 mm as a floor, even if its 3D model resolves, because
-  the STEP reads 11.6 mm.
+- §4.1: L2 keeps its datasheet height of 25.0 mm max as a floor, even if its 3D model resolves,
+  because the placed STEP is nominal (about 21.3 mm). The Würth drawing's "24,0 max" is the width,
+  not the height; there is no standoff. The interior is set by the gland rows, so this did not
+  change the geometry: lid to L2 is 10.0 mm.
 
 ## 9. Reported to the Coordinator (no action taken here)
 - 16 parts' 3D models do not resolve in `kicad-cli` on this PC: L2 (its model path is

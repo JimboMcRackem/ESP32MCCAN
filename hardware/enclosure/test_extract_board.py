@@ -45,13 +45,14 @@ def test_every_part_has_height():
             continue
         check("height>0 " + p["ref"], p["height"] > 0, p)
     l2 = PARTS["L2"]
-    check("L2 height", near(l2["height"], 24.0) and l2["height_src"] in ("table", "datasheet"), l2)
+    check("L2 height", near(l2["height"], 25.0) and l2["height_src"] in ("table", "datasheet"), l2)
 
 
 def test_datasheet_floor_beats_short_model():
-    # C1: L2's STEP (once its path resolves) reads 11.6 mm without the 3 mm standoff; 24.0 must win.
-    check("L2 floor", E.part_height("L2", 11.6) == (24.0, "datasheet"), E.part_height("L2", 11.6))
-    check("model above floor kept", E.part_height("L2", 25.0) == (25.0, "model"), E.part_height("L2", 25.0))
+    # L2: Würth 7448031002 is 25.0 mm max above the board (datasheet side view); its nominal STEP
+    # reads lower once placed (21.3 mm), so the datasheet figure must win over any shorter model.
+    check("L2 floor", E.part_height("L2", 21.3) == (25.0, "datasheet"), E.part_height("L2", 21.3))
+    check("model above floor kept", E.part_height("L2", 26.0) == (26.0, "model"), E.part_height("L2", 26.0))
     check("other part model", E.part_height("C3", 10.5) == (10.5, "model"), E.part_height("C3", 10.5))
     check("no model -> table", E.part_height("U1", None) == (1.75, "table"), E.part_height("U1", None))
 
